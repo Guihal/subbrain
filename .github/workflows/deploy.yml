@@ -48,6 +48,16 @@ jobs:
             docker compose build --pull
             docker compose up -d --force-recreate --remove-orphans
 
+            # Apply Caddyfile if changed
+            if [ -f deploy/Caddyfile ] && [ -f /etc/caddy/Caddyfile ]; then
+              DOMAIN=$(grep -oP '^\S+(?= \{)' /etc/caddy/Caddyfile | head -1)
+              if [ -n "$DOMAIN" ]; then
+                sed "s/{domain}/${DOMAIN}/g" deploy/Caddyfile > /etc/caddy/Caddyfile
+                systemctl reload caddy || systemctl restart caddy
+                echo "✅ Caddy reloaded (domain: $DOMAIN)"
+              fi
+            fi
+
             # Wait for health
             echo "Waiting for health check..."
             for i in $(seq 1 30); do
