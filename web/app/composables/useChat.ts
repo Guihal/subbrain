@@ -31,7 +31,11 @@ export const MODELS = [
   { value: "coder", label: "Кодер", description: "Qwen3 Coder 480B" },
   { value: "teamlead", label: "Лид", description: "Kimi K2 Thinking" },
   { value: "critic", label: "Критик", description: "Devstral 123B" },
-  { value: "generalist", label: "Генералист", description: "Mistral Large 3 675B" },
+  {
+    value: "generalist",
+    label: "Генералист",
+    description: "Mistral Large 3 675B",
+  },
 ] as const;
 
 export type ModelId = (typeof MODELS)[number]["value"];
