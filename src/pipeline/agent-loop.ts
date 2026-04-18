@@ -598,6 +598,19 @@ export class AgentLoop {
       `[Autonomous loop: ${steps.length} steps, reason: ${stoppedReason}]\n\n${finalAnswer}`,
     );
 
+    // Persist to chats table so autonomous runs appear in chat history
+    const chatId = sessionId || `auto-${requestId}`;
+    const chatTitle = req.task.slice(0, 80);
+    const chatSource = sessionId ? "web" : "autonomous";
+    this.memory.createChat(chatId, chatTitle, model, chatSource);
+    this.memory.appendChatMessage(chatId, "user", req.task);
+    if (finalAnswer) {
+      this.memory.appendChatMessage(chatId, "assistant", finalAnswer, {
+        model,
+        requestId,
+      });
+    }
+
     return {
       requestId,
       sessionId,
@@ -707,7 +720,7 @@ export class AgentLoop {
                     emit("done", { step, summary: toolResult });
                   }
 
-                  // Store in log
+                  // Store in log + chat
                   self.memory.appendLog(
                     requestId,
                     sessionId,
@@ -722,6 +735,28 @@ export class AgentLoop {
                     "assistant",
                     `[Autonomous: ${step} steps] ${toolResult}`,
                   );
+
+                  const chatId = sessionId || `auto-${requestId}`;
+                  const summary =
+                    (() => {
+                      try {
+                        return JSON.parse(tc.function.arguments).summary;
+                      } catch {
+                        return toolResult;
+                      }
+                    })() || toolResult;
+                  const chatSource = sessionId ? "web" : "autonomous";
+                  self.memory.createChat(
+                    chatId,
+                    req.task.slice(0, 80),
+                    model,
+                    chatSource,
+                  );
+                  self.memory.appendChatMessage(chatId, "user", req.task);
+                  self.memory.appendChatMessage(chatId, "assistant", summary, {
+                    model,
+                    requestId,
+                  });
 
                   controller.enqueue(
                     encoder.encode("event: end\ndata: {}\n\n"),
@@ -762,6 +797,20 @@ export class AgentLoop {
                 "assistant",
                 content,
               );
+
+              const chatId = sessionId || `auto-${requestId}`;
+              const chatSource = sessionId ? "web" : "autonomous";
+              self.memory.createChat(
+                chatId,
+                req.task.slice(0, 80),
+                model,
+                chatSource,
+              );
+              self.memory.appendChatMessage(chatId, "user", req.task);
+              self.memory.appendChatMessage(chatId, "assistant", content, {
+                model,
+                requestId,
+              });
               break;
             }
 

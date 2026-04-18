@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import type { Chat } from "~/composables/useChat";
 
+const emit = defineEmits<{
+  select: [];
+}>();
+
 const { chats, currentChatId, createNewChat, openChat, deleteChat, health } =
   useChat();
 
@@ -19,6 +23,16 @@ function handleDelete(chatId: string) {
 function doDelete(chatId: string) {
   deleteChat(chatId);
   confirmDelete.value = null;
+}
+
+function handleOpen(chatId: string) {
+  openChat(chatId);
+  emit("select");
+}
+
+function handleNewChat() {
+  createNewChat();
+  emit("select");
 }
 
 function sourceColor(source: string) {
@@ -41,7 +55,7 @@ function sourceColor(source: string) {
         icon="i-lucide-plus"
         label="Новый чат"
         block
-        @click="createNewChat"
+        @click="handleNewChat"
       />
     </div>
 
@@ -56,7 +70,7 @@ function sourceColor(source: string) {
             ? 'bg-(--ui-bg-accented) text-(--ui-text)'
             : 'text-(--ui-text-muted) hover:bg-(--ui-bg)/60 hover:text-(--ui-text)'
         "
-        @click="openChat(chat.id)"
+        @click="handleOpen(chat.id)"
       >
         <span
           class="text-[10px] font-mono shrink-0"

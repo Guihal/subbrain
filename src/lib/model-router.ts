@@ -242,8 +242,9 @@ export class ModelRouter {
           }
         };
 
+        let ok = false;
         try {
-          let ok = await tryModel(primary);
+          ok = await tryModel(primary);
           if (!ok && fallback) {
             ok = await tryModel(fallback);
           }
@@ -264,8 +265,10 @@ export class ModelRouter {
           );
         }
 
-        // Always emit DONE so clients never get "premature close"
-        controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+        // Only emit DONE if upstream didn't (error cases). Successful streams already include [DONE].
+        if (!ok) {
+          controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+        }
         controller.close();
       },
     });

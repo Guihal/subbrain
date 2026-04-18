@@ -10,7 +10,11 @@ const { render } = useMarkdown();
 
 const thinkingCollapsed = ref(true);
 
-const renderedContent = computed(() => render(props.message.content));
+const renderedContent = computed(() => {
+  // Strip any residual <think> tags that weren't extracted during streaming
+  const clean = props.message.content.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
+  return render(clean);
+});
 const renderedReasoning = computed(() =>
   props.message.reasoning ? render(props.message.reasoning) : "",
 );

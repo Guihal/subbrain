@@ -357,8 +357,13 @@ export class AgentPipeline {
         }, 8_000);
 
         try {
-          const emit = (text: string) =>
-            controller.enqueue(makeProgressChunk(text));
+          // Skip progress chunks when tools are present — they contaminate
+          // the SSE stream and confuse clients (Continue) that need clean
+          // tool_call deltas. Pre-processing itself still runs.
+          const hasTools = req.tools && req.tools.length > 0;
+          const emit = hasTools
+            ? (_text: string) => {} // silent — no progress chunks
+            : (text: string) => controller.enqueue(makeProgressChunk(text));
           let enrichedSystemPrompt: string | undefined;
 
           if (isFirstMessage) {

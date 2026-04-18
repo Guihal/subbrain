@@ -151,7 +151,8 @@ export function chatRoute(
         messages: t.Array(
           t.Object({
             role: t.String(),
-            content: t.Union([t.String(), t.Null()]),
+            content: t.Optional(t.Union([t.String(), t.Null()])),
+            name: t.Optional(t.String()),
             tool_calls: t.Optional(t.Any()),
             tool_call_id: t.Optional(t.String()),
           }),

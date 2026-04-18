@@ -50,6 +50,7 @@ export function useChat() {
   const streaming = useState("streaming", () => false);
   const currentModel = useState<ModelId>("model", () => "teamlead");
   const directMode = useState("direct-mode", () => false);
+  const agentMode = useState("agent-mode", () => true);
   const health = useState<HealthData | null>("health", () => null);
 
   const currentChat = computed(() =>
@@ -137,6 +138,32 @@ export function useChat() {
     if (directMode.value) headers["X-Direct-Mode"] = "true";
 
     try {
+      // Agent mode: use autonomous endpoint with tool loop
+      if (agentMode.value) {
+        const res = await rawFetch("/v1/autonomous", {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            task: text,
+            model: currentModel.value,
+            max_steps: 12,
+            stream: true,
+          }),
+        });
+
+        if (!res.ok) {
+          const err = await res.text();
+          updateLastAssistant({ content: `\u26a0\ufe0f \u041e\u0448\u0438\u0431\u043a\u0430 ${res.status}: ${err}` });
+          streaming.value = false;
+          return;
+        }
+
+        await readAgentSSE(res);
+        loadChats();
+        return;
+      }
+
+      // Normal chat mode
       const res = await rawFetch("/v1/chat/completions", {
         method: "POST",
         headers,
@@ -200,8 +227,15 @@ export function useChat() {
               didUpdate = true;
             }
             if (delta.content) {
+              // Handle <think> tags in streamed content
               content += delta.content;
-              updateLastAssistant({ content, reasoning });
+              const thinkRegex = /<think>([\s\S]*?)<\/think>/g;
+              let thinkMatch;
+              while ((thinkMatch = thinkRegex.exec(content)) !== null) {
+                reasoning += thinkMatch[1];
+              }
+              const cleanContent = content.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
+              updateLastAssistant({ content: cleanContent, reasoning });
               didUpdate = true;
             }
           } catch {
@@ -221,6 +255,88 @@ export function useChat() {
     if (!content && reasoning) {
       updateLastAssistant({ content: reasoning, reasoning });
     }
+  }
+
+  // ─── Agent SSE parser ─────────────────────────────────
+
+  async function readAgentSSE(res: Response) {
+    const reader = res.body!.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let reasoning = "";
+    let content = "";
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        let currentEvent = "";
+        let didUpdate = false;
+
+        for (const line of lines) {
+          if (line.startsWith("event: ")) {
+            currentEvent = line.slice(7).trim();
+            continue;
+          }
+          if (!line.startsWith("data: ")) continue;
+          const payload = line.slice(6).trim();
+
+          try {
+            const data = JSON.parse(payload);
+
+            switch (currentEvent) {
+              case "step":
+                reasoning += `\n── Шаг ${data.step}/${data.maxSteps}: ${data.status}\n`;
+                didUpdate = true;
+                break;
+              case "tool_call":
+                reasoning += `🛠 ${data.name}(${(data.args || "").slice(0, 120)})\n`;
+                didUpdate = true;
+                break;
+              case "tool_result":
+                reasoning += `→ ${(data.result || "").slice(0, 200)}\n`;
+                didUpdate = true;
+                break;
+              case "response":
+                content = extractThinkFromContent(data.content || "", (t) => { reasoning += t; });
+                didUpdate = true;
+                break;
+              case "done":
+                content = extractThinkFromContent(data.summary || "", (t) => { reasoning += t; });
+                didUpdate = true;
+                break;
+              case "error":
+                content += `\n⚠️ ${data.error}`;
+                didUpdate = true;
+                break;
+            }
+
+            if (didUpdate) updateLastAssistant({ content, reasoning });
+          } catch {
+            // Malformed JSON
+          }
+        }
+
+        if (didUpdate) await flushStreamingPaint();
+      }
+    } finally {
+      reader.releaseLock();
+    }
+  }
+
+  /** Extract <think>...</think> from content into reasoning callback */
+  function extractThinkFromContent(text: string, onThink: (t: string) => void): string {
+    const thinkRegex = /<think>([\s\S]*?)<\/think>/g;
+    let match;
+    while ((match = thinkRegex.exec(text)) !== null) {
+      onThink(match[1] || "");
+    }
+    return text.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
   }
 
   function updateLastAssistant(update: Partial<ChatMessage>) {
@@ -262,6 +378,7 @@ export function useChat() {
     streaming,
     currentModel,
     directMode,
+    agentMode,
     health,
     loadChats,
     openChat,

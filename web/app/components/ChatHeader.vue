@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const { currentModel, directMode } = useChat();
+const { currentModel, directMode, agentMode } = useChat();
 import { MODELS } from "~/composables/useChat";
 
 const modelItems = MODELS.map((m) => ({
@@ -13,6 +13,8 @@ const modelItems = MODELS.map((m) => ({
   <header
     class="flex items-center gap-3 px-4 py-2.5 border-b border-(--ui-border) bg-(--ui-bg-elevated) shrink-0"
   >
+    <slot name="leading" />
+
     <h1 class="text-base font-semibold flex items-center gap-2">
       🧠 <span>Subbrain</span>
     </h1>
@@ -27,6 +29,7 @@ const modelItems = MODELS.map((m) => ({
 
     <div class="flex-1" />
 
+    <USwitch v-model="agentMode" label="Agent" size="sm" />
     <USwitch v-model="directMode" label="Direct" size="sm" />
   </header>
 </template>

@@ -9,6 +9,7 @@ const {
 } = useChat();
 
 const messagesContainer = ref<HTMLElement>();
+const sidebarOpen = ref(false);
 
 // Auto-scroll on new messages
 watch(
@@ -63,14 +64,37 @@ async function handleSend(text: string) {
 
 <template>
   <div class="flex h-dvh">
+    <!-- Mobile sidebar overlay -->
+    <div
+      v-if="sidebarOpen"
+      class="fixed inset-0 z-40 bg-black/40 md:hidden"
+      @click="sidebarOpen = false"
+    />
+
     <!-- Sidebar -->
-    <div class="w-64 min-w-64 border-r border-(--ui-border) hidden md:block">
-      <ChatSidebar />
+    <div
+      class="w-64 min-w-64 border-r border-(--ui-border) bg-(--ui-bg-elevated) transition-transform duration-200"
+      :class="[
+        sidebarOpen ? 'fixed inset-y-0 left-0 z-50' : 'hidden',
+        'md:relative md:block md:translate-x-0',
+      ]"
+    >
+      <ChatSidebar @select="sidebarOpen = false" />
     </div>
 
     <!-- Main -->
     <div class="flex-1 flex flex-col min-w-0">
-      <ChatHeader />
+      <ChatHeader>
+        <template #leading>
+          <UButton
+            icon="i-lucide-menu"
+            variant="ghost"
+            size="sm"
+            class="md:hidden"
+            @click="sidebarOpen = !sidebarOpen"
+          />
+        </template>
+      </ChatHeader>
 
       <!-- Messages -->
       <div
