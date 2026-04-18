@@ -34,6 +34,10 @@ const autonomousIntervalMinutes = Math.max(
   1,
   Number(process.env.AUTONOMOUS_INTERVAL_MINUTES) || 15,
 );
+const autonomousStartupDelayMs = Math.max(
+  0,
+  Number(process.env.AUTONOMOUS_STARTUP_DELAY_MS) || 30_000,
+);
 const autonomousMaxSteps = Math.min(
   20,
   Math.max(1, Number(process.env.AUTONOMOUS_MAX_STEPS) || 8),
@@ -172,27 +176,20 @@ if (autonomousEnabled) {
   const intervalMs = autonomousIntervalMinutes * 60_000;
   let autonomousRunning = false;
 
-  logger.info(
-    "autonomous",
-    `Scheduler enabled: every ${autonomousIntervalMinutes} min`,
-    {
-      meta: {
-        intervalMs,
-        maxSteps: autonomousMaxSteps,
-      },
-    },
-  );
-
-  setInterval(() => {
+  const runAutonomous = (reason: "startup" | "interval") => {
     if (autonomousRunning) {
       logger.warn(
         "autonomous",
-        "Scheduled run skipped: previous autonomous loop still running",
+        `Scheduled run skipped: previous autonomous loop still running (${reason})`,
       );
       return;
     }
 
     autonomousRunning = true;
+    logger.info("autonomous", `Scheduled run started (${reason})`, {
+      meta: { maxSteps: autonomousMaxSteps },
+    });
+
     agentLoop
       .run({
         task: autonomousTask,
@@ -210,6 +207,7 @@ if (autonomousEnabled) {
               totalSteps: result.totalSteps,
               requestId: result.requestId,
               sessionId: result.sessionId,
+              reason,
             },
           },
         );
@@ -223,7 +221,22 @@ if (autonomousEnabled) {
       .finally(() => {
         autonomousRunning = false;
       });
-  }, intervalMs);
+  };
+
+  logger.info(
+    "autonomous",
+    `Scheduler enabled: every ${autonomousIntervalMinutes} min`,
+    {
+      meta: {
+        intervalMs,
+        maxSteps: autonomousMaxSteps,
+        startupDelayMs: autonomousStartupDelayMs,
+      },
+    },
+  );
+
+  setTimeout(() => runAutonomous("startup"), autonomousStartupDelayMs);
+  setInterval(() => runAutonomous("interval"), intervalMs);
 } else {
   logger.info("autonomous", "Scheduler disabled");
 }
