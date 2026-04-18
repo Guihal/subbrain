@@ -1,0 +1,63 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to server
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            set -e
+
+            APP_DIR="/opt/subbrain"
+            REPO="https://github.com/${{ github.repository }}.git"
+
+            # First deploy: clone
+            if [ ! -d "$APP_DIR" ]; then
+              git clone "$REPO" "$APP_DIR"
+            fi
+
+            cd "$APP_DIR"
+
+            # Pull latest
+            git fetch origin main
+            git reset --hard origin/main
+
+            # Ensure .env exists
+            if [ ! -f .env ]; then
+              echo "ERROR: .env not found on server. Create it first:"
+              echo "  scp .env user@server:/opt/subbrain/.env"
+              exit 1
+            fi
+
+            # Build and restart (DB volume is safe)
+            docker compose build --pull
+            docker compose up -d --force-recreate --remove-orphans
+
+            # Wait for health
+            echo "Waiting for health check..."
+            for i in $(seq 1 30); do
+              if curl -sf http://localhost:4000/health > /dev/null 2>&1; then
+                echo "✅ Subbrain is healthy"
+                exit 0
+              fi
+              sleep 2
+            done
+
+            echo "❌ Health check failed"
+            docker compose logs --tail=50
+            exit 1

@@ -1,0 +1,484 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Subbrain Chat</title>
+    <style>
+      :root {
+        --bg: #0d1117;
+        --surface: #161b22;
+        --border: #30363d;
+        --text: #e6edf3;
+        --muted: #8b949e;
+        --accent: #58a6ff;
+        --user-bg: #1f2937;
+        --bot-bg: #0d1117;
+        --font: "Segoe UI", system-ui, -apple-system, sans-serif;
+        --mono: "Cascadia Code", "Fira Code", "JetBrains Mono", monospace;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: var(--font);
+        background: var(--bg);
+        color: var(--text);
+        height: 100dvh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* ─── Header ─── */
+      header {
+        padding: 12px 20px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        background: var(--surface);
+      }
+      header h1 {
+        font-size: 16px;
+        font-weight: 600;
+      }
+      header select {
+        background: var(--bg);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 4px 8px;
+        font-size: 13px;
+        cursor: pointer;
+      }
+      header .status {
+        margin-left: auto;
+        font-size: 12px;
+        color: var(--muted);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      header .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #3fb950;
+        display: inline-block;
+      }
+
+      /* ─── Messages ─── */
+      #messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .msg {
+        max-width: 80%;
+        padding: 10px 14px;
+        border-radius: 12px;
+        font-size: 14px;
+        line-height: 1.55;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+      .msg.user {
+        align-self: flex-end;
+        background: var(--user-bg);
+        border-bottom-right-radius: 4px;
+      }
+      .msg.assistant {
+        align-self: flex-start;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-bottom-left-radius: 4px;
+      }
+      .msg .meta {
+        font-size: 11px;
+        color: var(--muted);
+        margin-top: 6px;
+      }
+      .msg code {
+        font-family: var(--mono);
+        background: rgba(110, 118, 129, 0.15);
+        padding: 1px 5px;
+        border-radius: 4px;
+        font-size: 13px;
+      }
+      .msg pre {
+        background: #010409;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 10px 12px;
+        margin: 8px 0;
+        overflow-x: auto;
+        font-size: 13px;
+      }
+      .msg pre code {
+        background: none;
+        padding: 0;
+      }
+      .typing {
+        opacity: 0.6;
+        font-style: italic;
+      }
+      .msg .thinking {
+        border-left: 3px solid var(--muted);
+        padding: 6px 10px;
+        margin-bottom: 8px;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.5;
+        max-height: 200px;
+        overflow-y: auto;
+        transition: max-height 0.3s ease;
+      }
+      .msg .thinking.collapsed {
+        max-height: 28px;
+        overflow: hidden;
+        cursor: pointer;
+      }
+      .msg .thinking-toggle {
+        font-size: 11px;
+        color: var(--muted);
+        cursor: pointer;
+        margin-bottom: 4px;
+        user-select: none;
+      }
+      .msg .thinking-toggle:hover {
+        color: var(--accent);
+      }
+
+      /* ─── Input ─── */
+      #input-area {
+        padding: 12px 20px;
+        border-top: 1px solid var(--border);
+        background: var(--surface);
+        display: flex;
+        gap: 10px;
+      }
+      #input-area textarea {
+        flex: 1;
+        background: var(--bg);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 10px 14px;
+        font-size: 14px;
+        font-family: var(--font);
+        resize: none;
+        outline: none;
+        min-height: 44px;
+        max-height: 200px;
+        line-height: 1.4;
+      }
+      #input-area textarea:focus {
+        border-color: var(--accent);
+      }
+      #input-area button {
+        background: var(--accent);
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        padding: 0 20px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      #input-area button:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+      #input-area button:hover:not(:disabled) {
+        filter: brightness(1.15);
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>🧠 Subbrain</h1>
+      <select id="model">
+        <option value="flash">Флэш (step-3.5)</option>
+        <option value="coder">Кодер (devstral)</option>
+        <option value="teamlead">Лид (kimi-k2)</option>
+        <option value="critic">Критик (qwen3-480b)</option>
+        <option value="generalist">Генералист (qwen3-480b)</option>
+      </select>
+      <label
+        style="
+          font-size: 13px;
+          color: var(--muted);
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        "
+      >
+        <input type="checkbox" id="direct-mode" /> Direct
+      </label>
+      <div class="status">
+        <span class="dot" id="status-dot"></span>
+        <span id="status-text">Подключён</span>
+        <span id="rpm-info" style="margin-left: 8px"></span>
+      </div>
+    </header>
+
+    <div id="messages"></div>
+
+    <div id="input-area">
+      <textarea
+        id="input"
+        rows="1"
+        placeholder="Напиши сообщение..."
+        autofocus
+      ></textarea>
+      <button id="send">Отправить</button>
+    </div>
+
+    <script>
+      const API = location.origin;
+      const TOKEN = "subbrain-local-dev";
+      const messagesEl = document.getElementById("messages");
+      const inputEl = document.getElementById("input");
+      const sendBtn = document.getElementById("send");
+      const modelEl = document.getElementById("model");
+      const directEl = document.getElementById("direct-mode");
+      const statusDot = document.getElementById("status-dot");
+      const statusText = document.getElementById("status-text");
+      const rpmInfo = document.getElementById("rpm-info");
+
+      let history = [];
+      let streaming = false;
+      let sessionId = crypto.randomUUID();
+
+      // Send button
+      sendBtn.addEventListener("click", () => sendMessage());
+
+      // Auto-resize textarea
+      inputEl.addEventListener("input", () => {
+        inputEl.style.height = "auto";
+        inputEl.style.height = Math.min(inputEl.scrollHeight, 200) + "px";
+      });
+
+      // Enter to send (Shift+Enter for newline)
+      inputEl.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          sendMessage();
+        }
+      });
+
+      // Health poll
+      async function checkHealth() {
+        try {
+          const r = await fetch(`${API}/health`);
+          const d = await r.json();
+          statusDot.style.background = "#3fb950";
+          statusText.textContent = "Подключён";
+          rpmInfo.textContent = `RPM: ${d.rpm.currentLoad}/${d.rpm.currentLoad + d.rpm.availableSlots}`;
+        } catch {
+          statusDot.style.background = "#f85149";
+          statusText.textContent = "Отключён";
+          rpmInfo.textContent = "";
+        }
+      }
+      checkHealth();
+      setInterval(checkHealth, 10000);
+
+      function addMessage(role, content) {
+        const div = document.createElement("div");
+        div.className = `msg ${role}`;
+        div.textContent = content;
+        messagesEl.appendChild(div);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+        return div;
+      }
+
+      function formatContent(el, text) {
+        // Simple markdown: code blocks and inline code
+        let html = text
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/```(\w*)\n([\s\S]*?)```/g, "<pre><code>$2</code></pre>")
+          .replace(/`([^`]+)`/g, "<code>$1</code>")
+          .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+          .replace(/\n/g, "<br>");
+        el.innerHTML = html;
+      }
+
+      async function sendMessage() {
+        const text = inputEl.value.trim();
+        if (!text || streaming) return;
+
+        addMessage("user", text);
+        history.push({ role: "user", content: text });
+        inputEl.value = "";
+        inputEl.style.height = "auto";
+
+        streaming = true;
+        sendBtn.disabled = true;
+        sendBtn.textContent = "...";
+
+        const botEl = addMessage("assistant", "");
+        botEl.classList.add("typing");
+
+        const headers = {
+          Authorization: `Bearer ${TOKEN}`,
+          "Content-Type": "application/json",
+          "X-Session-Id": sessionId,
+        };
+        if (directEl.checked) headers["X-Direct-Mode"] = "true";
+
+        try {
+          const res = await fetch(`${API}/v1/chat/completions`, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({
+              model: modelEl.value,
+              messages: history,
+              stream: true,
+              max_tokens: 4096,
+              temperature: 0.7,
+            }),
+          });
+
+          if (!res.ok) {
+            const err = await res.text();
+            botEl.textContent = `⚠️ Ошибка ${res.status}: ${err}`;
+            botEl.classList.remove("typing");
+            streaming = false;
+            sendBtn.disabled = false;
+            sendBtn.textContent = "Отправить";
+            return;
+          }
+
+          const reader = res.body.getReader();
+          const decoder = new TextDecoder();
+          let fullContent = "";
+          let fullReasoning = "";
+          let buffer = "";
+          let thinkingEl = null;
+          let contentEl = null;
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split("\n");
+            buffer = lines.pop(); // keep incomplete line
+
+            for (const line of lines) {
+              if (!line.startsWith("data: ")) continue;
+              const payload = line.slice(6).trim();
+              if (payload === "[DONE]") continue;
+
+              try {
+                const chunk = JSON.parse(payload);
+                const delta = chunk.choices?.[0]?.delta;
+                if (!delta) continue;
+
+                // Reasoning/thinking tokens
+                if (delta.reasoning_content) {
+                  fullReasoning += delta.reasoning_content;
+                  if (!thinkingEl) {
+                    const toggle = document.createElement("div");
+                    toggle.className = "thinking-toggle";
+                    toggle.textContent = "💭 Размышления...";
+                    botEl.appendChild(toggle);
+                    thinkingEl = document.createElement("div");
+                    thinkingEl.className = "thinking";
+                    botEl.appendChild(thinkingEl);
+                    toggle.onclick = () => {
+                      thinkingEl.classList.toggle("collapsed");
+                      toggle.textContent = thinkingEl.classList.contains(
+                        "collapsed",
+                      )
+                        ? "💭 Размышления (свернуть)"
+                        : "💭 Размышления...";
+                    };
+                  }
+                  thinkingEl.textContent = fullReasoning;
+                  messagesEl.scrollTop = messagesEl.scrollHeight;
+                }
+
+                // Actual content tokens
+                if (delta.content) {
+                  // When content starts, collapse thinking
+                  if (thinkingEl && !contentEl) {
+                    thinkingEl.classList.add("collapsed");
+                    const toggle = botEl.querySelector(".thinking-toggle");
+                    if (toggle)
+                      toggle.textContent = "💭 Размышления (развернуть)";
+                  }
+                  fullContent += delta.content;
+                  if (!contentEl) {
+                    contentEl = document.createElement("div");
+                    contentEl.className = "content";
+                    botEl.appendChild(contentEl);
+                  }
+                  formatContent(contentEl, fullContent);
+                  messagesEl.scrollTop = messagesEl.scrollHeight;
+                }
+              } catch {}
+            }
+          }
+
+          // If model only returned reasoning with no content, show it in content area
+          if (!fullContent && fullReasoning) {
+            fullContent = fullReasoning;
+            if (!contentEl) {
+              contentEl = document.createElement("div");
+              contentEl.className = "content";
+              botEl.appendChild(contentEl);
+            }
+            formatContent(contentEl, fullContent);
+          }
+
+          botEl.classList.remove("typing");
+
+          // Add metadata
+          const reqId = res.headers.get("X-Request-Id");
+          const model = modelEl.value;
+          if (reqId || model) {
+            const meta = document.createElement("div");
+            meta.className = "meta";
+            meta.textContent = [
+              model,
+              reqId ? reqId.substring(0, 8) + "..." : "",
+            ]
+              .filter(Boolean)
+              .join(" · ");
+            botEl.appendChild(meta);
+          }
+
+          history.push({ role: "assistant", content: fullContent });
+          checkHealth(); // refresh RPM
+        } catch (err) {
+          botEl.textContent = `⚠️ Сетевая ошибка: ${err.message}`;
+          botEl.classList.remove("typing");
+        }
+
+        streaming = false;
+        sendBtn.disabled = false;
+        sendBtn.textContent = "Отправить";
+      }
+
+      // New session
+      document.addEventListener("keydown", (e) => {
+        if (e.ctrlKey && e.key === "l") {
+          e.preventDefault();
+          history = [];
+          messagesEl.innerHTML = "";
+          sessionId = crypto.randomUUID();
+        }
+      });
+    </script>
+  </body>
+</html>

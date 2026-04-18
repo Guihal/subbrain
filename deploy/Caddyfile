@@ -1,0 +1,27 @@
+{domain} {
+    reverse_proxy localhost:4000
+
+    # SSE / streaming — disable buffering
+    @streaming {
+        path /v1/chat/completions
+        path /v1/autonomous
+    }
+    reverse_proxy @streaming localhost:4000 {
+        flush_interval -1
+        transport http {
+            response_header_timeout 120s
+        }
+    }
+
+    # Security headers
+    header {
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        Referrer-Policy strict-origin-when-cross-origin
+    }
+
+    log {
+        output file /var/log/caddy/subbrain.log
+        format json
+    }
+}

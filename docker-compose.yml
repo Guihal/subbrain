@@ -1,0 +1,35 @@
+services:
+  subbrain:
+    build: .
+    container_name: subbrain
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:4000:4000"
+    volumes:
+      # Persistent volume for SQLite DB + logs
+      # This survives container rebuilds, image updates, everything.
+      - subbrain-data:/data
+    env_file:
+      - .env
+    environment:
+      - DB_PATH=/data/subbrain.db
+      - LOG_DIR=/data/logs
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "bun",
+          "-e",
+          "fetch('http://localhost:4000/health').then(r=>r.ok?process.exit(0):process.exit(1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  # Named volume — lives in /var/lib/docker/volumes/subbrain-data/
+  # `docker compose down` does NOT delete it
+  # Only `docker compose down -v` or `docker volume rm` deletes it
+  subbrain-data:
+    name: subbrain-data
