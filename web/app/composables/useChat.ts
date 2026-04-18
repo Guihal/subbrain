@@ -174,6 +174,7 @@ export function useChat() {
         const { done, value } = await reader.read();
         if (done) break;
 
+        let didUpdate = false;
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split("\n");
         buffer = lines.pop() || "";
@@ -191,14 +192,20 @@ export function useChat() {
             if (delta.reasoning_content) {
               reasoning += delta.reasoning_content;
               updateLastAssistant({ reasoning, content });
+              didUpdate = true;
             }
             if (delta.content) {
               content += delta.content;
               updateLastAssistant({ content, reasoning });
+              didUpdate = true;
             }
           } catch {
             // Malformed chunk
           }
+        }
+
+        if (didUpdate) {
+          await flushStreamingPaint();
         }
       }
     } finally {
@@ -218,6 +225,16 @@ export function useChat() {
       msgs[msgs.length - 1] = { ...last, ...update };
       messages.value = msgs;
     }
+  }
+
+  async function flushStreamingPaint() {
+    await nextTick();
+
+    if (!import.meta.client) return;
+
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => resolve());
+    });
   }
 
   // ─── Health ───────────────────────────────────────────
