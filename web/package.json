@@ -1,0 +1,24 @@
+{
+  "name": "subbrain-web",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "nuxt dev",
+    "build": "nuxt build",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview"
+  },
+  "devDependencies": {
+    "@iconify-json/lucide": "^1.2.102",
+    "@nuxt/ui": "^4.6.1",
+    "@nuxtjs/color-mode": "^4.0.0",
+    "@types/bun": "latest",
+    "@vueuse/nuxt": "^14.2.1"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "nuxt": "^4.4.2"
+  }
+}

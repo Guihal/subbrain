@@ -211,7 +211,7 @@ export function migrate(db: Database): void {
       id         TEXT PRIMARY KEY,
       title      TEXT NOT NULL DEFAULT 'Новый чат',
       model      TEXT NOT NULL DEFAULT 'teamlead',
-      source     TEXT NOT NULL DEFAULT 'web' CHECK(source IN ('web', 'api', 'autonomous', 'continue')),
+      source     TEXT NOT NULL DEFAULT 'web' CHECK(source IN ('web', 'api', 'autonomous', 'continue', 'telegram')),
       created_at INTEGER NOT NULL DEFAULT (unixepoch()),
       updated_at INTEGER NOT NULL DEFAULT (unixepoch())
     );
@@ -235,6 +235,67 @@ export function migrate(db: Database): void {
 
     CREATE INDEX IF NOT EXISTS idx_chatmsg_chat ON chat_messages(chat_id, id);
   `);
+
+  // ─── Migrations ─────────────────────────────────────────
+  // Add 'telegram' to chats.source CHECK constraint (SQLite requires table rebuild)
+  const version = db
+    .query<{ user_version: number }, []>("PRAGMA user_version")
+    .get()!.user_version;
+  if (version < 1) {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS chats_new (
+        id         TEXT PRIMARY KEY,
+        title      TEXT NOT NULL DEFAULT 'Новый чат',
+        model      TEXT NOT NULL DEFAULT 'teamlead',
+        source     TEXT NOT NULL DEFAULT 'web' CHECK(source IN ('web', 'api', 'autonomous', 'continue', 'telegram')),
+        created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+        updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+      );
+      INSERT OR IGNORE INTO chats_new SELECT * FROM chats;
+      DROP TABLE chats;
+      ALTER TABLE chats_new RENAME TO chats;
+      CREATE INDEX IF NOT EXISTS idx_chats_updated ON chats(updated_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_chats_source  ON chats(source);
+      PRAGMA user_version = 1;
+    `);
+  }
+
+  // Migration 2: Telegram chat exclusions table
+  if (version < 2) {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS tg_excluded_chats (
+        chat_id    TEXT PRIMARY KEY,
+        chat_title TEXT NOT NULL DEFAULT '',
+        reason     TEXT NOT NULL DEFAULT 'private',
+        created_at INTEGER NOT NULL DEFAULT (unixepoch())
+      );
+      PRAGMA user_version = 2;
+    `);
+  }
+
+  // Migration 3: Add 'reasoning' role to layer4_log CHECK constraint
+  if (version < 3) {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS layer4_log_new (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        request_id  TEXT NOT NULL,
+        session_id  TEXT NOT NULL,
+        agent_id    TEXT NOT NULL,
+        role        TEXT NOT NULL CHECK(role IN ('user', 'assistant', 'system', 'tool', 'reasoning')),
+        content     TEXT NOT NULL,
+        token_count INTEGER,
+        created_at  INTEGER NOT NULL DEFAULT (unixepoch())
+      );
+      INSERT INTO layer4_log_new SELECT * FROM layer4_log;
+      DROP TABLE layer4_log;
+      ALTER TABLE layer4_log_new RENAME TO layer4_log;
+      CREATE INDEX IF NOT EXISTS idx_log_request  ON layer4_log(request_id);
+      CREATE INDEX IF NOT EXISTS idx_log_session  ON layer4_log(session_id);
+      CREATE INDEX IF NOT EXISTS idx_log_agent    ON layer4_log(agent_id);
+      CREATE INDEX IF NOT EXISTS idx_log_created  ON layer4_log(created_at);
+      PRAGMA user_version = 3;
+    `);
+  }
 }
 
 export { EMBEDDING_DIM };

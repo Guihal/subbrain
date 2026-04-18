@@ -9,16 +9,32 @@ export interface UserbotConfig {
   /** Saved session string. Empty string for first login. */
   session: string;
   memory: MemoryDB;
-  /** MTProto proxy (optional) */
-  proxy?: {
-    ip: string;
-    port: number;
-    secret: string;
+  /** TCP tunnel host for MTProto (bypasses RKN via socat on VPS).
+   * Port mapping: DC1→basePort+1, DC2→basePort+2, etc. */
+  tunnel?: {
+    host: string;
+    basePort: number; // e.g. 19150 → DC1=19151, DC2=19152...
   };
 }
 
+export interface TgDialog {
+  name: string;
+  id: string;
+  type: "channel" | "group" | "private";
+  unreadCount: number;
+  excluded: boolean;
+}
+
+export interface TgMessage {
+  id: number;
+  sender: string;
+  text: string;
+  date: string; // ISO
+  replyToId?: number;
+}
+
 /**
- * MTProto userbot — monitors channels, reads chat history.
+ * MTProto userbot — reads user's Telegram chats (except excluded).
  * Runs alongside the bot. Session is persisted as a string in env.
  */
 export class Userbot {
@@ -26,25 +42,50 @@ export class Userbot {
   private memory: MemoryDB;
   private monitoredChannels: string[] = [];
   private running = false;
+  private connected = false;
 
   constructor(private config: UserbotConfig) {
     const session = new StringSession(config.session);
 
     this.client = new TelegramClient(session, config.apiId, config.apiHash, {
       connectionRetries: 5,
-      ...(config.proxy
-        ? {
-            useWSS: false,
-            proxy: {
-              ip: config.proxy.ip,
-              port: config.proxy.port,
-              socksType: undefined,
-              MTProxy: true,
-              secret: config.proxy.secret,
-            },
-          }
-        : {}),
+      useWSS: false,
     });
+
+    // Override DC resolution to route through TCP tunnel.
+    // GramJS hardcodes port to 80 in connect(), ignoring session.port.
+    // We wrap the Connection class to inject tunnel host:port for every DC.
+    if (config.tunnel) {
+      const { host, basePort } = config.tunnel;
+
+      // Wrap Connection class — all connections go through tunnel
+      const OrigConnection = (this.client as any)._connection;
+      (this.client as any)._connection = class TunnelConnection extends (
+        OrigConnection
+      ) {
+        constructor(opts: any) {
+          const dcId = opts.dcId || 2;
+          super({ ...opts, ip: host, port: basePort + dcId });
+        }
+      };
+
+      // Override getDC for _switchDC / _connectSender (secondary DCs)
+      const origGetDC = this.client.getDC.bind(this.client);
+      this.client.getDC = async (
+        dcId: number,
+        downloadDC = false,
+        web = false,
+      ) => {
+        const result = await origGetDC(dcId, downloadDC, web);
+        result.ipAddress = host;
+        result.port = basePort + dcId;
+        return result;
+      };
+
+      // Set session DC so GramJS passes correct ip to Connection
+      (this.client.session as any).setDC(2, host, basePort + 2);
+    }
+
     this.memory = config.memory;
   }
 
@@ -78,11 +119,141 @@ export class Userbot {
   async connect(): Promise<void> {
     await this.client.connect();
     const me = await this.client.getMe();
+    this.connected = true;
     logger.info(
       "userbot",
       `Connected as ${(me as any).firstName} (@${(me as any).username})`,
     );
   }
+
+  isConnected(): boolean {
+    return this.connected;
+  }
+
+  // ─── Chat Reading (with exclusions) ────────────────────────
+
+  /** List all dialogs, marking excluded ones */
+  async listChats(limit = 100): Promise<TgDialog[]> {
+    const excluded = this.memory.getExcludedTgChatIds();
+    const dialogs = await this.client.getDialogs({ limit });
+    return dialogs.map((d) => {
+      const id = d.id?.toString() || "";
+      return {
+        name: d.title || "Unknown",
+        id,
+        type: d.isChannel
+          ? ("channel" as const)
+          : d.isGroup
+            ? ("group" as const)
+            : ("private" as const),
+        unreadCount: d.unreadCount || 0,
+        excluded: excluded.has(id),
+      };
+    });
+  }
+
+  /** Read messages from a chat (respects exclusions) */
+  async readChat(
+    chatId: string,
+    limit = 50,
+    offsetId?: number,
+  ): Promise<TgMessage[]> {
+    const excluded = this.memory.getExcludedTgChatIds();
+    if (excluded.has(chatId)) {
+      throw new Error(`Chat ${chatId} is excluded from reading`);
+    }
+
+    const entity = await this.client.getEntity(chatId);
+    const messages = await this.client.getMessages(entity, {
+      limit,
+      ...(offsetId ? { offsetId } : {}),
+    });
+
+    return messages
+      .filter((m) => m.message)
+      .map((m) => ({
+        id: m.id,
+        sender:
+          (m.sender as any)?.firstName || (m.sender as any)?.title || "Unknown",
+        text: m.message || "",
+        date: new Date(m.date * 1000).toISOString(),
+        ...(m.replyTo ? { replyToId: (m.replyTo as any).replyToMsgId } : {}),
+      }));
+  }
+
+  /** Search messages across all non-excluded chats */
+  async searchMessages(
+    query: string,
+    limit = 30,
+    chatId?: string,
+  ): Promise<(TgMessage & { chatName: string; chatId: string })[]> {
+    const excluded = this.memory.getExcludedTgChatIds();
+
+    if (chatId) {
+      if (excluded.has(chatId)) {
+        throw new Error(`Chat ${chatId} is excluded from reading`);
+      }
+    }
+
+    const peer = chatId ? await this.client.getEntity(chatId) : undefined;
+
+    const result = await this.client.invoke(
+      new Api.messages.SearchGlobal({
+        q: query,
+        filter: new Api.InputMessagesFilterEmpty(),
+        minDate: 0,
+        maxDate: 0,
+        offsetRate: 0,
+        offsetPeer: new Api.InputPeerEmpty(),
+        offsetId: 0,
+        limit,
+        ...(peer ? { peer } : {}),
+      }),
+    );
+
+    const messages: (TgMessage & { chatName: string; chatId: string })[] = [];
+    if ("messages" in result) {
+      for (const m of result.messages) {
+        if (!("message" in m) || !m.message) continue;
+
+        const peerId =
+          (m.peerId as any)?.channelId?.toString() ||
+          (m.peerId as any)?.chatId?.toString() ||
+          (m.peerId as any)?.userId?.toString() ||
+          "";
+
+        if (excluded.has(peerId)) continue;
+
+        // Resolve chat name
+        let chatName = peerId;
+        if ("chats" in result) {
+          const chat = (result.chats as any[]).find(
+            (c: any) => c.id?.toString() === peerId,
+          );
+          if (chat) chatName = chat.title || chatName;
+        }
+        if ("users" in result) {
+          const user = (result.users as any[]).find(
+            (u: any) => u.id?.toString() === peerId,
+          );
+          if (user) chatName = user.firstName || chatName;
+        }
+
+        messages.push({
+          id: m.id,
+          sender: chatName,
+          text: m.message,
+          date: new Date(m.date * 1000).toISOString(),
+          chatName,
+          chatId: peerId,
+        });
+      }
+    }
+
+    return messages;
+  }
+
+  // ─── Channel Monitoring ────────────────────────────────────
 
   /** Set channels to monitor (usernames or IDs) */
   setMonitoredChannels(channels: string[]): void {
@@ -106,6 +277,10 @@ export class Userbot {
           msg.peerId?.channelId?.toString() || msg.peerId?.chatId?.toString();
         if (!chatId) return;
 
+        // Skip excluded chats
+        const excluded = this.memory.getExcludedTgChatIds();
+        if (excluded.has(chatId)) return;
+
         // Check if this channel is monitored
         const entity = await this.client.getEntity(msg.peerId);
         const username = (entity as any).username;
@@ -119,7 +294,6 @@ export class Userbot {
         const text = msg.message;
         if (!text) return;
 
-        // Store in Layer 4 (raw log) for night cycle processing
         this.memory.appendLog(
           `tg-monitor-${Date.now()}`,
           "telegram",
@@ -140,37 +314,9 @@ export class Userbot {
     logger.info("userbot", "Channel monitoring started");
   }
 
-  /** Fetch recent messages from a channel (for backfill) */
-  async fetchChannelHistory(
-    channel: string,
-    limit = 50,
-  ): Promise<{ sender: string; text: string; date: Date }[]> {
-    const entity = await this.client.getEntity(channel);
-    const messages = await this.client.getMessages(entity, { limit });
-
-    return messages
-      .filter((m) => m.message)
-      .map((m) => ({
-        sender: (m.sender as any)?.firstName || "Unknown",
-        text: m.message || "",
-        date: new Date(m.date * 1000),
-      }));
-  }
-
-  /** Get list of user's dialogs (chats, groups, channels) */
-  async getDialogs(
-    limit = 30,
-  ): Promise<{ name: string; id: string; type: string }[]> {
-    const dialogs = await this.client.getDialogs({ limit });
-    return dialogs.map((d) => ({
-      name: d.title || "Unknown",
-      id: d.id?.toString() || "",
-      type: d.isChannel ? "channel" : d.isGroup ? "group" : "private",
-    }));
-  }
-
   async disconnect(): Promise<void> {
     this.running = false;
+    this.connected = false;
     await this.client.disconnect();
     logger.info("userbot", "Disconnected");
   }

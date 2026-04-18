@@ -440,6 +440,35 @@ export class MemoryDB {
       .query("SELECT * FROM chat_messages WHERE chat_id = ? ORDER BY id ASC")
       .all(chatId) as ChatMessageRow[];
   }
+
+  // ─── Telegram Chat Exclusions ──────────────────────────────
+
+  getExcludedTgChats(): TgExcludedChatRow[] {
+    return this.db
+      .query("SELECT * FROM tg_excluded_chats ORDER BY created_at")
+      .all() as TgExcludedChatRow[];
+  }
+
+  getExcludedTgChatIds(): Set<string> {
+    const rows = this.db
+      .query("SELECT chat_id FROM tg_excluded_chats")
+      .all() as { chat_id: string }[];
+    return new Set(rows.map((r) => r.chat_id));
+  }
+
+  excludeTgChat(chatId: string, chatTitle: string, reason = "private"): void {
+    this.db
+      .query(
+        "INSERT OR REPLACE INTO tg_excluded_chats (chat_id, chat_title, reason) VALUES (?, ?, ?)",
+      )
+      .run(chatId, chatTitle, reason);
+  }
+
+  includeTgChat(chatId: string): void {
+    this.db
+      .query("DELETE FROM tg_excluded_chats WHERE chat_id = ?")
+      .run(chatId);
+  }
 }
 
 // ─── Row Types ──────────────────────────────────────────────
@@ -530,5 +559,12 @@ export interface ChatMessageRow {
   reasoning: string | null;
   model: string | null;
   request_id: string | null;
+  created_at: number;
+}
+
+export interface TgExcludedChatRow {
+  chat_id: string;
+  chat_title: string;
+  reason: string;
   created_at: number;
 }

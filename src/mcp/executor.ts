@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import type { MemoryDB, FtsResult, VecResult } from "../db";
 import type { ModelRouter } from "../lib/model-router";
 import type { RAGPipeline } from "../rag";
+import type { Userbot } from "../telegram/userbot";
 
 export interface ToolResult {
   success: boolean;
@@ -15,6 +16,7 @@ export interface ToolResult {
  */
 export class ToolExecutor {
   private rag: RAGPipeline | null = null;
+  private userbot: Userbot | null = null;
 
   constructor(
     private memory: MemoryDB,
@@ -24,6 +26,11 @@ export class ToolExecutor {
   /** Set RAG pipeline (avoids circular dependency) */
   setRAG(rag: RAGPipeline): void {
     this.rag = rag;
+  }
+
+  /** Set Telegram userbot for chat reading */
+  setUserbot(userbot: Userbot): void {
+    this.userbot = userbot;
   }
 
   // ─── Memory CRUD ─────────────────────────────────────────
@@ -353,5 +360,85 @@ export class ToolExecutor {
 
     const summary = result.choices[0]?.message?.content || "Failed to compress";
     return { success: true, data: { summary } };
+  }
+
+  // ─── Telegram Chat Tools ─────────────────────────────────
+
+  private requireUserbot(): Userbot {
+    if (!this.userbot || !this.userbot.isConnected()) {
+      throw new Error(
+        "Telegram userbot not connected. Set TG_API_ID, TG_API_HASH, TG_SESSION.",
+      );
+    }
+    return this.userbot;
+  }
+
+  async tgListChats(limit = 100): Promise<ToolResult> {
+    try {
+      const ub = this.requireUserbot();
+      const chats = await ub.listChats(limit);
+      return { success: true, data: chats };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  }
+
+  async tgReadChat(
+    chatId: string,
+    limit = 50,
+    offsetId?: number,
+  ): Promise<ToolResult> {
+    try {
+      const ub = this.requireUserbot();
+      const messages = await ub.readChat(chatId, limit, offsetId);
+      return { success: true, data: messages };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  }
+
+  async tgSearchMessages(
+    query: string,
+    limit = 30,
+    chatId?: string,
+  ): Promise<ToolResult> {
+    try {
+      const ub = this.requireUserbot();
+      const messages = await ub.searchMessages(query, limit, chatId);
+      return { success: true, data: messages };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  }
+
+  tgExcludeChat(
+    chatId: string,
+    chatTitle: string,
+    reason = "private",
+  ): ToolResult {
+    try {
+      this.memory.excludeTgChat(chatId, chatTitle, reason);
+      return { success: true, data: { excluded: chatId, chatTitle, reason } };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  }
+
+  tgIncludeChat(chatId: string): ToolResult {
+    try {
+      this.memory.includeTgChat(chatId);
+      return { success: true, data: { included: chatId } };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  }
+
+  tgListExcluded(): ToolResult {
+    try {
+      const excluded = this.memory.getExcludedTgChats();
+      return { success: true, data: excluded };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
   }
 }

@@ -1,0 +1,32 @@
+<script setup lang="ts">
+const { currentModel, directMode } = useChat();
+import { MODELS } from "~/composables/useChat";
+
+const modelItems = MODELS.map((m) => ({
+  label: m.label,
+  value: m.value,
+  description: m.description,
+}));
+</script>
+
+<template>
+  <header
+    class="flex items-center gap-3 px-4 py-2.5 border-b border-(--ui-border) bg-(--ui-bg-elevated) shrink-0"
+  >
+    <h1 class="text-base font-semibold flex items-center gap-2">
+      🧠 <span>Subbrain</span>
+    </h1>
+
+    <USelectMenu
+      v-model="currentModel"
+      :items="modelItems"
+      value-key="value"
+      class="w-48"
+      size="sm"
+    />
+
+    <div class="flex-1" />
+
+    <USwitch v-model="directMode" label="Direct" size="sm" />
+  </header>
+</template>

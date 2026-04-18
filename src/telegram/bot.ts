@@ -13,6 +13,10 @@ export interface TelegramBotConfig {
   memory: MemoryDB;
   pipeline: AgentPipeline;
   router: ModelRouter;
+  /** Custom Telegram API root URL (reverse proxy to bypass blocks) */
+  apiRoot?: string;
+  /** Secret header value for the custom API proxy */
+  apiProxyKey?: string;
 }
 
 /**
@@ -25,14 +29,36 @@ export class TelegramBot {
   private memory: MemoryDB;
   private pipeline: AgentPipeline;
   private router: ModelRouter;
-  private webhookSecret: string;
+  webhookSecret: string;
   /** Map Telegram chat_id → subbrain chat UUID */
   private chatMap = new Map<number, string>();
   /** Current model per Telegram chat */
   private modelMap = new Map<number, string>();
 
   constructor(config: TelegramBotConfig) {
-    this.bot = new Bot(config.token);
+    const botConfig: ConstructorParameters<typeof Bot>[1] = {};
+
+    // Route Telegram API requests through custom reverse proxy (bypass RKN)
+    if (config.apiRoot) {
+      const proxyKey = config.apiProxyKey;
+      botConfig.client = {
+        apiRoot: config.apiRoot,
+        // Custom fetch: inject proxy auth header + skip self-signed cert
+        fetch: (url: string | URL | Request, init?: RequestInit) => {
+          const headers = new Headers(init?.headers);
+          if (proxyKey) headers.set("X-TG-Proxy-Key", proxyKey);
+          return fetch(url, {
+            ...init,
+            headers,
+            // @ts-ignore — Bun-specific: skip self-signed cert verification
+            tls: { rejectUnauthorized: false },
+          });
+        },
+      };
+      logger.info("telegram", `Using API root: ${config.apiRoot}`);
+    }
+
+    this.bot = new Bot(config.token, botConfig);
     this.ownerChatId = config.ownerChatId;
     this.memory = config.memory;
     this.pipeline = config.pipeline;
@@ -40,6 +66,12 @@ export class TelegramBot {
     this.webhookSecret = config.webhookSecret;
 
     this.setupHandlers();
+  }
+
+  /** Must be called before handling updates (fetches bot info from Telegram) */
+  async init(): Promise<void> {
+    await this.bot.init();
+    logger.info("telegram", `Bot @${this.bot.botInfo.username} initialized`);
   }
 
   // ─── Handlers ─────────────────────────────────────────────

@@ -27,6 +27,18 @@ export function mcpRoute(executor: ToolExecutor) {
       name: "rag_search",
       description: "Hybrid RAG search: FTS5 + vector → RRF → rerank",
     },
+    {
+      name: "tg_list_chats",
+      description: "List Telegram chats (marks excluded)",
+    },
+    { name: "tg_read_chat", description: "Read messages from a Telegram chat" },
+    { name: "tg_search_messages", description: "Search Telegram messages" },
+    {
+      name: "tg_exclude_chat",
+      description: "Exclude a Telegram chat from AI reading",
+    },
+    { name: "tg_include_chat", description: "Remove chat from exclusion list" },
+    { name: "tg_list_excluded", description: "List excluded Telegram chats" },
   ];
 
   return new Elysia({ prefix: "/mcp" })
@@ -100,6 +112,30 @@ export function mcpRoute(executor: ToolExecutor) {
               args.top_n as number | undefined,
               args.skip_rerank as boolean | undefined,
             );
+          case "tg_list_chats":
+            return await executor.tgListChats(args.limit as number | undefined);
+          case "tg_read_chat":
+            return await executor.tgReadChat(
+              args.chat_id as string,
+              args.limit as number | undefined,
+              args.offset_id as number | undefined,
+            );
+          case "tg_search_messages":
+            return await executor.tgSearchMessages(
+              args.query as string,
+              args.limit as number | undefined,
+              args.chat_id as string | undefined,
+            );
+          case "tg_exclude_chat":
+            return executor.tgExcludeChat(
+              args.chat_id as string,
+              args.chat_title as string,
+              args.reason as string | undefined,
+            );
+          case "tg_include_chat":
+            return executor.tgIncludeChat(args.chat_id as string);
+          case "tg_list_excluded":
+            return executor.tgListExcluded();
           default:
             return new Response(
               JSON.stringify({

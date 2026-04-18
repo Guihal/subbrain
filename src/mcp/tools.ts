@@ -167,5 +167,64 @@ export function createMcpServer(executor: ToolExecutor): McpServer {
       text(await executor.ragSearch(query, layers, top_n, skip_rerank)),
   );
 
+  // ─── Telegram Chat Tools ─────────────────────────────────
+
+  server.tool(
+    "tg_list_chats",
+    "List user's Telegram chats (groups, channels, DMs). Excluded chats are marked.",
+    { limit: z.number().optional() },
+    async ({ limit }) => text(await executor.tgListChats(limit)),
+  );
+
+  server.tool(
+    "tg_read_chat",
+    "Read messages from a Telegram chat. Respects exclusion list.",
+    {
+      chat_id: z.string(),
+      limit: z.number().optional(),
+      offset_id: z.number().optional(),
+    },
+    async ({ chat_id, limit, offset_id }) =>
+      text(await executor.tgReadChat(chat_id, limit, offset_id)),
+  );
+
+  server.tool(
+    "tg_search_messages",
+    "Search messages across all non-excluded Telegram chats.",
+    {
+      query: z.string(),
+      limit: z.number().optional(),
+      chat_id: z.string().optional(),
+    },
+    async ({ query, limit, chat_id }) =>
+      text(await executor.tgSearchMessages(query, limit, chat_id)),
+  );
+
+  server.tool(
+    "tg_exclude_chat",
+    "Mark a Telegram chat as excluded (private). AI will not read it.",
+    {
+      chat_id: z.string(),
+      chat_title: z.string(),
+      reason: z.string().optional(),
+    },
+    async ({ chat_id, chat_title, reason }) =>
+      text(executor.tgExcludeChat(chat_id, chat_title, reason)),
+  );
+
+  server.tool(
+    "tg_include_chat",
+    "Remove a Telegram chat from the exclusion list.",
+    { chat_id: z.string() },
+    async ({ chat_id }) => text(executor.tgIncludeChat(chat_id)),
+  );
+
+  server.tool(
+    "tg_list_excluded",
+    "List all excluded Telegram chats.",
+    {},
+    async () => text(executor.tgListExcluded()),
+  );
+
   return server;
 }

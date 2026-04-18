@@ -8,13 +8,7 @@ dist
 
 # code coverage
 coverage
-
-# env
-.env
 *.lcov
-
-# database
-data/
 
 # logs
 logs
@@ -38,12 +32,3 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
 # Finder (MacOS) folder config
 .DS_Store
-
-# Nuxt
-web/.nuxt
-web/.output
-web/node_modules
-
-# Continue config (contains auth tokens)
-.continue/
-.continue

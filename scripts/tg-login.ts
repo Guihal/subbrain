@@ -18,11 +18,10 @@ if (!apiId || !apiHash) {
 const dbPath = process.env.DB_PATH || "data/subbrain.db";
 const memory = new MemoryDB(dbPath);
 
-const proxy = process.env.TG_MTPROTO_SERVER
+const tunnel = process.env.TG_TUNNEL_HOST
   ? {
-      ip: process.env.TG_MTPROTO_SERVER,
-      port: Number(process.env.TG_MTPROTO_PORT) || 443,
-      secret: process.env.TG_MTPROTO_SECRET || "",
+      host: process.env.TG_TUNNEL_HOST,
+      basePort: Number(process.env.TG_TUNNEL_BASE_PORT) || 19150,
     }
   : undefined;
 
@@ -31,7 +30,7 @@ const userbot = new Userbot({
   apiHash,
   session: "",
   memory,
-  proxy,
+  tunnel,
 });
 
 const session = await userbot.login();

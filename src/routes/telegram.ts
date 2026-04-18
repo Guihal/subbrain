@@ -1,5 +1,6 @@
 import { Elysia } from "elysia";
 import type { TelegramBot } from "../telegram";
+import { logger } from "../lib/logger";
 
 /**
  * Telegram webhook route.
@@ -18,10 +19,22 @@ export function telegramRoute(bot: TelegramBot | null) {
     return route;
   }
 
-  const handler = bot.getWebhookHandler();
+  route.post("/telegram/webhook", async ({ body, request }) => {
+    try {
+      // Verify secret token from Telegram
+      const secret = request.headers.get("x-telegram-bot-api-secret-token");
+      if (bot.webhookSecret && secret !== bot.webhookSecret) {
+        logger.warn("telegram", "Webhook: invalid secret token");
+        return new Response("Unauthorized", { status: 401 });
+      }
 
-  route.post("/telegram/webhook", async ({ request }) => {
-    return handler(request);
+      // Process update directly through Grammy bot
+      await bot.bot.handleUpdate(body as any);
+      return new Response("OK", { status: 200 });
+    } catch (err: any) {
+      logger.error("telegram", `Webhook error: ${err.message}`);
+      return new Response("Internal error", { status: 500 });
+    }
   });
 
   // Admin: set/remove webhook

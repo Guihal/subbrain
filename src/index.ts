@@ -19,7 +19,7 @@ import {
   NightCycle,
   AgentLoop,
 } from "./pipeline";
-import { TelegramBot } from "./telegram";
+import { TelegramBot, Userbot } from "./telegram";
 import { Metrics } from "./lib/metrics";
 import { logger } from "./lib/logger";
 
@@ -60,6 +60,38 @@ const agentLoop = new AgentLoop(memory, router, rag, tools);
 agentLoop.setMetrics(metrics);
 agentLoop.setRoom(room);
 
+// ─── Telegram Userbot (MTProto chat reader, optional) ─────
+let userbot: Userbot | null = null;
+const tgApiId = Number(process.env.TG_API_ID);
+const tgApiHash = process.env.TG_API_HASH;
+const tgSession = process.env.TG_SESSION;
+
+if (tgApiId && tgApiHash && tgSession) {
+  userbot = new Userbot({
+    apiId: tgApiId,
+    apiHash: tgApiHash,
+    session: tgSession,
+    memory,
+    tunnel: process.env.TG_TUNNEL_HOST
+      ? {
+          host: process.env.TG_TUNNEL_HOST,
+          basePort: Number(process.env.TG_TUNNEL_BASE_PORT) || 19150,
+        }
+      : undefined,
+  });
+  tools.setUserbot(userbot);
+  userbot
+    .connect()
+    .catch((err) =>
+      logger.error("userbot", `Connection failed: ${err.message}`),
+    );
+} else {
+  logger.info(
+    "userbot",
+    "Not configured (set TG_API_ID + TG_API_HASH + TG_SESSION)",
+  );
+}
+
 // ─── Telegram Bot (optional) ──────────────────────────────
 let telegramBot: TelegramBot | null = null;
 const tgBotToken = process.env.TG_BOT_TOKEN;
@@ -74,8 +106,15 @@ if (tgBotToken && tgOwnerChatId) {
     memory,
     pipeline,
     router,
+    apiRoot: process.env.TG_API_ROOT,
+    apiProxyKey: process.env.TG_API_PROXY_KEY,
   });
-  logger.info("telegram", "Bot initialized");
+  // Init bot (fetches botInfo from Telegram API) — non-blocking
+  telegramBot
+    .init()
+    .catch((err) =>
+      logger.error("telegram", `Bot init failed: ${err.message}`),
+    );
 } else {
   logger.info(
     "telegram",
