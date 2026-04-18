@@ -27,11 +27,11 @@ export interface HealthData {
 
 /** Available virtual models */
 export const MODELS = [
-  { value: "flash", label: "Флэш", description: "step-3.5 flash" },
-  { value: "coder", label: "Кодер", description: "devstral 123B" },
-  { value: "teamlead", label: "Лид", description: "kimi-k2 thinking" },
-  { value: "critic", label: "Критик", description: "qwen3-coder 480B" },
-  { value: "generalist", label: "Генералист", description: "qwen3-coder 480B" },
+  { value: "flash", label: "Флэш", description: "Gemma 4 26B A4B" },
+  { value: "coder", label: "Кодер", description: "Elephant Alpha" },
+  { value: "teamlead", label: "Лид", description: "Kimi K2.5" },
+  { value: "critic", label: "Критик", description: "Nemotron 3 Super" },
+  { value: "generalist", label: "Генералист", description: "MiniMax M2.5" },
 ] as const;
 
 export type ModelId = (typeof MODELS)[number]["value"];

@@ -18,36 +18,51 @@ export const MODEL_MAP: Record<string, ModelRoute> = {
   teamlead: {
     primary: "moonshotai/kimi-k2.5",
     primaryProvider: "openrouter",
-    fallback: "qwen/qwen3-coder:free",
+    fallback: "nvidia/nemotron-3-super-120b-a12b:free",
     fallbackProvider: "openrouter",
   },
   coder: {
-    primary: "mistralai/devstral-2-123b-instruct-2512",
-    primaryProvider: "nvidia",
-    fallback: "qwen/qwen3-coder:free",
+    primary: "openrouter/elephant-alpha",
+    primaryProvider: "openrouter",
+    fallback: "minimax/minimax-m2.5:free",
     fallbackProvider: "openrouter",
   },
   critic: {
-    primary: "qwen/qwen3-coder-480b-a35b-instruct",
-    primaryProvider: "nvidia",
-    fallback: "openai/gpt-oss-120b:free",
+    primary: "nvidia/nemotron-3-super-120b-a12b:free",
+    primaryProvider: "openrouter",
+    fallback: "google/gemma-4-31b-it:free",
     fallbackProvider: "openrouter",
   },
   generalist: {
-    primary: "qwen/qwen3-coder-480b-a35b-instruct",
-    primaryProvider: "nvidia",
-    fallback: "openai/gpt-oss-120b:free",
+    primary: "minimax/minimax-m2.5:free",
+    primaryProvider: "openrouter",
+    fallback: "google/gemma-4-31b-it:free",
     fallbackProvider: "openrouter",
   },
   flash: {
-    primary: "stepfun-ai/step-3.5-flash",
-    primaryProvider: "nvidia",
+    primary: "google/gemma-4-26b-a4b-it:free",
+    primaryProvider: "openrouter",
+    fallback: "google/gemma-4-31b-it:free",
+    fallbackProvider: "openrouter",
   },
 };
 
-/** Detect provider from raw model ID (e.g. "openai/gpt-oss-120b:free" → openrouter) */
+const OPENROUTER_MODEL_IDS = new Set([
+  "moonshotai/kimi-k2.5",
+  "openrouter/elephant-alpha",
+  "minimax/minimax-m2.5",
+  "google/gemma-4-26b-a4b-it",
+  "google/gemma-4-31b-it",
+  "nvidia/nemotron-3-super-120b-a12b",
+]);
+
+/** Detect provider from raw model ID. */
 function detectProvider(model: string): ProviderName {
-  if (model.endsWith(":free") || model.startsWith("openai/gpt-oss")) {
+  if (
+    model.endsWith(":free") ||
+    model.startsWith("openrouter/") ||
+    OPENROUTER_MODEL_IDS.has(model)
+  ) {
     return "openrouter";
   }
   return "nvidia";
