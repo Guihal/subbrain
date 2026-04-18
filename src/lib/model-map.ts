@@ -16,53 +16,46 @@ export interface ModelRoute {
 /** Maps virtual role names to actual model IDs with provider + fallbacks */
 export const MODEL_MAP: Record<string, ModelRoute> = {
   teamlead: {
-    primary: "moonshotai/kimi-k2.5",
-    primaryProvider: "openrouter",
-    fallback: "nvidia/nemotron-3-super-120b-a12b:free",
-    fallbackProvider: "openrouter",
+    primary: "moonshotai/kimi-k2-thinking",
+    primaryProvider: "nvidia",
+    fallback: "mistralai/mistral-large-3-675b-instruct-2512",
+    fallbackProvider: "nvidia",
   },
   coder: {
-    primary: "openrouter/elephant-alpha",
-    primaryProvider: "openrouter",
-    fallback: "minimax/minimax-m2.5:free",
-    fallbackProvider: "openrouter",
+    primary: "qwen/qwen3-coder-480b-a35b-instruct",
+    primaryProvider: "nvidia",
+    fallback: "mistralai/devstral-2-123b-instruct-2512",
+    fallbackProvider: "nvidia",
   },
   critic: {
-    primary: "nvidia/nemotron-3-super-120b-a12b:free",
-    primaryProvider: "openrouter",
-    fallback: "google/gemma-4-31b-it:free",
-    fallbackProvider: "openrouter",
+    primary: "mistralai/devstral-2-123b-instruct-2512",
+    primaryProvider: "nvidia",
+    fallback: "qwen/qwen3-coder-480b-a35b-instruct",
+    fallbackProvider: "nvidia",
   },
   generalist: {
-    primary: "minimax/minimax-m2.5:free",
-    primaryProvider: "openrouter",
-    fallback: "google/gemma-4-31b-it:free",
-    fallbackProvider: "openrouter",
+    primary: "mistralai/mistral-large-3-675b-instruct-2512",
+    primaryProvider: "nvidia",
+    fallback: "moonshotai/kimi-k2-thinking",
+    fallbackProvider: "nvidia",
+  },
+  chaos: {
+    primary: "mistralai/mistral-nemotron",
+    primaryProvider: "nvidia",
+    fallback: "mistralai/mistral-large-3-675b-instruct-2512",
+    fallbackProvider: "nvidia",
   },
   flash: {
-    primary: "google/gemma-4-26b-a4b-it:free",
-    primaryProvider: "openrouter",
-    fallback: "google/gemma-4-31b-it:free",
-    fallbackProvider: "openrouter",
+    primary: "stepfun-ai/step-3.5-flash",
+    primaryProvider: "nvidia",
+    fallback: "moonshotai/kimi-k2-thinking",
+    fallbackProvider: "nvidia",
   },
 };
 
-const OPENROUTER_MODEL_IDS = new Set([
-  "moonshotai/kimi-k2.5",
-  "openrouter/elephant-alpha",
-  "minimax/minimax-m2.5",
-  "google/gemma-4-26b-a4b-it",
-  "google/gemma-4-31b-it",
-  "nvidia/nemotron-3-super-120b-a12b",
-]);
-
 /** Detect provider from raw model ID. */
 function detectProvider(model: string): ProviderName {
-  if (
-    model.endsWith(":free") ||
-    model.startsWith("openrouter/") ||
-    OPENROUTER_MODEL_IDS.has(model)
-  ) {
+  if (model.endsWith(":free") || model.startsWith("openrouter/")) {
     return "openrouter";
   }
   return "nvidia";

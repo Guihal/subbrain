@@ -254,7 +254,7 @@ const AGENT_TOOLS: Tool[] = [
     function: {
       name: "consult_specialists",
       description:
-        "Consult other AI specialists in the team. Dispatches your question to selected specialists in parallel (Coder, Critic, Generalist), collects their opinions, and synthesizes a combined answer. Use for complex decisions, code review, architecture questions, or when you need multiple expert perspectives. Costs 3-4 RPM.",
+        "Consult other AI specialists in the team. Dispatches your question to selected specialists in parallel (Coder, Critic, Generalist, Chaos), collects their opinions, and synthesizes a combined answer. Use for complex decisions, code review, architecture questions, or when you need multiple expert perspectives. Costs 3-5 RPM.",
       parameters: {
         type: "object",
         properties: {
@@ -270,9 +270,9 @@ const AGENT_TOOLS: Tool[] = [
             type: "array",
             items: {
               type: "string",
-              enum: ["coder", "critic", "generalist"],
+              enum: ["coder", "critic", "generalist", "chaos"],
             },
-            description: "Which specialists to consult (default: all three)",
+            description: "Which specialists to consult (default: all four)",
           },
           category: {
             type: "string",
@@ -849,6 +849,7 @@ export class AgentLoop {
             "coder",
             "critic",
             "generalist",
+            "chaos",
           ];
           const category =
             (args.category as
@@ -1000,7 +1001,7 @@ export class AgentLoop {
 1. **Думай перед действием** — используй tool \`think\` для планирования
 2. **Проверяй факты** — ищи в памяти через \`memory_search\` и \`rag_search\`
 3. **Сохраняй важное** — записывай решения и факты через \`memory_write\`
-4. **Советуйся с командой** — используй \`consult_specialists\` для сложных вопросов (кодер, критик, генералист)
+4. **Советуйся с командой** — используй \`consult_specialists\` для сложных вопросов (кодер, критик, генералист, хаос)
 5. **Закончи явно** — когда задача выполнена, вызови \`done\` с финальным резюме
 6. **Не зацикливайся** — если не можешь найти ответ за 3-5 попыток, остановись и сообщи что знаешь
 7. **Следи за бюджетом** — перед каждым вызовом ты увидишь [системную метку] с номером шага, остатком вызовов и использованным контекстом
@@ -1010,7 +1011,7 @@ export class AgentLoop {
 - \`memory_search\` — FTS поиск по памяти
 - \`rag_search\` — гибридный RAG поиск (точнее, но дороже: 1-2 RPM)
 - \`memory_write\` — записать факт/решение в память
-- \`consult_specialists\` — совещание с командой (кодер, критик, генералист). Дорого: 3-4 RPM
+- \`consult_specialists\` — совещание с командой (кодер, критик, генералист, хаос). Дорого: 3-5 RPM
 - \`create_tool\` — создать новый динамический инструмент (промт-шаблон → специалист). Макс. ${MAX_DYNAMIC_TOOLS} за сессию
 - \`list_tools\` — показать все доступные инструменты (статические + динамические)
 - \`done\` — завершить задачу с резюме для пользователя

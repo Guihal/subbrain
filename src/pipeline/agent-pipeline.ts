@@ -187,7 +187,7 @@ export class AgentPipeline {
       if (roomConfig) {
         log.info(
           "main",
-          `Arbitration Room activated: ${roomConfig.specialists.join(",")}`,
+          `Arbitration Room activated: ${roomConfig.agents.join(",")}`,
           { model: "room" },
         );
         const mainStart = Date.now();

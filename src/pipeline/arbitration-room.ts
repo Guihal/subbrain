@@ -35,6 +35,7 @@ const DEFAULT_WEIGHTS: Record<string, Record<TaskCategory, number>> = {
   coder: { code: 1.5, architecture: 0.8, review: 1.0, reasoning: 0.7 },
   critic: { code: 0.8, architecture: 1.0, review: 1.5, reasoning: 1.5 },
   generalist: { code: 1.0, architecture: 1.3, review: 1.0, reasoning: 1.0 },
+  chaos: { code: 0.5, architecture: 1.4, review: 0.6, reasoning: 1.2 },
 };
 
 // ─── Role Prompts ────────────────────────────────────────
@@ -46,6 +47,8 @@ const ROLE_PROMPTS: Record<string, string> = {
     "You are a code reviewer and security analyst (Critic). Focus on edge cases, security vulnerabilities, race conditions, error handling, and potential bugs. Challenge assumptions.",
   generalist:
     "You are a senior tech lead (Generalist). Focus on architectural balance, trade-offs between approaches, maintainability, and long-term implications. Consider alternatives.",
+  chaos:
+    "You are Chaos, a contrarian strategist powered by Mistral. Your job is to deliberately pressure-test the discussion with weird, adversarial, non-obvious, or high-variance ideas. Surface black swans, bizarre edge cases, uncomfortable alternatives, hidden second-order effects, and anti-consensus takes. Be provocative but technically grounded.",
 };
 
 const SPECIALIST_TIMEOUT = 30_000;
@@ -133,7 +136,7 @@ export class ArbitrationRoom {
       msg.includes("compare approaches")
     ) {
       return {
-        agents: ["coder", "critic", "generalist"],
+        agents: ["coder", "critic", "generalist", "chaos"],
         category: "architecture",
       };
     }
@@ -150,7 +153,7 @@ export class ArbitrationRoom {
       msg.includes("pros and cons")
     ) {
       return {
-        agents: ["coder", "critic", "generalist"],
+        agents: ["coder", "critic", "generalist", "chaos"],
         category: "architecture",
       };
     }
@@ -259,7 +262,9 @@ export class ArbitrationRoom {
             ? "Кодлер"
             : r.role === "critic"
               ? "Критик"
-              : "Генералист";
+              : r.role === "generalist"
+                ? "Генералист"
+                : "Хаос";
         return `### ${roleName} (${r.role}) — вес: ${weight}\n\n${r.content}`;
       })
       .join("\n\n---\n\n");
