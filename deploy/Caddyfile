@@ -1,16 +1,42 @@
 {domain} {
-    reverse_proxy localhost:4000
-
-    # SSE / streaming — disable buffering
-    @streaming {
-        path /v1/chat/completions
-        path /v1/autonomous
+    # ─── API backend (bare paths) ───────────────────────────
+    handle /v1/* {
+        reverse_proxy localhost:4000
     }
-    reverse_proxy @streaming localhost:4000 {
-        flush_interval -1
-        transport http {
-            response_header_timeout 120s
+    handle /api/* {
+        reverse_proxy localhost:4000
+    }
+    handle /health {
+        reverse_proxy localhost:4000
+    }
+    handle /metrics {
+        reverse_proxy localhost:4000
+    }
+    handle /mcp/* {
+        reverse_proxy localhost:4000
+    }
+
+    # ─── SSE / streaming — flush immediately ────────────────
+    handle /v1/chat/completions {
+        reverse_proxy localhost:4000 {
+            flush_interval -1
+            transport http {
+                response_header_timeout 120s
+            }
         }
+    }
+    handle /v1/autonomous {
+        reverse_proxy localhost:4000 {
+            flush_interval -1
+            transport http {
+                response_header_timeout 300s
+            }
+        }
+    }
+
+    # ─── Nuxt frontend ──────────────────────────────────────
+    handle {
+        reverse_proxy localhost:3000
     }
 
     # Security headers
