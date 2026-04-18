@@ -10,6 +10,7 @@ RUN bun install --frozen-lockfile
 # Copy source
 COPY src/ src/
 COPY public/ public/
+COPY scripts/ scripts/
 COPY tsconfig.json ./
 
 # ─── Runtime stage ────────────────────────────────────────
@@ -26,6 +27,7 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./
 COPY --from=builder /app/src ./src
 COPY --from=builder /app/public ./public
+COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/tsconfig.json ./
 
 # DB lives in /data (mounted as volume — NEVER baked into image)

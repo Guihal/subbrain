@@ -201,6 +201,40 @@ export function migrate(db: Database): void {
     );
     CREATE INDEX IF NOT EXISTS idx_metrics_ts ON metrics_log(timestamp);
   `);
+
+  // Chat sessions & messages (persisted conversations)
+  db.exec(`
+    -------------------------------------------------------------------
+    -- Chats: each conversation session
+    -------------------------------------------------------------------
+    CREATE TABLE IF NOT EXISTS chats (
+      id         TEXT PRIMARY KEY,
+      title      TEXT NOT NULL DEFAULT 'Новый чат',
+      model      TEXT NOT NULL DEFAULT 'teamlead',
+      source     TEXT NOT NULL DEFAULT 'web' CHECK(source IN ('web', 'api', 'autonomous', 'continue')),
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_chats_updated ON chats(updated_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_chats_source  ON chats(source);
+
+    -------------------------------------------------------------------
+    -- Chat messages
+    -------------------------------------------------------------------
+    CREATE TABLE IF NOT EXISTS chat_messages (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      chat_id    TEXT NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
+      role       TEXT NOT NULL CHECK(role IN ('user', 'assistant', 'system')),
+      content    TEXT NOT NULL,
+      reasoning  TEXT,
+      model      TEXT,
+      request_id TEXT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_chatmsg_chat ON chat_messages(chat_id, id);
+  `);
 }
 
 export { EMBEDDING_DIM };

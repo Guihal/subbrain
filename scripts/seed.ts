@@ -7,7 +7,8 @@
 import { MemoryDB } from "../src/db";
 import { randomUUID } from "crypto";
 
-const db = new MemoryDB("data/subbrain.db");
+const dbPath = process.env.DB_PATH || "data/subbrain.db";
+const db = new MemoryDB(dbPath);
 
 console.log("🧹 Cleaning test junk from shared_memory...");
 const junk = db.db

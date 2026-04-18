@@ -17,6 +17,10 @@ export function authMiddleware(token: string) {
       if (path === "/health") return;
       if (path === "/" || path === "/index.html" || path.startsWith("/public/"))
         return;
+      // Token endpoint is protected by Caddy basic auth, not Bearer
+      if (path === "/api/token") return;
+      // Telegram webhook is validated by secret_token header (grammy handles it)
+      if (path.startsWith("/telegram/")) return;
 
       const auth = request.headers.get("authorization");
       if (!auth) {

@@ -14,6 +14,7 @@
         --accent: #58a6ff;
         --user-bg: #1f2937;
         --bot-bg: #0d1117;
+        --sidebar-w: 260px;
         --font: "Segoe UI", system-ui, -apple-system, sans-serif;
         --mono: "Cascadia Code", "Fira Code", "JetBrains Mono", monospace;
       }
@@ -28,20 +29,126 @@
         color: var(--text);
         height: 100dvh;
         display: flex;
-        flex-direction: column;
       }
 
-      /* ─── Header ─── */
+      /* ─── Sidebar ─── */
+      #sidebar {
+        width: var(--sidebar-w);
+        min-width: var(--sidebar-w);
+        background: var(--surface);
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      #sidebar .top {
+        padding: 12px;
+        border-bottom: 1px solid var(--border);
+      }
+      #sidebar .top button {
+        width: 100%;
+        padding: 8px 12px;
+        background: var(--accent);
+        color: #fff;
+        border: none;
+        border-radius: 6px;
+        font-size: 13px;
+        cursor: pointer;
+        font-weight: 500;
+      }
+      #sidebar .top button:hover {
+        filter: brightness(1.15);
+      }
+      #chat-list {
+        flex: 1;
+        overflow-y: auto;
+        padding: 8px;
+      }
+      .chat-item {
+        padding: 8px 10px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 13px;
+        line-height: 1.3;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: var(--muted);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        position: relative;
+      }
+      .chat-item:hover {
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--text);
+      }
+      .chat-item.active {
+        background: rgba(88, 166, 255, 0.12);
+        color: var(--text);
+      }
+      .chat-item .source-badge {
+        font-size: 9px;
+        padding: 1px 4px;
+        border-radius: 3px;
+        background: var(--border);
+        color: var(--muted);
+        flex-shrink: 0;
+      }
+      .chat-item .delete-btn {
+        display: none;
+        position: absolute;
+        right: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        color: var(--muted);
+        cursor: pointer;
+        font-size: 14px;
+        padding: 2px 4px;
+      }
+      .chat-item:hover .delete-btn {
+        display: block;
+      }
+      .chat-item .delete-btn:hover {
+        color: #f85149;
+      }
+      #sidebar .bottom {
+        padding: 8px 12px;
+        border-top: 1px solid var(--border);
+        font-size: 11px;
+        color: var(--muted);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      #sidebar .bottom .dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #3fb950;
+      }
+
+      /* ─── Main area ─── */
+      #main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+      }
+
       header {
-        padding: 12px 20px;
+        padding: 10px 16px;
         border-bottom: 1px solid var(--border);
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: 10px;
         background: var(--surface);
+        flex-shrink: 0;
       }
       header h1 {
-        font-size: 16px;
+        font-size: 15px;
         font-weight: 600;
       }
       header select {
@@ -53,20 +160,16 @@
         font-size: 13px;
         cursor: pointer;
       }
-      header .status {
-        margin-left: auto;
+      header .spacer {
+        flex: 1;
+      }
+      header label {
         font-size: 12px;
         color: var(--muted);
         display: flex;
         align-items: center;
-        gap: 6px;
-      }
-      header .dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background: #3fb950;
-        display: inline-block;
+        gap: 4px;
+        cursor: pointer;
       }
 
       /* ─── Messages ─── */
@@ -84,13 +187,13 @@
         border-radius: 12px;
         font-size: 14px;
         line-height: 1.55;
-        white-space: pre-wrap;
         word-break: break-word;
       }
       .msg.user {
         align-self: flex-end;
         background: var(--user-bg);
         border-bottom-right-radius: 4px;
+        white-space: pre-wrap;
       }
       .msg.assistant {
         align-self: flex-start;
@@ -153,14 +256,23 @@
       .msg .thinking-toggle:hover {
         color: var(--accent);
       }
+      #empty-state {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--muted);
+        font-size: 14px;
+      }
 
       /* ─── Input ─── */
       #input-area {
-        padding: 12px 20px;
+        padding: 12px 16px;
         border-top: 1px solid var(--border);
         background: var(--surface);
         display: flex;
         gap: 10px;
+        flex-shrink: 0;
       }
       #input-area textarea {
         flex: 1;
@@ -185,7 +297,7 @@
         color: #fff;
         border: none;
         border-radius: 8px;
-        padding: 0 20px;
+        padding: 0 18px;
         font-size: 14px;
         font-weight: 500;
         cursor: pointer;
@@ -201,48 +313,52 @@
     </style>
   </head>
   <body>
-    <header>
-      <h1>🧠 Subbrain</h1>
-      <select id="model">
-        <option value="flash">Флэш (step-3.5)</option>
-        <option value="coder">Кодер (devstral)</option>
-        <option value="teamlead">Лид (kimi-k2)</option>
-        <option value="critic">Критик (qwen3-480b)</option>
-        <option value="generalist">Генералист (qwen3-480b)</option>
-      </select>
-      <label
-        style="
-          font-size: 13px;
-          color: var(--muted);
-          display: flex;
-          align-items: center;
-          gap: 4px;
-        "
-      >
-        <input type="checkbox" id="direct-mode" /> Direct
-      </label>
-      <div class="status">
+    <!-- ─── Sidebar ─── -->
+    <div id="sidebar">
+      <div class="top">
+        <button id="new-chat-btn">+ Новый чат</button>
+      </div>
+      <div id="chat-list"></div>
+      <div class="bottom">
         <span class="dot" id="status-dot"></span>
         <span id="status-text">Подключён</span>
-        <span id="rpm-info" style="margin-left: 8px"></span>
+        <span id="rpm-info"></span>
       </div>
-    </header>
+    </div>
 
-    <div id="messages"></div>
+    <!-- ─── Main ─── -->
+    <div id="main">
+      <header>
+        <h1>🧠 Subbrain</h1>
+        <select id="model">
+          <option value="flash">Флэш (step-3.5)</option>
+          <option value="coder">Кодер (devstral)</option>
+          <option value="teamlead" selected>Лид (kimi-k2)</option>
+          <option value="critic">Критик (qwen3-480b)</option>
+          <option value="generalist">Генералист (qwen3-480b)</option>
+        </select>
+        <div class="spacer"></div>
+        <label><input type="checkbox" id="direct-mode" /> Direct</label>
+      </header>
 
-    <div id="input-area">
-      <textarea
-        id="input"
-        rows="1"
-        placeholder="Напиши сообщение..."
-        autofocus
-      ></textarea>
-      <button id="send">Отправить</button>
+      <div id="messages">
+        <div id="empty-state">Выбери чат или создай новый</div>
+      </div>
+
+      <div id="input-area">
+        <textarea
+          id="input"
+          rows="1"
+          placeholder="Напиши сообщение..."
+          autofocus
+        ></textarea>
+        <button id="send" disabled>Отправить</button>
+      </div>
     </div>
 
     <script>
       const API = location.origin;
-      const TOKEN = "subbrain-local-dev";
+      let TOKEN = null;
       const messagesEl = document.getElementById("messages");
       const inputEl = document.getElementById("input");
       const sendBtn = document.getElementById("send");
@@ -251,60 +367,191 @@
       const statusDot = document.getElementById("status-dot");
       const statusText = document.getElementById("status-text");
       const rpmInfo = document.getElementById("rpm-info");
+      const chatListEl = document.getElementById("chat-list");
+      const newChatBtn = document.getElementById("new-chat-btn");
+      const emptyState = document.getElementById("empty-state");
 
+      let currentChatId = null;
       let history = [];
       let streaming = false;
-      let sessionId = crypto.randomUUID();
 
-      // Send button
-      sendBtn.addEventListener("click", () => sendMessage());
+      // ─── API helpers ───
+      async function fetchToken() {
+        const res = await fetch(`${API}/api/token`);
+        const data = await res.json();
+        TOKEN = data.token;
+      }
 
-      // Auto-resize textarea
-      inputEl.addEventListener("input", () => {
-        inputEl.style.height = "auto";
-        inputEl.style.height = Math.min(inputEl.scrollHeight, 200) + "px";
-      });
+      const apiFetch = (path, opts = {}) =>
+        fetch(`${API}${path}`, {
+          ...opts,
+          headers: {
+            Authorization: `Bearer ${TOKEN}`,
+            "Content-Type": "application/json",
+            ...(opts.headers || {}),
+          },
+        });
 
-      // Enter to send (Shift+Enter for newline)
-      inputEl.addEventListener("keydown", (e) => {
-        if (e.key === "Enter" && !e.shiftKey) {
-          e.preventDefault();
-          sendMessage();
-        }
-      });
-
-      // Health poll
-      async function checkHealth() {
+      // ─── Chat list ───
+      async function loadChats() {
         try {
-          const r = await fetch(`${API}/health`);
-          const d = await r.json();
-          statusDot.style.background = "#3fb950";
-          statusText.textContent = "Подключён";
-          rpmInfo.textContent = `RPM: ${d.rpm.currentLoad}/${d.rpm.currentLoad + d.rpm.availableSlots}`;
-        } catch {
-          statusDot.style.background = "#f85149";
-          statusText.textContent = "Отключён";
-          rpmInfo.textContent = "";
+          const res = await apiFetch("/v1/chats/");
+          const chats = await res.json();
+          renderChatList(chats);
+        } catch {}
+      }
+
+      function renderChatList(chats) {
+        chatListEl.innerHTML = "";
+        for (const chat of chats) {
+          const el = document.createElement("div");
+          el.className = `chat-item${chat.id === currentChatId ? " active" : ""}`;
+
+          const sourceColors = {
+            web: "#58a6ff",
+            api: "#3fb950",
+            continue: "#d2a8ff",
+            autonomous: "#f0883e",
+          };
+          const badge = `<span class="source-badge" style="color:${sourceColors[chat.source] || "var(--muted)"}">${chat.source}</span>`;
+
+          const title = escapeHtml(chat.title || "Без названия");
+          el.innerHTML = `${badge} <span style="overflow:hidden;text-overflow:ellipsis">${title}</span>
+            <button class="delete-btn" title="Удалить">×</button>`;
+
+          el.addEventListener("click", (e) => {
+            if (e.target.classList.contains("delete-btn")) {
+              e.stopPropagation();
+              deleteChat(chat.id);
+              return;
+            }
+            openChat(chat.id);
+          });
+          chatListEl.appendChild(el);
         }
       }
-      checkHealth();
-      setInterval(checkHealth, 10000);
 
+      async function openChat(chatId) {
+        if (streaming) return;
+        currentChatId = chatId;
+        history = [];
+        messagesEl.innerHTML = "";
+        if (emptyState) emptyState.remove();
+
+        // Mark active in sidebar
+        document
+          .querySelectorAll(".chat-item")
+          .forEach((el) => el.classList.remove("active"));
+        const items = chatListEl.querySelectorAll(".chat-item");
+        items.forEach((el) => {
+          if (
+            el.dataset?.chatId === chatId ||
+            el.textContent.includes(chatId)
+          ) {
+            el.classList.add("active");
+          }
+        });
+
+        // Load messages
+        try {
+          const res = await apiFetch(`/v1/chats/${chatId}/messages`);
+          const msgs = await res.json();
+          for (const msg of msgs) {
+            if (msg.role === "user" || msg.role === "assistant") {
+              const el = addMessage(msg.role, "");
+              if (msg.role === "assistant") {
+                if (msg.reasoning) {
+                  addThinkingBlock(el, msg.reasoning, true);
+                }
+                const contentEl = document.createElement("div");
+                contentEl.className = "content";
+                el.appendChild(contentEl);
+                formatContent(contentEl, msg.content);
+              } else {
+                el.textContent = msg.content;
+              }
+              history.push({ role: msg.role, content: msg.content });
+            }
+          }
+          // Set model from chat
+          const chatRes = await apiFetch(`/v1/chats/${chatId}`);
+          const chat = await chatRes.json();
+          if (
+            chat.model &&
+            modelEl.querySelector(`option[value="${chat.model}"]`)
+          ) {
+            modelEl.value = chat.model;
+          }
+        } catch (err) {
+          messagesEl.innerHTML = `<div style="color:var(--muted);text-align:center;padding:40px">Ошибка загрузки: ${err.message}</div>`;
+        }
+
+        loadChats(); // refresh active state
+      }
+
+      async function createNewChat() {
+        if (streaming) return;
+        const id = crypto.randomUUID();
+        currentChatId = id;
+        history = [];
+        messagesEl.innerHTML = "";
+        if (emptyState) emptyState.remove();
+        // Chat will be auto-created on first message
+        loadChats();
+      }
+
+      async function deleteChat(chatId) {
+        if (!confirm("Удалить чат?")) return;
+        await apiFetch(`/v1/chats/${chatId}`, { method: "DELETE" });
+        if (currentChatId === chatId) {
+          currentChatId = null;
+          history = [];
+          messagesEl.innerHTML = `<div id="empty-state" style="flex:1;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:14px">Выбери чат или создай новый</div>`;
+        }
+        loadChats();
+      }
+
+      newChatBtn.addEventListener("click", createNewChat);
+
+      // ─── Messaging ───
       function addMessage(role, content) {
         const div = document.createElement("div");
         div.className = `msg ${role}`;
-        div.textContent = content;
+        if (content) div.textContent = content;
         messagesEl.appendChild(div);
         messagesEl.scrollTop = messagesEl.scrollHeight;
         return div;
       }
 
-      function formatContent(el, text) {
-        // Simple markdown: code blocks and inline code
-        let html = text
+      function addThinkingBlock(parentEl, text, collapsed = false) {
+        const toggle = document.createElement("div");
+        toggle.className = "thinking-toggle";
+        toggle.textContent = collapsed
+          ? "💭 Размышления (развернуть)"
+          : "💭 Размышления...";
+        parentEl.appendChild(toggle);
+        const thinkEl = document.createElement("div");
+        thinkEl.className = "thinking" + (collapsed ? " collapsed" : "");
+        thinkEl.textContent = text;
+        parentEl.appendChild(thinkEl);
+        toggle.onclick = () => {
+          thinkEl.classList.toggle("collapsed");
+          toggle.textContent = thinkEl.classList.contains("collapsed")
+            ? "💭 Размышления (развернуть)"
+            : "💭 Размышления...";
+        };
+        return thinkEl;
+      }
+
+      function escapeHtml(s) {
+        return s
           .replace(/&/g, "&amp;")
           .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;")
+          .replace(/>/g, "&gt;");
+      }
+
+      function formatContent(el, text) {
+        let html = escapeHtml(text)
           .replace(/```(\w*)\n([\s\S]*?)```/g, "<pre><code>$2</code></pre>")
           .replace(/`([^`]+)`/g, "<code>$1</code>")
           .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
@@ -312,9 +559,29 @@
         el.innerHTML = html;
       }
 
+      // Auto-resize textarea
+      inputEl.addEventListener("input", () => {
+        inputEl.style.height = "auto";
+        inputEl.style.height = Math.min(inputEl.scrollHeight, 200) + "px";
+      });
+
+      inputEl.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          sendMessage();
+        }
+      });
+      sendBtn.addEventListener("click", () => sendMessage());
+
       async function sendMessage() {
         const text = inputEl.value.trim();
         if (!text || streaming) return;
+
+        // Auto-create chat if none selected
+        if (!currentChatId) {
+          currentChatId = crypto.randomUUID();
+          if (emptyState) emptyState.remove();
+        }
 
         addMessage("user", text);
         history.push({ role: "user", content: text });
@@ -328,17 +595,20 @@
         const botEl = addMessage("assistant", "");
         botEl.classList.add("typing");
 
-        const headers = {
+        const hdrs = {
           Authorization: `Bearer ${TOKEN}`,
           "Content-Type": "application/json",
-          "X-Session-Id": sessionId,
+          "X-Session-Id": currentChatId,
+          "X-Chat-Id": currentChatId,
+          "X-Chat-Source": "web",
+          Accept: "text/event-stream",
         };
-        if (directEl.checked) headers["X-Direct-Mode"] = "true";
+        if (directEl.checked) hdrs["X-Direct-Mode"] = "true";
 
         try {
           const res = await fetch(`${API}/v1/chat/completions`, {
             method: "POST",
-            headers,
+            headers: hdrs,
             body: JSON.stringify({
               model: modelEl.value,
               messages: history,
@@ -352,9 +622,7 @@
             const err = await res.text();
             botEl.textContent = `⚠️ Ошибка ${res.status}: ${err}`;
             botEl.classList.remove("typing");
-            streaming = false;
-            sendBtn.disabled = false;
-            sendBtn.textContent = "Отправить";
+            finishStreaming();
             return;
           }
 
@@ -372,7 +640,7 @@
 
             buffer += decoder.decode(value, { stream: true });
             const lines = buffer.split("\n");
-            buffer = lines.pop(); // keep incomplete line
+            buffer = lines.pop() || "";
 
             for (const line of lines) {
               if (!line.startsWith("data: ")) continue;
@@ -384,33 +652,16 @@
                 const delta = chunk.choices?.[0]?.delta;
                 if (!delta) continue;
 
-                // Reasoning/thinking tokens
                 if (delta.reasoning_content) {
                   fullReasoning += delta.reasoning_content;
                   if (!thinkingEl) {
-                    const toggle = document.createElement("div");
-                    toggle.className = "thinking-toggle";
-                    toggle.textContent = "💭 Размышления...";
-                    botEl.appendChild(toggle);
-                    thinkingEl = document.createElement("div");
-                    thinkingEl.className = "thinking";
-                    botEl.appendChild(thinkingEl);
-                    toggle.onclick = () => {
-                      thinkingEl.classList.toggle("collapsed");
-                      toggle.textContent = thinkingEl.classList.contains(
-                        "collapsed",
-                      )
-                        ? "💭 Размышления (свернуть)"
-                        : "💭 Размышления...";
-                    };
+                    thinkingEl = addThinkingBlock(botEl, "");
                   }
                   thinkingEl.textContent = fullReasoning;
                   messagesEl.scrollTop = messagesEl.scrollHeight;
                 }
 
-                // Actual content tokens
                 if (delta.content) {
-                  // When content starts, collapse thinking
                   if (thinkingEl && !contentEl) {
                     thinkingEl.classList.add("collapsed");
                     const toggle = botEl.querySelector(".thinking-toggle");
@@ -430,7 +681,6 @@
             }
           }
 
-          // If model only returned reasoning with no content, show it in content area
           if (!fullContent && fullReasoning) {
             fullContent = fullReasoning;
             if (!contentEl) {
@@ -442,43 +692,60 @@
           }
 
           botEl.classList.remove("typing");
-
-          // Add metadata
-          const reqId = res.headers.get("X-Request-Id");
-          const model = modelEl.value;
-          if (reqId || model) {
-            const meta = document.createElement("div");
-            meta.className = "meta";
-            meta.textContent = [
-              model,
-              reqId ? reqId.substring(0, 8) + "..." : "",
-            ]
-              .filter(Boolean)
-              .join(" · ");
-            botEl.appendChild(meta);
-          }
-
           history.push({ role: "assistant", content: fullContent });
-          checkHealth(); // refresh RPM
+          checkHealth();
+          loadChats(); // refresh sidebar (title may have been auto-set)
         } catch (err) {
           botEl.textContent = `⚠️ Сетевая ошибка: ${err.message}`;
           botEl.classList.remove("typing");
         }
 
+        finishStreaming();
+      }
+
+      function finishStreaming() {
         streaming = false;
         sendBtn.disabled = false;
         sendBtn.textContent = "Отправить";
       }
 
-      // New session
+      // ─── Health check ───
+      async function checkHealth() {
+        try {
+          const r = await fetch(`${API}/health`);
+          const d = await r.json();
+          statusDot.style.background = "#3fb950";
+          statusText.textContent = "Подключён";
+          rpmInfo.textContent = `${d.rpm.currentLoad}/${d.rpm.currentLoad + d.rpm.availableSlots} RPM`;
+        } catch {
+          statusDot.style.background = "#f85149";
+          statusText.textContent = "Отключён";
+          rpmInfo.textContent = "";
+        }
+      }
+      setInterval(checkHealth, 15000);
+
+      // ─── Keyboard shortcuts ───
       document.addEventListener("keydown", (e) => {
         if (e.ctrlKey && e.key === "l") {
           e.preventDefault();
-          history = [];
-          messagesEl.innerHTML = "";
-          sessionId = crypto.randomUUID();
+          createNewChat();
         }
       });
+
+      // ─── Init ───
+      (async () => {
+        try {
+          await fetchToken();
+          sendBtn.disabled = false;
+        } catch {
+          statusDot.style.background = "#f85149";
+          statusText.textContent = "Ошибка авторизации";
+          return;
+        }
+        loadChats();
+        checkHealth();
+      })();
     </script>
   </body>
 </html>

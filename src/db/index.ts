@@ -360,6 +360,86 @@ export class MemoryDB {
   deleteEmbedding(id: string): void {
     this.db.query("DELETE FROM vec_embeddings WHERE id = ?").run(id);
   }
+
+  // ─── Chats ─────────────────────────────────────────────────
+
+  createChat(
+    id: string,
+    title: string,
+    model: string,
+    source: string = "web",
+  ): void {
+    this.db
+      .query("INSERT INTO chats (id, title, model, source) VALUES (?, ?, ?, ?)")
+      .run(id, title, model, source);
+  }
+
+  getChat(id: string): ChatRow | null {
+    return this.db
+      .query("SELECT * FROM chats WHERE id = ?")
+      .get(id) as ChatRow | null;
+  }
+
+  listChats(limit = 50, source?: string): ChatRow[] {
+    if (source) {
+      return this.db
+        .query(
+          "SELECT * FROM chats WHERE source = ? ORDER BY updated_at DESC LIMIT ?",
+        )
+        .all(source, limit) as ChatRow[];
+    }
+    return this.db
+      .query("SELECT * FROM chats ORDER BY updated_at DESC LIMIT ?")
+      .all(limit) as ChatRow[];
+  }
+
+  updateChatTitle(id: string, title: string): void {
+    this.db
+      .query(
+        "UPDATE chats SET title = ?, updated_at = unixepoch() WHERE id = ?",
+      )
+      .run(title, id);
+  }
+
+  updateChatTimestamp(id: string): void {
+    this.db
+      .query("UPDATE chats SET updated_at = unixepoch() WHERE id = ?")
+      .run(id);
+  }
+
+  deleteChat(id: string): void {
+    this.db.query("DELETE FROM chats WHERE id = ?").run(id);
+  }
+
+  // ─── Chat Messages ────────────────────────────────────────
+
+  appendChatMessage(
+    chatId: string,
+    role: string,
+    content: string,
+    opts?: { reasoning?: string; model?: string; requestId?: string },
+  ): number {
+    const result = this.db
+      .query(
+        "INSERT INTO chat_messages (chat_id, role, content, reasoning, model, request_id) VALUES (?, ?, ?, ?, ?, ?)",
+      )
+      .run(
+        chatId,
+        role,
+        content,
+        opts?.reasoning ?? null,
+        opts?.model ?? null,
+        opts?.requestId ?? null,
+      );
+    this.updateChatTimestamp(chatId);
+    return Number(result.lastInsertRowid);
+  }
+
+  getChatMessages(chatId: string): ChatMessageRow[] {
+    return this.db
+      .query("SELECT * FROM chat_messages WHERE chat_id = ? ORDER BY id ASC")
+      .all(chatId) as ChatMessageRow[];
+  }
 }
 
 // ─── Row Types ──────────────────────────────────────────────
@@ -431,4 +511,24 @@ export interface VecResult {
   id: string;
   layer: string;
   distance: number;
+}
+
+export interface ChatRow {
+  id: string;
+  title: string;
+  model: string;
+  source: string;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface ChatMessageRow {
+  id: number;
+  chat_id: string;
+  role: string;
+  content: string;
+  reasoning: string | null;
+  model: string | null;
+  request_id: string | null;
+  created_at: number;
 }

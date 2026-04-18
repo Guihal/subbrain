@@ -4,15 +4,24 @@ import { sseResponse } from "../lib/sse";
 import { MODEL_MAP } from "../lib/model-map";
 import type { ModelRouter } from "../lib/model-router";
 import type { AgentPipeline } from "../pipeline";
+import type { MemoryDB } from "../db";
 import type { Message } from "../providers/types";
 import { logger } from "../lib/logger";
 
-export function chatRoute(router: ModelRouter, pipeline?: AgentPipeline) {
+export function chatRoute(
+  router: ModelRouter,
+  pipeline?: AgentPipeline,
+  memory?: MemoryDB,
+) {
   return new Elysia().post(
     "/v1/chat/completions",
     async ({ body, headers }) => {
       const stream = body.stream ?? false;
       const { model, ...rest } = body;
+
+      // Chat persistence: use X-Chat-Id header if provided
+      const chatId = headers["x-chat-id"] as string | undefined;
+      const source = (headers["x-chat-source"] as string) || "api";
 
       // Direct mode: explicit header OR auto-degrade when RPM overloaded
       const directMode =
@@ -26,6 +35,19 @@ export function chatRoute(router: ModelRouter, pipeline?: AgentPipeline) {
           meta: { direct: directMode, virtual: isVirtual },
         },
       );
+
+      // ─── Persist user message to chat ──────────────────
+      const lastUserMsg = rest.messages
+        .filter((m: any) => m.role === "user")
+        .pop();
+      if (memory && chatId && lastUserMsg?.content) {
+        // Ensure chat exists
+        if (!memory.getChat(chatId)) {
+          const title = (lastUserMsg.content as string).slice(0, 80);
+          memory.createChat(chatId, title, model, source);
+        }
+        memory.appendChatMessage(chatId, "user", lastUserMsg.content as string);
+      }
 
       try {
         // If pipeline is available, model is a virtual role, and NOT direct mode
@@ -43,11 +65,33 @@ export function chatRoute(router: ModelRouter, pipeline?: AgentPipeline) {
           });
 
           if (result.stream) {
+            // For streaming: wrap stream to capture assistant response
+            if (memory && chatId) {
+              const wrappedStream = wrapStreamForChat(
+                result.stream,
+                memory,
+                chatId,
+                model,
+                result.requestId,
+              );
+              return sseResponse(wrappedStream);
+            }
             return sseResponse(result.stream);
           }
 
           // Attach request_id in response header for traceability
           if (result.response) {
+            const assistantContent =
+              result.response.choices?.[0]?.message?.content || "";
+            const reasoning = (result.response.choices?.[0]?.message as any)
+              ?.reasoning_content;
+            if (memory && chatId && assistantContent) {
+              memory.appendChatMessage(chatId, "assistant", assistantContent, {
+                reasoning: reasoning || undefined,
+                model,
+                requestId: result.requestId,
+              });
+            }
             return new Response(JSON.stringify(result.response), {
               headers: {
                 "Content-Type": "application/json",
@@ -61,10 +105,22 @@ export function chatRoute(router: ModelRouter, pipeline?: AgentPipeline) {
         // Direct proxy mode (no pipeline, or unknown real model)
         if (stream) {
           const streamResult = await router.chatStream(model, rest);
+          if (memory && chatId) {
+            return sseResponse(
+              wrapStreamForChat(streamResult, memory, chatId, model),
+            );
+          }
           return sseResponse(streamResult);
         }
 
-        return await router.chat(model, rest);
+        const response = await router.chat(model, rest);
+        const assistantMsg = response.choices?.[0]?.message?.content || "";
+        if (memory && chatId && assistantMsg) {
+          memory.appendChatMessage(chatId, "assistant", assistantMsg, {
+            model,
+          });
+        }
+        return response;
       } catch (err) {
         if (err instanceof ProviderError) {
           logger.error(
@@ -109,4 +165,63 @@ export function chatRoute(router: ModelRouter, pipeline?: AgentPipeline) {
       }),
     },
   );
+}
+
+/**
+ * Wraps an SSE stream to capture the full assistant response
+ * and persist it to the chats table when the stream ends.
+ */
+function wrapStreamForChat(
+  stream: ReadableStream<Uint8Array>,
+  memory: MemoryDB,
+  chatId: string,
+  model: string,
+  requestId?: string,
+): ReadableStream<Uint8Array> {
+  const decoder = new TextDecoder();
+  let fullContent = "";
+  let fullReasoning = "";
+  let buffer = "";
+
+  return new ReadableStream({
+    async start(controller) {
+      const reader = stream.getReader();
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          controller.enqueue(value);
+
+          // Parse SSE to capture content
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
+          for (const line of lines) {
+            if (!line.startsWith("data: ")) continue;
+            const payload = line.slice(6).trim();
+            if (payload === "[DONE]") continue;
+            try {
+              const chunk = JSON.parse(payload);
+              const delta = chunk.choices?.[0]?.delta;
+              if (delta?.content) fullContent += delta.content;
+              if (delta?.reasoning_content)
+                fullReasoning += delta.reasoning_content;
+            } catch {}
+          }
+        }
+
+        // Stream done — save to DB
+        if (fullContent) {
+          memory.appendChatMessage(chatId, "assistant", fullContent, {
+            reasoning: fullReasoning || undefined,
+            model,
+            requestId,
+          });
+        }
+        controller.close();
+      } catch (err) {
+        controller.error(err);
+      }
+    },
+  });
 }
