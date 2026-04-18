@@ -242,20 +242,30 @@ export class ModelRouter {
           }
         };
 
-        let ok = await tryModel(primary);
-        if (!ok && fallback) {
-          ok = await tryModel(fallback);
-        }
+        try {
+          let ok = await tryModel(primary);
+          if (!ok && fallback) {
+            ok = await tryModel(fallback);
+          }
 
-        if (!ok) {
+          if (!ok) {
+            controller.enqueue(
+              encoder.encode(
+                `data: ${JSON.stringify({ error: { message: "All models failed" } })}\n\n`,
+              ),
+            );
+          }
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
           controller.enqueue(
             encoder.encode(
-              `data: ${JSON.stringify({ error: { message: "All models failed" } })}\n\n`,
+              `data: ${JSON.stringify({ error: { message: msg, type: "router_error" } })}\n\n`,
             ),
           );
-          controller.enqueue(encoder.encode("data: [DONE]\n\n"));
         }
 
+        // Always emit DONE so clients never get "premature close"
+        controller.enqueue(encoder.encode("data: [DONE]\n\n"));
         controller.close();
       },
     });

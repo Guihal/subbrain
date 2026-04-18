@@ -54,40 +54,55 @@ export class NvidiaProvider implements LLMProvider {
 
     return new ReadableStream({
       async start(controller) {
-        const res = await fetch(url, {
-          method: "POST",
-          headers,
-          body,
-        });
-
-        if (!res.ok) {
-          const text = await res.text();
-          controller.enqueue(
-            new TextEncoder().encode(
-              `data: ${JSON.stringify({ error: { message: text, status: res.status } })}\n\n`,
-            ),
-          );
-          controller.enqueue(new TextEncoder().encode("data: [DONE]\n\n"));
-          controller.close();
-          return;
-        }
-
-        const reader = res.body?.getReader();
-        if (!reader) {
-          controller.close();
-          return;
-        }
-
+        const encoder = new TextEncoder();
         try {
+          const res = await fetch(url, {
+            method: "POST",
+            headers,
+            body,
+            signal: AbortSignal.timeout(180_000), // 3min for reasoning models
+          });
+
+          if (!res.ok) {
+            const text = await res.text();
+            controller.enqueue(
+              encoder.encode(
+                `data: ${JSON.stringify({ error: { message: text, status: res.status } })}\n\n`,
+              ),
+            );
+            controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+            controller.close();
+            return;
+          }
+
+          const reader = res.body?.getReader();
+          if (!reader) {
+            controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+            controller.close();
+            return;
+          }
+
           while (true) {
             const { done, value } = await reader.read();
             if (done) break;
             controller.enqueue(value);
           }
-        } catch (err) {
-          controller.error(err);
-        } finally {
           controller.close();
+        } catch (err) {
+          // On network/timeout errors, emit error event + DONE so clients don't get "premature close"
+          const encoder2 = new TextEncoder();
+          const msg = err instanceof Error ? err.message : String(err);
+          try {
+            controller.enqueue(
+              encoder2.encode(
+                `data: ${JSON.stringify({ error: { message: msg, type: "stream_error" } })}\n\n`,
+              ),
+            );
+            controller.enqueue(encoder2.encode("data: [DONE]\n\n"));
+            controller.close();
+          } catch {
+            // Controller already closed/errored, nothing we can do
+          }
         }
       },
     });

@@ -418,12 +418,28 @@ export class AgentPipeline {
             model: req.model,
           });
           const modelStream = await self.router.chatStream(req.model, params);
-          const [pipeStream, captureStream] = modelStream.tee();
 
-          // Fire-and-forget post-processing
+          // Read model stream, forwarding to client and capturing for post-processing.
+          // Avoid .tee() which creates backpressure issues with slow consumers.
+          const capturedChunks: Uint8Array[] = [];
+          const reader = modelStream.getReader();
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            controller.enqueue(value);
+            capturedChunks.push(value);
+          }
+
+          // Fire-and-forget post-processing from captured chunks
+          const capturedStream = new ReadableStream<Uint8Array>({
+            start(ctrl) {
+              for (const chunk of capturedChunks) ctrl.enqueue(chunk);
+              ctrl.close();
+            },
+          });
           self
             .postProcessFromStream(
-              captureStream,
+              capturedStream,
               userMessage,
               requestId,
               sessionId,
@@ -436,14 +452,6 @@ export class AgentPipeline {
                 `Stream post-processing failed: ${err instanceof Error ? err.message : err}`,
               );
             });
-
-          // Pipe model stream through
-          const reader = pipeStream.getReader();
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            controller.enqueue(value);
-          }
 
           controller.close();
         } catch (err) {

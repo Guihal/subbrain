@@ -7,6 +7,7 @@ const VIRTUAL_MODELS = [
   { id: "coder", name: "Кодер (Qwen3 Coder 480B)" },
   { id: "critic", name: "Критик (Devstral 123B)" },
   { id: "generalist", name: "Генералист (Mistral Large 3 675B)" },
+  { id: "chaos", name: "Хаос (Mistral Nemotron)" },
   { id: "flash", name: "Флэш (Step 3.5 Flash)" },
 ];
 
