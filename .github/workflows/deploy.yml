@@ -45,15 +45,15 @@ jobs:
             fi
 
             # Build and restart (DB volume is safe)
-            docker compose build --pull
-            docker compose up -d --force-recreate --remove-orphans
+            sudo docker compose build --pull
+            sudo docker compose up -d --force-recreate --remove-orphans
 
             # Apply Caddyfile if changed
             if [ -f deploy/Caddyfile ] && [ -f /etc/caddy/Caddyfile ]; then
               DOMAIN=$(grep -oP '^\S+(?= \{)' /etc/caddy/Caddyfile | head -1)
               if [ -n "$DOMAIN" ]; then
-                sed "s/{domain}/${DOMAIN}/g" deploy/Caddyfile > /etc/caddy/Caddyfile
-                systemctl reload caddy || systemctl restart caddy
+                sed "s/{domain}/${DOMAIN}/g" deploy/Caddyfile | sudo tee /etc/caddy/Caddyfile > /dev/null
+                sudo systemctl reload caddy || sudo systemctl restart caddy
                 echo "✅ Caddy reloaded (domain: $DOMAIN)"
               fi
             fi
@@ -69,5 +69,5 @@ jobs:
             done
 
             echo "❌ Health check failed"
-            docker compose logs --tail=50
+            sudo docker compose logs --tail=50
             exit 1
