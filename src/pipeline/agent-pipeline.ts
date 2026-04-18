@@ -347,6 +347,15 @@ export class AgentPipeline {
 
     return new ReadableStream({
       async start(controller) {
+        // SSE keepalive: send comment every 8s to prevent proxy/browser idle timeout
+        const keepalive = setInterval(() => {
+          try {
+            controller.enqueue(encoder.encode(": keepalive\n\n"));
+          } catch {
+            clearInterval(keepalive);
+          }
+        }, 8_000);
+
         try {
           const emit = (text: string) =>
             controller.enqueue(makeProgressChunk(text));
@@ -453,8 +462,10 @@ export class AgentPipeline {
               );
             });
 
+          clearInterval(keepalive);
           controller.close();
         } catch (err) {
+          clearInterval(keepalive);
           log.error(
             "pipeline",
             `Pipeline stream error: ${err instanceof Error ? err.message : err}`,
@@ -483,7 +494,17 @@ export class AgentPipeline {
           query: userMessage,
           rerankTopN: 5,
         })
-        .catch(() => [] as RAGResult[]),
+        .catch((err) => {
+          const msg = err instanceof Error ? err.message : String(err);
+          logger.warn(
+            "pre",
+            `RAG search failed (degrading gracefully): ${msg}`,
+          );
+          onProgress?.(
+            `⚠️ RAG недоступен: ${msg.slice(0, 80)}, продолжаем без него...\n`,
+          );
+          return [] as RAGResult[];
+        }),
       Promise.resolve(this.memory.getAllFocus()),
       Promise.resolve(this.memory.getAllShared()),
     ]);

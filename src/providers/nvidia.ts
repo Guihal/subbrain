@@ -113,6 +113,7 @@ export class NvidiaProvider implements LLMProvider {
       method: "POST",
       headers: this.headers(),
       body: JSON.stringify(params),
+      signal: AbortSignal.timeout(30_000), // 30s — cold start can be slow
     });
 
     if (!res.ok) {
@@ -133,6 +134,7 @@ export class NvidiaProvider implements LLMProvider {
         passages: params.passages,
         top_n: params.top_n,
       }),
+      signal: AbortSignal.timeout(30_000), // 30s — cold start can be slow
     });
 
     if (!res.ok) {

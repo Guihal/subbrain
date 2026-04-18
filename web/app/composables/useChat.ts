@@ -36,6 +36,7 @@ export const MODELS = [
     label: "Генералист",
     description: "Mistral Large 3 675B",
   },
+  { value: "chaos", label: "Хаос", description: "Mistral Nemotron" },
 ] as const;
 
 export type ModelId = (typeof MODELS)[number]["value"];
