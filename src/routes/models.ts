@@ -3,7 +3,7 @@ import type { ModelRouter } from "../lib/model-router";
 
 /** Virtual models exposed to VS Code. Will be resolved by Model Router later. */
 const VIRTUAL_MODELS = [
-  { id: "teamlead", name: "Лид (kimi-k2-thinking)" },
+  { id: "teamlead", name: "Лид (kimi-k2.5)" },
   { id: "coder", name: "Кодер (devstral-123b)" },
   { id: "critic", name: "Критик (qwen3-coder-480b)" },
   { id: "generalist", name: "Генералист (qwen3-coder-480b)" },

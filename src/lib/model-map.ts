@@ -16,8 +16,8 @@ export interface ModelRoute {
 /** Maps virtual role names to actual model IDs with provider + fallbacks */
 export const MODEL_MAP: Record<string, ModelRoute> = {
   teamlead: {
-    primary: "moonshotai/kimi-k2-thinking",
-    primaryProvider: "nvidia",
+    primary: "moonshotai/kimi-k2.5",
+    primaryProvider: "openrouter",
     fallback: "qwen/qwen3-coder:free",
     fallbackProvider: "openrouter",
   },
