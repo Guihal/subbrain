@@ -26,6 +26,21 @@ import { logger } from "./lib/logger";
 const port = Number(process.env.PROXY_PORT) || 4000;
 const authToken = process.env.PROXY_AUTH_TOKEN;
 const dbPath = process.env.DB_PATH || "data/subbrain.db";
+const autonomousEnabled =
+  process.env.AUTONOMOUS_ENABLED === "true" ||
+  (process.env.AUTONOMOUS_ENABLED !== "false" &&
+    process.env.NODE_ENV === "production");
+const autonomousIntervalMinutes = Math.max(
+  1,
+  Number(process.env.AUTONOMOUS_INTERVAL_MINUTES) || 15,
+);
+const autonomousMaxSteps = Math.min(
+  20,
+  Math.max(1, Number(process.env.AUTONOMOUS_MAX_STEPS) || 8),
+);
+const autonomousTask =
+  process.env.AUTONOMOUS_TASK ||
+  "Работай в режиме свободного плавания. Найди один полезный следующий шаг для Дмитрия или Ники, либо одну реалистичную идею дохода или организации дня на основе памяти и доступных инструментов. Сохраняй в память только действительно новые выводы и заверши работу через done с коротким резюме.";
 
 if (!authToken) {
   console.error("PROXY_AUTH_TOKEN is required");
@@ -151,6 +166,67 @@ const app = new Elysia()
   .listen(port);
 
 console.log(`🧠 Subbrain proxy running on http://localhost:${port}`);
+
+// ─── Scheduled Autonomous TeamLead ───────────────────────
+if (autonomousEnabled) {
+  const intervalMs = autonomousIntervalMinutes * 60_000;
+  let autonomousRunning = false;
+
+  logger.info(
+    "autonomous",
+    `Scheduler enabled: every ${autonomousIntervalMinutes} min`,
+    {
+      meta: {
+        intervalMs,
+        maxSteps: autonomousMaxSteps,
+      },
+    },
+  );
+
+  setInterval(() => {
+    if (autonomousRunning) {
+      logger.warn(
+        "autonomous",
+        "Scheduled run skipped: previous autonomous loop still running",
+      );
+      return;
+    }
+
+    autonomousRunning = true;
+    agentLoop
+      .run({
+        task: autonomousTask,
+        model: "teamlead",
+        maxSteps: autonomousMaxSteps,
+        sessionId: "autonomous-scheduler",
+        priority: "low",
+      })
+      .then((result) => {
+        logger.info(
+          "autonomous",
+          `Scheduled run finished: ${result.stoppedReason}`,
+          {
+            meta: {
+              totalSteps: result.totalSteps,
+              requestId: result.requestId,
+              sessionId: result.sessionId,
+            },
+          },
+        );
+      })
+      .catch((err) => {
+        logger.error(
+          "autonomous",
+          `Scheduled run failed: ${err instanceof Error ? err.message : err}`,
+        );
+      })
+      .finally(() => {
+        autonomousRunning = false;
+      });
+  }, intervalMs);
+} else {
+  logger.info("autonomous", "Scheduler disabled");
+}
 
 // ─── Auto-set Telegram webhook in production ────────────────
 if (telegramBot && process.env.TG_WEBHOOK_URL) {

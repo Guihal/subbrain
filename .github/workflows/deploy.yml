@@ -44,6 +44,9 @@ jobs:
               exit 1
             fi
 
+            # Ensure persistent DB volume exists before rebuilds
+            sudo docker volume inspect subbrain-data > /dev/null 2>&1 || sudo docker volume create subbrain-data > /dev/null
+
             # Build and restart (DB volume is safe)
             sudo docker compose build --pull
             sudo docker compose up -d --force-recreate --remove-orphans

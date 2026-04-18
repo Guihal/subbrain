@@ -17,6 +17,7 @@ import type { ToolExecutor } from "../mcp/executor";
 import type { Message, Tool, ToolCall, ChatResponse } from "../providers/types";
 import type { Metrics } from "../lib/metrics";
 import type { ArbitrationRoom } from "./arbitration-room";
+import type { Priority } from "../lib/model-map";
 import { logger } from "../lib/logger";
 import { getPersonaBio } from "../lib/personas";
 
@@ -348,6 +349,8 @@ export interface AgentLoopRequest {
   maxSteps?: number;
   /** Optional: existing session to continue */
   sessionId?: string;
+  /** Optional: request priority for the rate limiter */
+  priority?: Priority;
 }
 
 export interface AgentLoopStep {
@@ -446,6 +449,7 @@ export class AgentLoop {
     const sessionId = req.sessionId || randomUUID();
     const model = req.model || AGENT_MODEL;
     const maxSteps = Math.min(req.maxSteps || MAX_STEPS, MAX_STEPS);
+    const priority = req.priority || "critical";
     const log = logger.forRequest(requestId, sessionId);
 
     log.info(
@@ -453,7 +457,7 @@ export class AgentLoop {
       `▶ Starting autonomous loop: "${req.task.slice(0, 100)}"`,
       {
         model,
-        meta: { maxSteps },
+        meta: { maxSteps, priority },
       },
     );
 
@@ -482,13 +486,17 @@ export class AgentLoop {
 
       const allTools = this.getAllTools();
 
-      const response = await this.router.chat(model, {
-        messages,
-        tools: allTools,
-        tool_choice: "auto",
-        max_tokens: MAX_OUTPUT_TOKENS,
-        temperature: 0.7,
-      });
+      const response = await this.router.chat(
+        model,
+        {
+          messages,
+          tools: allTools,
+          tool_choice: "auto",
+          max_tokens: MAX_OUTPUT_TOKENS,
+          temperature: 0.7,
+        },
+        priority,
+      );
 
       messages.pop(); // Remove temporary budget note
 
@@ -622,6 +630,7 @@ export class AgentLoop {
           const sessionId = req.sessionId || randomUUID();
           const model = req.model || AGENT_MODEL;
           const maxSteps = Math.min(req.maxSteps || MAX_STEPS, MAX_STEPS);
+          const priority = req.priority || "critical";
           const log = logger.forRequest(requestId, sessionId);
 
           emit("start", { requestId, sessionId, model, maxSteps });
@@ -648,13 +657,17 @@ export class AgentLoop {
 
             const allTools = self.getAllTools();
 
-            const response = await self.router.chat(model, {
-              messages,
-              tools: allTools,
-              tool_choice: "auto",
-              max_tokens: MAX_OUTPUT_TOKENS,
-              temperature: 0.7,
-            });
+            const response = await self.router.chat(
+              model,
+              {
+                messages,
+                tools: allTools,
+                tool_choice: "auto",
+                max_tokens: MAX_OUTPUT_TOKENS,
+                temperature: 0.7,
+              },
+              priority,
+            );
 
             messages.pop(); // Remove temporary budget note
 
