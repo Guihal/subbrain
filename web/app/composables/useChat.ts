@@ -286,19 +286,28 @@ export function useChat() {
         if (done) break;
 
         buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || "";
+        const frames = buffer.split(/\r?\n\r?\n/);
+        buffer = frames.pop() || "";
 
-        let currentEvent = "";
         let didUpdate = false;
 
-        for (const line of lines) {
-          if (line.startsWith("event: ")) {
-            currentEvent = line.slice(7).trim();
-            continue;
+        for (const frame of frames) {
+          const lines = frame.split(/\r?\n/);
+          let currentEvent = "";
+          let payload = "";
+
+          for (const line of lines) {
+            if (line.startsWith("event: ")) {
+              currentEvent = line.slice(7).trim();
+              continue;
+            }
+
+            if (line.startsWith("data: ")) {
+              payload += line.slice(6).trim();
+            }
           }
-          if (!line.startsWith("data: ")) continue;
-          const payload = line.slice(6).trim();
+
+          if (!payload) continue;
 
           try {
             const data = JSON.parse(payload);
@@ -337,11 +346,13 @@ export function useChat() {
                 didUpdate = true;
                 break;
             }
-
-            if (didUpdate) updateLastAssistant({ content, reasoning });
           } catch {
             // Malformed JSON
           }
+        }
+
+        if (didUpdate) {
+          updateLastAssistant({ content, reasoning });
         }
 
         if (didUpdate) await flushStreamingPaint();

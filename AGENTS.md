@@ -33,14 +33,16 @@
 
 ### Карта виртуальных ролей → реальные модели
 
-| Роль                       | Виртуальное имя | Основная модель          | Провайдер | Fallback              |
-| :------------------------- | :-------------- | :----------------------- | :-------- | :-------------------- |
-| **Тимлид / Оркестратор**   | `teamlead`      | `claude-sonnet-4.6`      | copilot   | `gpt-4o`              |
-| **Кодер / Разработчик**    | `coder`         | `claude-sonnet-4.6`      | copilot   | `gpt-4o`              |
-| **Критик / Ревьюер**       | `critic`        | `gemini-3.1-pro-preview` | copilot   | `gpt-4o`              |
-| **Генералист / Универсал** | `generalist`    | `claude-sonnet-4.6`      | copilot   | `gpt-4o`              |
-| **Хаос (эксперимент)**     | `chaos`         | `gpt-5.4-mini`           | copilot   | `gemini-3-flash-preview` |
-| **Pre/Post/Memory**        | `flash`         | `gpt-5.4-mini`           | copilot   | `gpt-4o-mini`         |
+> Все роли используют **Copilot (GitHub Models)** провайдер. NVIDIA NIM — только embed + rerank.
+
+| Роль                       | Виртуальное имя | Основная модель          | Fallback                  |
+| :------------------------- | :-------------- | :----------------------- | :------------------------ |
+| **Тимлид / Оркестратор**   | `teamlead`      | `claude-sonnet-4.6`      | `gpt-4o`                  |
+| **Кодер / Разработчик**    | `coder`         | `claude-sonnet-4.6`      | `gpt-4o`                  |
+| **Критик / Ревьюер**       | `critic`        | `gemini-3.1-pro-preview` | `gpt-4o`                  |
+| **Генералист / Универсал** | `generalist`    | `claude-sonnet-4.6`      | `gpt-4o`                  |
+| **Хаос (эксперимент)**     | `chaos`         | `gpt-5.4-mini`           | `gemini-3-flash-preview`  |
+| **Pre/Post/Memory**        | `flash`         | `gpt-5.4-mini`           | `gpt-4o-mini`             |
 
 ### Вспомогательные модели (NVIDIA NIM, не в MODEL_MAP)
 
@@ -81,24 +83,26 @@
 Запрос пользователя
       │
       ▼
-[1] Pre-processing (flash / step-3.5-flash)
-    └─ RAG: FTS5 + vector search + rerank
-    └─ Загрузка shared_memory + layer1_focus
-    └─ Формирует Executive Summary (hippocampus)
+[1] Pre-processing: Гиппокамп (flash / gpt-5.4-mini) — агентный режим
+    └─ Загрузка layer1_focus + shared_memory как seed-контекст
+    └─ Tool-calling цикл (до 6 шагов, 25s бюджет):
+         memory_search (FTS5, бесплатно)
+         rag_search    (embed + rerank, точнее)
+    └─ Формирует Executive Summary
+    └─ System prompt = persona + focus + shared_memory + exec_summary + raw_memory
       │
       ▼
 [2] Main Execution (teamlead / coder / critic / generalist)
-    └─ System prompt = persona + focus + shared_memory + exec_summary
-    └─ Доступ к MCP tools: memory_read/write, search, log, browser_*
+    └─ Доступ к MCP tools: memory_*, log_*, embed, search, web_*, tg_send_message
     └─ Стриминг ответа пользователю
       │
       ▼
-[3] Post-processing (flash / step-3.5-flash)
+[3] Post-processing (flash / gpt-5.4-mini)
     └─ Анализирует «дельту знаний»
     └─ Записывает в raw_log (Layer 4) с request_id
 ```
 
-**Управление длинным контекстом:** при приближении к лимиту токенов `step-3.5-flash` сжимает историю чата в Markdown-саммари на лету.
+**Управление длинным контекстом:** при приближении к лимиту токенов `flash` сжимает историю чата в Markdown-саммари на лету.
 
 ---
 
@@ -133,8 +137,8 @@ Layer 4 (raw_log, RU Plain Text)
 
 - `memory_search` / `memory_write` / `memory_read`
 - `log_write` / `raw_log_search`
-- `web_navigate` / `web_snapshot` (Playwright MCP)
-- `tg_send_message` / `tg_list_chats` / `tg_read_chat`
+- `web_navigate` / `web_snapshot` / `web_click` / `web_type` (Playwright MCP)
+- `tg_send_message` (уведомления владельцу через Bot API)
 
 ---
 
@@ -158,15 +162,14 @@ Layer 4 (raw_log, RU Plain Text)
 └────┬───────────────────────┬──────────────────────┬──────┘
      │                       │                      │
      ▼                       ▼                      ▼
-┌──────────────┐   ┌─────────────────┐   ┌──────────────────┐
-│ GitHub Models│   │   NVIDIA NIM    │   │   OpenRouter     │
-│  (copilot)   │   │  flash, chaos,  │   │  (резервный)     │
-│ teamlead,    │   │  embed, rerank  │   │                  │
-│ coder,       │   │  40 RPM         │   │  200 RPM         │
-│ critic,      │   └────────────────-┘   └──────────────────┘
-│ generalist   │
-│ 10 RPM       │
-└──────┬───────┘
+┌───────────────────┐   ┌─────────────────┐   ┌──────────────────┐
+│  GitHub Models    │   │   NVIDIA NIM    │   │   OpenRouter     │
+│   (copilot)       │   │  embed, rerank  │   │  (резервный)     │
+│ teamlead, coder   │   │  40 RPM         │   │  200 RPM         │
+│ critic, generalist│   └─────────────────┘   └──────────────────┘
+│ flash, chaos      │
+│ 10 RPM            │
+└──────┬────────────┘
        │
        ▼
 ┌──────────────────────────────────────────────────────────┐
@@ -182,7 +185,7 @@ Layer 4 (raw_log, RU Plain Text)
 │              MCP Tools / Playwright Browser              │
 │  memory_* · log_* · embed · search                       │
 │  web_navigate · web_snapshot · web_click · web_type      │
-│  tg_send_message · tg_list_chats · tg_read_chat          │
+│  tg_send_message (Bot API уведомления)                   │
 └──────────────────────────────────────────────────────────┘
 ```
 

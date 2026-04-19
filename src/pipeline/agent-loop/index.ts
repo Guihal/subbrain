@@ -17,6 +17,7 @@ import type { ToolExecutor } from "../../mcp/executor";
 import type { Message, Tool } from "../../providers/types";
 import type { Metrics } from "../../lib/metrics";
 import type { ArbitrationRoom } from "../arbitration-room";
+import { postProcess } from "../agent-pipeline/post-processing";
 import { logger } from "../../lib/logger";
 
 import {
@@ -276,6 +277,25 @@ export class AgentLoop {
     // Persist to chats (INSERT OR IGNORE to avoid UNIQUE constraint errors)
     this.persistToChat(sessionId, requestId, model, req.task, finalAnswer);
 
+    // Fire-and-forget knowledge extraction
+    if (finalAnswer) {
+      postProcess(
+        this.memory,
+        this.router,
+        this.rag,
+        req.task,
+        finalAnswer,
+        requestId,
+        sessionId,
+        model,
+        undefined,
+        undefined,
+        { skipRawLog: true },
+      ).catch((e) =>
+        log.error("post", `Agent post-processing failed: ${e instanceof Error ? e.message : e}`),
+      );
+    }
+
     return {
       requestId,
       sessionId,
@@ -367,6 +387,13 @@ export class AgentLoop {
             }
 
             if (msg.tool_calls && msg.tool_calls.length > 0) {
+              // Push assistant message with tool_calls ONCE before processing tools
+              messages.push({
+                role: "assistant",
+                content: msg.content,
+                tool_calls: msg.tool_calls,
+              });
+
               for (const tc of msg.tool_calls) {
                 emit("tool_call", {
                   step,
@@ -416,6 +443,23 @@ export class AgentLoop {
                     summary,
                   );
 
+                  // Fire-and-forget knowledge extraction
+                  postProcess(
+                    self.memory,
+                    self.router,
+                    self.rag,
+                    req.task,
+                    summary,
+                    requestId,
+                    sessionId,
+                    model,
+                    undefined,
+                    undefined,
+                    { skipRawLog: true },
+                  ).catch((e) =>
+                    log.error("post", `Agent post-processing failed: ${e instanceof Error ? e.message : e}`),
+                  );
+
                   controller.enqueue(
                     encoder.encode("event: end\ndata: {}\n\n"),
                   );
@@ -423,11 +467,6 @@ export class AgentLoop {
                   return;
                 }
 
-                messages.push({
-                  role: "assistant",
-                  content: msg.content,
-                  tool_calls: msg.tool_calls,
-                });
                 messages.push({
                   role: "tool",
                   content: toolResult,
@@ -462,6 +501,24 @@ export class AgentLoop {
                 req.task,
                 content,
               );
+
+              // Fire-and-forget knowledge extraction
+              postProcess(
+                self.memory,
+                self.router,
+                self.rag,
+                req.task,
+                content,
+                requestId,
+                sessionId,
+                model,
+                undefined,
+                undefined,
+                { skipRawLog: true },
+              ).catch((e) =>
+                log.error("post", `Agent post-processing failed: ${e instanceof Error ? e.message : e}`),
+              );
+
               break;
             }
 

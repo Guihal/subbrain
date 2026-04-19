@@ -29,6 +29,9 @@ export async function postProcess(
     total_tokens: number;
   },
   reasoning?: string,
+  options?: {
+    skipRawLog?: boolean;
+  },
 ): Promise<void> {
   const log = logger.forRequest(requestId, sessionId);
   log.info(
@@ -37,21 +40,25 @@ export async function postProcess(
     { model },
   );
 
-  // 1. Log the exchange to Layer 4
-  memory.appendLog(requestId, sessionId, model, "user", userMessage);
-  memory.appendLog(
-    requestId,
-    sessionId,
-    model,
-    "assistant",
-    assistantMessage,
-    usage?.completion_tokens,
-  );
+  // 1. Log the exchange to Layer 4 unless the caller already did so.
+  if (!options?.skipRawLog) {
+    memory.appendLog(requestId, sessionId, model, "user", userMessage);
+    memory.appendLog(
+      requestId,
+      sessionId,
+      model,
+      "assistant",
+      assistantMessage,
+      usage?.completion_tokens,
+    );
 
-  // 1b. Log reasoning/thinking if present
-  if (reasoning && reasoning.length > 0) {
-    memory.appendLog(requestId, sessionId, model, "reasoning", reasoning);
-    log.info("post", `Reasoning logged: ${reasoning.length} chars`, { model });
+    // 1b. Log reasoning/thinking if present
+    if (reasoning && reasoning.length > 0) {
+      memory.appendLog(requestId, sessionId, model, "reasoning", reasoning);
+      log.info("post", `Reasoning logged: ${reasoning.length} chars`, {
+        model,
+      });
+    }
   }
 
   // 2. Extract knowledge delta via flash

@@ -1,6 +1,7 @@
 import { Elysia, t } from "elysia";
 import type { AgentLoop } from "../pipeline/agent-loop";
 import type { MemoryDB } from "../db";
+import { sseResponse } from "../lib/sse";
 
 export function autonomousRoute(agentLoop: AgentLoop, memory?: MemoryDB) {
   return new Elysia().post(
@@ -32,13 +33,7 @@ export function autonomousRoute(agentLoop: AgentLoop, memory?: MemoryDB) {
       };
 
       if (stream) {
-        return new Response(agentLoop.createStream(req), {
-          headers: {
-            "Content-Type": "text/event-stream",
-            "Cache-Control": "no-cache",
-            Connection: "keep-alive",
-          },
-        });
+        return sseResponse(agentLoop.createStream(req));
       }
 
       const result = await agentLoop.run(req);
