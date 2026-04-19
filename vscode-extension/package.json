@@ -1,0 +1,67 @@
+{
+  "name": "subbrain-vscode-chat",
+  "displayName": "Subbrain AI Provider",
+  "description": "Integrates Subbrain AI models (teamlead, coder, critic, generalist, flash) into VS Code Copilot Chat",
+  "version": "1.0.0",
+  "publisher": "subbrain",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-user/subbrain"
+  },
+  "engines": {
+    "vscode": "^1.104.0"
+  },
+  "categories": [
+    "AI",
+    "Chat"
+  ],
+  "keywords": [
+    "ai",
+    "chat",
+    "copilot",
+    "subbrain",
+    "openai"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "languageModelChatProviders": [
+      {
+        "vendor": "subbrain",
+        "displayName": "Subbrain",
+        "managementCommand": "subbrain.manage"
+      }
+    ],
+    "commands": [
+      {
+        "command": "subbrain.manage",
+        "title": "Manage Subbrain Provider",
+        "category": "Subbrain"
+      }
+    ],
+    "configuration": {
+      "title": "Subbrain",
+      "properties": {
+        "subbrain.baseUrl": {
+          "type": "string",
+          "default": "https://subbrain.dmtr.ru/v1",
+          "description": "Subbrain API base URL"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -w -p ./",
+    "package": "vsce package --no-yarn"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.104.0",
+    "typescript": "^5.4.0"
+  }
+}

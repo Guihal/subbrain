@@ -1,0 +1,10 @@
+.vscode/**
+src/**
+node_modules/**
+out/maps/**
+**/*.map
+**/*.ts
+tsconfig.json
+.prettierrc
+.eslintrc*
+*.vsix

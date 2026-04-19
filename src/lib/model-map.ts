@@ -16,9 +16,9 @@ export interface ModelRoute {
 /** Maps virtual role names to actual model IDs with provider + fallbacks */
 export const MODEL_MAP: Record<string, ModelRoute> = {
   teamlead: {
-    primary: "claude-sonnet-4.6",
+    primary: "claude-opus-4",
     primaryProvider: "copilot",
-    fallback: "gpt-4o",
+    fallback: "claude-sonnet-4.6",
     fallbackProvider: "copilot",
   },
   coder: {
