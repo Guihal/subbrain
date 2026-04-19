@@ -12,6 +12,7 @@ import { chatsRoute } from "./routes/chats";
 import { telegramRoute } from "./routes/telegram";
 import { MemoryDB } from "./db";
 import { ToolExecutor, mcpRoute, PlaywrightClient } from "./mcp";
+import { mcpProtocolRoute } from "./mcp/mcp-protocol";
 import { RAGPipeline } from "./rag";
 import {
   AgentPipeline,
@@ -152,9 +153,16 @@ if (tgBotToken && tgOwnerChatId) {
 const app = new Elysia()
   .onError(({ code, error, set, path }) => {
     if (code === "VALIDATION") {
-      logger.warn("validation", `422 on ${path}: ${(error as any)?.message?.slice?.(0, 500) || error}`, {
-        meta: { validator: (error as any)?.validator, type: (error as any)?.type },
-      } as any);
+      logger.warn(
+        "validation",
+        `422 on ${path}: ${(error as any)?.message?.slice?.(0, 500) || error}`,
+        {
+          meta: {
+            validator: (error as any)?.validator,
+            type: (error as any)?.type,
+          },
+        } as any,
+      );
       set.status = 422;
       return {
         error: {
@@ -188,6 +196,7 @@ const app = new Elysia()
   .use(embeddingsRoute(router))
   .use(logsRoute(memory))
   .use(mcpRoute(tools))
+  .use(mcpProtocolRoute(tools, authToken))
   .use(autonomousRoute(agentLoop, memory))
   .use(chatsRoute(memory))
   .listen(port);
