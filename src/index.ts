@@ -11,8 +11,12 @@ import { autonomousRoute } from "./routes/autonomous";
 import { chatsRoute } from "./routes/chats";
 import { telegramRoute } from "./routes/telegram";
 import { MemoryDB } from "./db";
-import { ToolExecutor, mcpRoute, PlaywrightClient } from "./mcp";
-import { mcpProtocolRoute } from "./mcp/mcp-protocol";
+import {
+  ToolExecutor,
+  mcpRoute,
+  PlaywrightClient,
+  mcpProtocolRoute,
+} from "./mcp";
 import { RAGPipeline } from "./rag";
 import {
   AgentPipeline,
@@ -190,13 +194,16 @@ const app = new Elysia()
   .post("/night-cycle", async ({ nightCycle }) => nightCycle.run())
   // Token endpoint — no Bearer required, protected by Caddy basic auth
   .get("/api/token", () => ({ token: authToken }))
+  // MCP SSE/messages route — placed BEFORE authMiddleware because it handles
+  // its own auth internally and some clients (Continue) may not send the header
+  // on every POST (they attach it per-session, not per-request).
+  .use(mcpProtocolRoute(tools, authToken))
   .use(authMiddleware(authToken))
   .use(chatRoute(router, pipeline, memory))
   .use(modelsRoute(router))
   .use(embeddingsRoute(router))
   .use(logsRoute(memory))
   .use(mcpRoute(tools))
-  .use(mcpProtocolRoute(tools, authToken))
   .use(autonomousRoute(agentLoop, memory))
   .use(chatsRoute(memory))
   .listen(port);

@@ -2,8 +2,9 @@
  * Proper MCP JSON-RPC 2.0 transport over HTTP/SSE
  * Compatible with Continue IDE, Claude Desktop, etc.
  *
- * GET  /mcp/sse      — SSE stream, sends `endpoint` event
- * POST /mcp/messages — JSON-RPC 2.0 requests
+ * GET  /mcp/sse      — SSE stream, sends `endpoint` event with full URL
+ * POST /mcp/messages — JSON-RPC 2.0 requests (auth-bypassed — route is
+ *                      placed BEFORE authMiddleware in index.ts)
  */
 import { Elysia, t } from "elysia";
 import type { ToolExecutor } from "./executor";
@@ -11,13 +12,21 @@ import type { ToolExecutor } from "./executor";
 const MCP_TOOLS = [
   {
     name: "memory_search",
-    description: "Гибридный поиск по памяти (FTS5 + vector). Ищи факты о пользователе, проектах, контексте.",
+    description:
+      "Гибридный поиск по памяти (FTS5 + vector). Ищи факты о пользователе, проектах, контексте.",
     inputSchema: {
       type: "object",
       properties: {
         query: { type: "string", description: "Поисковый запрос" },
-        layer: { type: "string", enum: ["context", "archive", "shared"], description: "Слой памяти (опционально)" },
-        limit: { type: "number", description: "Макс. результатов (default: 10)" },
+        layer: {
+          type: "string",
+          enum: ["context", "archive", "shared"],
+          description: "Слой памяти (опционально)",
+        },
+        limit: {
+          type: "number",
+          description: "Макс. результатов (default: 10)",
+        },
       },
       required: ["query"],
     },
@@ -28,8 +37,15 @@ const MCP_TOOLS = [
     inputSchema: {
       type: "object",
       properties: {
-        content: { type: "string", description: "Markdown-контент для сохранения" },
-        layer: { type: "number", enum: [2, 3], description: "2=context, 3=archive (default: 2)" },
+        content: {
+          type: "string",
+          description: "Markdown-контент для сохранения",
+        },
+        layer: {
+          type: "number",
+          enum: [2, 3],
+          description: "2=context, 3=archive (default: 2)",
+        },
         tags: { type: "string", description: "Теги через запятую" },
       },
       required: ["content"],
@@ -48,7 +64,8 @@ const MCP_TOOLS = [
   },
   {
     name: "rag_search",
-    description: "RAG поиск: FTS5 + embeddings + rerank. Точнее чем memory_search.",
+    description:
+      "RAG поиск: FTS5 + embeddings + rerank. Точнее чем memory_search.",
     inputSchema: {
       type: "object",
       properties: {
@@ -160,117 +177,138 @@ function jsonrpcError(id: unknown, code: number, message: string) {
 const sessions = new Map<string, ReadableStreamDefaultController<Uint8Array>>();
 
 export function mcpProtocolRoute(executor: ToolExecutor, authToken: string) {
-  return new Elysia({ prefix: "/mcp" })
-    // ── SSE endpoint ──────────────────────────────────────────
-    .get("/sse", ({ headers, set }) => {
-      // Simple auth check
-      const auth = headers["authorization"] || headers["Authorization"] || "";
-      if (auth !== `Bearer ${authToken}`) {
-        set.status = 401;
-        return "Unauthorized";
-      }
-
-      const sessionId = crypto.randomUUID();
-      const encoder = new TextEncoder();
-
-      const stream = new ReadableStream<Uint8Array>({
-        start(controller) {
-          sessions.set(sessionId, controller);
-
-          // Send endpoint event — tells client where to POST messages
-          const endpointEvent = `event: endpoint\ndata: /mcp/messages?sessionId=${sessionId}\n\n`;
-          controller.enqueue(encoder.encode(endpointEvent));
-
-          // Keepalive ping every 25s
-          const ping = setInterval(() => {
-            try {
-              controller.enqueue(encoder.encode(": ping\n\n"));
-            } catch {
-              clearInterval(ping);
-            }
-          }, 25_000);
-        },
-        cancel() {
-          sessions.delete(sessionId);
-        },
-      });
-
-      return new Response(stream, {
-        headers: {
-          "Content-Type": "text/event-stream",
-          "Cache-Control": "no-cache, no-transform",
-          "X-Accel-Buffering": "no",
-          "Content-Encoding": "identity",
-        },
-      });
-    })
-    // ── JSON-RPC messages endpoint ────────────────────────────
-    .post("/messages", async ({ body, query, headers, set }) => {
-      const auth = headers["authorization"] || headers["Authorization"] || "";
-      if (auth !== `Bearer ${authToken}`) {
-        set.status = 401;
-        return "Unauthorized";
-      }
-
-      const sessionId = query?.sessionId as string | undefined;
-      const controller = sessionId ? sessions.get(sessionId) : undefined;
-      const encoder = new TextEncoder();
-
-      const sendSSE = (data: string) => {
-        if (controller) {
-          try {
-            controller.enqueue(encoder.encode(`data: ${data}\n\n`));
-          } catch {}
+  return (
+    new Elysia({ prefix: "/mcp" })
+      // ── SSE endpoint ──────────────────────────────────────────
+      .get("/sse", ({ headers, set, request }) => {
+        // Auth check (this route sits before global authMiddleware in index.ts)
+        const auth = headers["authorization"] ?? "";
+        if (auth !== `Bearer ${authToken}`) {
+          set.status = 401;
+          return "Unauthorized";
         }
-      };
 
-      const msg = body as any;
-      const { jsonrpc: _jv, id, method, params } = msg;
+        const sessionId = crypto.randomUUID();
+        const encoder = new TextEncoder();
 
-      let response: string;
+        // Build absolute messages URL from the incoming request's origin
+        const origin = new URL(request.url).origin;
+        const messagesUrl = `${origin}/mcp/messages?sessionId=${sessionId}`;
 
-      try {
-        if (method === "initialize") {
-          response = jsonrpc(id, {
-            protocolVersion: "2024-11-05",
-            capabilities: { tools: {} },
-            serverInfo: { name: "subbrain", version: "1.0.0" },
-          });
-        } else if (method === "notifications/initialized") {
-          // No response needed for notifications
-          return new Response(null, { status: 202 });
-        } else if (method === "tools/list") {
-          response = jsonrpc(id, { tools: MCP_TOOLS });
-        } else if (method === "tools/call") {
-          const { name, arguments: args } = params as {
-            name: string;
-            arguments: Record<string, unknown>;
+        const stream = new ReadableStream<Uint8Array>({
+          start(controller) {
+            sessions.set(sessionId, controller);
+
+            // Send endpoint event with ABSOLUTE URL — required by Continue / Claude Desktop
+            const endpointEvent = `event: endpoint\ndata: ${messagesUrl}\n\n`;
+            controller.enqueue(encoder.encode(endpointEvent));
+
+            // Keepalive ping every 25s
+            const ping = setInterval(() => {
+              try {
+                controller.enqueue(encoder.encode(": ping\n\n"));
+              } catch {
+                clearInterval(ping);
+              }
+            }, 25_000);
+          },
+          cancel() {
+            sessions.delete(sessionId);
+          },
+        });
+
+        return new Response(stream, {
+          headers: {
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-cache, no-transform",
+            "X-Accel-Buffering": "no",
+            "Content-Encoding": "identity",
+          },
+        });
+      })
+      // ── JSON-RPC messages endpoint ────────────────────────────
+      // Auth check here is intentionally redundant — keep it so the route
+      // works even if mounted before authMiddleware during testing.
+      .post(
+        "/messages",
+        async ({ body, query, headers, set }) => {
+          const auth = headers["authorization"] ?? "";
+          if (auth !== `Bearer ${authToken}`) {
+            set.status = 401;
+            return "Unauthorized";
+          }
+
+          const sessionId = query?.sessionId as string | undefined;
+          const controller = sessionId ? sessions.get(sessionId) : undefined;
+          const encoder = new TextEncoder();
+
+          const sendSSE = (data: string) => {
+            if (controller) {
+              try {
+                controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+              } catch {}
+            }
           };
 
-          const result = await callTool(executor, name, args ?? {});
-          const text =
-            typeof result === "string" ? result : JSON.stringify(result, null, 2);
+          const msg = body as any;
+          const { jsonrpc: _jv, id, method, params } = msg;
 
-          response = jsonrpc(id, {
-            content: [{ type: "text", text }],
+          let response: string;
+
+          try {
+            if (method === "initialize") {
+              response = jsonrpc(id, {
+                protocolVersion: "2024-11-05",
+                capabilities: { tools: {} },
+                serverInfo: { name: "subbrain", version: "1.0.0" },
+              });
+            } else if (method === "notifications/initialized") {
+              // No response needed for notifications
+              return new Response(null, { status: 202 });
+            } else if (method === "tools/list") {
+              response = jsonrpc(id, { tools: MCP_TOOLS });
+            } else if (method === "tools/call") {
+              const { name, arguments: args } = params as {
+                name: string;
+                arguments: Record<string, unknown>;
+              };
+
+              const result = await callTool(executor, name, args ?? {});
+              const text =
+                typeof result === "string"
+                  ? result
+                  : JSON.stringify(result, null, 2);
+
+              response = jsonrpc(id, {
+                content: [{ type: "text", text }],
+              });
+            } else if (method === "ping") {
+              response = jsonrpc(id, {});
+            } else {
+              response = jsonrpcError(
+                id,
+                -32601,
+                `Method not found: ${method}`,
+              );
+            }
+          } catch (err) {
+            response = jsonrpcError(id, -32000, (err as Error).message);
+          }
+
+          // Send via SSE if session exists, otherwise return directly
+          if (controller) {
+            sendSSE(response);
+            return new Response(null, { status: 202 });
+          }
+
+          return new Response(response, {
+            headers: { "Content-Type": "application/json" },
           });
-        } else if (method === "ping") {
-          response = jsonrpc(id, {});
-        } else {
-          response = jsonrpcError(id, -32601, `Method not found: ${method}`);
-        }
-      } catch (err) {
-        response = jsonrpcError(id, -32000, (err as Error).message);
-      }
-
-      // Send via SSE if session exists, otherwise return directly
-      if (controller) {
-        sendSSE(response);
-        return new Response(null, { status: 202 });
-      }
-
-      return new Response(response, {
-        headers: { "Content-Type": "application/json" },
-      });
-    });
+        },
+        {
+          // Explicit body schema so Elysia doesn't reject un-schemed JSON-RPC payloads
+          body: t.Any(),
+        },
+      )
+  );
 }
