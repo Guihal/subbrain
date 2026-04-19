@@ -1,9 +1,11 @@
 import type { LLMProvider } from "./types";
 import { NvidiaProvider } from "./nvidia";
+import { CopilotProvider } from "./copilot";
 import type { ProviderName } from "../lib/model-map";
 
 export type { LLMProvider } from "./types";
 export { ProviderError } from "./nvidia";
+export { CopilotProvider } from "./copilot";
 
 /** Create a single NVIDIA provider (legacy, for embed/rerank) */
 export function createProvider(): LLMProvider {
@@ -32,12 +34,10 @@ export function createProviders(): Record<ProviderName, LLMProvider> {
     throw new Error("OPENROUTER_API_KEY must be set");
   }
 
-  const copilotUrl =
-    process.env.COPILOT_BASE_URL || "https://models.github.ai/inference";
-  const copilotKey = process.env.GITHUB_TOKEN || process.env.COPILOT_API_KEY;
-  if (!copilotKey) {
+  const githubPat = process.env.GITHUB_TOKEN;
+  if (!githubPat) {
     throw new Error(
-      "GITHUB_TOKEN or COPILOT_API_KEY must be set (PAT with models scope)",
+      "GITHUB_TOKEN must be set (GitHub PAT with Copilot access)",
     );
   }
 
@@ -47,6 +47,6 @@ export function createProviders(): Record<ProviderName, LLMProvider> {
       "HTTP-Referer": "https://subbrain.local",
       "X-Title": "Subbrain",
     }),
-    copilot: new NvidiaProvider(copilotUrl, copilotKey),
+    copilot: new CopilotProvider(githubPat),
   };
 }

@@ -18,37 +18,37 @@ export const MODEL_MAP: Record<string, ModelRoute> = {
   teamlead: {
     primary: "moonshotai/kimi-k2-thinking",
     primaryProvider: "nvidia",
-    fallback: "openai/gpt-4.1",
+    fallback: "gpt-4o",
     fallbackProvider: "copilot",
   },
   coder: {
     primary: "qwen/qwen3-coder-480b-a35b-instruct",
     primaryProvider: "nvidia",
-    fallback: "openai/gpt-4.1",
+    fallback: "claude-sonnet-4",
     fallbackProvider: "copilot",
   },
   critic: {
     primary: "mistralai/devstral-2-123b-instruct-2512",
     primaryProvider: "nvidia",
-    fallback: "deepseek/DeepSeek-R1",
+    fallback: "gpt-4o",
     fallbackProvider: "copilot",
   },
   generalist: {
     primary: "mistralai/mistral-large-3-675b-instruct-2512",
     primaryProvider: "nvidia",
-    fallback: "openai/gpt-4.1",
+    fallback: "gpt-4o",
     fallbackProvider: "copilot",
   },
   chaos: {
     primary: "mistralai/mistral-nemotron",
     primaryProvider: "nvidia",
-    fallback: "meta/llama-4-maverick-17b-128e-instruct",
+    fallback: "gemini-2.0-flash-001",
     fallbackProvider: "copilot",
   },
   flash: {
     primary: "stepfun-ai/step-3.5-flash",
     primaryProvider: "nvidia",
-    fallback: "openai/gpt-4.1-mini",
+    fallback: "gpt-4o-mini",
     fallbackProvider: "copilot",
   },
 };
@@ -58,15 +58,14 @@ function detectProvider(model: string): ProviderName {
   if (model.endsWith(":free") || model.startsWith("openrouter/")) {
     return "openrouter";
   }
-  // GitHub Models uses org/model naming like openai/gpt-4.1, meta/llama-4-*
-  if (
-    model.startsWith("openai/") ||
-    model.startsWith("meta/") ||
-    model.startsWith("deepseek/") ||
-    model.startsWith("cohere/") ||
-    model.startsWith("mistral/") ||
-    model.startsWith("github/")
-  ) {
+  // Copilot Pro models use bare names without org/ prefix
+  const copilotModels = [
+    "gpt-4o", "gpt-4o-mini", "gpt-4.1", "gpt-4.1-mini", "gpt-4.1-nano",
+    "o3-mini", "o4-mini",
+    "claude-sonnet-4", "claude-haiku-3.5",
+    "gemini-2.0-flash-001", "gemini-2.5-pro",
+  ];
+  if (copilotModels.includes(model)) {
     return "copilot";
   }
   return "nvidia";
