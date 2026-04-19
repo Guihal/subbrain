@@ -3,6 +3,31 @@ import { StringSession } from "telegram/sessions";
 import type { MemoryDB } from "../db";
 import { logger } from "../lib/logger";
 
+const TG_OP_TIMEOUT_MS = 30_000;
+
+function withTimeout<T>(
+  promise: Promise<T>,
+  ms: number,
+  label: string,
+): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(new Error(`Telegram ${label} timed out after ${ms}ms`)),
+      ms,
+    );
+    promise.then(
+      (v) => {
+        clearTimeout(timer);
+        resolve(v);
+      },
+      (e) => {
+        clearTimeout(timer);
+        reject(e);
+      },
+    );
+  });
+}
+
 export interface UserbotConfig {
   apiId: number;
   apiHash: string;
@@ -90,12 +115,33 @@ export class Userbot {
     return this.connected;
   }
 
+  /** Ensure the client is connected; reconnect if dropped */
+  private async ensureConnected(): Promise<void> {
+    if (this.connected && this.client.connected) return;
+    logger.warn("userbot", "Connection lost — attempting reconnect");
+    this.connected = false;
+    try {
+      await withTimeout(this.client.connect(), TG_OP_TIMEOUT_MS, "reconnect");
+      this.connected = true;
+      logger.info("userbot", "Reconnected successfully");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      logger.error("userbot", `Reconnect failed: ${msg}`);
+      throw new Error(`Telegram reconnect failed: ${msg}`);
+    }
+  }
+
   // ─── Chat Reading (with exclusions) ────────────────────────
 
   /** List all dialogs, marking excluded ones */
   async listChats(limit = 100): Promise<TgDialog[]> {
+    await this.ensureConnected();
     const excluded = this.memory.getExcludedTgChatIds();
-    const dialogs = await this.client.getDialogs({ limit });
+    const dialogs = await withTimeout(
+      this.client.getDialogs({ limit }),
+      TG_OP_TIMEOUT_MS,
+      "listChats",
+    );
     return dialogs.map((d) => {
       const id = d.id?.toString() || "";
       return {
@@ -118,16 +164,25 @@ export class Userbot {
     limit = 50,
     offsetId?: number,
   ): Promise<TgMessage[]> {
+    await this.ensureConnected();
     const excluded = this.memory.getExcludedTgChatIds();
     if (excluded.has(chatId)) {
       throw new Error(`Chat ${chatId} is excluded from reading`);
     }
 
-    const entity = await this.client.getEntity(chatId);
-    const messages = await this.client.getMessages(entity, {
-      limit,
-      ...(offsetId ? { offsetId } : {}),
-    });
+    const entity = await withTimeout(
+      this.client.getEntity(chatId),
+      TG_OP_TIMEOUT_MS,
+      `getEntity(${chatId})`,
+    );
+    const messages = await withTimeout(
+      this.client.getMessages(entity, {
+        limit,
+        ...(offsetId ? { offsetId } : {}),
+      }),
+      TG_OP_TIMEOUT_MS,
+      `getMessages(${chatId})`,
+    );
 
     return messages
       .filter((m) => m.message)
@@ -147,6 +202,7 @@ export class Userbot {
     limit = 30,
     chatId?: string,
   ): Promise<(TgMessage & { chatName: string; chatId: string })[]> {
+    await this.ensureConnected();
     const excluded = this.memory.getExcludedTgChatIds();
 
     if (chatId) {
@@ -155,20 +211,30 @@ export class Userbot {
       }
     }
 
-    const peer = chatId ? await this.client.getEntity(chatId) : undefined;
+    const peer = chatId
+      ? await withTimeout(
+          this.client.getEntity(chatId),
+          TG_OP_TIMEOUT_MS,
+          `getEntity(${chatId})`,
+        )
+      : undefined;
 
-    const result = await this.client.invoke(
-      new Api.messages.SearchGlobal({
-        q: query,
-        filter: new Api.InputMessagesFilterEmpty(),
-        minDate: 0,
-        maxDate: 0,
-        offsetRate: 0,
-        offsetPeer: new Api.InputPeerEmpty(),
-        offsetId: 0,
-        limit,
-        ...(peer ? { peer } : {}),
-      }),
+    const result = await withTimeout(
+      this.client.invoke(
+        new Api.messages.SearchGlobal({
+          q: query,
+          filter: new Api.InputMessagesFilterEmpty(),
+          minDate: 0,
+          maxDate: 0,
+          offsetRate: 0,
+          offsetPeer: new Api.InputPeerEmpty(),
+          offsetId: 0,
+          limit,
+          ...(peer ? { peer } : {}),
+        }),
+      ),
+      TG_OP_TIMEOUT_MS,
+      "searchMessages",
     );
 
     const messages: (TgMessage & { chatName: string; chatId: string })[] = [];
@@ -266,8 +332,11 @@ export class Userbot {
           "userbot",
           `New message in ${username || chatId}: ${text.slice(0, 100)}...`,
         );
-      } catch (err: any) {
-        logger.error("userbot", `Event handler error: ${err.message}`);
+      } catch (err) {
+        logger.error(
+          "userbot",
+          `Event handler error: ${err instanceof Error ? err.message : String(err)}`,
+        );
       }
     });
 

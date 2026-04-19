@@ -185,9 +185,10 @@ export class TelegramBot {
 
         // Telegram has 4096 char limit — split if needed
         await sendLongMessage(ctx, content);
-      } catch (err: any) {
-        logger.error("telegram", `Pipeline error: ${err.message}`);
-        await ctx.reply(`❌ Ошибка: ${err.message}`);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        logger.error("telegram", `Pipeline error: ${msg}`);
+        await ctx.reply(`❌ Ошибка: ${msg}`);
       }
     });
   }
@@ -231,8 +232,11 @@ export class TelegramBot {
       await this.bot.api.sendMessage(this.ownerChatId, text, {
         parse_mode: "Markdown",
       });
-    } catch (err: any) {
-      logger.error("telegram", `Notify failed: ${err.message}`);
+    } catch (err) {
+      logger.error(
+        "telegram",
+        `Notify failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
   }
 

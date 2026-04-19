@@ -22,8 +22,11 @@ export async function tgListChats(
     const ub = requireUserbot(userbot);
     const chats = await ub.listChats(limit);
     return { success: true, data: chats };
-  } catch (err: any) {
-    return { success: false, error: err.message };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : String(err),
+    };
   }
 }
 
@@ -37,8 +40,11 @@ export async function tgReadChat(
     const ub = requireUserbot(userbot);
     const messages = await ub.readChat(chatId, limit, offsetId);
     return { success: true, data: messages };
-  } catch (err: any) {
-    return { success: false, error: err.message };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : String(err),
+    };
   }
 }
 
@@ -52,8 +58,11 @@ export async function tgSearchMessages(
     const ub = requireUserbot(userbot);
     const messages = await ub.searchMessages(query, limit, chatId);
     return { success: true, data: messages };
-  } catch (err: any) {
-    return { success: false, error: err.message };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : String(err),
+    };
   }
 }
 
@@ -66,20 +75,23 @@ export function tgExcludeChat(
   try {
     memory.excludeTgChat(chatId, chatTitle, reason);
     return { success: true, data: { excluded: chatId, chatTitle, reason } };
-  } catch (err: any) {
-    return { success: false, error: err.message };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : String(err),
+    };
   }
 }
 
-export function tgIncludeChat(
-  memory: MemoryDB,
-  chatId: string,
-): ToolResult {
+export function tgIncludeChat(memory: MemoryDB, chatId: string): ToolResult {
   try {
     memory.includeTgChat(chatId);
     return { success: true, data: { included: chatId } };
-  } catch (err: any) {
-    return { success: false, error: err.message };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : String(err),
+    };
   }
 }
 
@@ -87,7 +99,10 @@ export function tgListExcluded(memory: MemoryDB): ToolResult {
   try {
     const excluded = memory.getExcludedTgChats();
     return { success: true, data: excluded };
-  } catch (err: any) {
-    return { success: false, error: err.message };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : String(err),
+    };
   }
 }

@@ -63,7 +63,10 @@ export class AgentLoop {
       if (rows?.content) {
         const defs: DynamicToolDef[] = JSON.parse(rows.content);
         this.dynamicTools.load(defs);
-        logger.info("agent-loop", `Loaded ${defs.length} persisted dynamic tools`);
+        logger.info(
+          "agent-loop",
+          `Loaded ${defs.length} persisted dynamic tools`,
+        );
       }
     } catch {
       // No persisted tools or parse error
@@ -73,7 +76,9 @@ export class AgentLoop {
   private persistDynamicTools(): void {
     const serialized = JSON.stringify(this.dynamicTools.serialize());
     const existing = this.memory.db
-      .query("SELECT id FROM agent_memory WHERE agent_id = 'dynamic_tools' LIMIT 1")
+      .query(
+        "SELECT id FROM agent_memory WHERE agent_id = 'dynamic_tools' LIMIT 1",
+      )
       .get() as { id: string } | null;
     if (existing) {
       this.memory.db.run(
@@ -123,12 +128,22 @@ export class AgentLoop {
     const log = logger.forRequest(requestId, sessionId);
     const deps = this.getToolRunnerDeps();
 
-    log.info("agent-loop", `▶ Starting autonomous loop: "${req.task.slice(0, 100)}"`, {
-      model,
-      meta: { maxSteps, priority },
-    });
+    log.info(
+      "agent-loop",
+      `▶ Starting autonomous loop: "${req.task.slice(0, 100)}"`,
+      {
+        model,
+        meta: { maxSteps, priority },
+      },
+    );
 
-    const systemPrompt = await buildAgentSystemPrompt(this.memory, this.rag, req.task, model, this.router);
+    const systemPrompt = await buildAgentSystemPrompt(
+      this.memory,
+      this.rag,
+      req.task,
+      model,
+      this.router,
+    );
     const messages: Message[] = [
       { role: "system", content: systemPrompt },
       { role: "user", content: req.task },
@@ -239,10 +254,14 @@ export class AgentLoop {
       break;
     }
 
-    log.info("agent-loop", `◀ Loop finished: ${steps.length} steps, reason=${stoppedReason}`, {
-      model,
-      meta: { steps: steps.length, reason: stoppedReason },
-    });
+    log.info(
+      "agent-loop",
+      `◀ Loop finished: ${steps.length} steps, reason=${stoppedReason}`,
+      {
+        model,
+        meta: { steps: steps.length, reason: stoppedReason },
+      },
+    );
 
     // Store in Layer 4
     this.memory.appendLog(requestId, sessionId, model, "user", req.task);
@@ -257,7 +276,14 @@ export class AgentLoop {
     // Persist to chats (INSERT OR IGNORE to avoid UNIQUE constraint errors)
     this.persistToChat(sessionId, requestId, model, req.task, finalAnswer);
 
-    return { requestId, sessionId, steps, finalAnswer, totalSteps: steps.length, stoppedReason };
+    return {
+      requestId,
+      sessionId,
+      steps,
+      finalAnswer,
+      totalSteps: steps.length,
+      stoppedReason,
+    };
   }
 
   // ─── Streaming run ───────────────────────────────────
@@ -270,7 +296,9 @@ export class AgentLoop {
       async start(controller) {
         const emit = (event: string, data: unknown) => {
           controller.enqueue(
-            encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`),
+            encoder.encode(
+              `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`,
+            ),
           );
         };
 
@@ -285,7 +313,13 @@ export class AgentLoop {
 
           emit("start", { requestId, sessionId, model, maxSteps });
 
-          const systemPrompt = await buildAgentSystemPrompt(self.memory, self.rag, req.task, model, self.router);
+          const systemPrompt = await buildAgentSystemPrompt(
+            self.memory,
+            self.rag,
+            req.task,
+            model,
+            self.router,
+          );
           const messages: Message[] = [
             { role: "system", content: systemPrompt },
             { role: "user", content: req.task },
@@ -334,7 +368,11 @@ export class AgentLoop {
 
             if (msg.tool_calls && msg.tool_calls.length > 0) {
               for (const tc of msg.tool_calls) {
-                emit("tool_call", { step, name: tc.function.name, args: tc.function.arguments });
+                emit("tool_call", {
+                  step,
+                  name: tc.function.name,
+                  args: tc.function.arguments,
+                });
 
                 const toolResult = await executeAgentTool(tc, deps, log);
 
@@ -345,21 +383,42 @@ export class AgentLoop {
                 });
 
                 if (tc.function.name === "done") {
-                  const summary = (() => {
-                    try {
-                      return JSON.parse(tc.function.arguments).summary;
-                    } catch {
-                      return toolResult;
-                    }
-                  })() || toolResult;
+                  const summary =
+                    (() => {
+                      try {
+                        return JSON.parse(tc.function.arguments).summary;
+                      } catch {
+                        return toolResult;
+                      }
+                    })() || toolResult;
 
                   emit("done", { step, summary });
 
-                  self.memory.appendLog(requestId, sessionId, model, "user", req.task);
-                  self.memory.appendLog(requestId, sessionId, model, "assistant", `[Autonomous: ${step} steps] ${summary}`);
-                  self.persistToChat(sessionId, requestId, model, req.task, summary);
+                  self.memory.appendLog(
+                    requestId,
+                    sessionId,
+                    model,
+                    "user",
+                    req.task,
+                  );
+                  self.memory.appendLog(
+                    requestId,
+                    sessionId,
+                    model,
+                    "assistant",
+                    `[Autonomous: ${step} steps] ${summary}`,
+                  );
+                  self.persistToChat(
+                    sessionId,
+                    requestId,
+                    model,
+                    req.task,
+                    summary,
+                  );
 
-                  controller.enqueue(encoder.encode("event: end\ndata: {}\n\n"));
+                  controller.enqueue(
+                    encoder.encode("event: end\ndata: {}\n\n"),
+                  );
                   controller.close();
                   return;
                 }
@@ -382,9 +441,27 @@ export class AgentLoop {
             const content = msg.content || reasoning || "";
             if (content) {
               emit("response", { step, content });
-              self.memory.appendLog(requestId, sessionId, model, "user", req.task);
-              self.memory.appendLog(requestId, sessionId, model, "assistant", content);
-              self.persistToChat(sessionId, requestId, model, req.task, content);
+              self.memory.appendLog(
+                requestId,
+                sessionId,
+                model,
+                "user",
+                req.task,
+              );
+              self.memory.appendLog(
+                requestId,
+                sessionId,
+                model,
+                "assistant",
+                content,
+              );
+              self.persistToChat(
+                sessionId,
+                requestId,
+                model,
+                req.task,
+                content,
+              );
               break;
             }
 
@@ -397,7 +474,9 @@ export class AgentLoop {
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
           controller.enqueue(
-            encoder.encode(`event: error\ndata: ${JSON.stringify({ error: msg })}\n\n`),
+            encoder.encode(
+              `event: error\ndata: ${JSON.stringify({ error: msg })}\n\n`,
+            ),
           );
           controller.enqueue(encoder.encode("event: end\ndata: {}\n\n"));
           controller.close();
@@ -423,14 +502,20 @@ export class AgentLoop {
     if (!existing) {
       try {
         this.memory.createChat(chatId, task.slice(0, 80), model, chatSource);
-      } catch (err: any) {
-        if (!String(err?.message).includes("UNIQUE")) throw err;
+      } catch (err) {
+        if (
+          !String(err instanceof Error ? err.message : err).includes("UNIQUE")
+        )
+          throw err;
       }
       this.memory.appendChatMessage(chatId, "user", task);
     }
 
     if (answer) {
-      this.memory.appendChatMessage(chatId, "assistant", answer, { model, requestId });
+      this.memory.appendChatMessage(chatId, "assistant", answer, {
+        model,
+        requestId,
+      });
     }
   }
 }

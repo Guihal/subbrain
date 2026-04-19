@@ -31,8 +31,11 @@ export function telegramRoute(bot: TelegramBot | null) {
       // Process update directly through Grammy bot
       await bot.bot.handleUpdate(body as any);
       return new Response("OK", { status: 200 });
-    } catch (err: any) {
-      logger.error("telegram", `Webhook error: ${err.message}`);
+    } catch (err) {
+      logger.error(
+        "telegram",
+        `Webhook error: ${err instanceof Error ? err.message : String(err)}`,
+      );
       return new Response("Internal error", { status: 500 });
     }
   });

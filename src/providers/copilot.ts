@@ -9,6 +9,7 @@ import type {
   ModelInfo,
 } from "./types";
 import { ProviderError } from "./nvidia";
+import { createProxyStream } from "./stream-utils";
 import { logger } from "../lib/logger";
 
 const COPILOT_TOKEN_URL = "https://api.github.com/copilot_internal/v2/token";
@@ -41,7 +42,11 @@ export class CopilotProvider implements LLMProvider {
   private maxOutputTokens?: number;
   private tokenFilePath: string;
 
-  constructor(oauthToken: string, maxOutputTokens?: number, tokenFilePath?: string) {
+  constructor(
+    oauthToken: string,
+    maxOutputTokens?: number,
+    tokenFilePath?: string,
+  ) {
     this.oauthToken = oauthToken;
     this.maxOutputTokens = maxOutputTokens;
     this.tokenFilePath = tokenFilePath || "data/copilot-oauth.txt";
@@ -88,7 +93,10 @@ export class CopilotProvider implements LLMProvider {
     });
 
     if (!codeRes.ok) {
-      throw new ProviderError(codeRes.status, `Device code request failed: ${await codeRes.text()}`);
+      throw new ProviderError(
+        codeRes.status,
+        `Device code request failed: ${await codeRes.text()}`,
+      );
     }
 
     const codeData = (await codeRes.json()) as {
@@ -133,7 +141,9 @@ export class CopilotProvider implements LLMProvider {
 
         // Save to disk for future restarts
         await Bun.write(this.tokenFilePath, this.oauthToken);
-        logger.info(`[copilot] OAuth token obtained and saved to ${this.tokenFilePath}`);
+        logger.info(
+          `[copilot] OAuth token obtained and saved to ${this.tokenFilePath}`,
+        );
         return;
       }
 
@@ -149,13 +159,19 @@ export class CopilotProvider implements LLMProvider {
       throw new ProviderError(400, `Device flow failed: ${tokenData.error}`);
     }
 
-    throw new ProviderError(408, "Device flow timed out — user did not authorize");
+    throw new ProviderError(
+      408,
+      "Device flow timed out — user did not authorize",
+    );
   }
 
   /** Get a valid Copilot session token, refreshing if needed */
   private async getToken(): Promise<string> {
     const now = Date.now() / 1000;
-    if (this.cachedToken && this.cachedToken.expires_at - TOKEN_REFRESH_MARGIN_MS / 1000 > now) {
+    if (
+      this.cachedToken &&
+      this.cachedToken.expires_at - TOKEN_REFRESH_MARGIN_MS / 1000 > now
+    ) {
       return this.cachedToken.token;
     }
 
@@ -186,17 +202,26 @@ export class CopilotProvider implements LLMProvider {
       const body = await res.text();
       // If 401/404 — OAuth token might have expired, clear saved file
       if (res.status === 401 || res.status === 404) {
-        logger.info("[copilot] OAuth token invalid/expired, re-running device flow...");
-        try { await Bun.write(this.tokenFilePath, ""); } catch {}
+        logger.info(
+          "[copilot] OAuth token invalid/expired, re-running device flow...",
+        );
+        try {
+          await Bun.write(this.tokenFilePath, "");
+        } catch {}
         await this.deviceFlow();
         // Retry with new token
         return this.fetchToken();
       }
-      throw new ProviderError(res.status, `Copilot token fetch failed: ${body}`);
+      throw new ProviderError(
+        res.status,
+        `Copilot token fetch failed: ${body}`,
+      );
     }
 
     const data = (await res.json()) as CopilotToken;
-    logger.info(`[copilot] Session token refreshed, expires at ${new Date(data.expires_at * 1000).toISOString()}`);
+    logger.info(
+      `[copilot] Session token refreshed, expires at ${new Date(data.expires_at * 1000).toISOString()}`,
+    );
     return data;
   }
 
@@ -212,7 +237,11 @@ export class CopilotProvider implements LLMProvider {
   }
 
   private clamp(params: ChatParams): ChatParams {
-    if (this.maxOutputTokens && params.max_tokens && params.max_tokens > this.maxOutputTokens) {
+    if (
+      this.maxOutputTokens &&
+      params.max_tokens &&
+      params.max_tokens > this.maxOutputTokens
+    ) {
       return { ...params, max_tokens: this.maxOutputTokens };
     }
     return params;
@@ -220,10 +249,10 @@ export class CopilotProvider implements LLMProvider {
 
   async chat(params: ChatParams): Promise<ChatResponse> {
     const clamped = this.clamp(params);
-    const hdrs = await this.headers();
+    const reqHeaders = await this.headers();
     const res = await fetch(`${COPILOT_API_URL}/chat/completions`, {
       method: "POST",
-      headers: hdrs,
+      headers: reqHeaders,
       body: JSON.stringify({ ...clamped, stream: false }),
     });
 
@@ -231,10 +260,10 @@ export class CopilotProvider implements LLMProvider {
       const body = await res.text();
       if (res.status === 401) {
         this.cachedToken = null;
-        const hdrs2 = await this.headers();
+        const retryHeaders = await this.headers();
         const retry = await fetch(`${COPILOT_API_URL}/chat/completions`, {
           method: "POST",
-          headers: hdrs2,
+          headers: retryHeaders,
           body: JSON.stringify({ ...clamped, stream: false }),
         });
         if (!retry.ok) {
@@ -252,77 +281,54 @@ export class CopilotProvider implements LLMProvider {
     const clamped = this.clamp(params);
     const self = this;
 
-    return new ReadableStream({
-      async start(controller) {
-        const encoder = new TextEncoder();
-        try {
-          const hdrs = await self.headers();
-          const res = await fetch(`${COPILOT_API_URL}/chat/completions`, {
-            method: "POST",
-            headers: hdrs,
-            body: JSON.stringify({ ...clamped, stream: true }),
-            signal: AbortSignal.timeout(180_000),
-          });
-
-          if (!res.ok) {
-            const text = await res.text();
-            controller.enqueue(
-              encoder.encode(
-                `data: ${JSON.stringify({ error: { message: text, status: res.status } })}\n\n`,
-              ),
-            );
-            controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-            controller.close();
-            return;
-          }
-
-          const reader = res.body?.getReader();
-          if (!reader) {
-            controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-            controller.close();
-            return;
-          }
-
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            controller.enqueue(value);
-          }
-          controller.close();
-        } catch (err) {
-          const msg = err instanceof Error ? err.message : String(err);
-          try {
-            controller.enqueue(
-              encoder.encode(
-                `data: ${JSON.stringify({ error: { message: msg, type: "stream_error" } })}\n\n`,
-              ),
-            );
-            controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-            controller.close();
-          } catch {
-            // Controller already closed
-          }
-        }
-      },
+    return createProxyStream(async () => {
+      const hdrs = await self.headers();
+      return fetch(`${COPILOT_API_URL}/chat/completions`, {
+        method: "POST",
+        headers: hdrs,
+        body: JSON.stringify({ ...clamped, stream: true }),
+        signal: AbortSignal.timeout(180_000),
+      });
     });
   }
 
   async embed(_params: EmbedParams): Promise<EmbedResponse> {
-    throw new ProviderError(501, "Copilot provider does not support embeddings — use NVIDIA");
+    throw new ProviderError(
+      501,
+      "Copilot provider does not support embeddings — use NVIDIA",
+    );
   }
 
   async rerank(_params: RerankParams): Promise<RerankResponse> {
-    throw new ProviderError(501, "Copilot provider does not support rerank — use NVIDIA");
+    throw new ProviderError(
+      501,
+      "Copilot provider does not support rerank — use NVIDIA",
+    );
   }
 
   async listModels(): Promise<ModelInfo[]> {
     return [
-      { id: "claude-sonnet-4.6", object: "model", created: 0, owned_by: "anthropic" },
-      { id: "gemini-3.1-pro-preview", object: "model", created: 0, owned_by: "google" },
+      {
+        id: "claude-sonnet-4.6",
+        object: "model",
+        created: 0,
+        owned_by: "anthropic",
+      },
+      {
+        id: "gemini-3.1-pro-preview",
+        object: "model",
+        created: 0,
+        owned_by: "google",
+      },
       { id: "gpt-5.4-mini", object: "model", created: 0, owned_by: "openai" },
       { id: "gpt-4o", object: "model", created: 0, owned_by: "openai" },
       { id: "gpt-4o-mini", object: "model", created: 0, owned_by: "openai" },
-      { id: "gemini-3-flash-preview", object: "model", created: 0, owned_by: "google" },
+      {
+        id: "gemini-3-flash-preview",
+        object: "model",
+        created: 0,
+        owned_by: "google",
+      },
     ];
   }
 }

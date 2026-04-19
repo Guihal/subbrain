@@ -1,12 +1,17 @@
 import { Elysia } from "elysia";
-import { timingSafeEqual } from "crypto";
+import { timingSafeEqual, createHash } from "crypto";
 
 const JSON_401 = { "Content-Type": "application/json" };
 
-/** Constant-time string comparison to prevent timing attacks. */
+/**
+ * Constant-time string comparison to prevent timing attacks.
+ * Hashes both inputs to fixed-length before comparing,
+ * so differing lengths don't leak information.
+ */
 function safeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  return timingSafeEqual(Buffer.from(a), Buffer.from(b));
+  const hashA = createHash("sha256").update(a).digest();
+  const hashB = createHash("sha256").update(b).digest();
+  return timingSafeEqual(hashA, hashB);
 }
 
 export function authMiddleware(token: string) {

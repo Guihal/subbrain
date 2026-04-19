@@ -7,6 +7,13 @@ import type { ModelRouter } from "../../lib/model-router";
 import type { RAGPipeline } from "../../rag";
 import { logger, type RequestLogger } from "../../lib/logger";
 
+/** Minimum response length to trigger knowledge extraction */
+const MIN_EXTRACTION_LENGTH = 100;
+/** Max chars sent to the extraction model */
+const MAX_EXTRACTION_INPUT = 2000;
+/** Max number of facts to store per exchange */
+const MAX_FACTS_PER_EXCHANGE = 3;
+
 export async function postProcess(
   memory: MemoryDB,
   router: ModelRouter,
@@ -49,7 +56,7 @@ export async function postProcess(
 
   // 2. Extract knowledge delta via flash
   const textForExtraction = assistantMessage || reasoning || "";
-  if (textForExtraction.length < 100) {
+  if (textForExtraction.length < MIN_EXTRACTION_LENGTH) {
     log.debug("post", "Skipping knowledge extraction: response too short");
     return;
   }
@@ -71,7 +78,7 @@ If nothing new, return {"facts": [], "skip": true}. Be selective — only genuin
           },
           {
             role: "user",
-            content: `User: ${userMessage}\n\nAssistant: ${textForExtraction.substring(0, 2000)}`,
+            content: `User: ${userMessage}\n\nAssistant: ${textForExtraction.substring(0, MAX_EXTRACTION_INPUT)}`,
           },
         ],
         max_tokens: 512,
@@ -96,7 +103,7 @@ If nothing new, return {"facts": [], "skip": true}. Be selective — only genuin
     }
 
     // 3. Write extracted facts to Layer 2 (context)
-    for (const fact of delta.facts.slice(0, 3)) {
+    for (const fact of delta.facts.slice(0, MAX_FACTS_PER_EXCHANGE)) {
       if (!fact.content) continue;
       const id = randomUUID();
       memory.insertContext(

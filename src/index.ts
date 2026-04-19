@@ -19,7 +19,7 @@ import {
   NightCycle,
   AgentLoop,
 } from "./pipeline";
-import { TelegramBot, Userbot } from "./telegram";
+import { TelegramBot } from "./telegram";
 import { Metrics } from "./lib/metrics";
 import { logger } from "./lib/logger";
 
@@ -47,7 +47,7 @@ const autonomousTask =
   `Ты — личный ИИ-ассистент Дмитрия (22 года, мидл-фрилансер, стек: Nuxt/TypeScript/PHP).
 Каждый запуск выбери ОДНУ задачу из списка ниже и выполни её до конца:
 
-1. **Телеграм-дайджест** — прочитай непрочитанные чаты (tg_list_chats → tg_read_chat), составь список дел/напоминаний, отправь сводку через tg_send_message.
+1. **Телеграм-дайджест** — используй \`web_navigate\` для поиска актуальных новостей и трендов по стеку. Сохрани выжимку в память + отправь сводку через tg_send_message.
 2. **Полезные статьи** — найди 1-2 свежих статьи на Хабре, dev.to или аналогах по стеку (Nuxt, TypeScript, Vue, PHP, Node.js). Сохрани выжимку в память + отправь в ТГ.
 3. **Вакансии и заказы** — поищи на hh.ru, Хабр Карьере, Upwork, Freelancehunt интересные вакансии/заказы по стеку. Сохрани лучшие находки + отправь в ТГ.
 4. **Книги и курсы** — найди 1 книгу или курс, который поможет вырасти (архитектура, паттерны, soft skills, финансы для фрилансера). Сохрани в память.
@@ -90,32 +90,6 @@ const nightCycle = new NightCycle(memory, router, rag);
 const agentLoop = new AgentLoop(memory, router, rag, tools);
 agentLoop.setMetrics(metrics);
 agentLoop.setRoom(room);
-
-// ─── Telegram Userbot (MTProto chat reader, optional) ─────
-let userbot: Userbot | null = null;
-const tgApiId = Number(process.env.TG_API_ID);
-const tgApiHash = process.env.TG_API_HASH;
-const tgSession = process.env.TG_SESSION;
-
-if (tgApiId && tgApiHash && tgSession) {
-  userbot = new Userbot({
-    apiId: tgApiId,
-    apiHash: tgApiHash,
-    session: tgSession,
-    memory,
-  });
-  tools.setUserbot(userbot);
-  userbot
-    .connect()
-    .catch((err) =>
-      logger.error("userbot", `Connection failed: ${err.message}`),
-    );
-} else {
-  logger.info(
-    "userbot",
-    "Not configured (set TG_API_ID + TG_API_HASH + TG_SESSION)",
-  );
-}
 
 // ─── Telegram Bot (optional) ──────────────────────────────
 let telegramBot: TelegramBot | null = null;
