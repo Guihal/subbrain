@@ -1,16 +1,20 @@
 /**
  * System prompt builder for the autonomous agent.
+ * Includes hippocampus (flash) executive summary for memory context.
  */
 import type { MemoryDB } from "../../db";
+import type { ModelRouter } from "../../lib/model-router";
 import type { RAGPipeline, RAGResult } from "../../rag";
 import { getPersonaBio } from "../../lib/personas";
 import { getCurrentDate, MAX_STEPS, MAX_CONTEXT_TOKENS, MAX_DYNAMIC_TOOLS } from "./types";
+import { preProcess } from "../agent-pipeline/pre-processing";
 
 export async function buildAgentSystemPrompt(
   memory: MemoryDB,
   rag: RAGPipeline,
   task: string,
   model: string,
+  router?: ModelRouter,
 ): Promise<string> {
   const parts: string[] = [];
 
@@ -50,37 +54,66 @@ export async function buildAgentSystemPrompt(
 ### Создание инструментов:
 Ты можешь расширять свои возможности через \`create_tool\`. Каждый кастомный инструмент — это промт-шаблон, который при вызове отправляется выбранному специалисту (coder/critic/generalist/flash). Используй \`{{input}}\` в шаблоне как плейсхолдер. Кастомные инструменты сохраняются между сессиями.`);
 
-  // Focus directives
-  const focus = memory.getAllFocus();
-  if (Object.keys(focus).length > 0) {
-    parts.push("\n## Текущие директивы");
-    for (const [key, value] of Object.entries(focus)) {
-      parts.push(`- **${key}:** ${value}`);
-    }
-  }
-
-  // Shared memory
-  const shared = memory.getAllShared();
-  if (shared.length > 0) {
-    parts.push("\n## Общая память (факты о пользователе)");
-    for (const entry of shared) {
-      parts.push(`- [${entry.category}] ${entry.content}`);
-    }
-  }
-
-  // Quick RAG for task relevance
-  try {
-    const ragResults = await rag
-      .search({ query: task, rerankTopN: 3 })
-      .catch(() => [] as RAGResult[]);
-    if (ragResults.length > 0) {
-      parts.push("\n## Релевантный контекст (из RAG)");
-      for (const r of ragResults) {
-        parts.push(`- (${r.layer}) **${r.title}**: ${r.snippet}`);
+  // ─── Memory context: prefer hippocampus summary when router available ───
+  if (router) {
+    try {
+      const preResult = await preProcess(memory, router, rag, task, "autonomous");
+      if (preResult.executiveSummary) {
+        parts.push(`\n## Executive Summary (собрано гиппокампом)\n${preResult.executiveSummary}`);
+      }
+      // Still include focus directives separately (they're always critical)
+      if (Object.keys(preResult.focusEntries).length > 0) {
+        parts.push("\n## Текущие директивы");
+        for (const [key, value] of Object.entries(preResult.focusEntries)) {
+          parts.push(`- **${key}:** ${value}`);
+        }
+      }
+    } catch (err) {
+      // Degraded: fall back to raw memory
+      const focus = memory.getAllFocus();
+      if (Object.keys(focus).length > 0) {
+        parts.push("\n## Текущие директивы");
+        for (const [key, value] of Object.entries(focus)) {
+          parts.push(`- **${key}:** ${value}`);
+        }
+      }
+      const shared = memory.getAllShared();
+      if (shared.length > 0) {
+        parts.push("\n## Общая память (факты о пользователе)");
+        for (const entry of shared) {
+          parts.push(`- [${entry.category}] ${entry.content}`);
+        }
       }
     }
-  } catch {
-    // RAG failure is non-critical
+  } else {
+    // No router — raw memory (legacy path)
+    const focus = memory.getAllFocus();
+    if (Object.keys(focus).length > 0) {
+      parts.push("\n## Текущие директивы");
+      for (const [key, value] of Object.entries(focus)) {
+        parts.push(`- **${key}:** ${value}`);
+      }
+    }
+    const shared = memory.getAllShared();
+    if (shared.length > 0) {
+      parts.push("\n## Общая память (факты о пользователе)");
+      for (const entry of shared) {
+        parts.push(`- [${entry.category}] ${entry.content}`);
+      }
+    }
+    try {
+      const ragResults = await rag
+        .search({ query: task, rerankTopN: 3 })
+        .catch(() => [] as RAGResult[]);
+      if (ragResults.length > 0) {
+        parts.push("\n## Релевантный контекст (из RAG)");
+        for (const r of ragResults) {
+          parts.push(`- (${r.layer}) **${r.title}**: ${r.snippet}`);
+        }
+      }
+    } catch {
+      // RAG failure is non-critical
+    }
   }
 
   return parts.join("\n");

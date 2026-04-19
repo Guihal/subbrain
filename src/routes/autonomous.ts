@@ -1,17 +1,32 @@
 import { Elysia, t } from "elysia";
 import type { AgentLoop } from "../pipeline/agent-loop";
+import type { MemoryDB } from "../db";
 
-export function autonomousRoute(agentLoop: AgentLoop) {
+export function autonomousRoute(agentLoop: AgentLoop, memory?: MemoryDB) {
   return new Elysia().post(
     "/v1/autonomous",
     async ({ body, headers }) => {
       const stream = body.stream ?? false;
       const sessionId =
         (headers["x-session-id"] as string | undefined) || undefined;
+      const chatId = (headers["x-chat-id"] as string | undefined) || sessionId;
+      const source = (headers["x-chat-source"] as string) || (sessionId ? "web" : "autonomous");
+      const model = body.model || "teamlead";
+
+      // Persist chat immediately (don't wait for agent loop to finish)
+      if (memory && chatId) {
+        const existing = memory.getChat(chatId);
+        if (!existing) {
+          memory.createChat(chatId, body.task.slice(0, 80), model, source);
+        } else if (existing.model !== model) {
+          memory.updateChatModel(chatId, model);
+        }
+        memory.appendChatMessage(chatId, "user", body.task);
+      }
 
       const req = {
         task: body.task,
-        model: body.model,
+        model,
         maxSteps: body.max_steps,
         sessionId,
       };

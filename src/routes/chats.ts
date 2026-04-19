@@ -61,11 +61,15 @@ export function chatsRoute(memory: MemoryDB) {
         if (body.title) {
           memory.updateChatTitle(params.id, body.title);
         }
+        if (body.model) {
+          memory.updateChatModel(params.id, body.model);
+        }
         return memory.getChat(params.id);
       },
       {
         body: t.Object({
           title: t.Optional(t.String()),
+          model: t.Optional(t.String()),
         }),
       },
     )

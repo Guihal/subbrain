@@ -441,6 +441,14 @@ export class MemoryDB {
       .run(title, id);
   }
 
+  updateChatModel(id: string, model: string): void {
+    this.db
+      .query(
+        "UPDATE chats SET model = ?, updated_at = unixepoch() WHERE id = ?",
+      )
+      .run(model, id);
+  }
+
   updateChatTimestamp(id: string): void {
     this.db
       .query("UPDATE chats SET updated_at = unixepoch() WHERE id = ?")

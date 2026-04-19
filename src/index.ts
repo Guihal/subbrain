@@ -157,7 +157,7 @@ const app = new Elysia()
   .use(embeddingsRoute(router))
   .use(logsRoute(memory))
   .use(mcpRoute(tools))
-  .use(autonomousRoute(agentLoop))
+  .use(autonomousRoute(agentLoop, memory))
   .use(chatsRoute(memory))
   .listen(port);
 

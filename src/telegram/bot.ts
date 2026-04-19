@@ -4,6 +4,7 @@ import type { MemoryDB } from "../db";
 import type { AgentPipeline } from "../pipeline";
 import type { ModelRouter } from "../lib/model-router";
 import type { Message } from "../providers/types";
+import { MODEL_MAP } from "../lib/model-map";
 import { logger } from "../lib/logger";
 
 export interface TelegramBotConfig {
@@ -88,7 +89,7 @@ export class TelegramBot {
     });
 
     this.bot.command("model", async (ctx) => {
-      const roles = ["teamlead", "coder", "critic", "generalist"];
+      const roles = Object.keys(MODEL_MAP);
       const current = this.getModel(ctx.chat.id);
       const text = roles
         .map((r) => `${r === current ? "▸ " : "  "}\`${r}\``)

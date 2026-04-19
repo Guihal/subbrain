@@ -1,25 +1,35 @@
 import { Elysia } from "elysia";
 import type { ModelRouter } from "../lib/model-router";
+import { MODEL_MAP } from "../lib/model-map";
 
-/** Virtual models exposed to VS Code. Will be resolved by Model Router later. */
-const VIRTUAL_MODELS = [
-  { id: "teamlead", name: "Лид (Kimi K2 Thinking)" },
-  { id: "coder", name: "Кодер (Qwen3 Coder 480B)" },
-  { id: "critic", name: "Критик (Devstral 123B)" },
-  { id: "generalist", name: "Генералист (Mistral Large 3 675B)" },
-  { id: "chaos", name: "Хаос (Mistral Nemotron)" },
-  { id: "flash", name: "Флэш (Step 3.5 Flash)" },
-];
+const ROLE_LABELS: Record<string, string> = {
+  teamlead: "Лид",
+  coder: "Кодер",
+  critic: "Критик",
+  generalist: "Генералист",
+  chaos: "Хаос",
+  flash: "Флэш",
+};
+
+/** Pretty-print model ID: "anthropic/claude-sonnet-4.6" → "Claude Sonnet 4.6" */
+function prettyModel(id: string): string {
+  const raw = id.includes("/") ? id.split("/").pop()! : id;
+  return raw.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
 
 export function modelsRoute(router: ModelRouter) {
   return new Elysia().get("/v1/models", () => {
     return {
       object: "list" as const,
-      data: VIRTUAL_MODELS.map((m) => ({
-        id: m.id,
+      data: Object.entries(MODEL_MAP).map(([role, route]) => ({
+        id: role,
         object: "model" as const,
         created: Math.floor(Date.now() / 1000),
         owned_by: "subbrain",
+        name: `${ROLE_LABELS[role] || role} (${prettyModel(route.primary)})`,
+        // Extra metadata for frontend/TG
+        label: ROLE_LABELS[role] || role,
+        description: prettyModel(route.primary),
       })),
     };
   });

@@ -4,6 +4,7 @@ const {
   currentChatId,
   streaming,
   loadChats,
+  loadModels,
   sendMessage,
   checkHealth,
 } = useChat();
@@ -43,7 +44,7 @@ watch(
 
 // Load data on mount
 onMounted(async () => {
-  await loadChats();
+  await Promise.all([loadChats(), loadModels()]);
   checkHealth();
   // Health poll
   setInterval(checkHealth, 15000);

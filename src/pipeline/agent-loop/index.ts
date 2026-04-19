@@ -128,7 +128,7 @@ export class AgentLoop {
       meta: { maxSteps, priority },
     });
 
-    const systemPrompt = await buildAgentSystemPrompt(this.memory, this.rag, req.task, model);
+    const systemPrompt = await buildAgentSystemPrompt(this.memory, this.rag, req.task, model, this.router);
     const messages: Message[] = [
       { role: "system", content: systemPrompt },
       { role: "user", content: req.task },
@@ -285,7 +285,7 @@ export class AgentLoop {
 
           emit("start", { requestId, sessionId, model, maxSteps });
 
-          const systemPrompt = await buildAgentSystemPrompt(self.memory, self.rag, req.task, model);
+          const systemPrompt = await buildAgentSystemPrompt(self.memory, self.rag, req.task, model, self.router);
           const messages: Message[] = [
             { role: "system", content: systemPrompt },
             { role: "user", content: req.task },
@@ -418,14 +418,17 @@ export class AgentLoop {
     const chatId = sessionId || `auto-${requestId}`;
     const chatSource = sessionId ? "web" : "autonomous";
 
-    try {
-      this.memory.createChat(chatId, task.slice(0, 80), model, chatSource);
-    } catch (err: any) {
-      // UNIQUE constraint — chat already exists, that's fine
-      if (!String(err?.message).includes("UNIQUE")) throw err;
+    // Chat may already exist (created by autonomous route upfront)
+    const existing = this.memory.getChat(chatId);
+    if (!existing) {
+      try {
+        this.memory.createChat(chatId, task.slice(0, 80), model, chatSource);
+      } catch (err: any) {
+        if (!String(err?.message).includes("UNIQUE")) throw err;
+      }
+      this.memory.appendChatMessage(chatId, "user", task);
     }
 
-    this.memory.appendChatMessage(chatId, "user", task);
     if (answer) {
       this.memory.appendChatMessage(chatId, "assistant", answer, { model, requestId });
     }

@@ -1,12 +1,13 @@
 <script setup lang="ts">
-const { currentModel, directMode, agentMode } = useChat();
-import { MODELS } from "~/composables/useChat";
+const { currentModel, directMode, agentMode, models } = useChat();
 
-const modelItems = MODELS.map((m) => ({
-  label: m.label,
-  value: m.value,
-  description: m.description,
-}));
+const modelItems = computed(() =>
+  models.value.map((m) => ({
+    label: m.label,
+    value: m.value,
+    description: m.description,
+  })),
+);
 </script>
 
 <template>

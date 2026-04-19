@@ -25,21 +25,14 @@ export interface HealthData {
   };
 }
 
-/** Available virtual models */
-export const MODELS = [
-  { value: "flash", label: "Флэш", description: "Step 3.5 Flash" },
-  { value: "coder", label: "Кодер", description: "Qwen3 Coder 480B" },
-  { value: "teamlead", label: "Лид", description: "Kimi K2 Thinking" },
-  { value: "critic", label: "Критик", description: "Devstral 123B" },
-  {
-    value: "generalist",
-    label: "Генералист",
-    description: "Mistral Large 3 675B",
-  },
-  { value: "chaos", label: "Хаос", description: "Mistral Nemotron" },
-] as const;
+/** Model item from API */
+export interface ModelItem {
+  value: string;
+  label: string;
+  description: string;
+}
 
-export type ModelId = (typeof MODELS)[number]["value"];
+export type ModelId = string;
 
 export function useChat() {
   const { api, rawFetch } = useApi();
@@ -52,6 +45,7 @@ export function useChat() {
   const directMode = useState("direct-mode", () => false);
   const agentMode = useState("agent-mode", () => true);
   const health = useState<HealthData | null>("health", () => null);
+  const models = useState<ModelItem[]>("models", () => []);
 
   const currentChat = computed(() =>
     chats.value.find((c) => c.id === currentChatId.value),
@@ -61,6 +55,22 @@ export function useChat() {
 
   async function loadChats() {
     chats.value = await api<Chat[]>("/v1/chats/?source=web&limit=50");
+  }
+
+  async function loadModels() {
+    try {
+      const res = await api<{ data: Array<{ id: string; label?: string; description?: string }> }>("/v1/models");
+      models.value = res.data.map((m) => ({
+        value: m.id,
+        label: m.label || m.id,
+        description: m.description || "",
+      }));
+    } catch {
+      // Fallback: at least show teamlead
+      if (models.value.length === 0) {
+        models.value = [{ value: "teamlead", label: "Лид", description: "Default" }];
+      }
+    }
   }
 
   async function openChat(chatId: string) {
@@ -395,7 +405,9 @@ export function useChat() {
     directMode,
     agentMode,
     health,
+    models,
     loadChats,
+    loadModels,
     openChat,
     createNewChat,
     deleteChat,

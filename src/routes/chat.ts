@@ -42,9 +42,12 @@ export function chatRoute(
         .pop();
       if (memory && chatId && lastUserMsg?.content) {
         // Ensure chat exists
-        if (!memory.getChat(chatId)) {
+        const existing = memory.getChat(chatId);
+        if (!existing) {
           const title = (lastUserMsg.content as string).slice(0, 80);
           memory.createChat(chatId, title, model, source);
+        } else if (existing.model !== model) {
+          memory.updateChatModel(chatId, model);
         }
         memory.appendChatMessage(chatId, "user", lastUserMsg.content as string);
       }
