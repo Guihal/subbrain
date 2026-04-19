@@ -1,21 +1,3 @@
-{
-    auto_https disable_redirects
-}
-
-# ─── Hysteria Panel (preserve existing) ──────────────────
-{hysteria_domain}:443 {
-    route {hysteria_panel_path}/* {
-        reverse_proxy http://127.0.0.1:28260
-    }
-    @otherPaths {
-        not path {hysteria_panel_path}/*
-    }
-    handle @otherPaths {
-        root * /var
-        file_server
-    }
-}
-
 # ─── Subbrain ────────────────────────────────────────────
 {domain} {
     # ─── Public API (Bearer token auth in app) ──────────────

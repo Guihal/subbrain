@@ -53,35 +53,20 @@ jobs:
             docker compose build --pull
             docker compose up -d --force-recreate --remove-orphans
 
-            # ─── Caddy: unified config (subbrain + hysteria panel) ───
+            # ─── Caddy config ───
             if [ -f deploy/Caddyfile ]; then
               DOMAIN="${SUBBRAIN_DOMAIN:-subbrain.dmtr.ru}"
               AUTH_USER="${CADDY_AUTH_USER:-dimonya}"
               AUTH_HASH='${{ secrets.CADDY_AUTH_HASH }}'
 
-              # Read hysteria panel config (if exists)
-              HYSTERIA_CF="/etc/hysteria/core/scripts/webpanel/Caddyfile"
-              HYSTERIA_DOMAIN=""
-              HYSTERIA_PATH=""
-              if [ -f "$HYSTERIA_CF" ]; then
-                HYSTERIA_DOMAIN=$(grep -oP '^\S+(?=:\d+ \{)' "$HYSTERIA_CF" | head -1)
-                HYSTERIA_PATH=$(grep -oP 'route \K/[^ ]+(?=/\*)' "$HYSTERIA_CF" | head -1)
-              fi
-              HYSTERIA_DOMAIN="${HYSTERIA_DOMAIN:-_skip_}"
-              HYSTERIA_PATH="${HYSTERIA_PATH:-/_none_}"
-
               sed -e "s|{domain}|${DOMAIN}|g" \
                   -e "s|{auth_user}|${AUTH_USER}|g" \
                   -e "s|{auth_hash}|${AUTH_HASH}|g" \
-                  -e "s|{hysteria_domain}|${HYSTERIA_DOMAIN}|g" \
-                  -e "s|{hysteria_panel_path}|${HYSTERIA_PATH}|g" \
                   deploy/Caddyfile > /etc/caddy/Caddyfile
 
-              # Stop hysteria-caddy (we take over port 443)
+              # Stop conflicting services
               systemctl stop hysteria-caddy 2>/dev/null || true
               systemctl disable hysteria-caddy 2>/dev/null || true
-
-              # Stop nginx (not needed)
               systemctl stop nginx 2>/dev/null || true
               systemctl disable nginx 2>/dev/null || true
 
