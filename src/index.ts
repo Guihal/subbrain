@@ -61,7 +61,7 @@ if (!authToken) {
   process.exit(1);
 }
 
-const providers = createProviders();
+const providers = await createProviders();
 const router = new ModelRouter(providers);
 const memory = new MemoryDB(dbPath);
 logger.setMemory(memory);

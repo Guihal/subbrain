@@ -1,5 +1,6 @@
 import type { LLMProvider } from "./types";
 import { NvidiaProvider } from "./nvidia";
+import { CopilotProvider } from "./copilot";
 import type { ProviderName } from "../lib/model-map";
 
 export type { LLMProvider } from "./types";
@@ -18,7 +19,7 @@ export function createProvider(): LLMProvider {
 }
 
 /** Create all configured providers */
-export function createProviders(): Record<ProviderName, LLMProvider> {
+export async function createProviders(): Promise<Record<ProviderName, LLMProvider>> {
   const nvidiaUrl = process.env.NVIDIA_BASE_URL;
   const nvidiaKey = process.env.NVIDIA_API_KEY;
   if (!nvidiaUrl || !nvidiaKey) {
@@ -32,12 +33,16 @@ export function createProviders(): Record<ProviderName, LLMProvider> {
     throw new Error("OPENROUTER_API_KEY must be set");
   }
 
-  const githubPat = process.env.GITHUB_TOKEN;
-  if (!githubPat) {
+  // Copilot: prefer GITHUB_COPILOT_TOKEN (ghu_ OAuth), fallback to GITHUB_TOKEN (ghp_ PAT → device flow)
+  const copilotToken = process.env.GITHUB_COPILOT_TOKEN || process.env.GITHUB_TOKEN;
+  if (!copilotToken) {
     throw new Error(
-      "GITHUB_TOKEN must be set (GitHub PAT with models scope)",
+      "GITHUB_COPILOT_TOKEN or GITHUB_TOKEN must be set for Copilot provider",
     );
   }
+
+  const copilot = new CopilotProvider(copilotToken, 16384);
+  await copilot.init();
 
   return {
     nvidia: new NvidiaProvider(nvidiaUrl, nvidiaKey),
@@ -45,11 +50,6 @@ export function createProviders(): Record<ProviderName, LLMProvider> {
       "HTTP-Referer": "https://subbrain.local",
       "X-Title": "Subbrain",
     }),
-    copilot: new NvidiaProvider(
-      "https://models.github.ai/inference",
-      githubPat,
-      {},
-      16384,
-    ),
+    copilot,
   };
 }
