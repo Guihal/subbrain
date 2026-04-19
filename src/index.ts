@@ -11,7 +11,7 @@ import { autonomousRoute } from "./routes/autonomous";
 import { chatsRoute } from "./routes/chats";
 import { telegramRoute } from "./routes/telegram";
 import { MemoryDB } from "./db";
-import { ToolExecutor, mcpRoute } from "./mcp";
+import { ToolExecutor, mcpRoute, PlaywrightClient } from "./mcp";
 import { RAGPipeline } from "./rag";
 import {
   AgentPipeline,
@@ -58,6 +58,8 @@ logger.setMemory(memory);
 const tools = new ToolExecutor(memory, router);
 const rag = new RAGPipeline(memory, router);
 tools.setRAG(rag);
+const playwright = new PlaywrightClient();
+tools.setPlaywright(playwright);
 const metrics = new Metrics({
   get currentLoad() {
     return router.stats.currentLoad;
@@ -126,6 +128,8 @@ if (tgBotToken && tgOwnerChatId) {
     .catch((err) =>
       logger.error("telegram", `Bot init failed: ${err.message}`),
     );
+  // Wire bot notify into tool executor for tg_send_message tool
+  tools.setBotNotify((text) => telegramBot!.notify(text));
 } else {
   logger.info(
     "telegram",
@@ -187,7 +191,7 @@ if (autonomousEnabled) {
         task: autonomousTask,
         model: "teamlead",
         maxSteps: autonomousMaxSteps,
-        sessionId: "autonomous-scheduler",
+        sessionId: `auto-${Date.now()}`,
         priority: "low",
       })
       .then((result) => {

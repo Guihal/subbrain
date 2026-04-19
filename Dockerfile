@@ -18,9 +18,13 @@ FROM oven/bun:1.3-slim
 
 WORKDIR /app
 
-# sqlite-vec needs these
+# sqlite-vec needs these + Chromium deps for Playwright
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libsqlite3-0 \
+    # Playwright Chromium dependencies
+    libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 \
+    libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 \
+    libxrandr2 libgbm1 libpango-1.0-0 libcairo2 libasound2 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /app/node_modules ./node_modules
@@ -29,6 +33,9 @@ COPY --from=builder /app/src ./src
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/tsconfig.json ./
+
+# Install Playwright Chromium browser binary
+RUN bunx playwright install chromium
 
 # DB lives in /data (mounted as volume — NEVER baked into image)
 # Logs live in /data/logs

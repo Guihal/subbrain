@@ -315,4 +315,111 @@ export const AGENT_TOOLS: Tool[] = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "tg_send_message",
+      description:
+        "Send a message to the user via Telegram. Use for summaries, reports, notifications, alerts, or any proactive communication. Supports Markdown formatting.",
+      parameters: {
+        type: "object",
+        properties: {
+          text: {
+            type: "string",
+            description:
+              "Message text (Markdown supported). Max ~4000 chars.",
+          },
+        },
+        required: ["text"],
+      },
+    },
+  },
+
+  // ─── Web Browsing Tools (Playwright MCP) ─────────────────
+  {
+    type: "function",
+    function: {
+      name: "web_navigate",
+      description:
+        "Navigate to a URL in the browser and return the page content (accessibility snapshot). Use to visit websites, read articles, research topics, check prices.",
+      parameters: {
+        type: "object",
+        properties: {
+          url: { type: "string", description: "URL to navigate to" },
+        },
+        required: ["url"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "web_snapshot",
+      description:
+        "Get the current page content as an accessibility tree. Use after clicking or interacting to read updated page state.",
+      parameters: {
+        type: "object",
+        properties: {},
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "web_click",
+      description:
+        "Click an element on the page by its ref number (from snapshot). Use to follow links, press buttons, interact with page elements.",
+      parameters: {
+        type: "object",
+        properties: {
+          element: { type: "string", description: "Human-readable element description" },
+          ref: { type: "string", description: "Exact ref number from the page snapshot" },
+        },
+        required: ["element", "ref"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "web_type",
+      description:
+        "Type text into an input field on the page. Use for search forms, login fields, etc.",
+      parameters: {
+        type: "object",
+        properties: {
+          element: { type: "string", description: "Human-readable element description" },
+          ref: { type: "string", description: "Exact ref number from the page snapshot" },
+          text: { type: "string", description: "Text to type" },
+          submit: { type: "boolean", description: "Press Enter after typing (default: false)" },
+        },
+        required: ["element", "ref", "text"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "web_back",
+      description: "Go back to the previous page in browser history.",
+      parameters: {
+        type: "object",
+        properties: {},
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "web_press_key",
+      description: "Press a keyboard key in the browser (e.g. Enter, Escape, Tab, ArrowDown).",
+      parameters: {
+        type: "object",
+        properties: {
+          key: { type: "string", description: "Key to press (e.g. 'Enter', 'Escape', 'Tab')" },
+        },
+        required: ["key"],
+      },
+    },
+  },
 ];

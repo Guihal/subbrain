@@ -39,6 +39,13 @@ export function mcpRoute(executor: ToolExecutor) {
     },
     { name: "tg_include_chat", description: "Remove chat from exclusion list" },
     { name: "tg_list_excluded", description: "List excluded Telegram chats" },
+    { name: "tg_send_message", description: "Send message to user via Telegram" },
+    { name: "web_navigate", description: "Navigate browser to URL, return page content" },
+    { name: "web_snapshot", description: "Get current page content" },
+    { name: "web_click", description: "Click element on page by ref number" },
+    { name: "web_type", description: "Type text into input field" },
+    { name: "web_back", description: "Go back in browser history" },
+    { name: "web_press_key", description: "Press keyboard key in browser" },
   ];
 
   return new Elysia({ prefix: "/mcp" })
@@ -136,6 +143,20 @@ export function mcpRoute(executor: ToolExecutor) {
             return executor.tgIncludeChat(args.chat_id as string);
           case "tg_list_excluded":
             return executor.tgListExcluded();
+          case "tg_send_message":
+            return await executor.tgSendMessage(args.text as string);
+          case "web_navigate":
+            return { success: true, data: await executor.webCallTool("browser_navigate", { url: args.url }) };
+          case "web_snapshot":
+            return { success: true, data: await executor.webCallTool("browser_snapshot", {}) };
+          case "web_click":
+            return { success: true, data: await executor.webCallTool("browser_click", { element: args.element, ref: args.ref }) };
+          case "web_type":
+            return { success: true, data: await executor.webCallTool("browser_type", { element: args.element, ref: args.ref, text: args.text, ...(args.submit ? { submit: true } : {}) }) };
+          case "web_back":
+            return { success: true, data: await executor.webCallTool("browser_go_back", {}) };
+          case "web_press_key":
+            return { success: true, data: await executor.webCallTool("browser_press_key", { key: args.key }) };
           default:
             return new Response(
               JSON.stringify({

@@ -12,6 +12,7 @@
   "dependencies": {
     "@elysiajs/static": "^1.4.9",
     "@modelcontextprotocol/sdk": "^1.29.0",
+    "@playwright/mcp": "^0.0.70",
     "elysia": "^1.4.28",
     "grammy": "^1.42.0",
     "sqlite-vec": "^0.1.9",

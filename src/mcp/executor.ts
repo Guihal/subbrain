@@ -3,6 +3,7 @@ import type { MemoryDB, FtsResult, VecResult } from "../db";
 import type { ModelRouter } from "../lib/model-router";
 import type { RAGPipeline } from "../rag";
 import type { Userbot } from "../telegram/userbot";
+import type { PlaywrightClient } from "./playwright-client";
 import type { ToolResult } from "./types";
 import * as tg from "./telegram-tools";
 
@@ -15,6 +16,8 @@ export type { ToolResult } from "./types";
 export class ToolExecutor {
   private rag: RAGPipeline | null = null;
   private userbot: Userbot | null = null;
+  private botNotify: ((text: string) => Promise<void>) | null = null;
+  private playwright: PlaywrightClient | null = null;
 
   constructor(
     private memory: MemoryDB,
@@ -29,6 +32,37 @@ export class ToolExecutor {
   /** Set Telegram userbot for chat reading */
   setUserbot(userbot: Userbot): void {
     this.userbot = userbot;
+  }
+
+  /** Set Telegram bot notify function for sending messages to owner */
+  setBotNotify(fn: (text: string) => Promise<void>): void {
+    this.botNotify = fn;
+  }
+
+  /** Send a message to the owner via Telegram bot */
+  async tgSendMessage(text: string): Promise<ToolResult> {
+    if (!this.botNotify) {
+      return { success: false, error: "Telegram bot not configured" };
+    }
+    try {
+      await this.botNotify(text);
+      return { success: true, data: "Message sent to owner" };
+    } catch (err: any) {
+      return { success: false, error: err.message || String(err) };
+    }
+  }
+
+  /** Set Playwright MCP client for web browsing */
+  setPlaywright(pw: PlaywrightClient): void {
+    this.playwright = pw;
+  }
+
+  /** Call a Playwright MCP tool (browser_navigate, browser_snapshot, etc.) */
+  async webCallTool(name: string, args: Record<string, unknown>): Promise<string> {
+    if (!this.playwright) {
+      return JSON.stringify({ error: "Playwright browser not configured" });
+    }
+    return this.playwright.callTool(name, args);
   }
 
   // ─── Memory CRUD ─────────────────────────────────────────

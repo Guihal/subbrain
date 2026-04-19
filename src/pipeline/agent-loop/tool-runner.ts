@@ -182,6 +182,45 @@ export async function executeAgentTool(
         const result = deps.tools.tgListExcluded();
         return JSON.stringify(result);
       }
+      case "tg_send_message": {
+        const result = await deps.tools.tgSendMessage(args.text as string);
+        return JSON.stringify(result);
+      }
+
+      // ─── Web Browsing Tools (Playwright MCP) ─────────────
+      case "web_navigate": {
+        const result = await deps.tools.webCallTool("browser_navigate", { url: args.url });
+        return result;
+      }
+      case "web_snapshot": {
+        const result = await deps.tools.webCallTool("browser_snapshot", {});
+        return result;
+      }
+      case "web_click": {
+        const result = await deps.tools.webCallTool("browser_click", {
+          element: args.element,
+          ref: args.ref,
+        });
+        return result;
+      }
+      case "web_type": {
+        const toolArgs: Record<string, unknown> = {
+          element: args.element,
+          ref: args.ref,
+          text: args.text,
+        };
+        if (args.submit) toolArgs.submit = true;
+        const result = await deps.tools.webCallTool("browser_type", toolArgs);
+        return result;
+      }
+      case "web_back": {
+        const result = await deps.tools.webCallTool("browser_go_back", {});
+        return result;
+      }
+      case "web_press_key": {
+        const result = await deps.tools.webCallTool("browser_press_key", { key: args.key });
+        return result;
+      }
 
       default: {
         const dynTool = deps.dynamicTools.get(name);
