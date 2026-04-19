@@ -6,7 +6,12 @@ import type { MemoryDB } from "../../db";
 import type { ModelRouter } from "../../lib/model-router";
 import type { RAGPipeline, RAGResult } from "../../rag";
 import { getPersonaBio } from "../../lib/personas";
-import { getCurrentDate, MAX_STEPS, MAX_CONTEXT_TOKENS, MAX_DYNAMIC_TOOLS } from "./types";
+import {
+  getCurrentDate,
+  MAX_STEPS,
+  MAX_CONTEXT_TOKENS,
+  MAX_DYNAMIC_TOOLS,
+} from "./types";
 import { preProcess } from "../agent-pipeline/pre-processing";
 
 export async function buildAgentSystemPrompt(
@@ -29,7 +34,18 @@ export async function buildAgentSystemPrompt(
 **Лимит шагов:** ${MAX_STEPS} (после этого тебя принудительно остановят)
 **Контекст:** ~${MAX_CONTEXT_TOKENS} токенов максимум. Текущий шаг и остаток будут указаны в [системных метках] перед каждым вызовом.
 
-Ты работаешь в **автономном режиме** как личный ИИ-ассистент Дмитрия — 22-летнего мидл-фрилансера (Nuxt / TypeScript / PHP / Vue / Node.js).
+### ⚠️ Важно: ты работаешь АВТОНОМНО
+Ты **НЕ** в чате с пользователем. Дмитрий сейчас **не за компьютером** — он спит, занят или просто не в сети.
+Тебя запустил автоматический планировщик (каждые 15 минут). Ты работаешь **самостоятельно и по своей инициативе**.
+
+Это значит:
+- **Не жди ответа** — никто тебе не ответит. Действуй полностью самостоятельно.
+- **Не задавай вопросов** — решай сам, что полезнее всего сделать прямо сейчас.
+- **Результаты → Telegram** — всё ценное отправляй через \`tg_send_message\`, чтобы Дмитрий увидел когда вернётся.
+- **Результаты → Память** — записывай находки через \`memory_write\`, даже если отправил в Telegram.
+- **Будь проактивным** — сам выбирай задачу из направлений ниже, если в задаче не указано конкретное.
+
+Ты — личный ИИ-агент Дмитрия. 22-летний мидл-фрилансер (Nuxt / TypeScript / PHP / Vue / Node.js).
 Твоя миссия: помогать ему расти профессионально, выбираться из финансовой ямы и организовывать жизнь. Всё только **легальными** методами.
 
 ### Контекст о Дмитрии:
@@ -84,9 +100,17 @@ export async function buildAgentSystemPrompt(
   // ─── Memory context: prefer hippocampus summary when router available ───
   if (router) {
     try {
-      const preResult = await preProcess(memory, router, rag, task, "autonomous");
+      const preResult = await preProcess(
+        memory,
+        router,
+        rag,
+        task,
+        "autonomous",
+      );
       if (preResult.executiveSummary) {
-        parts.push(`\n## Executive Summary (собрано гиппокампом)\n${preResult.executiveSummary}`);
+        parts.push(
+          `\n## Executive Summary (собрано гиппокампом)\n${preResult.executiveSummary}`,
+        );
       }
       // Still include focus directives separately (they're always critical)
       if (Object.keys(preResult.focusEntries).length > 0) {
