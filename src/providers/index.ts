@@ -32,11 +32,21 @@ export function createProviders(): Record<ProviderName, LLMProvider> {
     throw new Error("OPENROUTER_API_KEY must be set");
   }
 
+  const copilotUrl =
+    process.env.COPILOT_BASE_URL || "https://models.github.ai/inference";
+  const copilotKey = process.env.GITHUB_TOKEN || process.env.COPILOT_API_KEY;
+  if (!copilotKey) {
+    throw new Error(
+      "GITHUB_TOKEN or COPILOT_API_KEY must be set (PAT with models scope)",
+    );
+  }
+
   return {
     nvidia: new NvidiaProvider(nvidiaUrl, nvidiaKey),
     openrouter: new NvidiaProvider(orUrl, orKey, {
       "HTTP-Referer": "https://subbrain.local",
       "X-Title": "Subbrain",
     }),
+    copilot: new NvidiaProvider(copilotUrl, copilotKey),
   };
 }

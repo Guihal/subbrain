@@ -1,5 +1,5 @@
 export type Priority = "critical" | "normal" | "low";
-export type ProviderName = "nvidia" | "openrouter";
+export type ProviderName = "nvidia" | "openrouter" | "copilot";
 
 export interface ModelTarget {
   model: string;
@@ -18,38 +18,38 @@ export const MODEL_MAP: Record<string, ModelRoute> = {
   teamlead: {
     primary: "moonshotai/kimi-k2-thinking",
     primaryProvider: "nvidia",
-    fallback: "mistralai/mistral-large-3-675b-instruct-2512",
-    fallbackProvider: "nvidia",
+    fallback: "openai/gpt-4.1",
+    fallbackProvider: "copilot",
   },
   coder: {
     primary: "qwen/qwen3-coder-480b-a35b-instruct",
     primaryProvider: "nvidia",
-    fallback: "mistralai/devstral-2-123b-instruct-2512",
-    fallbackProvider: "nvidia",
+    fallback: "openai/gpt-4.1",
+    fallbackProvider: "copilot",
   },
   critic: {
     primary: "mistralai/devstral-2-123b-instruct-2512",
     primaryProvider: "nvidia",
-    fallback: "qwen/qwen3-coder-480b-a35b-instruct",
-    fallbackProvider: "nvidia",
+    fallback: "deepseek/DeepSeek-R1",
+    fallbackProvider: "copilot",
   },
   generalist: {
     primary: "mistralai/mistral-large-3-675b-instruct-2512",
     primaryProvider: "nvidia",
-    fallback: "moonshotai/kimi-k2-thinking",
-    fallbackProvider: "nvidia",
+    fallback: "openai/gpt-4.1",
+    fallbackProvider: "copilot",
   },
   chaos: {
     primary: "mistralai/mistral-nemotron",
     primaryProvider: "nvidia",
-    fallback: "mistralai/mistral-large-3-675b-instruct-2512",
-    fallbackProvider: "nvidia",
+    fallback: "meta/llama-4-maverick-17b-128e-instruct",
+    fallbackProvider: "copilot",
   },
   flash: {
     primary: "stepfun-ai/step-3.5-flash",
     primaryProvider: "nvidia",
-    fallback: "moonshotai/kimi-k2-thinking",
-    fallbackProvider: "nvidia",
+    fallback: "openai/gpt-4.1-mini",
+    fallbackProvider: "copilot",
   },
 };
 
@@ -57,6 +57,17 @@ export const MODEL_MAP: Record<string, ModelRoute> = {
 function detectProvider(model: string): ProviderName {
   if (model.endsWith(":free") || model.startsWith("openrouter/")) {
     return "openrouter";
+  }
+  // GitHub Models uses org/model naming like openai/gpt-4.1, meta/llama-4-*
+  if (
+    model.startsWith("openai/") ||
+    model.startsWith("meta/") ||
+    model.startsWith("deepseek/") ||
+    model.startsWith("cohere/") ||
+    model.startsWith("mistral/") ||
+    model.startsWith("github/")
+  ) {
+    return "copilot";
   }
   return "nvidia";
 }

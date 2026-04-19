@@ -16,6 +16,7 @@ const REQUEST_TIMEOUT = 60_000;
 const PROVIDER_RPM: Record<ProviderName, number> = {
   nvidia: 40,
   openrouter: 200,
+  copilot: 10,
 };
 
 function withTimeout<T>(
@@ -73,6 +74,7 @@ export class ModelRouter {
   get stats() {
     const nvidia = this.backends.nvidia;
     const or = this.backends.openrouter;
+    const copilot = this.backends.copilot;
     return {
       currentLoad: nvidia.limiter.currentLoad,
       queueLength: nvidia.limiter.queueLength,
@@ -82,6 +84,13 @@ export class ModelRouter {
             currentLoad: or.limiter.currentLoad,
             queueLength: or.limiter.queueLength,
             availableSlots: or.limiter.availableSlots,
+          }
+        : undefined,
+      copilot: copilot
+        ? {
+            currentLoad: copilot.limiter.currentLoad,
+            queueLength: copilot.limiter.queueLength,
+            availableSlots: copilot.limiter.availableSlots,
           }
         : undefined,
     };
