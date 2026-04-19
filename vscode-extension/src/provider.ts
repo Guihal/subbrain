@@ -124,11 +124,16 @@ function isToolResultPart(
  *
  * VS Code bundles tool results inside user-role messages; OpenAI expects
  * them as separate `role: "tool"` entries. We expand them here.
+ *
+ * The FIRST user message from Copilot Chat is typically the system prompt
+ * (instructions, skills, agents). We convert it to role:"system" so the
+ * Subbrain pipeline can properly distinguish it from real user queries.
  */
 function convertMessages(
   messages: readonly vscode.LanguageModelChatMessage[],
 ): OpenAIMessage[] {
   const result: OpenAIMessage[] = [];
+  let firstUserSeen = false;
 
   for (const msg of messages) {
     const isUser = msg.role === vscode.LanguageModelChatMessageRole.User;
@@ -153,7 +158,14 @@ function convertMessages(
       }
 
       if (textParts.length > 0) {
-        result.push({ role: "user", content: textParts.join("\n") });
+        const content = textParts.join("\n");
+        // First user message with no tool results is the Copilot system prompt
+        if (!firstUserSeen && toolResults.length === 0) {
+          firstUserSeen = true;
+          result.push({ role: "system", content });
+        } else {
+          result.push({ role: "user", content });
+        }
       }
     } else {
       // Assistant message
@@ -273,7 +285,9 @@ async function processStream(
         }
 
         try {
-          const chunk = JSON.parse(data) as StreamChunk & { error?: { message?: string; type?: string } };
+          const chunk = JSON.parse(data) as StreamChunk & {
+            error?: { message?: string; type?: string };
+          };
           totalChunks++;
 
           // Log first chunk for debugging
@@ -409,7 +423,7 @@ export class SubbrainChatModelProvider
       `[Subbrain] REQUEST model=${model.id} msgs=${convertedMessages.length} tools=${options.tools?.length ?? 0}`,
     );
     console.log(
-      `[Subbrain] Messages: ${JSON.stringify(convertedMessages.map((m: any) => ({ role: m.role, contentLen: typeof m.content === 'string' ? m.content.length : m.content, hasTool: !!m.tool_call_id || !!m.tool_calls })))}`,
+      `[Subbrain] Messages: ${JSON.stringify(convertedMessages.map((m: any) => ({ role: m.role, contentLen: typeof m.content === "string" ? m.content.length : m.content, hasTool: !!m.tool_call_id || !!m.tool_calls })))}`,
     );
 
     const abortController = new AbortController();
@@ -427,7 +441,7 @@ export class SubbrainChatModelProvider
       });
 
       console.log(
-        `[Subbrain] RESPONSE status=${response.status} content-type=${response.headers.get('content-type')}`,
+        `[Subbrain] RESPONSE status=${response.status} content-type=${response.headers.get("content-type")}`,
       );
 
       if (!response.ok) {
