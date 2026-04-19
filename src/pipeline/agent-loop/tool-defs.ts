@@ -428,4 +428,130 @@ export const AGENT_TOOLS: Tool[] = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "consult_chaos",
+      description:
+        "Ask the Chaos Advisor (Mistral, free NVIDIA) for proactive ideas when you don't know what to do next. Returns 3 concrete action suggestions. Use when: tasks are done, you're stuck, or need creative inspiration. Costs 0 Copilot RPM.",
+      parameters: {
+        type: "object",
+        properties: {
+          context: {
+            type: "string",
+            description:
+              "What you've already done this session / what you know about current situation",
+          },
+          question: {
+            type: "string",
+            description:
+              "Specific question (default: 'What to do next?')",
+          },
+        },
+        required: ["context"],
+      },
+    },
+  },
+];
+
+// ─── Code Tools management tools ─────────────────────────────────────────────
+
+export const CODE_TOOL_MGMT_TOOLS: Tool[] = [
+  {
+    type: "function",
+    function: {
+      name: "create_code_tool",
+      description:
+        "Create a new executable code tool. The code must be a TypeScript module exporting a default async function: `export default async (input: string) => { return 'result'; }`. Has access to fetch() for HTTP requests. Max 10KB code.",
+      parameters: {
+        type: "object",
+        properties: {
+          name: {
+            type: "string",
+            description:
+              "Tool name (snake_case, no spaces). Will be callable as code_<name>.",
+          },
+          description: {
+            type: "string",
+            description: "What this tool does (shown to model)",
+          },
+          code: {
+            type: "string",
+            description:
+              "TypeScript code. Must export default async (input: string) => string|object",
+          },
+        },
+        required: ["name", "description", "code"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "edit_code_tool",
+      description: "Edit an existing code tool's code or description.",
+      parameters: {
+        type: "object",
+        properties: {
+          name: { type: "string", description: "Tool name to edit" },
+          code: { type: "string", description: "New code (optional)" },
+          description: {
+            type: "string",
+            description: "New description (optional)",
+          },
+        },
+        required: ["name"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "delete_code_tool",
+      description: "Delete a code tool by name.",
+      parameters: {
+        type: "object",
+        properties: {
+          name: { type: "string", description: "Tool name to delete" },
+        },
+        required: ["name"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "test_code_tool",
+      description:
+        "Test a code tool with sample input. Returns the output or error.",
+      parameters: {
+        type: "object",
+        properties: {
+          name: { type: "string", description: "Tool name to test" },
+          input: {
+            type: "string",
+            description: "Test input to pass to the tool",
+          },
+        },
+        required: ["name", "input"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "list_code_tools",
+      description:
+        "List all code tools with their status, run count, and error count.",
+      parameters: {
+        type: "object",
+        properties: {
+          include_disabled: {
+            type: "boolean",
+            description: "Include disabled tools (default: false)",
+          },
+        },
+      },
+    },
+  },
 ];

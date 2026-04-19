@@ -9,6 +9,7 @@ const { chats, currentChatId, createNewChat, openChat, deleteChat, health } =
   useChat();
 
 const confirmDelete = ref<string | null>(null);
+const activeTab = ref<"all" | "my" | "autonomous">("all");
 const showDeleteModal = computed({
   get: () => confirmDelete.value !== null,
   set: (v) => {
@@ -45,6 +46,12 @@ function sourceColor(source: string) {
   };
   return map[source] || "text-(--ui-text-muted)";
 }
+
+const filteredChats = computed(() => {
+  if (activeTab.value === "autonomous") return chats.value.filter((c) => c.source === "autonomous");
+  if (activeTab.value === "my") return chats.value.filter((c) => c.source !== "autonomous");
+  return chats.value;
+});
 </script>
 
 <template>
@@ -59,10 +66,35 @@ function sourceColor(source: string) {
       />
     </div>
 
+    <!-- Tabs -->
+    <div class="flex border-b border-(--ui-border) text-xs">
+      <button
+        class="flex-1 py-1.5 transition-colors"
+        :class="activeTab === 'all' ? 'text-(--ui-text) border-b-2 border-(--ui-primary)' : 'text-(--ui-text-muted) hover:text-(--ui-text)'"
+        @click="activeTab = 'all'"
+      >
+        Все
+      </button>
+      <button
+        class="flex-1 py-1.5 transition-colors"
+        :class="activeTab === 'my' ? 'text-(--ui-text) border-b-2 border-(--ui-primary)' : 'text-(--ui-text-muted) hover:text-(--ui-text)'"
+        @click="activeTab = 'my'"
+      >
+        Мои
+      </button>
+      <button
+        class="flex-1 py-1.5 transition-colors"
+        :class="activeTab === 'autonomous' ? 'text-orange-400 border-b-2 border-orange-400' : 'text-(--ui-text-muted) hover:text-(--ui-text)'"
+        @click="activeTab = 'autonomous'"
+      >
+        🤖 Авто
+      </button>
+    </div>
+
     <!-- Chat list -->
     <div class="flex-1 overflow-y-auto p-2 space-y-0.5">
       <div
-        v-for="chat in chats"
+        v-for="chat in filteredChats"
         :key="chat.id"
         class="group flex items-center gap-1.5 px-2.5 py-2 rounded-lg cursor-pointer text-sm transition-colors"
         :class="
@@ -90,7 +122,7 @@ function sourceColor(source: string) {
         </button>
       </div>
       <div
-        v-if="chats.length === 0"
+        v-if="filteredChats.length === 0"
         class="text-center text-(--ui-text-dimmed) text-sm py-8"
       >
         Нет чатов

@@ -381,6 +381,7 @@ export function useChat() {
     if (last?.role === "assistant") {
       msgs[msgs.length - 1] = { ...last, ...update };
       messages.value = msgs;
+      triggerRef(messages);
     }
   }
 

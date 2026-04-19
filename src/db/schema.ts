@@ -104,6 +104,23 @@ export function migrate(db: Database): void {
     CREATE INDEX IF NOT EXISTS idx_agent_mem ON agent_memory(agent_id);
 
     -------------------------------------------------------------------
+    -- Code Tools: self-written executable tools by the agent
+    -------------------------------------------------------------------
+    CREATE TABLE IF NOT EXISTS code_tools (
+      id          TEXT PRIMARY KEY,
+      name        TEXT UNIQUE NOT NULL,
+      description TEXT NOT NULL,
+      code        TEXT NOT NULL,
+      enabled     INTEGER NOT NULL DEFAULT 1,
+      run_count   INTEGER NOT NULL DEFAULT 0,
+      error_count INTEGER NOT NULL DEFAULT 0,
+      last_run_at INTEGER,
+      last_error  TEXT,
+      created_at  INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at  INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+
+    -------------------------------------------------------------------
     -- FTS5: Full-text search on Layer 2 (context)
     -------------------------------------------------------------------
     CREATE VIRTUAL TABLE IF NOT EXISTS fts_context USING fts5(

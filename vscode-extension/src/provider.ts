@@ -71,6 +71,7 @@ interface OpenAIToolCall {
 
 interface StreamDelta {
   content?: string;
+  reasoning_content?: string;
   tool_calls?: Array<{
     index?: number;
     id?: string;
@@ -312,6 +313,13 @@ async function processStream(
           if (delta?.content) {
             totalTextChars += delta.content.length;
             progress.report(new vscode.LanguageModelTextPart(delta.content));
+          }
+
+          // Reasoning/thinking content — show as italic text so user sees the process
+          if (delta?.reasoning_content) {
+            progress.report(
+              new vscode.LanguageModelTextPart(delta.reasoning_content),
+            );
           }
 
           // Streaming tool calls (assembled by index)

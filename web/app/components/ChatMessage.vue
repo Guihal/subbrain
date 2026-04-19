@@ -8,7 +8,17 @@ const props = defineProps<{
 
 const { render } = useMarkdown();
 
-const thinkingCollapsed = ref(true);
+const thinkingCollapsed = ref(false);
+
+// Auto-collapse reasoning when streaming ends and there's content
+watch(
+  () => props.isStreaming,
+  (streaming, wasStreaming) => {
+    if (wasStreaming && !streaming && props.message.content) {
+      thinkingCollapsed.value = true;
+    }
+  },
+);
 
 const renderedContent = computed(() => {
   // Strip any residual <think> tags that weren't extracted during streaming

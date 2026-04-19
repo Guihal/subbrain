@@ -31,19 +31,22 @@ import {
   type AgentLoopResult,
 } from "./types";
 import { DynamicToolRegistry, type DynamicToolDef } from "./dynamic-tools";
-import { AGENT_TOOLS } from "./tool-defs";
+import { AGENT_TOOLS, CODE_TOOL_MGMT_TOOLS } from "./tool-defs";
 import { executeAgentTool, type ToolRunnerDeps } from "./tool-runner";
 import { buildAgentSystemPrompt } from "./system-prompt";
+import { CodeToolRegistry } from "./code-tools";
 
 // Re-export public API
 export { DynamicToolRegistry } from "./dynamic-tools";
 export type { DynamicToolDef } from "./dynamic-tools";
+export { CodeToolRegistry } from "./code-tools";
 export type { AgentLoopRequest, AgentLoopStep, AgentLoopResult } from "./types";
 
 export class AgentLoop {
   private metrics: Metrics | null = null;
   private room: ArbitrationRoom | null = null;
   private dynamicTools = new DynamicToolRegistry();
+  private codeTools: CodeToolRegistry;
 
   constructor(
     private memory: MemoryDB,
@@ -51,6 +54,7 @@ export class AgentLoop {
     private rag: RAGPipeline,
     private tools: ToolExecutor,
   ) {
+    this.codeTools = new CodeToolRegistry(memory.db);
     this.loadPersistedTools();
   }
 
@@ -97,7 +101,12 @@ export class AgentLoop {
   }
 
   private getAllTools(): Tool[] {
-    return [...AGENT_TOOLS, ...this.dynamicTools.toToolDefs()];
+    return [
+      ...AGENT_TOOLS,
+      ...CODE_TOOL_MGMT_TOOLS,
+      ...this.dynamicTools.toToolDefs(),
+      ...this.codeTools.toToolDefs(),
+    ];
   }
 
   private getToolRunnerDeps(): ToolRunnerDeps {
@@ -107,6 +116,7 @@ export class AgentLoop {
       room: this.room,
       dynamicTools: this.dynamicTools,
       persistDynamicTools: () => this.persistDynamicTools(),
+      codeTools: this.codeTools,
     };
   }
 
@@ -552,13 +562,17 @@ export class AgentLoop {
     answer: string,
   ): void {
     const chatId = sessionId || `auto-${requestId}`;
-    const chatSource = sessionId ? "web" : "autonomous";
+    const chatSource = sessionId?.startsWith("auto-") ? "autonomous" : sessionId ? "web" : "autonomous";
 
     // Chat may already exist (created by autonomous route upfront)
     const existing = this.memory.getChat(chatId);
     if (!existing) {
+      // For autonomous chats, prefix title with date
+      const datePrefix = chatSource === "autonomous"
+        ? `[${new Date().toLocaleString("ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}] `
+        : "";
       try {
-        this.memory.createChat(chatId, task.slice(0, 80), model, chatSource);
+        this.memory.createChat(chatId, `${datePrefix}${task.slice(0, 70)}`, model, chatSource);
       } catch (err) {
         if (
           !String(err instanceof Error ? err.message : err).includes("UNIQUE")

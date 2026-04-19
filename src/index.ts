@@ -37,7 +37,7 @@ const autonomousEnabled =
     process.env.NODE_ENV === "production");
 const autonomousIntervalMinutes = Math.max(
   1,
-  Number(process.env.AUTONOMOUS_INTERVAL_MINUTES) || 15,
+  Number(process.env.AUTONOMOUS_INTERVAL_MINUTES) || 30,
 );
 const autonomousStartupDelayMs = Math.max(
   0,
@@ -229,12 +229,20 @@ if (autonomousEnabled) {
       meta: { maxSteps: autonomousMaxSteps },
     });
 
+    const sessionId = `auto-${Date.now()}`;
+    const dateStr = new Date().toLocaleString("ru-RU", {
+      day: "numeric",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
     agentLoop
       .run({
         task: autonomousTask,
         model: "teamlead",
         maxSteps: autonomousMaxSteps,
-        sessionId: `auto-${Date.now()}`,
+        sessionId,
         priority: "low",
       })
       .then((result) => {

@@ -294,10 +294,8 @@ export class AgentPipeline {
         }, 8_000);
 
         try {
-          const hasTools = req.tools && req.tools.length > 0;
-          const emit = hasTools
-            ? (_text: string) => {}
-            : (text: string) => controller.enqueue(makeProgressChunk(text));
+          const emit = (text: string) =>
+            controller.enqueue(makeProgressChunk(text));
           let enrichedSystemPrompt: string | undefined;
 
           if (firstMsg) {

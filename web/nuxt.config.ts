@@ -22,7 +22,11 @@ export default defineNuxtConfig({
 
   nitro: {
     devProxy: {
-      "/v1": { target: "http://localhost:4000/v1", changeOrigin: true },
+      "/v1": {
+        target: "http://localhost:4000/v1",
+        changeOrigin: true,
+        headers: { "X-Accel-Buffering": "no" },
+      },
       "/api": { target: "http://localhost:4000/api", changeOrigin: true },
       "/health": { target: "http://localhost:4000/health", changeOrigin: true },
     },

@@ -8,6 +8,8 @@ import type { ModelRouter } from "../../lib/model-router";
 import type { ArbitrationRoom } from "../arbitration-room";
 import type { logger } from "../../lib/logger";
 import type { DynamicToolDef, DynamicToolRegistry } from "./dynamic-tools";
+import type { CodeToolRegistry } from "./code-tools";
+import { executeSandboxed } from "./code-tools/sandbox";
 import { AGENT_TOOLS } from "./tool-defs";
 
 export interface ToolRunnerDeps {
@@ -16,6 +18,7 @@ export interface ToolRunnerDeps {
   room: ArbitrationRoom | null;
   dynamicTools: DynamicToolRegistry;
   persistDynamicTools: () => void;
+  codeTools: CodeToolRegistry | null;
 }
 
 type Args = Record<string, unknown>;
@@ -214,6 +217,116 @@ const TOOL_HANDLERS: Record<string, ToolHandler> = {
 
   web_press_key: async (args, deps) =>
     deps.tools.webCallTool("browser_press_key", { key: args.key }),
+
+  // Chaos Advisor — ask Mistral (NVIDIA, free) for proactive ideas
+  consult_chaos: async (args, deps, log) => {
+    const context = (args.context as string) || "Нет контекста";
+    const question =
+      (args.question as string) ||
+      "Что делать дальше? Предложи 3 конкретных действия.";
+
+    const chaosPrompt = `Ты — генератор идей для AI-агента. Агент работает на фрилансера Дмитрия (22 года, Nuxt/TypeScript/PHP стек, ищет доход, живёт с девушкой Никой).
+
+Что агент уже сделал / знает: ${context}
+Текущее время: ${new Date().toLocaleString("ru-RU")}
+
+Предложи 3 КОНКРЕТНЫХ действия, которые агент может сделать ПРЯМО СЕЙЧАС.
+Требования:
+- Каждое действие выполнимо за 5-10 минут с помощью интернета
+- Будь дерзким и нестандартным — агент осторожный, ему нужен пинок
+- Не повторяй то, что уже сделано
+- Формат: 1. [действие] — [почему полезно]
+
+НЕ предлагай банальщину типа "проверь почту". Предлагай конкретные сайты, запросы, действия.`;
+
+    log.info("agent-loop", "Consulting chaos advisor (NVIDIA Mistral)");
+
+    try {
+      // Use NVIDIA provider directly (free, doesn't consume Copilot RPM)
+      const response = await deps.router.chat(
+        "chaos",
+        {
+          messages: [
+            { role: "system", content: chaosPrompt },
+            { role: "user", content: question },
+          ],
+          max_tokens: 1024,
+          temperature: 0.9,
+        },
+        "low",
+      );
+      const content = response.choices[0]?.message?.content || "";
+      return JSON.stringify({ success: true, data: content });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      log.error("agent-loop", `Chaos advisor failed: ${msg}`);
+      return JSON.stringify({ error: msg });
+    }
+  },
+
+  // Code Tools management
+  create_code_tool: (args, deps, log) => {
+    if (!deps.codeTools) return JSON.stringify({ error: "Code tools not available" });
+    try {
+      const tool = deps.codeTools.create(
+        args.name as string,
+        args.description as string,
+        args.code as string,
+      );
+      log.info("agent-loop", `Code tool created: ${tool.name}`);
+      return JSON.stringify({ success: true, data: { name: tool.name, id: tool.id } });
+    } catch (err) {
+      return JSON.stringify({ error: err instanceof Error ? err.message : String(err) });
+    }
+  },
+
+  edit_code_tool: (args, deps, log) => {
+    if (!deps.codeTools) return JSON.stringify({ error: "Code tools not available" });
+    try {
+      const tool = deps.codeTools.update(args.name as string, {
+        code: args.code as string | undefined,
+        description: args.description as string | undefined,
+      });
+      log.info("agent-loop", `Code tool updated: ${tool.name}`);
+      return JSON.stringify({ success: true, data: { name: tool.name } });
+    } catch (err) {
+      return JSON.stringify({ error: err instanceof Error ? err.message : String(err) });
+    }
+  },
+
+  delete_code_tool: (args, deps, log) => {
+    if (!deps.codeTools) return JSON.stringify({ error: "Code tools not available" });
+    const deleted = deps.codeTools.delete(args.name as string);
+    log.info("agent-loop", `Code tool deleted: ${args.name} (${deleted})`);
+    return JSON.stringify({ success: deleted });
+  },
+
+  test_code_tool: async (args, deps, log) => {
+    if (!deps.codeTools) return JSON.stringify({ error: "Code tools not available" });
+    const tool = deps.codeTools.getByName(args.name as string);
+    if (!tool) return JSON.stringify({ error: `Tool not found: ${args.name}` });
+
+    log.info("agent-loop", `Testing code tool: ${tool.name}`);
+    const result = await executeSandboxed(tool.code, args.input as string);
+    deps.codeTools.recordRun(tool.name, result.success, result.error);
+    return JSON.stringify(result);
+  },
+
+  list_code_tools: (args, deps) => {
+    if (!deps.codeTools) return JSON.stringify({ error: "Code tools not available" });
+    const tools = deps.codeTools.list(!!args.include_disabled);
+    return JSON.stringify({
+      success: true,
+      data: tools.map((t) => ({
+        name: t.name,
+        description: t.description,
+        enabled: t.enabled,
+        run_count: t.run_count,
+        error_count: t.error_count,
+        last_run_at: t.last_run_at,
+      })),
+    });
+  },
 };
 
 // ─── Public API ──────────────────────────────────────────
@@ -247,6 +360,25 @@ export async function executeAgentTool(
     const dynTool = deps.dynamicTools.get(name);
     if (dynTool)
       return await executeDynamicTool(dynTool, args, deps.router, log);
+
+    // Code tools fallback (prefixed with code_)
+    if (name.startsWith("code_") && deps.codeTools) {
+      const toolName = name.slice(5); // strip "code_" prefix
+      const codeTool = deps.codeTools.getByName(toolName);
+      if (codeTool) {
+        if (!codeTool.enabled) {
+          return JSON.stringify({ error: `Code tool "${toolName}" is disabled (too many errors)` });
+        }
+        const input = (args.input as string) || "";
+        log.info("agent-loop", `Executing code tool: ${toolName}`);
+        const result = await executeSandboxed(codeTool.code, input);
+        deps.codeTools.recordRun(toolName, result.success, result.error);
+        if (result.success) {
+          return result.output || "";
+        }
+        return JSON.stringify({ error: result.error, durationMs: result.durationMs });
+      }
+    }
 
     return JSON.stringify({ error: `Unknown tool: ${name}` });
   } catch (err) {
