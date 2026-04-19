@@ -13,7 +13,7 @@ interface SubbrainModel {
 const SUBBRAIN_MODELS: SubbrainModel[] = [
   {
     id: "teamlead",
-    name: "Тимлид (Claude Opus 4)",
+    name: "Тимлид (Claude Opus 4.6)",
     contextWindow: 200_000,
     maxOutput: 16_384,
     supportsTools: true,
@@ -198,6 +198,11 @@ async function processStream(
   progress: vscode.Progress<vscode.LanguageModelResponsePart>,
   token: vscode.CancellationToken,
 ): Promise<void> {
+  if (typeof body?.getReader !== "function") {
+    throw new Error(
+      `[Subbrain] response.body has no getReader(): ${typeof body}`,
+    );
+  }
   const reader = body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
@@ -242,6 +247,10 @@ async function processStream(
     }
   };
 
+  let totalTextChars = 0;
+  let totalChunks = 0;
+  let firstChunkLogged = false;
+
   try {
     while (!token.isCancellationRequested) {
       const { done, value } = await reader.read();
@@ -257,11 +266,29 @@ async function processStream(
 
         if (data === "[DONE]") {
           flushAll();
+          console.log(
+            `[Subbrain] Stream DONE: ${totalChunks} chunks, ${totalTextChars} text chars, ${toolCallBuffers.size} pending tool calls`,
+          );
           continue;
         }
 
         try {
-          const chunk = JSON.parse(data) as StreamChunk;
+          const chunk = JSON.parse(data) as StreamChunk & { error?: { message?: string; type?: string } };
+          totalChunks++;
+
+          // Log first chunk for debugging
+          if (!firstChunkLogged) {
+            console.log(`[Subbrain] First chunk: ${data.slice(0, 300)}`);
+            firstChunkLogged = true;
+          }
+
+          // Handle upstream error chunks from Subbrain proxy
+          if (chunk.error) {
+            const errMsg = chunk.error.message || "Unknown upstream error";
+            console.error(`[Subbrain] Stream error chunk: ${errMsg}`);
+            throw new Error(`Subbrain upstream error: ${errMsg}`);
+          }
+
           const choice = chunk.choices?.[0];
           if (!choice) continue;
 
@@ -269,6 +296,7 @@ async function processStream(
 
           // Text content
           if (delta?.content) {
+            totalTextChars += delta.content.length;
             progress.report(new vscode.LanguageModelTextPart(delta.content));
           }
 
@@ -355,11 +383,12 @@ export class SubbrainChatModelProvider
 
     const baseUrl = vscode.workspace
       .getConfiguration("subbrain")
-      .get<string>("baseUrl", "http://localhost:4000/v1");
+      .get<string>("baseUrl", "https://subbrain.dmtr.ru/v1");
 
+    const convertedMessages = convertMessages(messages);
     const body: Record<string, unknown> = {
       model: model.id,
-      messages: convertMessages(messages),
+      messages: convertedMessages,
       stream: true,
     };
 
@@ -375,6 +404,14 @@ export class SubbrainChatModelProvider
       body.tool_choice = "auto";
     }
 
+    // Debug: log outgoing request shape
+    console.log(
+      `[Subbrain] REQUEST model=${model.id} msgs=${convertedMessages.length} tools=${options.tools?.length ?? 0}`,
+    );
+    console.log(
+      `[Subbrain] Messages: ${JSON.stringify(convertedMessages.map((m: any) => ({ role: m.role, contentLen: typeof m.content === 'string' ? m.content.length : m.content, hasTool: !!m.tool_call_id || !!m.tool_calls })))}`,
+    );
+
     const abortController = new AbortController();
     const unsub = token.onCancellationRequested(() => abortController.abort());
 
@@ -389,8 +426,13 @@ export class SubbrainChatModelProvider
         signal: abortController.signal,
       });
 
+      console.log(
+        `[Subbrain] RESPONSE status=${response.status} content-type=${response.headers.get('content-type')}`,
+      );
+
       if (!response.ok) {
         const errorText = await response.text();
+        console.error(`[Subbrain] ERROR response: ${errorText.slice(0, 500)}`);
         if (response.status === 401 || response.status === 403) {
           throw vscode.LanguageModelError.NoPermissions(
             `Subbrain auth error (${response.status}): ${errorText}`,
@@ -403,6 +445,9 @@ export class SubbrainChatModelProvider
         throw new Error("No response body from Subbrain API");
       }
 
+      console.log(
+        `[Subbrain] Streaming from ${baseUrl}/chat/completions, status=${response.status}`,
+      );
       await processStream(response.body, progress, token);
     } catch (err) {
       if (

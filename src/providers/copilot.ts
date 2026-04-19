@@ -231,8 +231,8 @@ export class CopilotProvider implements LLMProvider {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
       "Copilot-Integration-Id": "vscode-chat",
-      "Editor-Version": "vscode/1.100.0",
-      "Editor-Plugin-Version": "copilot-chat/0.25.0",
+      "Editor-Version": "vscode/1.115.0",
+      "Editor-Plugin-Version": "copilot-chat/0.43.0",
     };
   }
 
@@ -241,7 +241,9 @@ export class CopilotProvider implements LLMProvider {
    * - Normalizes content: arrays → joined string, null → "" for assistant+tool_calls
    * - Strips unknown fields that Copilot API might reject
    */
-  private sanitizeMessages(messages: ChatParams["messages"]): ChatParams["messages"] {
+  private sanitizeMessages(
+    messages: ChatParams["messages"],
+  ): ChatParams["messages"] {
     return messages.map((msg) => {
       const clean: Record<string, unknown> = { role: msg.role };
 
@@ -278,7 +280,10 @@ export class CopilotProvider implements LLMProvider {
 
   async chat(params: ChatParams): Promise<ChatResponse> {
     const clamped = this.clamp(params);
-    const sanitized = { ...clamped, messages: this.sanitizeMessages(clamped.messages) };
+    const sanitized = {
+      ...clamped,
+      messages: this.sanitizeMessages(clamped.messages),
+    };
     const reqHeaders = await this.headers();
     const res = await fetch(`${COPILOT_API_URL}/chat/completions`, {
       method: "POST",
@@ -322,15 +327,39 @@ export class CopilotProvider implements LLMProvider {
 
   chatStream(params: ChatParams): ReadableStream<Uint8Array> {
     const clamped = this.clamp(params);
-    const sanitized = { ...clamped, messages: this.sanitizeMessages(clamped.messages) };
+    const sanitized = {
+      ...clamped,
+      messages: this.sanitizeMessages(clamped.messages),
+    };
     const self = this;
+
+    const bodyPayload = { ...sanitized, stream: true };
+    const bodyStr = JSON.stringify(bodyPayload);
+    logger.info(
+      "[copilot]",
+      `chatStream() model=${sanitized.model} msgs=${sanitized.messages.length} tools=${sanitized.tools?.length ?? 0} bodySize=${bodyStr.length}`,
+    );
+    // Debug: log first few messages structure
+    for (let i = 0; i < Math.min(5, sanitized.messages.length); i++) {
+      const m = sanitized.messages[i];
+      const info: Record<string, unknown> = {
+        role: m.role,
+        contentType: typeof m.content,
+        contentLen:
+          typeof m.content === "string" ? m.content.length : m.content,
+      };
+      if (m.tool_calls) info.tool_calls_count = m.tool_calls.length;
+      if ((m as any).tool_call_id) info.tool_call_id = (m as any).tool_call_id;
+      if ((m as any).name) info.name = (m as any).name;
+      logger.info("[copilot]", `  msg[${i}]: ${JSON.stringify(info)}`);
+    }
 
     return createProxyStream(async () => {
       const hdrs = await self.headers();
       return fetch(`${COPILOT_API_URL}/chat/completions`, {
         method: "POST",
         headers: hdrs,
-        body: JSON.stringify({ ...sanitized, stream: true }),
+        body: bodyStr,
         signal: AbortSignal.timeout(180_000),
       });
     });
