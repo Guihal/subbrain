@@ -144,6 +144,45 @@ export async function executeAgentTool(
           },
         });
       }
+
+      // ─── Telegram Chat Tools ─────────────────────────────────
+      case "tg_list_chats": {
+        const result = await deps.tools.tgListChats(args.limit as number | undefined);
+        return JSON.stringify(result);
+      }
+      case "tg_read_chat": {
+        const result = await deps.tools.tgReadChat(
+          args.chat_id as string,
+          args.limit as number | undefined,
+          args.offset_id as number | undefined,
+        );
+        return JSON.stringify(result);
+      }
+      case "tg_search_messages": {
+        const result = await deps.tools.tgSearchMessages(
+          args.query as string,
+          args.limit as number | undefined,
+          args.chat_id as string | undefined,
+        );
+        return JSON.stringify(result);
+      }
+      case "tg_exclude_chat": {
+        const result = deps.tools.tgExcludeChat(
+          args.chat_id as string,
+          args.chat_title as string,
+          args.reason as string | undefined,
+        );
+        return JSON.stringify(result);
+      }
+      case "tg_include_chat": {
+        const result = deps.tools.tgIncludeChat(args.chat_id as string);
+        return JSON.stringify(result);
+      }
+      case "tg_list_excluded": {
+        const result = deps.tools.tgListExcluded();
+        return JSON.stringify(result);
+      }
+
       default: {
         const dynTool = deps.dynamicTools.get(name);
         if (dynTool) {

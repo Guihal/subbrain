@@ -201,4 +201,118 @@ export const AGENT_TOOLS: Tool[] = [
       },
     },
   },
+
+  // ─── Telegram Chat Tools ─────────────────────────────────
+  {
+    type: "function",
+    function: {
+      name: "tg_list_chats",
+      description:
+        "List user's Telegram chats (groups, channels, DMs). Excluded chats are marked. Use this first to discover available chats before reading them.",
+      parameters: {
+        type: "object",
+        properties: {
+          limit: {
+            type: "number",
+            description: "Max chats to return (default: 100)",
+          },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "tg_read_chat",
+      description:
+        "Read messages from a specific Telegram chat by chat_id. Use tg_list_chats first to get chat IDs. Respects exclusion list.",
+      parameters: {
+        type: "object",
+        properties: {
+          chat_id: { type: "string", description: "Telegram chat ID" },
+          limit: {
+            type: "number",
+            description: "Max messages to return (default: 50)",
+          },
+          offset_id: {
+            type: "number",
+            description: "Message ID to start from (for pagination)",
+          },
+        },
+        required: ["chat_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "tg_search_messages",
+      description:
+        "Search messages across all non-excluded Telegram chats, or within a specific chat.",
+      parameters: {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "Search query" },
+          limit: {
+            type: "number",
+            description: "Max results (default: 20)",
+          },
+          chat_id: {
+            type: "string",
+            description: "Optional: search within specific chat only",
+          },
+        },
+        required: ["query"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "tg_exclude_chat",
+      description:
+        "Mark a Telegram chat as excluded/private. AI will not read messages from it.",
+      parameters: {
+        type: "object",
+        properties: {
+          chat_id: { type: "string", description: "Telegram chat ID" },
+          chat_title: {
+            type: "string",
+            description: "Chat title for reference",
+          },
+          reason: {
+            type: "string",
+            description: "Why this chat is excluded",
+          },
+        },
+        required: ["chat_id", "chat_title"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "tg_include_chat",
+      description:
+        "Remove a Telegram chat from the exclusion list, allowing AI to read it again.",
+      parameters: {
+        type: "object",
+        properties: {
+          chat_id: { type: "string", description: "Telegram chat ID" },
+        },
+        required: ["chat_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "tg_list_excluded",
+      description: "List all excluded Telegram chats.",
+      parameters: {
+        type: "object",
+        properties: {},
+      },
+    },
+  },
 ];

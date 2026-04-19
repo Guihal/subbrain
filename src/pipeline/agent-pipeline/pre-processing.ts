@@ -44,14 +44,14 @@ export async function preProcess(
 ): Promise<PreProcessingOutput> {
   onProgress?.("🔍 Поиск в памяти (RAG + FTS + shared)...\n");
   const [ragResults, focusEntries, sharedMemory] = await Promise.all([
-    rag
-      .search({ query: userMessage, rerankTopN: 5 })
-      .catch((err) => {
-        const msg = err instanceof Error ? err.message : String(err);
-        logger.warn("pre", `RAG search failed (degrading gracefully): ${msg}`);
-        onProgress?.(`⚠️ RAG недоступен: ${msg.slice(0, 80)}, продолжаем без него...\n`);
-        return [] as RAGResult[];
-      }),
+    rag.search({ query: userMessage, rerankTopN: 5 }).catch((err) => {
+      const msg = err instanceof Error ? err.message : String(err);
+      logger.warn("pre", `RAG search failed (degrading gracefully): ${msg}`);
+      onProgress?.(
+        `⚠️ RAG недоступен: ${msg.slice(0, 80)}, продолжаем без него...\n`,
+      );
+      return [] as RAGResult[];
+    }),
     Promise.resolve(memory.getAllFocus()),
     Promise.resolve(memory.getAllShared()),
   ]);
@@ -84,7 +84,13 @@ export async function preProcess(
   const rawMemoryBlock = rawParts.join("\n");
 
   if (ragResults.length === 0 && sharedMemory.length === 0) {
-    return { executiveSummary: "", ragResults: [], focusEntries, sharedMemory: [], rawMemoryBlock: "" };
+    return {
+      executiveSummary: "",
+      ragResults: [],
+      focusEntries,
+      sharedMemory: [],
+      rawMemoryBlock: "",
+    };
   }
 
   // Ask flash hippocampus for executive summary
@@ -95,7 +101,10 @@ export async function preProcess(
     {
       messages: [
         { role: "system", content: getHippocampusPrompt() },
-        { role: "user", content: `User message: "${userMessage}"\n\nMemory dump:\n${rawMemoryBlock}` },
+        {
+          role: "user",
+          content: `User message: "${userMessage}"\n\nMemory dump:\n${rawMemoryBlock}`,
+        },
       ],
       max_tokens: 1024,
       temperature: 0.3,
@@ -110,5 +119,11 @@ export async function preProcess(
 
   onProgress?.(`✅ Контекст собран (${executiveSummary.length} символов)\n`);
 
-  return { executiveSummary, ragResults, focusEntries, sharedMemory, rawMemoryBlock };
+  return {
+    executiveSummary,
+    ragResults,
+    focusEntries,
+    sharedMemory,
+    rawMemoryBlock,
+  };
 }

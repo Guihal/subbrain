@@ -20,6 +20,7 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
+          command_timeout: 10m
           script: |
             set -e
 
@@ -27,7 +28,8 @@ jobs:
             REPO="https://github.com/${{ github.repository }}.git"
 
             # First deploy: clone
-            if [ ! -d "$APP_DIR" ]; then
+            if [ ! -d "$APP_DIR/.git" ]; then
+              rm -rf "$APP_DIR/deploy" "$APP_DIR/src" 2>/dev/null || true
               git clone "$REPO" "$APP_DIR"
             fi
 
@@ -40,25 +42,53 @@ jobs:
             # Ensure .env exists
             if [ ! -f .env ]; then
               echo "ERROR: .env not found on server. Create it first:"
-              echo "  scp .env user@server:/opt/subbrain/.env"
+              echo "  scp .env root@server:/opt/subbrain/.env"
               exit 1
             fi
 
             # Ensure persistent DB volume exists before rebuilds
-            sudo docker volume inspect subbrain-data > /dev/null 2>&1 || sudo docker volume create subbrain-data > /dev/null
+            docker volume inspect subbrain-data > /dev/null 2>&1 || docker volume create subbrain-data > /dev/null
 
             # Build and restart (DB volume is safe)
-            sudo docker compose build --pull
-            sudo docker compose up -d --force-recreate --remove-orphans
+            docker compose build --pull
+            docker compose up -d --force-recreate --remove-orphans
 
-            # Apply Caddyfile if changed
-            if [ -f deploy/Caddyfile ] && [ -f /etc/caddy/Caddyfile ]; then
-              DOMAIN=$(grep -oP '^\S+(?= \{)' /etc/caddy/Caddyfile | head -1)
-              if [ -n "$DOMAIN" ]; then
-                sed "s/{domain}/${DOMAIN}/g" deploy/Caddyfile | sudo tee /etc/caddy/Caddyfile > /dev/null
-                sudo systemctl reload caddy || sudo systemctl restart caddy
-                echo "✅ Caddy reloaded (domain: $DOMAIN)"
+            # ─── Caddy: unified config (subbrain + hysteria panel) ───
+            if [ -f deploy/Caddyfile ]; then
+              DOMAIN="${SUBBRAIN_DOMAIN:-subbrain.dmtr.ru}"
+              AUTH_USER="${CADDY_AUTH_USER:-dimonya}"
+              AUTH_HASH='${{ secrets.CADDY_AUTH_HASH }}'
+
+              # Read hysteria panel config (if exists)
+              HYSTERIA_CF="/etc/hysteria/core/scripts/webpanel/Caddyfile"
+              HYSTERIA_DOMAIN=""
+              HYSTERIA_PATH=""
+              if [ -f "$HYSTERIA_CF" ]; then
+                HYSTERIA_DOMAIN=$(grep -oP '^\S+(?=:\d+ \{)' "$HYSTERIA_CF" | head -1)
+                HYSTERIA_PATH=$(grep -oP 'route \K/[^ ]+(?=/\*)' "$HYSTERIA_CF" | head -1)
               fi
+              HYSTERIA_DOMAIN="${HYSTERIA_DOMAIN:-_skip_}"
+              HYSTERIA_PATH="${HYSTERIA_PATH:-/_none_}"
+
+              sed -e "s|{domain}|${DOMAIN}|g" \
+                  -e "s|{auth_user}|${AUTH_USER}|g" \
+                  -e "s|{auth_hash}|${AUTH_HASH}|g" \
+                  -e "s|{hysteria_domain}|${HYSTERIA_DOMAIN}|g" \
+                  -e "s|{hysteria_panel_path}|${HYSTERIA_PATH}|g" \
+                  deploy/Caddyfile > /etc/caddy/Caddyfile
+
+              # Stop hysteria-caddy (we take over port 443)
+              systemctl stop hysteria-caddy 2>/dev/null || true
+              systemctl disable hysteria-caddy 2>/dev/null || true
+
+              # Stop nginx (not needed)
+              systemctl stop nginx 2>/dev/null || true
+              systemctl disable nginx 2>/dev/null || true
+
+              mkdir -p /var/log/caddy
+              systemctl enable caddy
+              systemctl reload caddy || systemctl restart caddy
+              echo "✅ Caddy reloaded (domain: $DOMAIN)"
             fi
 
             # Wait for health
@@ -72,5 +102,5 @@ jobs:
             done
 
             echo "❌ Health check failed"
-            sudo docker compose logs --tail=50
+            docker compose logs --tail=50
             exit 1

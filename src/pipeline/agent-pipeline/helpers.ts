@@ -18,7 +18,10 @@ export function isFirstMessage(messages: Message[]): boolean {
   return !messages.some((m) => m.role === "assistant");
 }
 
-export function buildSystemPrompt(pre: PreProcessingOutput, model: string): string {
+export function buildSystemPrompt(
+  pre: PreProcessingOutput,
+  model: string,
+): string {
   const parts: string[] = [];
 
   parts.push(getPersonaBio(model));
@@ -50,7 +53,10 @@ export function buildSystemPrompt(pre: PreProcessingOutput, model: string): stri
   return parts.join("\n");
 }
 
-export function injectSystemPrompt(messages: Message[], systemAddition?: string): Message[] {
+export function injectSystemPrompt(
+  messages: Message[],
+  systemAddition?: string,
+): Message[] {
   if (!systemAddition) return messages;
 
   const result = [...messages];

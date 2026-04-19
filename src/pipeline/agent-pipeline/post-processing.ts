@@ -16,15 +16,30 @@ export async function postProcess(
   requestId: string,
   sessionId: string,
   model: string,
-  usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number },
+  usage?: {
+    prompt_tokens: number;
+    completion_tokens: number;
+    total_tokens: number;
+  },
   reasoning?: string,
 ): Promise<void> {
   const log = logger.forRequest(requestId, sessionId);
-  log.info("post", `Post-processing: user=${userMessage.length}ch assistant=${assistantMessage.length}ch`, { model });
+  log.info(
+    "post",
+    `Post-processing: user=${userMessage.length}ch assistant=${assistantMessage.length}ch`,
+    { model },
+  );
 
   // 1. Log the exchange to Layer 4
   memory.appendLog(requestId, sessionId, model, "user", userMessage);
-  memory.appendLog(requestId, sessionId, model, "assistant", assistantMessage, usage?.completion_tokens);
+  memory.appendLog(
+    requestId,
+    sessionId,
+    model,
+    "assistant",
+    assistantMessage,
+    usage?.completion_tokens,
+  );
 
   // 1b. Log reasoning/thinking if present
   if (reasoning && reasoning.length > 0) {
@@ -40,7 +55,9 @@ export async function postProcess(
   }
 
   try {
-    log.info("post", "Extracting knowledge delta via flash", { model: "flash" });
+    log.info("post", "Extracting knowledge delta via flash", {
+      model: "flash",
+    });
     const deltaStart = Date.now();
     const deltaResponse = await router.chat(
       "flash",
@@ -82,14 +99,27 @@ If nothing new, return {"facts": [], "skip": true}. Be selective — only genuin
     for (const fact of delta.facts.slice(0, 3)) {
       if (!fact.content) continue;
       const id = randomUUID();
-      memory.insertContext(id, fact.category || "fact", fact.content, fact.tags || "", [requestId]);
-      log.info("post", `New fact stored: [${fact.category}] ${fact.content.slice(0, 100)}`, {
-        meta: { factId: id, tags: fact.tags },
-      });
+      memory.insertContext(
+        id,
+        fact.category || "fact",
+        fact.content,
+        fact.tags || "",
+        [requestId],
+      );
+      log.info(
+        "post",
+        `New fact stored: [${fact.category}] ${fact.content.slice(0, 100)}`,
+        {
+          meta: { factId: id, tags: fact.tags },
+        },
+      );
       rag.indexEntry(id, "context", fact.content).catch(() => {});
     }
   } catch (err) {
-    log.error("post", `Knowledge extraction failed: ${err instanceof Error ? err.message : err}`);
+    log.error(
+      "post",
+      `Knowledge extraction failed: ${err instanceof Error ? err.message : err}`,
+    );
   }
 }
 
@@ -122,7 +152,8 @@ export async function postProcessFromStream(
           const chunk = JSON.parse(data);
           const delta = chunk.choices?.[0]?.delta;
           if (delta?.content) contentChunks.push(delta.content);
-          if (delta?.reasoning_content) reasoningChunks.push(delta.reasoning_content);
+          if (delta?.reasoning_content)
+            reasoningChunks.push(delta.reasoning_content);
         } catch {
           // Malformed chunk
         }
@@ -135,10 +166,25 @@ export async function postProcessFromStream(
   const fullResponse = contentChunks.join("");
   const fullReasoning = reasoningChunks.join("");
 
-  log.info("post", `Stream captured: ${fullResponse.length} chars content, ${fullReasoning.length} chars reasoning`, { model });
+  log.info(
+    "post",
+    `Stream captured: ${fullResponse.length} chars content, ${fullReasoning.length} chars reasoning`,
+    { model },
+  );
 
   if (fullResponse || fullReasoning) {
-    await postProcess(memory, router, rag, userMessage, fullResponse, requestId, sessionId, model, undefined, fullReasoning || undefined);
+    await postProcess(
+      memory,
+      router,
+      rag,
+      userMessage,
+      fullResponse,
+      requestId,
+      sessionId,
+      model,
+      undefined,
+      fullReasoning || undefined,
+    );
   }
 }
 

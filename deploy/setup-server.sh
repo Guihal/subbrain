@@ -3,8 +3,7 @@
 # First-time server setup for Subbrain.
 # Run once on a fresh server as root.
 #
-# Usage: curl -sSL <raw-github-url>/deploy/setup-server.sh | bash -s -- <domain>
-#   or:  bash deploy/setup-server.sh brain.example.com
+# Usage: bash deploy/setup-server.sh <domain>
 #
 set -euo pipefail
 
@@ -31,62 +30,43 @@ if ! command -v caddy &>/dev/null; then
   apt-get install -y caddy
 fi
 
-# ─── 3. Caddy config ─────────────────────────────────────
-echo "→ Configuring Caddy for ${DOMAIN}..."
-mkdir -p /var/log/caddy
-
-if [ -f "${APP_DIR}/deploy/Caddyfile" ]; then
-  sed "s/{domain}/${DOMAIN}/g" "${APP_DIR}/deploy/Caddyfile" > /etc/caddy/Caddyfile
-else
-  cat > /etc/caddy/Caddyfile <<EOF
-${DOMAIN} {
-    reverse_proxy localhost:4000
-    header {
-        X-Content-Type-Options nosniff
-        X-Frame-Options DENY
-    }
-    log {
-        output file /var/log/caddy/subbrain.log
-        format json
-    }
-}
-EOF
-fi
-
-systemctl enable --now caddy
-systemctl reload caddy
-
-# ─── 4. App directory ────────────────────────────────────
+# ─── 3. App directory ────────────────────────────────────
 mkdir -p "${APP_DIR}"
 
-# ─── 5. .env template ────────────────────────────────────
+# ─── 4. .env template ────────────────────────────────────
 if [ ! -f "${APP_DIR}/.env" ]; then
   echo "→ Creating .env template..."
   cat > "${APP_DIR}/.env" <<'EOF'
 # === Subbrain config ===
-PROXY_AUTH_TOKEN=subbrain-local-dev
+PROXY_AUTH_TOKEN=
 PROXY_PORT=4000
 DB_PATH=/data/subbrain.db
+LOG_DIR=/data/logs
 
 # === LLM Providers ===
 NVIDIA_API_KEY=
+NVIDIA_BASE_URL=https://integrate.api.nvidia.com/v1
 OPENROUTER_API_KEY=
+OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
 
-# === Telegram (fill when ready) ===
-# TG_API_ID=
-# TG_API_HASH=
-# TG_BOT_TOKEN=
-# TG_OWNER_CHAT_ID=
-# TG_MTPROTO_SERVER=
-# TG_MTPROTO_PORT=
-# TG_MTPROTO_SECRET=
+# === Telegram ===
+TG_API_ID=
+TG_API_HASH=
+TG_BOT_TOKEN=
+TG_OWNER_CHAT_ID=
+TG_POLLING=true
+TG_SESSION=
+TG_TUNNEL_HOST=
+TG_TUNNEL_BASE_PORT=19150
+TG_API_ROOT=
+TG_API_PROXY_KEY=
 EOF
   echo ""
   echo "⚠️  IMPORTANT: Edit ${APP_DIR}/.env with real values before deploying!"
   echo ""
 fi
 
-# ─── 6. Firewall ─────────────────────────────────────────
+# ─── 5. Firewall ─────────────────────────────────────────
 if command -v ufw &>/dev/null; then
   echo "→ Configuring firewall..."
   ufw allow 80/tcp
@@ -100,11 +80,10 @@ echo "✅ Server ready!"
 echo ""
 echo "Next steps:"
 echo "  1. Edit ${APP_DIR}/.env with real API keys"
-echo "  2. Set up GitHub repo secrets:"
+echo "  2. Update GitHub repo secrets:"
 echo "     - SERVER_HOST = $(curl -4s ifconfig.me 2>/dev/null || echo '<server-ip>')"
-echo "     - SERVER_USER = $(whoami)"
-echo "     - SERVER_SSH_KEY = <your private SSH key>"
+echo "     - SERVER_USER = root"
+echo "     - SERVER_SSH_KEY = <subbrain_deploy private key>"
+echo "     - CADDY_AUTH_HASH = <output of: caddy hash-password --plaintext YOUR_PASSWORD>"
 echo "  3. Push to main → CI/CD will deploy automatically"
 echo ""
-echo "  Or manual deploy:"
-echo "     cd ${APP_DIR} && git pull && docker compose up -d --build"

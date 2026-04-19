@@ -3,12 +3,10 @@ import type { MemoryDB, FtsResult, VecResult } from "../db";
 import type { ModelRouter } from "../lib/model-router";
 import type { RAGPipeline } from "../rag";
 import type { Userbot } from "../telegram/userbot";
+import type { ToolResult } from "./types";
+import * as tg from "./telegram-tools";
 
-export interface ToolResult {
-  success: boolean;
-  data?: unknown;
-  error?: string;
-}
+export type { ToolResult } from "./types";
 
 /**
  * Core tool logic, independent of transport (MCP/HTTP/internal).
@@ -364,23 +362,8 @@ export class ToolExecutor {
 
   // ─── Telegram Chat Tools ─────────────────────────────────
 
-  private requireUserbot(): Userbot {
-    if (!this.userbot || !this.userbot.isConnected()) {
-      throw new Error(
-        "Telegram userbot not connected. Set TG_API_ID, TG_API_HASH, TG_SESSION.",
-      );
-    }
-    return this.userbot;
-  }
-
   async tgListChats(limit = 100): Promise<ToolResult> {
-    try {
-      const ub = this.requireUserbot();
-      const chats = await ub.listChats(limit);
-      return { success: true, data: chats };
-    } catch (err: any) {
-      return { success: false, error: err.message };
-    }
+    return tg.tgListChats(this.userbot, limit);
   }
 
   async tgReadChat(
@@ -388,13 +371,7 @@ export class ToolExecutor {
     limit = 50,
     offsetId?: number,
   ): Promise<ToolResult> {
-    try {
-      const ub = this.requireUserbot();
-      const messages = await ub.readChat(chatId, limit, offsetId);
-      return { success: true, data: messages };
-    } catch (err: any) {
-      return { success: false, error: err.message };
-    }
+    return tg.tgReadChat(this.userbot, chatId, limit, offsetId);
   }
 
   async tgSearchMessages(
@@ -402,13 +379,7 @@ export class ToolExecutor {
     limit = 30,
     chatId?: string,
   ): Promise<ToolResult> {
-    try {
-      const ub = this.requireUserbot();
-      const messages = await ub.searchMessages(query, limit, chatId);
-      return { success: true, data: messages };
-    } catch (err: any) {
-      return { success: false, error: err.message };
-    }
+    return tg.tgSearchMessages(this.userbot, query, limit, chatId);
   }
 
   tgExcludeChat(
@@ -416,29 +387,14 @@ export class ToolExecutor {
     chatTitle: string,
     reason = "private",
   ): ToolResult {
-    try {
-      this.memory.excludeTgChat(chatId, chatTitle, reason);
-      return { success: true, data: { excluded: chatId, chatTitle, reason } };
-    } catch (err: any) {
-      return { success: false, error: err.message };
-    }
+    return tg.tgExcludeChat(this.memory, chatId, chatTitle, reason);
   }
 
   tgIncludeChat(chatId: string): ToolResult {
-    try {
-      this.memory.includeTgChat(chatId);
-      return { success: true, data: { included: chatId } };
-    } catch (err: any) {
-      return { success: false, error: err.message };
-    }
+    return tg.tgIncludeChat(this.memory, chatId);
   }
 
   tgListExcluded(): ToolResult {
-    try {
-      const excluded = this.memory.getExcludedTgChats();
-      return { success: true, data: excluded };
-    } catch (err: any) {
-      return { success: false, error: err.message };
-    }
+    return tg.tgListExcluded(this.memory);
   }
 }

@@ -1,22 +1,24 @@
-{domain} {
-    # ─── API backend (bare paths) ───────────────────────────
-    handle /v1/* {
-        reverse_proxy localhost:4000
-    }
-    handle /api/* {
-        reverse_proxy localhost:4000
-    }
-    handle /health {
-        reverse_proxy localhost:4000
-    }
-    handle /metrics {
-        reverse_proxy localhost:4000
-    }
-    handle /mcp/* {
-        reverse_proxy localhost:4000
-    }
+{
+    auto_https disable_redirects
+}
 
-    # ─── SSE / streaming — flush immediately ────────────────
+# ─── Hysteria Panel (preserve existing) ──────────────────
+{hysteria_domain}:443 {
+    route {hysteria_panel_path}/* {
+        reverse_proxy http://127.0.0.1:28260
+    }
+    @otherPaths {
+        not path {hysteria_panel_path}/*
+    }
+    handle @otherPaths {
+        root * /var
+        file_server
+    }
+}
+
+# ─── Subbrain ────────────────────────────────────────────
+{domain} {
+    # ─── Public API (Bearer token auth in app) ──────────────
     handle /v1/chat/completions {
         reverse_proxy localhost:4000 {
             flush_interval -1
@@ -33,9 +35,35 @@
             }
         }
     }
+    handle /v1/* {
+        reverse_proxy localhost:4000
+    }
+    handle /mcp/* {
+        reverse_proxy localhost:4000
+    }
+    handle /health {
+        reverse_proxy localhost:4000
+    }
 
-    # ─── Nuxt frontend ──────────────────────────────────────
+    # ─── Protected routes (basic auth) ──────────────────────
+    handle /metrics {
+        basicauth {
+            {auth_user} {auth_hash}
+        }
+        reverse_proxy localhost:4000
+    }
+    handle /api/* {
+        basicauth {
+            {auth_user} {auth_hash}
+        }
+        reverse_proxy localhost:4000
+    }
+
+    # ─── Nuxt frontend (basic auth) ─────────────────────────
     handle {
+        basicauth {
+            {auth_user} {auth_hash}
+        }
         reverse_proxy localhost:3000
     }
 
