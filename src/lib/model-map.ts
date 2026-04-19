@@ -46,8 +46,8 @@ export const MODEL_MAP: Record<string, ModelRoute> = {
     fallbackProvider: "copilot",
   },
   flash: {
-    primary: "stepfun-ai/step-3.5-flash",
-    primaryProvider: "nvidia",
+    primary: "openai/gpt-5-mini",
+    primaryProvider: "copilot",
     fallback: "openai/gpt-4o-mini",
     fallbackProvider: "copilot",
   },

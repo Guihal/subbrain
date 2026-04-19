@@ -1,167 +1,204 @@
-# 🧠 Архитектура проекта: «Цифровая команда» (Digital Team)
-
-## 🎯 Глобальная концепция
+# 🧠 Subbrain — Цифровая команда
 
 Инфраструктура когнитивного расширения («второй мозг») и автономная ИИ-корпорация.
-**Главная директива (Автономный режим):** Легально зарабатывать деньги, предлагать идеи, улучшать качество жизни пользователя и его девушки.
-**Интерфейс:** Backend-first подход. OpenAI-совместимый прокси-сервер для интеграции в VS Code (через Continue/Cursor), с возможностью будущего расширения до web/Telegram.
+
+**Главная директива:** Легально зарабатывать деньги, предлагать идеи, улучшать качество жизни пользователя и его девушки Ники.
+
+**Интерфейс:** Backend-first. OpenAI-совместимый прокси-сервер, интегрируется в VS Code через Continue. Фронтенд (Nuxt 3) — опционален.
 
 ---
 
 ## 🛠 Технологический стек
 
-- **Runtime & Framework:** Bun + Elysia (быстрый HTTP-роутер, поддержка WebSocket/SSE для стриминга).
-- **БД (Память):** SQLite.
-  - _FTS5:_ Полнотекстовый поиск по тегам и контенту.
-  - _sqlite-vec:_ Векторный поиск по семантическим кластерам.
-- **Провайдер LLM:** NVIDIA NIM (build.nvidia.com) — единый OpenAI-совместимый API, бесплатно, лимит 40 RPM.
-  - **Base URL:** `https://integrate.api.nvidia.com/v1`
-  - **Эндпоинты:** `/chat/completions`, `/embeddings`, `/models` + rerank
-- **Интеграция инструментов:** MCP (Model Context Protocol) для стандартизированного доступа агентов к памяти и локальной среде.
-
-### Карта моделей (роль → модель)
-
-| Роль                        | Модель                                         | Параметры | Назначение                                |
-| :-------------------------- | :--------------------------------------------- | :-------- | :---------------------------------------- |
-| **Тимлид / Оркестратор**    | `deepseek-ai/deepseek-v3.2`                    | 685B      | Reasoning, agentic tools, арбитраж        |
-| **Тимлид (fallback)**       | `minimaxai/minimax-m2.7`                       | 230B      | Coding, reasoning, office tasks           |
-| **Кодлер**                  | `mistralai/devstral-2-123b-instruct-2512`      | 123B      | Код, 256K контекст                        |
-| **Критик / Ревьюер**        | `moonshotai/kimi-k2-thinking`                  | —         | Reasoning с цепочкой мышления             |
-| **Генералист**              | `qwen/qwen3-coder-480b-a35b-instruct`          | 480B MoE  | Agentic coding, 256K контекст             |
-| **Flash (pre/post/memory)** | `stepfun-ai/step-3.5-flash`                    | 200B MoE  | RAG, память, компрессия, function calling |
-| **Embeddings**              | `nvidia/llama-3.2-nemoretriever-300m-embed-v1` | 300M      | 26 языков (RU+EN), для sqlite-vec         |
-| **Code Embeddings**         | `nvidia/nv-embedcode-7b-v1`                    | 7B        | Поиск по коду                             |
-| **Rerank**                  | `nvidia/rerank-qa-mistral-4b`                  | 4B        | Улучшение RAG-выдачи                      |
-| **Safety**                  | `nvidia/nemotron-content-safety-reasoning-4b`  | 4B        | Фильтрация с reasoning                    |
-| **Перевод**                 | `nvidia/riva-translate-4b-instruct-v1_1`       | 4B        | RU↔EN, 12 языков (ночной цикл)            |
-| **PII Detection**           | `nvidia/gliner-pii`                            | —         | Очистка логов от персональных данных      |
+| Компонент           | Решение                                   |
+| :------------------ | :---------------------------------------- |
+| Runtime             | Bun ≥ 1.3                                 |
+| HTTP Framework      | Elysia (SSE/WebSocket из коробки)         |
+| БД                  | SQLite + FTS5 + sqlite-vec                |
+| Инструменты агентов | MCP (Model Context Protocol) + Playwright |
+| Мессенджер          | Telegram Bot API + MTProto (Userbot)      |
+| Фронтенд            | Nuxt 3 (порт 3000, опционально)           |
 
 ---
 
-## 🗄 Структура памяти
+## 🤖 Провайдеры и модели
 
-→ Детали: [`docs/02-database-schema.md`](docs/02-database-schema.md)
+Система использует **три провайдера** через единый интерфейс `LLMProvider`:
 
-Система избегает JSON-структур для хранения знаний (из-за хрупкости парсинга) в пользу **Markdown**, который лучше воспринимается LLM.
+| Провайдер                     | Base URL                              | Лимит   | Auth                 |
+| :---------------------------- | :------------------------------------ | :------ | :------------------- |
+| **GitHub Models** (`copilot`) | `https://models.github.ai/inference`  | 10 RPM  | `GITHUB_TOKEN`       |
+| **NVIDIA NIM** (`nvidia`)     | `https://integrate.api.nvidia.com/v1` | 40 RPM  | `NVIDIA_API_KEY`     |
+| **OpenRouter** (`openrouter`) | `https://openrouter.ai/api/v1`        | 200 RPM | `OPENROUTER_API_KEY` |
 
-### 4 Слоя памяти
+### Карта виртуальных ролей → реальные модели
 
-1.  **Слой 1: Фокус (Сверхбыстрая память).** Текущая задача, самоидентификация, строгие ограничения. Всегда в системном промте. Формат: Markdown.
-2.  **Слой 2: Контекст (Текущие задачи).** Выжимки по активным проектам, подгружаемые по релевантности. Формат: Markdown (опционально с YAML Frontmatter для метаданных).
-3.  **Слой 3: Компрессия (Архив знаний).** Структурированные выводы, паттерны, инсайты. Результат работы ночного цикла. Формат: Markdown.
-4.  **Слой 4: Сырой лог.** Полная история действий и запросов (для перепроверки и защиты от галлюцинаций сжатия). Формат: Plain Text.
+| Роль                       | Виртуальное имя | Основная модель               | Провайдер | Fallback                      |
+| :------------------------- | :-------------- | :---------------------------- | :-------- | :---------------------------- |
+| **Тимлид / Оркестратор**   | `teamlead`      | `anthropic/claude-sonnet-4.6` | copilot   | `openai/gpt-4o`               |
+| **Кодер / Разработчик**    | `coder`         | `anthropic/claude-sonnet-4.6` | copilot   | `openai/gpt-4o`               |
+| **Критик / Ревьюер**       | `critic`        | `google/gemini-3.1`           | copilot   | `openai/gpt-4o`               |
+| **Генералист / Универсал** | `generalist`    | `anthropic/claude-sonnet-4.6` | copilot   | `openai/gpt-4o`               |
+| **Хаос (эксперимент)**     | `chaos`         | `mistralai/mistral-nemotron`  | nvidia    | `google/gemini-2.0-flash-001` |
+| **Pre/Post/Memory**        | `flash`         | `openai/gpt-5-mini`           | copilot   | `openai/gpt-4o-mini`          |
 
-### Разделение доступа
+### Вспомогательные модели (NVIDIA NIM, не в MODEL_MAP)
 
-- **Общая база:** Факты о пользователе, семье, глобальных целях. Доступна всем на чтение.
-- **Личная память агентов:** Изолированный опыт конкретной роли (например, «любимые паттерны Кодлера»), инсайты из которой передаются в общую базу через Тимлида.
+| Назначение                  | Модель                                         |
+| :-------------------------- | :--------------------------------------------- |
+| Embeddings (RAG, 26 языков) | `nvidia/llama-3.2-nemoretriever-300m-embed-v1` |
+| Rerank (улучшение RAG)      | `nvidia/rerank-qa-mistral-4b`                  |
 
----
-
-## ⚙️ Цикл работы и процесс мышления (Stateful-сессии)
-
-→ Детали pipeline: [`docs/06-agent-pipeline.md`](docs/06-agent-pipeline.md)
-
-Новый контекст не тянется за каждым запросом. Память собирается **только при старте нового чата/задачи** («ленивая» загрузка).
-
-### Формула «1 запрос = 3 этапа»
-
-При старте новой сессии каждая «Личность» (Тимлид или Специалист) проходит через полный цикл:
-
-1.  **Pre-processing (`step-3.5-flash`):** Собирает контекст из БД (FTS5 + vector search + rerank). Формирует Executive Summary для основной модели.
-2.  **Main Execution (Тимлид / Специалист):** Генерация основного ответа/кода для пользователя. Модель выбирается Model Router'ом по типу задачи.
-3.  **Post-processing (`step-3.5-flash`):** Анализирует «дельту знаний» (что изменилось, какие решения приняты) и записывает в Слой 4 с привязкой к `request_id`.
-
-**Управление длинным контекстом:** При приближении к лимиту токенов внутри активного чата `step-3.5-flash` делает сжатие всей истории в Markdown-саммари.
+> Смена модели для роли — только в `src/lib/model-map.ts`. Список виртуальных имён генерируется динамически из `MODEL_MAP` и отдаётся через `GET /v1/models`.
 
 ---
 
-## 🌙 Цикл «Сна» (Ночной рефакторинг)
+## 🗄 Структура памяти (4 слоя)
 
-→ Детали: [`docs/10-night-cycle.md`](docs/10-night-cycle.md)
+Система хранит знания в **Markdown**, а не JSON — лучше воспринимается LLM и не ломается при парсинге.
 
-Автоматизированный процесс (по Cron) для защиты от контекстного загрязнения и дублирования.
+| Слой              | Таблица SQLite     | Формат                      | Когда загружается                            |
+| :---------------- | :----------------- | :-------------------------- | :------------------------------------------- |
+| **1 — Фокус**     | `layer1_focus`     | Markdown key/value          | Всегда, в каждом system prompt               |
+| **2 — Контекст**  | `memory` (layer=2) | Markdown + YAML frontmatter | Лениво, по релевантности через RAG           |
+| **3 — Архив**     | `memory` (layer=3) | Markdown EN, сжатый         | Лениво, результат ночного цикла              |
+| **4 — Сырой лог** | `raw_log`          | Plain Text RU               | Не загружается в контекст, только для аудита |
+| **Общая память**  | `shared_memory`    | Markdown                    | Всегда, факты о пользователе                 |
 
-- **PII-очистка:** `gliner-pii` удаляет персональные данные из сырых логов перед компрессией.
-- **Перевод на английский:** `riva-translate-4b` переводит выжимки на EN для повышения Token Density.
-- **Дедупликация и сжатие:** `step-3.5-flash` упаковывает Слой 4 (Plain Text, RU) → Слой 3 (Markdown, EN).
-- **Разрешение противоречий:** Модель выявляет изменения векторов и обновляет общую базу.
-- **Анализ "Граблей":** Формирование списка анти-паттернов ("На чем мы застряли сегодня").
+**Правило доступа:** `shared_memory` и `layer1_focus` загружаются в каждый system prompt напрямую. Слои 2–3 — только через RAG pipeline при старте нового чата.
+
+---
+
+## ⚙️ Пайплайн запроса
+
+→ [`docs/06-agent-pipeline.md`](docs/06-agent-pipeline.md)
+
+Контекст собирается **только при старте нового чата** (ленивая загрузка). Продолжение существующего чата идёт напрямую.
+
+### Новый чат: 3 этапа
+
+```
+Запрос пользователя
+      │
+      ▼
+[1] Pre-processing (flash / step-3.5-flash)
+    └─ RAG: FTS5 + vector search + rerank
+    └─ Загрузка shared_memory + layer1_focus
+    └─ Формирует Executive Summary (hippocampus)
+      │
+      ▼
+[2] Main Execution (teamlead / coder / critic / generalist)
+    └─ System prompt = persona + focus + shared_memory + exec_summary
+    └─ Доступ к MCP tools: memory_read/write, search, log, browser_*
+    └─ Стриминг ответа пользователю
+      │
+      ▼
+[3] Post-processing (flash / step-3.5-flash)
+    └─ Анализирует «дельту знаний»
+    └─ Записывает в raw_log (Layer 4) с request_id
+```
+
+**Управление длинным контекстом:** при приближении к лимиту токенов `step-3.5-flash` сжимает историю чата в Markdown-саммари на лету.
+
+---
+
+## 🌙 Ночной цикл (Cron)
+
+→ [`docs/10-night-cycle.md`](docs/10-night-cycle.md)
+
+Запускается по расписанию, защищает от накопления мусора и дублирования знаний.
+
+```
+Layer 4 (raw_log, RU Plain Text)
+      │
+      ├─ [PII-очистка] nvidia/gliner-pii — удаляет персональные данные
+      ├─ [Перевод RU→EN] nvidia/riva-translate-4b — повышает token density
+      ├─ [Сжатие] step-3.5-flash — дедупликация + структурирование
+      └─ [Запись] Layer 3 (archive, EN Markdown)
+```
+
+Дополнительно: формирование списка анти-паттернов «На чём застряли сегодня».
 
 ---
 
 ## 🚀 Режимы работы
 
-| Режим                  | Описание                             | Механика                                                                                 |
-| :--------------------- | :----------------------------------- | :--------------------------------------------------------------------------------------- |
-| **Кодинг/Рутина**      | Работа через VS Code.                | OpenAI API proxy → Model Router → Специалист → Ответ. Фоновая запись в память.           |
-| **Общая комната**      | Сложные архитектурные таски.         | Параллельный вызов 3-4 специалистов (`Promise.all`), Тимлид синтезирует финальный ответ. |
-| **Свободное плавание** | Автономный режим (при неактивности). | Поиск бизнес-идей, анализ рынка. Требует PoC перед отчётом-дайджестом пользователю.      |
+| Режим                | Описание                       | Механика                                                                     |
+| :------------------- | :----------------------------- | :--------------------------------------------------------------------------- |
+| **Кодинг / Рутина**  | Работа через VS Code           | Proxy → Model Router → Специалист → Ответ + фоновая запись в память          |
+| **Общая комната**    | Сложные архитектурные таски    | Параллельный вызов 3–4 специалистов (`Promise.all`), Тимлид синтезирует итог |
+| **Автономный режим** | Работа в фоне при неактивности | AgentLoop, каждые 15 мин: дайджест ТГ, поиск вакансий/идей, анализ рутины    |
+
+**Автономный агент** (`src/pipeline/agent-loop/`) имеет доступ к:
+
+- `memory_search` / `memory_write` / `memory_read`
+- `log_write` / `raw_log_search`
+- `web_navigate` / `web_snapshot` (Playwright MCP)
+- `tg_send_message` / `tg_list_chats` / `tg_read_chat`
 
 ---
 
-## 🗺 Архитектура (Backend-First)
+## 🗺 Архитектура
 
 ```text
 ┌──────────────────────────────────────────────────────────┐
-│                    VS Code (Continue)                    │
+│              VS Code (Continue) / Web UI / Telegram      │
 └────────────────────────────┬─────────────────────────────┘
                              │ POST /v1/chat/completions
                              ▼
 ┌──────────────────────────────────────────────────────────┐
-│                  BUN + ELYSIA (Proxy Server)             │
+│                  BUN + ELYSIA (порт 4000)                │
 │                                                          │
-│  1. Auth: Bearer token validation                        │
-│  2. Ingestion: Перехват запроса                          │
-│  3. Model Router: роль→модель (по типу задачи)           │
-│  4. Rate Limiter: приоритетная очередь 40 RPM            │
-│     [user-facing > background > autonomous]              │
-│  5. Observability: RPM, latency, token count             │
-└────┬─────────────────────┬───────────────────────┬───────┘
-     │ (Pre/Post)          │ (Main)                │ (Autonomous)
-     ▼                     ▼                       ▼
-┌──────────────┐   ┌────────────────┐      ┌────────────────┐
-│  Flash Agent │   │  Team Lead     │      │  Background    │
-│ nemotron-    │   │ deepseek-v3.2  │      │ Свободное      │
-│ mini-4b      │   │ + specialists  │      │ плавание       │
-│ Контекст,    │   │ (devstral,     │      │ (любая модель  │
-│ компрессия,  │   │  kimi-k2,      │      │  из пула)      │
-│ логирование  │   │  qwen3-coder)  │      │                │
-└──────┬───────┘   └────────────────┘      └────────────────┘
-       │                    │
-       ▼                    │    Все модели через один API:
-┌──────────────┐            │    NVIDIA NIM
-│  RAG Pipeline│            │    https://integrate.api.nvidia.com/v1
-│ embed (300m) │◄───────────┘
-│ rerank (4b)  │
-│ FTS5 + vec   │
+│  Auth → Model Router → Rate Limiter → Observability      │
+│                                                          │
+│  Режим чата:      AgentPipeline (pre → main → post)      │
+│  Агент-цикл:      AgentLoop (tool-calling, до 8 шагов)   │
+│  Общая комната:   ArbitrationRoom (параллельные агенты)  │
+│  Автономный:      Scheduler (каждые 15 мин)              │
+└────┬───────────────────────┬──────────────────────┬──────┘
+     │                       │                      │
+     ▼                       ▼                      ▼
+┌──────────────┐   ┌─────────────────┐   ┌──────────────────┐
+│ GitHub Models│   │   NVIDIA NIM    │   │   OpenRouter     │
+│  (copilot)   │   │  flash, chaos,  │   │  (резервный)     │
+│ teamlead,    │   │  embed, rerank  │   │                  │
+│ coder,       │   │  40 RPM         │   │  200 RPM         │
+│ critic,      │   └────────────────-┘   └──────────────────┘
+│ generalist   │
+│ 10 RPM       │
 └──────┬───────┘
+       │
        ▼
 ┌──────────────────────────────────────────────────────────┐
 │                       SQLite DB                          │
-│  • Слой 1: Фокус (system prompt)                         │
-│  • Слой 2: Контекст (YAML frontmatter + MD)              │
-│  • Слой 3: Архив знаний (compressed, EN)                 │
-│  • Слой 4: Сырые логи (plain text, RU)                   │
-│  • Общая память (о пользователе)                         │
-│  • Личная память агентов                                 │
-│  • FTS5 индексы + sqlite-vec embeddings                  │
+│  layer1_focus · shared_memory                            │
+│  memory (layer 2-3) · raw_log (layer 4)                  │
+│  chats · messages                                        │
+│  FTS5 индексы · sqlite-vec embeddings                    │
+└──────────────────────────────────────────────────────────┘
+       │
+       ▼
+┌──────────────────────────────────────────────────────────┐
+│              MCP Tools / Playwright Browser              │
+│  memory_* · log_* · embed · search                       │
+│  web_navigate · web_snapshot · web_click · web_type      │
+│  tg_send_message · tg_list_chats · tg_read_chat          │
 └──────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 📋 Подзадачи реализации
+## 📋 Дорожная карта
 
-| #   | Файл                                                       | Описание                                                 | Статус |
-| :-- | :--------------------------------------------------------- | :------------------------------------------------------- | :----- |
-| 01  | [`docs/01-server-skeleton.md`](docs/01-server-skeleton.md) | Скелет Bun + Elysia, прокси `/v1/chat/completions` с SSE | ✅     |
-| 02  | [`docs/02-database-schema.md`](docs/02-database-schema.md) | Схема SQLite: таблицы 4 слоёв, FTS5, sqlite-vec          | ✅     |
-| 03  | [`docs/03-model-router.md`](docs/03-model-router.md)       | Маппинг роль→модель + приоритетная очередь 40 RPM        | ✅     |
-| 04  | [`docs/04-mcp-tools.md`](docs/04-mcp-tools.md)             | MCP Tools контракт: memory, search, log, embed           | ✅     |
-| 05  | [`docs/05-rag-pipeline.md`](docs/05-rag-pipeline.md)       | RAG: embed + rerank + FTS5 гибридный поиск               | ✅     |
-| 06  | [`docs/06-agent-pipeline.md`](docs/06-agent-pipeline.md)   | Agent Pipeline: pre → main → post                        | ✅     |
-| 07  | [`docs/07-auth.md`](docs/07-auth.md)                       | Auth middleware: Bearer-токен для прокси                 | ✅     |
-| 08  | [`docs/08-observability.md`](docs/08-observability.md)     | Observability: RPM, latency, token count, стоимость      | ✅     |
-| 09  | [`docs/09-arbitration.md`](docs/09-arbitration.md)         | Протокол арбитража «Общей комнаты»                       | ✅     |
-| 10  | [`docs/10-night-cycle.md`](docs/10-night-cycle.md)         | Ночной цикл: PII → translate → compress → deduplicate    | ✅     |
+| #   | Файл                                                       | Описание                                          | Статус |
+| :-- | :--------------------------------------------------------- | :------------------------------------------------ | :----- |
+| 01  | [`docs/01-server-skeleton.md`](docs/01-server-skeleton.md) | Bun + Elysia, прокси `/v1/chat/completions` + SSE | ✅     |
+| 02  | [`docs/02-database-schema.md`](docs/02-database-schema.md) | Схема SQLite: 4 слоя, FTS5, sqlite-vec            | ✅     |
+| 03  | [`docs/03-model-router.md`](docs/03-model-router.md)       | Model Router: мульти-провайдер + rate limit       | ✅     |
+| 04  | [`docs/04-mcp-tools.md`](docs/04-mcp-tools.md)             | MCP Tools: memory, search, log, embed, browser    | ✅     |
+| 05  | [`docs/05-rag-pipeline.md`](docs/05-rag-pipeline.md)       | RAG: embed + FTS5 + rerank (гибридный поиск)      | ✅     |
+| 06  | [`docs/06-agent-pipeline.md`](docs/06-agent-pipeline.md)   | Agent Pipeline: pre → main → post                 | ✅     |
+| 07  | [`docs/07-auth.md`](docs/07-auth.md)                       | Auth middleware: Bearer-токен                     | ✅     |
+| 08  | [`docs/08-observability.md`](docs/08-observability.md)     | Observability: RPM, latency, токены               | ✅     |
+| 09  | [`docs/09-arbitration.md`](docs/09-arbitration.md)         | Протокол «Общей комнаты» (арбитраж)               | ✅     |
+| 10  | [`docs/10-night-cycle.md`](docs/10-night-cycle.md)         | Ночной цикл: PII → translate → compress           | ✅     |

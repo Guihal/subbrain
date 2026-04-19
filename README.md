@@ -1,7 +1,225 @@
 # Subbrain — Цифровая команда
 
-Инфраструктура когнитивного расширения («второй мозг») с автономными ИИ-агентами.  
-**Backend-first:** OpenAI-совместимый прокси-сервер, интегрируется в VS Code через Continue/Cursor.
+«Второй мозг» — OpenAI-совместимый прокси с автономными агентами, долгосрочной памятью и RAG.  
+Интегрируется в VS Code через Continue. Фронтенд (Nuxt 3) — опционален.
+
+---
+
+## Архитектура
+
+```
+VS Code (Continue) / Telegram / Web
+        │ POST /v1/chat/completions
+        ▼
+  Bun + Elysia (:4000)
+    Auth → Model Router → Rate Limiter → Observability
+    ├─ AgentPipeline:   pre (Flash) → main → post (Flash)
+    ├─ AgentLoop:       автономный режим, tool-calling, до 8 шагов
+    ├─ ArbitrationRoom: параллельный вызов специалистов + синтез Тимлидом
+    └─ NightCycle:      cron — PII → translate → compress → deduplicate
+        │
+        ├─→ GitHub Models (copilot, 10 RPM)     — teamlead, coder, critic, generalist
+        ├─→ NVIDIA NIM (nvidia, 40 RPM)         — flash, chaos, embed, rerank
+        └─→ OpenRouter (openrouter, 200 RPM)    — резервный провайдер
+        │
+        ▼
+  SQLite (4 слоя памяти + FTS5 + sqlite-vec)
+```
+
+---
+
+## Модели
+
+| Роль | Виртуальное имя | Реальная модель | Провайдер |
+| ---- | --------------- | --------------- | --------- |
+| Тимлид / Оркестратор | `teamlead` | `anthropic/claude-sonnet-4.6` | GitHub Models |
+| Кодер / Разработчик | `coder` | `anthropic/claude-sonnet-4.6` | GitHub Models |
+| Критик / Ревьюер | `critic` | `google/gemini-3.1` | GitHub Models |
+| Генералист / Универсал | `generalist` | `anthropic/claude-sonnet-4.6` | GitHub Models |
+| Хаос (эксперимент) | `chaos` | `mistralai/mistral-nemotron` | NVIDIA NIM |
+| Pre / Post / Memory | `flash` | `stepfun-ai/step-3.5-flash` | NVIDIA NIM |
+
+Embeddings: `nvidia/llama-3.2-nemoretriever-300m-embed-v1` · Rerank: `nvidia/rerank-qa-mistral-4b`
+
+Смена модели для роли — только в `src/lib/model-map.ts`. Список ролей отдаётся динамически через `GET /v1/models`.
+
+---
+
+## Быстрый старт
+
+### Требования
+
+- [Bun](https://bun.sh/) ≥ 1.3
+- Docker + Docker Compose (для продакшена)
+- Токены: `GITHUB_TOKEN` (GitHub PAT, scope `models`) + `NVIDIA_API_KEY`
+
+### Локальный запуск
+
+```bash
+bun install
+cp .env.example .env  # заполнить согласно разделу «Переменные окружения»
+bun run scripts/seed.ts
+bun run src/index.ts
+```
+
+Сервер стартует на `http://localhost:4000`.
+
+### Docker
+
+```bash
+# Сборка и запуск (никогда не использовать down -v — удалит данные!)
+docker compose build
+docker compose up -d
+
+# Логи
+docker compose logs -f subbrain
+```
+
+---
+
+## Переменные окружения
+
+| Переменная | Обязательная | Описание |
+| ---------- | :----------: | -------- |
+| `PROXY_AUTH_TOKEN` | ✅ | Bearer-токен для авторизации клиентов |
+| `GITHUB_TOKEN` | ✅ | GitHub PAT (`models` scope) — GitHub Models API |
+| `NVIDIA_API_KEY` | ✅ | NVIDIA NIM — embed, rerank, flash, chaos |
+| `NVIDIA_BASE_URL` | ✅ | `https://integrate.api.nvidia.com/v1` |
+| `OPENROUTER_API_KEY` | ✅ | OpenRouter — резервный провайдер |
+| `DB_PATH` | — | Путь к SQLite (по умолчанию `data/subbrain.db`) |
+| `LOG_DIR` | — | Директория логов (по умолчанию `data/logs`) |
+| `PROXY_PORT` | — | Порт сервера (по умолчанию `4000`) |
+| `AUTONOMOUS_ENABLED` | — | `true` в проде, `false` для отключения |
+| `AUTONOMOUS_INTERVAL_MINUTES` | — | Интервал автономного режима (по умолчанию `15`) |
+| `AUTONOMOUS_STARTUP_DELAY_MS` | — | Задержка первого запуска (по умолчанию `30000`) |
+| `AUTONOMOUS_MAX_STEPS` | — | Макс. шагов за цикл (1–20, по умолчанию `8`) |
+| `AUTONOMOUS_TASK` | — | Задача для автономного агента (по умолчанию — дайджест ТГ + вакансии + идеи) |
+| `TG_BOT_TOKEN` | — | Токен Telegram-бота |
+| `TG_OWNER_CHAT_ID` | — | Chat ID владельца для уведомлений |
+| `TG_WEBHOOK_SECRET` | — | Секрет вебхука (по умолчанию = `PROXY_AUTH_TOKEN`) |
+| `TG_API_ID` | — | MTProto App ID (Userbot) |
+| `TG_API_HASH` | — | MTProto App Hash (Userbot) |
+| `TG_SESSION` | — | MTProto сессия (Userbot) |
+
+---
+
+## Интеграция с Continue (VS Code)
+
+Файл `~/.continue/config.yaml`:
+
+```yaml
+name: Subbrain
+version: 1.0.0
+schema: v1
+models:
+  - name: "Лид (Claude Sonnet 4.6)"
+    provider: openai
+    model: teamlead
+    apiBase: http://localhost:4000/v1
+    apiKey: <PROXY_AUTH_TOKEN>
+
+  - name: "Кодер (Claude Sonnet 4.6)"
+    provider: openai
+    model: coder
+    apiBase: http://localhost:4000/v1
+    apiKey: <PROXY_AUTH_TOKEN>
+
+  - name: "Критик (Gemini 3.1)"
+    provider: openai
+    model: critic
+    apiBase: http://localhost:4000/v1
+    apiKey: <PROXY_AUTH_TOKEN>
+
+  - name: "Генералист (Claude Sonnet 4.6)"
+    provider: openai
+    model: generalist
+    apiBase: http://localhost:4000/v1
+    apiKey: <PROXY_AUTH_TOKEN>
+
+  - name: "Флэш (Step 3.5 Flash)"
+    provider: openai
+    model: flash
+    apiBase: http://localhost:4000/v1
+    apiKey: <PROXY_AUTH_TOKEN>
+
+  - name: "Хаос (Mistral Nemotron)"
+    provider: openai
+    model: chaos
+    apiBase: http://localhost:4000/v1
+    apiKey: <PROXY_AUTH_TOKEN>
+```
+
+---
+
+## API Endpoints
+
+| Метод | Путь | Описание |
+| ----- | ---- | -------- |
+| `POST` | `/v1/chat/completions` | OpenAI-совместимый чат (stream + sync) |
+| `GET` | `/v1/models` | Список виртуальных моделей |
+| `POST` | `/v1/embeddings` | Эмбеддинги через NVIDIA NIM |
+| `GET` | `/v1/chats` | История чатов |
+| `GET` | `/v1/chats/:id/messages` | Сообщения чата |
+| `PATCH` | `/v1/chats/:id` | Обновить модель чата |
+| `GET` | `/v1/logs` | Сырые логи (Layer 4) |
+| `GET` | `/metrics` | RPM, latency, токены |
+| `GET` | `/health` | Healthcheck (без авторизации) |
+| `POST` | `/autonomous/trigger` | Ручной запуск автономного цикла |
+| `GET` | `/mcp` | MCP SSE-транспорт |
+
+Все эндпоинты (кроме `/health`) требуют `Authorization: Bearer <token>`.
+
+---
+
+## Память (4 слоя)
+
+| Слой | Таблица | Формат | Загрузка |
+| ---- | ------- | ------ | -------- |
+| 1 — Фокус | `layer1_focus` | Markdown key/value | Всегда, в каждом system prompt |
+| 2 — Контекст | `memory` (layer=2) | Markdown + YAML frontmatter | По релевантности через RAG |
+| 3 — Архив | `memory` (layer=3) | Markdown EN, сжатый | По релевантности, результат ночного цикла |
+| 4 — Сырой лог | `raw_log` | Plain Text RU | Не загружается, только для аудита |
+| Общая память | `shared_memory` | Markdown | Всегда, факты о пользователе |
+
+Ночной цикл: PII-очистка → перевод RU→EN → дедупликация → запись в Layer 3.
+
+---
+
+## Тесты
+
+```bash
+# Unit-тесты (собственный runner, результаты в консоль)
+bun run tests/db.test.ts
+bun run tests/pipeline.test.ts
+bun run tests/rag.test.ts
+bun run tests/auth.test.ts
+bun run tests/metrics.test.ts
+bun run tests/rate-limiter.test.ts
+bun run tests/arbitration.test.ts
+bun run tests/night-cycle.test.ts
+bun run tests/hardening.test.ts
+
+# Интеграционные тесты (требуют живой сервер на :4000)
+bun run tests/integration.test.ts
+```
+
+---
+
+## Deploy
+
+Конфиги для продакшена в `deploy/`:
+
+- `Caddyfile` — reverse proxy с HTTPS
+- `setup-server.sh` — первоначальная настройка VPS
+
+```bash
+# Обновить сервер
+docker compose build && docker compose up -d
+
+# Обновить Caddy-конфиг
+sudo tee /etc/caddy/Caddyfile < deploy/Caddyfile
+sudo systemctl reload caddy
+```
 
 ---
 
