@@ -13,15 +13,26 @@ export class NvidiaProvider implements LLMProvider {
   private baseUrl: string;
   private apiKey: string;
   private extraHeaders: Record<string, string>;
+  private maxOutputTokens?: number;
 
   constructor(
     baseUrl: string,
     apiKey: string,
     extraHeaders: Record<string, string> = {},
+    maxOutputTokens?: number,
   ) {
     this.baseUrl = baseUrl.replace(/\/+$/, "");
     this.apiKey = apiKey;
     this.extraHeaders = extraHeaders;
+    this.maxOutputTokens = maxOutputTokens;
+  }
+
+  /** Clamp max_tokens if provider has a cap */
+  private clamp(params: ChatParams): ChatParams {
+    if (this.maxOutputTokens && params.max_tokens && params.max_tokens > this.maxOutputTokens) {
+      return { ...params, max_tokens: this.maxOutputTokens };
+    }
+    return params;
   }
 
   private headers(): Record<string, string> {
@@ -33,10 +44,11 @@ export class NvidiaProvider implements LLMProvider {
   }
 
   async chat(params: ChatParams): Promise<ChatResponse> {
+    const clamped = this.clamp(params);
     const res = await fetch(`${this.baseUrl}/chat/completions`, {
       method: "POST",
       headers: this.headers(),
-      body: JSON.stringify({ ...params, stream: false }),
+      body: JSON.stringify({ ...clamped, stream: false }),
     });
 
     if (!res.ok) {
@@ -48,9 +60,10 @@ export class NvidiaProvider implements LLMProvider {
   }
 
   chatStream(params: ChatParams): ReadableStream<Uint8Array> {
+    const clamped = this.clamp(params);
     const url = `${this.baseUrl}/chat/completions`;
     const headers = this.headers();
-    const body = JSON.stringify({ ...params, stream: true });
+    const body = JSON.stringify({ ...clamped, stream: true });
 
     return new ReadableStream({
       async start(controller) {

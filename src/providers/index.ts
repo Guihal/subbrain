@@ -48,6 +48,8 @@ export function createProviders(): Record<ProviderName, LLMProvider> {
     copilot: new NvidiaProvider(
       "https://models.github.ai/inference",
       githubPat,
+      {},
+      16384,
     ),
   };
 }
