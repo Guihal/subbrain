@@ -27,20 +27,20 @@
 
 | Провайдер                     | Base URL                              | Лимит   | Auth                 |
 | :---------------------------- | :------------------------------------ | :------ | :------------------- |
-| **GitHub Models** (`copilot`) | `https://models.github.ai/inference`  | 10 RPM  | `GITHUB_TOKEN`       |
-| **NVIDIA NIM** (`nvidia`)     | `https://integrate.api.nvidia.com/v1` | 40 RPM  | `NVIDIA_API_KEY`     |
-| **OpenRouter** (`openrouter`) | `https://openrouter.ai/api/v1`        | 200 RPM | `OPENROUTER_API_KEY` |
+| **GitHub Copilot** (`copilot`) | `https://api.githubcopilot.com`       | 10 RPM  | `GITHUB_COPILOT_TOKEN` (ghu_) |
+| **NVIDIA NIM** (`nvidia`)      | `https://integrate.api.nvidia.com/v1` | 40 RPM  | `NVIDIA_API_KEY`               |
+| **OpenRouter** (`openrouter`)  | `https://openrouter.ai/api/v1`        | 200 RPM | `OPENROUTER_API_KEY`           |
 
 ### Карта виртуальных ролей → реальные модели
 
-| Роль                       | Виртуальное имя | Основная модель               | Провайдер | Fallback                      |
-| :------------------------- | :-------------- | :---------------------------- | :-------- | :---------------------------- |
-| **Тимлид / Оркестратор**   | `teamlead`      | `anthropic/claude-sonnet-4.6` | copilot   | `openai/gpt-4o`               |
-| **Кодер / Разработчик**    | `coder`         | `anthropic/claude-sonnet-4.6` | copilot   | `openai/gpt-4o`               |
-| **Критик / Ревьюер**       | `critic`        | `google/gemini-3.1`           | copilot   | `openai/gpt-4o`               |
-| **Генералист / Универсал** | `generalist`    | `anthropic/claude-sonnet-4.6` | copilot   | `openai/gpt-4o`               |
-| **Хаос (эксперимент)**     | `chaos`         | `mistralai/mistral-nemotron`  | nvidia    | `google/gemini-2.0-flash-001` |
-| **Pre/Post/Memory**        | `flash`         | `openai/gpt-5-mini`           | copilot   | `openai/gpt-4o-mini`          |
+| Роль                       | Виртуальное имя | Основная модель          | Провайдер | Fallback              |
+| :------------------------- | :-------------- | :----------------------- | :-------- | :-------------------- |
+| **Тимлид / Оркестратор**   | `teamlead`      | `claude-sonnet-4.6`      | copilot   | `gpt-4o`              |
+| **Кодер / Разработчик**    | `coder`         | `claude-sonnet-4.6`      | copilot   | `gpt-4o`              |
+| **Критик / Ревьюер**       | `critic`        | `gemini-3.1-pro-preview` | copilot   | `gpt-4o`              |
+| **Генералист / Универсал** | `generalist`    | `claude-sonnet-4.6`      | copilot   | `gpt-4o`              |
+| **Хаос (эксперимент)**     | `chaos`         | `gpt-5.4-mini`           | copilot   | `gemini-3-flash-preview` |
+| **Pre/Post/Memory**        | `flash`         | `gpt-5.4-mini`           | copilot   | `gpt-4o-mini`         |
 
 ### Вспомогательные модели (NVIDIA NIM, не в MODEL_MAP)
 

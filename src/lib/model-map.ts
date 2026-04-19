@@ -16,39 +16,39 @@ export interface ModelRoute {
 /** Maps virtual role names to actual model IDs with provider + fallbacks */
 export const MODEL_MAP: Record<string, ModelRoute> = {
   teamlead: {
-    primary: "anthropic/claude-sonnet-4.6",
+    primary: "claude-sonnet-4.6",
     primaryProvider: "copilot",
-    fallback: "openai/gpt-4o",
+    fallback: "gpt-4o",
     fallbackProvider: "copilot",
   },
   coder: {
-    primary: "anthropic/claude-sonnet-4.6",
+    primary: "claude-sonnet-4.6",
     primaryProvider: "copilot",
-    fallback: "openai/gpt-4o",
+    fallback: "gpt-4o",
     fallbackProvider: "copilot",
   },
   critic: {
-    primary: "google/gemini-3.1",
+    primary: "gemini-3.1-pro-preview",
     primaryProvider: "copilot",
-    fallback: "openai/gpt-4o",
+    fallback: "gpt-4o",
     fallbackProvider: "copilot",
   },
   generalist: {
-    primary: "anthropic/claude-sonnet-4.6",
+    primary: "claude-sonnet-4.6",
     primaryProvider: "copilot",
-    fallback: "openai/gpt-4o",
+    fallback: "gpt-4o",
     fallbackProvider: "copilot",
   },
   chaos: {
-    primary: "mistralai/mistral-nemotron",
-    primaryProvider: "nvidia",
-    fallback: "google/gemini-2.0-flash-001",
+    primary: "gpt-5.4-mini",
+    primaryProvider: "copilot",
+    fallback: "gemini-3-flash-preview",
     fallbackProvider: "copilot",
   },
   flash: {
-    primary: "openai/gpt-5-mini",
+    primary: "gpt-5.4-mini",
     primaryProvider: "copilot",
-    fallback: "openai/gpt-4o-mini",
+    fallback: "gpt-4o-mini",
     fallbackProvider: "copilot",
   },
 };
@@ -58,20 +58,16 @@ function detectProvider(model: string): ProviderName {
   if (model.endsWith(":free") || model.startsWith("openrouter/")) {
     return "openrouter";
   }
-  // GitHub Models uses org/model naming
+  // NVIDIA NIM models use org/model naming (e.g. nvidia/llama-...)
   if (
-    model.startsWith("openai/") ||
-    model.startsWith("anthropic/") ||
-    model.startsWith("google/") ||
-    model.startsWith("meta/") ||
-    model.startsWith("deepseek/") ||
-    model.startsWith("cohere/") ||
-    model.startsWith("mistral/") ||
-    model.startsWith("xai/")
+    model.startsWith("nvidia/") ||
+    model.startsWith("mistralai/") ||
+    model.startsWith("nv-mistralai/")
   ) {
-    return "copilot";
+    return "nvidia";
   }
-  return "nvidia";
+  // Default: Copilot API (claude-*, gpt-*, gemini-*, etc.)
+  return "copilot";
 }
 
 /** Resolves a virtual model name to the real model + provider */

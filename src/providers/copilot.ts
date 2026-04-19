@@ -317,11 +317,12 @@ export class CopilotProvider implements LLMProvider {
 
   async listModels(): Promise<ModelInfo[]> {
     return [
-      { id: "anthropic/claude-sonnet-4.6", object: "model", created: 0, owned_by: "anthropic" },
-      { id: "google/gemini-3.1", object: "model", created: 0, owned_by: "google" },
-      { id: "openai/gpt-4o", object: "model", created: 0, owned_by: "openai" },
-      { id: "openai/gpt-4.1", object: "model", created: 0, owned_by: "openai" },
-      { id: "openai/o4-mini", object: "model", created: 0, owned_by: "openai" },
+      { id: "claude-sonnet-4.6", object: "model", created: 0, owned_by: "anthropic" },
+      { id: "gemini-3.1-pro-preview", object: "model", created: 0, owned_by: "google" },
+      { id: "gpt-5.4-mini", object: "model", created: 0, owned_by: "openai" },
+      { id: "gpt-4o", object: "model", created: 0, owned_by: "openai" },
+      { id: "gpt-4o-mini", object: "model", created: 0, owned_by: "openai" },
+      { id: "gemini-3-flash-preview", object: "model", created: 0, owned_by: "google" },
     ];
   }
 }
