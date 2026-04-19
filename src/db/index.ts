@@ -302,28 +302,43 @@ export class MemoryDB {
 
   // ─── FTS5 Search ───────────────────────────────────────────
 
+  /** Sanitize query for FTS5: remove special chars, wrap words in quotes */
+  private sanitizeFtsQuery(query: string): string {
+    // Remove FTS5 operators and special chars, keep words
+    const words = query
+      .replace(/[^\p{L}\p{N}\s]/gu, " ")
+      .split(/\s+/)
+      .filter((w) => w.length > 1);
+    if (words.length === 0) return '""';
+    // Quote each word and OR them together for safe matching
+    return words.map((w) => `"${w}"`).join(" OR ");
+  }
+
   searchContext(query: string, limit = 10): FtsResult[] {
+    const ftsQuery = this.sanitizeFtsQuery(query);
     return this.db
       .query(
         "SELECT c.id, c.title, c.tags, snippet(fts_context, 1, '<b>', '</b>', '...', 32) AS snippet, rank, c.created_at, c.updated_at FROM fts_context f JOIN layer2_context c ON c.rowid = f.rowid WHERE fts_context MATCH ? ORDER BY rank LIMIT ?",
       )
-      .all(query, limit) as FtsResult[];
+      .all(ftsQuery, limit) as FtsResult[];
   }
 
   searchArchive(query: string, limit = 10): FtsResult[] {
+    const ftsQuery = this.sanitizeFtsQuery(query);
     return this.db
       .query(
         "SELECT a.id, a.title, a.tags, snippet(fts_archive, 1, '<b>', '</b>', '...', 32) AS snippet, rank, a.created_at, a.updated_at FROM fts_archive f JOIN layer3_archive a ON a.rowid = f.rowid WHERE fts_archive MATCH ? ORDER BY rank LIMIT ?",
       )
-      .all(query, limit) as FtsResult[];
+      .all(ftsQuery, limit) as FtsResult[];
   }
 
   searchShared(query: string, limit = 10): FtsResult[] {
+    const ftsQuery = this.sanitizeFtsQuery(query);
     return this.db
       .query(
         "SELECT s.id, s.category AS title, s.tags, snippet(fts_shared, 1, '<b>', '</b>', '...', 32) AS snippet, rank, s.created_at, s.updated_at FROM fts_shared f JOIN shared_memory s ON s.rowid = f.rowid WHERE fts_shared MATCH ? ORDER BY rank LIMIT ?",
       )
-      .all(query, limit) as FtsResult[];
+      .all(ftsQuery, limit) as FtsResult[];
   }
 
   // ─── Vector Search (sqlite-vec) ────────────────────────────

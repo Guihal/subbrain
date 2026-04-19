@@ -153,7 +153,9 @@ export function useChat() {
 
         if (!res.ok) {
           const err = await res.text();
-          updateLastAssistant({ content: `\u26a0\ufe0f \u041e\u0448\u0438\u0431\u043a\u0430 ${res.status}: ${err}` });
+          updateLastAssistant({
+            content: `\u26a0\ufe0f \u041e\u0448\u0438\u0431\u043a\u0430 ${res.status}: ${err}`,
+          });
           streaming.value = false;
           return;
         }
@@ -234,7 +236,9 @@ export function useChat() {
               while ((thinkMatch = thinkRegex.exec(content)) !== null) {
                 reasoning += thinkMatch[1];
               }
-              const cleanContent = content.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
+              const cleanContent = content
+                .replace(/<think>[\s\S]*?<\/think>/g, "")
+                .trim();
               updateLastAssistant({ content: cleanContent, reasoning });
               didUpdate = true;
             }
@@ -303,15 +307,23 @@ export function useChat() {
                 didUpdate = true;
                 break;
               case "response":
-                content = extractThinkFromContent(data.content || "", (t) => { reasoning += t; });
+                content = extractThinkFromContent(data.content || "", (t) => {
+                  reasoning += t;
+                });
                 didUpdate = true;
                 break;
               case "done":
-                content = extractThinkFromContent(data.summary || "", (t) => { reasoning += t; });
+                content = extractThinkFromContent(data.summary || "", (t) => {
+                  reasoning += t;
+                });
                 didUpdate = true;
                 break;
               case "error":
                 content += `\n⚠️ ${data.error}`;
+                didUpdate = true;
+                break;
+              case "thinking":
+                reasoning += `\n💭 ${data.content || ""}\n`;
                 didUpdate = true;
                 break;
             }
@@ -330,7 +342,10 @@ export function useChat() {
   }
 
   /** Extract <think>...</think> from content into reasoning callback */
-  function extractThinkFromContent(text: string, onThink: (t: string) => void): string {
+  function extractThinkFromContent(
+    text: string,
+    onThink: (t: string) => void,
+  ): string {
     const thinkRegex = /<think>([\s\S]*?)<\/think>/g;
     let match;
     while ((match = thinkRegex.exec(text)) !== null) {
