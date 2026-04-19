@@ -208,7 +208,7 @@ export const AGENT_TOOLS: Tool[] = [
     function: {
       name: "tg_list_chats",
       description:
-        "List user's Telegram chats (groups, channels, DMs). Excluded chats are marked. Use this first to discover available chats before reading them.",
+        "List ALL user's Telegram chats: private DMs, groups, and channels. Excluded chats are marked but still shown. Use this first to discover available chats before reading them.",
       parameters: {
         type: "object",
         properties: {
@@ -225,7 +225,7 @@ export const AGENT_TOOLS: Tool[] = [
     function: {
       name: "tg_read_chat",
       description:
-        "Read messages from a specific Telegram chat by chat_id. Use tg_list_chats first to get chat IDs. Respects exclusion list.",
+        "Read messages from a specific Telegram chat by chat_id. Works for private DMs, groups, and channels. Only chats in the exclusion list are blocked. Use tg_list_chats first to get chat IDs.",
       parameters: {
         type: "object",
         properties: {
@@ -271,7 +271,7 @@ export const AGENT_TOOLS: Tool[] = [
     function: {
       name: "tg_exclude_chat",
       description:
-        "Mark a Telegram chat as excluded/private. AI will not read messages from it.",
+        "Add a Telegram chat to the exclusion list. AI will not read messages from excluded chats. Use for chats the user explicitly wants hidden from AI.",
       parameters: {
         type: "object",
         properties: {
