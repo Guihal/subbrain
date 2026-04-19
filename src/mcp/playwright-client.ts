@@ -13,7 +13,7 @@ export class PlaywrightClient {
 
   private async connect(): Promise<Client> {
     const transport = new StdioClientTransport({
-      command: "npx",
+      command: "bunx",
       args: ["@playwright/mcp", "--isolated"],
     });
 
