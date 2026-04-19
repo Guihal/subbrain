@@ -206,6 +206,124 @@ export const AGENT_TOOLS: Tool[] = [
   {
     type: "function",
     function: {
+      name: "tg_list_chats",
+      description:
+        "List user's Telegram chats (dialogs). Returns chat name, ID, type, unread count. Use to discover which chats to read.",
+      parameters: {
+        type: "object",
+        properties: {
+          limit: {
+            type: "number",
+            description: "Max number of chats to return (default: 100)",
+          },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "tg_read_chat",
+      description:
+        "Read messages from a specific Telegram chat by ID. Returns recent messages with sender, text, date.",
+      parameters: {
+        type: "object",
+        properties: {
+          chat_id: {
+            type: "string",
+            description: "Chat ID (from tg_list_chats)",
+          },
+          limit: {
+            type: "number",
+            description: "Max messages to return (default: 50)",
+          },
+          offset_id: {
+            type: "number",
+            description: "Message ID to paginate from (for older messages)",
+          },
+        },
+        required: ["chat_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "tg_search_messages",
+      description:
+        "Search messages across all chats or within a specific chat. FTS search by text content.",
+      parameters: {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "Search query" },
+          limit: {
+            type: "number",
+            description: "Max results (default: 30)",
+          },
+          chat_id: {
+            type: "string",
+            description: "Optional chat ID to search within",
+          },
+        },
+        required: ["query"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "tg_exclude_chat",
+      description:
+        "Exclude a chat from being read (e.g. private/sensitive). Will be skipped in tg_list_chats.",
+      parameters: {
+        type: "object",
+        properties: {
+          chat_id: { type: "string", description: "Chat ID to exclude" },
+          chat_title: {
+            type: "string",
+            description: "Chat title (for reference)",
+          },
+          reason: {
+            type: "string",
+            description: "Reason for exclusion (default: private)",
+          },
+        },
+        required: ["chat_id", "chat_title"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "tg_include_chat",
+      description:
+        "Re-include a previously excluded chat (undo tg_exclude_chat).",
+      parameters: {
+        type: "object",
+        properties: {
+          chat_id: {
+            type: "string",
+            description: "Chat ID to re-include",
+          },
+        },
+        required: ["chat_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "tg_list_excluded",
+      description: "List all excluded Telegram chats.",
+      parameters: {
+        type: "object",
+        properties: {},
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "tg_send_message",
       description:
         "Send a message to the user via Telegram. Use for summaries, reports, notifications, alerts, or any proactive communication. Supports Markdown formatting.",

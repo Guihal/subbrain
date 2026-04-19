@@ -34,6 +34,7 @@ export function createProxyStream(
 
         if (!res.ok) {
           const text = await res.text();
+          console.error(`[stream-utils] upstream error ${res.status}: ${text.slice(0, 300)}`);
           emitError(text, "upstream_error");
           return;
         }

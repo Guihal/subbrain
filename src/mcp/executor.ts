@@ -1,9 +1,11 @@
 import type { MemoryDB, FtsResult, VecResult } from "../db";
 import type { ModelRouter } from "../lib/model-router";
 import type { RAGPipeline } from "../rag";
+import type { Userbot } from "../telegram/userbot";
 import type { PlaywrightClient } from "./playwright-client";
 import type { ToolResult } from "./types";
 import { MemoryTools, EmbedTools, LogTools, WebTools } from "./tools/index";
+import * as tg from "./telegram-tools";
 
 export type { ToolResult } from "./types";
 
@@ -13,6 +15,7 @@ export type { ToolResult } from "./types";
  */
 export class ToolExecutor {
   private rag: RAGPipeline | null = null;
+  private userbot: Userbot | null = null;
   private botNotify: ((text: string) => Promise<void>) | null = null;
 
   // Domain modules
@@ -39,6 +42,11 @@ export class ToolExecutor {
   /** Set Telegram bot notify function for sending messages to owner */
   setBotNotify(fn: (text: string) => Promise<void>): void {
     this.botNotify = fn;
+  }
+
+  /** Set Telegram userbot for chat reading */
+  setUserbot(userbot: Userbot): void {
+    this.userbot = userbot;
   }
 
   /** Send a message to the owner via Telegram bot */
@@ -164,5 +172,43 @@ export class ToolExecutor {
     messages: { role: string; content: string }[],
   ): Promise<ToolResult> {
     return this.logTools.compressHistory(messages);
+  }
+
+  // ─── Telegram Chat Tools (MTProto userbot) ───────────────
+
+  async tgListChats(limit = 100): Promise<ToolResult> {
+    return tg.tgListChats(this.userbot, limit);
+  }
+
+  async tgReadChat(
+    chatId: string,
+    limit = 50,
+    offsetId?: number,
+  ): Promise<ToolResult> {
+    return tg.tgReadChat(this.userbot, chatId, limit, offsetId);
+  }
+
+  async tgSearchMessages(
+    query: string,
+    limit = 30,
+    chatId?: string,
+  ): Promise<ToolResult> {
+    return tg.tgSearchMessages(this.userbot, query, limit, chatId);
+  }
+
+  tgExcludeChat(
+    chatId: string,
+    chatTitle: string,
+    reason = "private",
+  ): ToolResult {
+    return tg.tgExcludeChat(this.memory, chatId, chatTitle, reason);
+  }
+
+  tgIncludeChat(chatId: string): ToolResult {
+    return tg.tgIncludeChat(this.memory, chatId);
+  }
+
+  tgListExcluded(): ToolResult {
+    return tg.tgListExcluded(this.memory);
   }
 }

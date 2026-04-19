@@ -140,6 +140,42 @@ const TOOL_HANDLERS: Record<string, ToolHandler> = {
   },
 
   // Telegram
+  tg_list_chats: async (args, deps) =>
+    JSON.stringify(await deps.tools.tgListChats(args.limit as number | undefined)),
+
+  tg_read_chat: async (args, deps) =>
+    JSON.stringify(
+      await deps.tools.tgReadChat(
+        args.chat_id as string,
+        args.limit as number | undefined,
+        args.offset_id as number | undefined,
+      ),
+    ),
+
+  tg_search_messages: async (args, deps) =>
+    JSON.stringify(
+      await deps.tools.tgSearchMessages(
+        args.query as string,
+        args.limit as number | undefined,
+        args.chat_id as string | undefined,
+      ),
+    ),
+
+  tg_exclude_chat: (args, deps) =>
+    JSON.stringify(
+      deps.tools.tgExcludeChat(
+        args.chat_id as string,
+        args.chat_title as string,
+        args.reason as string | undefined,
+      ),
+    ),
+
+  tg_include_chat: (args, deps) =>
+    JSON.stringify(deps.tools.tgIncludeChat(args.chat_id as string)),
+
+  tg_list_excluded: (_args, deps) =>
+    JSON.stringify(deps.tools.tgListExcluded()),
+
   tg_send_message: async (args, deps) =>
     JSON.stringify(await deps.tools.tgSendMessage(args.text as string)),
 

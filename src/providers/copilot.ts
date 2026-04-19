@@ -236,6 +236,35 @@ export class CopilotProvider implements LLMProvider {
     };
   }
 
+  /**
+   * Sanitize messages for Copilot API compatibility.
+   * - Normalizes content: arrays → joined string, null → "" for assistant+tool_calls
+   * - Strips unknown fields that Copilot API might reject
+   */
+  private sanitizeMessages(messages: ChatParams["messages"]): ChatParams["messages"] {
+    return messages.map((msg) => {
+      const clean: Record<string, unknown> = { role: msg.role };
+
+      // Normalize content
+      if (Array.isArray(msg.content)) {
+        // OpenAI multipart content → flatten to string
+        clean.content = (msg.content as any[])
+          .map((p: any) => (typeof p === "string" ? p : p?.text || ""))
+          .join("\n");
+      } else if (msg.content === null || msg.content === undefined) {
+        // Some APIs reject null content on assistant messages with tool_calls
+        clean.content = msg.tool_calls ? "" : (msg.content ?? null);
+      } else {
+        clean.content = msg.content;
+      }
+
+      if (msg.tool_calls) clean.tool_calls = msg.tool_calls;
+      if (msg.tool_call_id) clean.tool_call_id = msg.tool_call_id;
+
+      return clean as ChatParams["messages"][0];
+    });
+  }
+
   private clamp(params: ChatParams): ChatParams {
     if (
       this.maxOutputTokens &&
@@ -249,22 +278,36 @@ export class CopilotProvider implements LLMProvider {
 
   async chat(params: ChatParams): Promise<ChatResponse> {
     const clamped = this.clamp(params);
+    const sanitized = { ...clamped, messages: this.sanitizeMessages(clamped.messages) };
     const reqHeaders = await this.headers();
     const res = await fetch(`${COPILOT_API_URL}/chat/completions`, {
       method: "POST",
       headers: reqHeaders,
-      body: JSON.stringify({ ...clamped, stream: false }),
+      body: JSON.stringify({ ...sanitized, stream: false }),
+      signal: AbortSignal.timeout(60_000),
     });
 
     if (!res.ok) {
       const body = await res.text();
+      logger.warn(
+        "[copilot]",
+        `chat() error ${res.status}: ${body.slice(0, 300)}`,
+        {
+          meta: {
+            roles: sanitized.messages.map((m) => m.role),
+            hasToolCalls: sanitized.messages.some((m) => m.tool_calls),
+            hasToolResults: sanitized.messages.some((m) => m.role === "tool"),
+          },
+        } as any,
+      );
       if (res.status === 401) {
         this.cachedToken = null;
         const retryHeaders = await this.headers();
         const retry = await fetch(`${COPILOT_API_URL}/chat/completions`, {
           method: "POST",
           headers: retryHeaders,
-          body: JSON.stringify({ ...clamped, stream: false }),
+          body: JSON.stringify({ ...sanitized, stream: false }),
+          signal: AbortSignal.timeout(60_000),
         });
         if (!retry.ok) {
           throw new ProviderError(retry.status, await retry.text());
@@ -279,6 +322,7 @@ export class CopilotProvider implements LLMProvider {
 
   chatStream(params: ChatParams): ReadableStream<Uint8Array> {
     const clamped = this.clamp(params);
+    const sanitized = { ...clamped, messages: this.sanitizeMessages(clamped.messages) };
     const self = this;
 
     return createProxyStream(async () => {
@@ -286,7 +330,7 @@ export class CopilotProvider implements LLMProvider {
       return fetch(`${COPILOT_API_URL}/chat/completions`, {
         method: "POST",
         headers: hdrs,
-        body: JSON.stringify({ ...clamped, stream: true }),
+        body: JSON.stringify({ ...sanitized, stream: true }),
         signal: AbortSignal.timeout(180_000),
       });
     });

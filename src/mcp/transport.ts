@@ -27,6 +27,12 @@ export function mcpRoute(executor: ToolExecutor) {
       name: "rag_search",
       description: "Hybrid RAG search: FTS5 + vector → RRF → rerank",
     },
+    { name: "tg_list_chats", description: "List user's Telegram chats" },
+    { name: "tg_read_chat", description: "Read messages from a Telegram chat" },
+    { name: "tg_search_messages", description: "Search messages across Telegram chats" },
+    { name: "tg_exclude_chat", description: "Exclude a chat from being read" },
+    { name: "tg_include_chat", description: "Re-include a previously excluded chat" },
+    { name: "tg_list_excluded", description: "List all excluded Telegram chats" },
     { name: "tg_send_message", description: "Send message to user via Telegram" },
     { name: "web_navigate", description: "Navigate browser to URL, return page content" },
     { name: "web_snapshot", description: "Get current page content" },
@@ -107,6 +113,30 @@ export function mcpRoute(executor: ToolExecutor) {
               args.top_n as number | undefined,
               args.skip_rerank as boolean | undefined,
             );
+          case "tg_list_chats":
+            return await executor.tgListChats(args.limit as number | undefined);
+          case "tg_read_chat":
+            return await executor.tgReadChat(
+              args.chat_id as string,
+              args.limit as number | undefined,
+              args.offset_id as number | undefined,
+            );
+          case "tg_search_messages":
+            return await executor.tgSearchMessages(
+              args.query as string,
+              args.limit as number | undefined,
+              args.chat_id as string | undefined,
+            );
+          case "tg_exclude_chat":
+            return executor.tgExcludeChat(
+              args.chat_id as string,
+              args.chat_title as string,
+              args.reason as string | undefined,
+            );
+          case "tg_include_chat":
+            return executor.tgIncludeChat(args.chat_id as string);
+          case "tg_list_excluded":
+            return executor.tgListExcluded();
           case "tg_send_message":
             return await executor.tgSendMessage(args.text as string);
           case "web_navigate":

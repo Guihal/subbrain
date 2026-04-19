@@ -154,11 +154,11 @@ export function chatRoute(
         messages: t.Array(
           t.Object({
             role: t.String(),
-            content: t.Optional(t.Union([t.String(), t.Null()])),
+            content: t.Optional(t.Union([t.String(), t.Null(), t.Array(t.Any())])),
             name: t.Optional(t.String()),
             tool_calls: t.Optional(t.Any()),
             tool_call_id: t.Optional(t.String()),
-          }),
+          }, { additionalProperties: true }),
         ),
         temperature: t.Optional(t.Number()),
         max_tokens: t.Optional(t.Number()),
@@ -166,7 +166,7 @@ export function chatRoute(
         stream: t.Optional(t.Boolean()),
         tools: t.Optional(t.Any()),
         tool_choice: t.Optional(t.Any()),
-      }),
+      }, { additionalProperties: true }),
     },
   );
 }

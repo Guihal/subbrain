@@ -15,6 +15,7 @@ import { logger } from "../../lib/logger";
 import type { PreProcessingOutput } from "./types";
 
 const MAX_HIPPO_STEPS = 6;
+const HIPPO_TIMEOUT_MS = 25_000; // 25s hard cap for the entire hippo loop
 
 const HIPPO_TOOLS: Tool[] = [
   {
@@ -200,18 +201,34 @@ export async function preProcess(
 
   let steps = 0;
   let executiveSummary = "";
+  const hippoStart = Date.now();
 
   while (steps < MAX_HIPPO_STEPS) {
-    const response = await router.chat(
-      "flash",
-      {
-        messages,
-        tools: HIPPO_TOOLS,
-        max_tokens: 2048,
-        temperature: 0.3,
-      },
-      "normal",
-    );
+    // Time budget check
+    if (Date.now() - hippoStart > HIPPO_TIMEOUT_MS) {
+      logger.warn("pre", `Hippocampus time budget exhausted (${HIPPO_TIMEOUT_MS}ms)`);
+      onProgress?.("⏱️ Лимит времени гиппокампа — финализация...\n");
+      break;
+    }
+
+    let response;
+    try {
+      response = await router.chat(
+        "flash",
+        {
+          messages,
+          tools: HIPPO_TOOLS,
+          max_tokens: 2048,
+          temperature: 0.3,
+        },
+        "normal",
+      );
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      logger.warn("pre", `Hippocampus router.chat failed at step ${steps}: ${errMsg}`);
+      onProgress?.(`⚠️ Ошибка гиппокампа: ${errMsg.slice(0, 100)}\n`);
+      break;
+    }
 
     const choice = response.choices[0];
     if (!choice) break;
