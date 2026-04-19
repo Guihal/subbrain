@@ -16,21 +16,30 @@ jobs:
 
       - name: Deploy to server
         uses: appleboy/ssh-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           command_timeout: 10m
+          envs: GITHUB_TOKEN
           script: |
             set -e
 
             APP_DIR="/opt/subbrain"
-            REPO="https://github.com/${{ github.repository }}.git"
+            REPO="https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git"
 
-            # First deploy: clone
+            # First deploy: init git in existing dir or clone
             if [ ! -d "$APP_DIR/.git" ]; then
-              rm -rf "$APP_DIR/deploy" "$APP_DIR/src" 2>/dev/null || true
-              git clone "$REPO" "$APP_DIR"
+              mkdir -p "$APP_DIR"
+              cd "$APP_DIR"
+              git init
+              git config --global --add safe.directory "$APP_DIR"
+              git remote add origin "$REPO"
+            else
+              cd "$APP_DIR"
+              git remote set-url origin "$REPO"
             fi
 
             cd "$APP_DIR"

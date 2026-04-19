@@ -91,12 +91,6 @@ if (tgApiId && tgApiHash && tgSession) {
     apiHash: tgApiHash,
     session: tgSession,
     memory,
-    tunnel: process.env.TG_TUNNEL_HOST
-      ? {
-          host: process.env.TG_TUNNEL_HOST,
-          basePort: Number(process.env.TG_TUNNEL_BASE_PORT) || 19150,
-        }
-      : undefined,
   });
   tools.setUserbot(userbot);
   userbot
@@ -125,8 +119,6 @@ if (tgBotToken && tgOwnerChatId) {
     memory,
     pipeline,
     router,
-    apiRoot: process.env.TG_API_ROOT,
-    apiProxyKey: process.env.TG_API_PROXY_KEY,
   });
   // Init bot (fetches botInfo from Telegram API) — non-blocking
   telegramBot

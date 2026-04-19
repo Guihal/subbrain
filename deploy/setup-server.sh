@@ -56,10 +56,6 @@ TG_BOT_TOKEN=
 TG_OWNER_CHAT_ID=
 TG_POLLING=true
 TG_SESSION=
-TG_TUNNEL_HOST=
-TG_TUNNEL_BASE_PORT=19150
-TG_API_ROOT=
-TG_API_PROXY_KEY=
 EOF
   echo ""
   echo "⚠️  IMPORTANT: Edit ${APP_DIR}/.env with real values before deploying!"

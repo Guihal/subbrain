@@ -18,19 +18,11 @@ if (!apiId || !apiHash) {
 const dbPath = process.env.DB_PATH || "data/subbrain.db";
 const memory = new MemoryDB(dbPath);
 
-const tunnel = process.env.TG_TUNNEL_HOST
-  ? {
-      host: process.env.TG_TUNNEL_HOST,
-      basePort: Number(process.env.TG_TUNNEL_BASE_PORT) || 19150,
-    }
-  : undefined;
-
 const userbot = new Userbot({
   apiId,
   apiHash,
   session: "",
   memory,
-  tunnel,
 });
 
 const session = await userbot.login();

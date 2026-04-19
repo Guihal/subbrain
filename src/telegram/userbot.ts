@@ -9,12 +9,6 @@ export interface UserbotConfig {
   /** Saved session string. Empty string for first login. */
   session: string;
   memory: MemoryDB;
-  /** TCP tunnel host for MTProto (bypasses RKN via socat on VPS).
-   * Port mapping: DC1→basePort+1, DC2→basePort+2, etc. */
-  tunnel?: {
-    host: string;
-    basePort: number; // e.g. 19150 → DC1=19151, DC2=19152...
-  };
 }
 
 export interface TgDialog {
@@ -51,40 +45,6 @@ export class Userbot {
       connectionRetries: 5,
       useWSS: false,
     });
-
-    // Override DC resolution to route through TCP tunnel.
-    // GramJS hardcodes port to 80 in connect(), ignoring session.port.
-    // We wrap the Connection class to inject tunnel host:port for every DC.
-    if (config.tunnel) {
-      const { host, basePort } = config.tunnel;
-
-      // Wrap Connection class — all connections go through tunnel
-      const OrigConnection = (this.client as any)._connection;
-      (this.client as any)._connection = class TunnelConnection extends (
-        OrigConnection
-      ) {
-        constructor(opts: any) {
-          const dcId = opts.dcId || 2;
-          super({ ...opts, ip: host, port: basePort + dcId });
-        }
-      };
-
-      // Override getDC for _switchDC / _connectSender (secondary DCs)
-      const origGetDC = this.client.getDC.bind(this.client);
-      this.client.getDC = async (
-        dcId: number,
-        downloadDC = false,
-        web = false,
-      ) => {
-        const result = await origGetDC(dcId, downloadDC, web);
-        result.ipAddress = host;
-        result.port = basePort + dcId;
-        return result;
-      };
-
-      // Set session DC so GramJS passes correct ip to Connection
-      (this.client.session as any).setDC(2, host, basePort + 2);
-    }
 
     this.memory = config.memory;
   }
