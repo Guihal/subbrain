@@ -163,6 +163,7 @@ export class AgentLoop {
 
     const steps: AgentLoopStep[] = [];
     let finalAnswer = "";
+    let lastContent = "";
     let stoppedReason: AgentLoopResult["stoppedReason"] = "max_steps";
 
     for (let step = 1; step <= maxSteps; step++) {
@@ -256,20 +257,32 @@ export class AgentLoop {
         continue;
       }
 
-      // Case 2: Plain content (no tool calls) → finished
+      // Case 2: Plain content (no tool calls) → keep looping, remind to use tools.
+      // Agent mode must end only via `done` or max_steps.
       const content = msg.content || reasoning || "";
       if (content) {
-        finalAnswer = content;
-        stoppedReason = "content_response";
+        lastContent = content;
         steps.push({ step, role: "assistant", content });
-        break;
+        messages.push({ role: "assistant", content });
+        messages.push({
+          role: "user",
+          content:
+            "[Системная метка] Ты в автономном режиме — ответ текстом никто не увидит. Продолжай работу через инструменты. Когда действительно закончил — вызови `done` с резюме.",
+        });
+        continue;
       }
 
-      // Case 3: Empty response
-      log.warn("agent-loop", `Step ${step}: empty response, stopping`);
-      stoppedReason = "error";
-      finalAnswer = "Agent produced no output";
-      break;
+      // Case 3: Empty response — nudge and continue instead of giving up.
+      log.warn("agent-loop", `Step ${step}: empty response, nudging`);
+      messages.push({
+        role: "user",
+        content:
+          "[Системная метка] Пустой ответ. Вызови инструмент или `done`, чтобы продолжить.",
+      });
+    }
+
+    if (stoppedReason === "max_steps" && !finalAnswer) {
+      finalAnswer = lastContent || "Agent reached max steps without calling done";
     }
 
     log.info(
@@ -362,6 +375,9 @@ export class AgentLoop {
           const priority = req.priority || "critical";
           const log = logger.forRequest(requestId, sessionId);
           const deps = self.getToolRunnerDeps();
+
+          let lastContent = "";
+          let finishedViaDone = false;
 
           emit("start", { requestId, sessionId, model, maxSteps });
           emit("pre_processing", { status: "building_system_prompt" });
@@ -502,6 +518,7 @@ export class AgentLoop {
                   safeEnqueue(encoder.encode("event: end\ndata: {}\n\n"));
                   clearInterval(heartbeat);
                   closed = true;
+                  finishedViaDone = true;
                   controller.close();
                   return;
                 }
@@ -515,54 +532,55 @@ export class AgentLoop {
               continue;
             }
 
-            // Plain content response
+            // Plain content (no tool_calls): in agent mode nobody reads it.
+            // Keep looping until `done` or max_steps.
             const content = msg.content || reasoning || "";
             if (content) {
+              lastContent = content;
               emit("response", { step, content });
-              self.memory.appendLog(
-                requestId,
-                sessionId,
-                model,
-                "user",
-                req.task,
-              );
-              self.memory.appendLog(
-                requestId,
-                sessionId,
-                model,
-                "assistant",
-                content,
-              );
-              self.persistToChat(
-                sessionId,
-                requestId,
-                model,
-                req.task,
-                content,
-              );
-
-              // Fire-and-forget knowledge extraction
-              postProcess(
-                self.memory,
-                self.router,
-                self.rag,
-                req.task,
-                content,
-                requestId,
-                sessionId,
-                model,
-                undefined,
-                undefined,
-                { skipRawLog: true },
-              ).catch((e) =>
-                log.error("post", `Agent post-processing failed: ${e instanceof Error ? e.message : e}`),
-              );
-
-              break;
+              messages.push({ role: "assistant", content });
+              messages.push({
+                role: "user",
+                content:
+                  "[Системная метка] Ты в автономном режиме — ответ текстом никто не увидит. Продолжай работу через инструменты. Когда действительно закончил — вызови `done` с резюме.",
+              });
+              continue;
             }
 
-            emit("error", { step, error: "Empty response" });
-            break;
+            emit("warn", { step, error: "Empty response, nudging" });
+            messages.push({
+              role: "user",
+              content:
+                "[Системная метка] Пустой ответ. Вызови инструмент или `done`, чтобы продолжить.",
+            });
+          }
+
+          if (!finishedViaDone) {
+            const summary = lastContent || "Agent reached max steps without calling done";
+            self.memory.appendLog(requestId, sessionId, model, "user", req.task);
+            self.memory.appendLog(
+              requestId,
+              sessionId,
+              model,
+              "assistant",
+              `[Autonomous: max_steps] ${summary}`,
+            );
+            self.persistToChat(sessionId, requestId, model, req.task, summary);
+            postProcess(
+              self.memory,
+              self.router,
+              self.rag,
+              req.task,
+              summary,
+              requestId,
+              sessionId,
+              model,
+              undefined,
+              undefined,
+              { skipRawLog: true },
+            ).catch((e) =>
+              log.error("post", `Agent post-processing failed: ${e instanceof Error ? e.message : e}`),
+            );
           }
 
           safeEnqueue(encoder.encode("event: end\ndata: {}\n\n"));
