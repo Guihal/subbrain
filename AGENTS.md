@@ -133,12 +133,14 @@ Layer 4 (raw_log, RU Plain Text)
 | **Общая комната**    | Сложные архитектурные таски    | Параллельный вызов 3–4 специалистов (`Promise.all`), Тимлид синтезирует итог |
 | **Автономный режим** | Работа в фоне при неактивности | AgentLoop, каждые 15 мин: дайджест ТГ, поиск вакансий/идей, анализ рутины    |
 
-**Автономный агент** (`src/pipeline/agent-loop/`) имеет доступ к:
+**Автономный агент** (`src/pipeline/agent-loop/`) имеет доступ ко всем публичным тулам реестра + agent-only мета-тулам:
 
-- `memory_search` / `memory_write` / `memory_read`
-- `log_write` / `raw_log_search`
-- `web_navigate` / `web_snapshot` / `web_click` / `web_type` (Playwright MCP)
-- `tg_send_message` (уведомления владельцу через Bot API)
+- **Память / RAG:** `memory_search` · `memory_write` · `memory_read` · `memory_delete` · `context_summary` · `rag_search`
+- **Лог и эмбеддинги:** `log_append` · `log_read` · `compress_history` · `embed_text` · `embed_search` · `rerank`
+- **Web (Playwright MCP):** `web_navigate` · `web_snapshot` · `web_click` · `web_type` · `web_back` · `web_press_key`
+- **Telegram:** `tg_list_chats` · `tg_read_chat` · `tg_search_messages` · `tg_send_message` · `tg_exclude_chat` · `tg_include_chat` · `tg_list_excluded`
+- **Мета (agent-only):** `think` · `done` · `consult_specialists` · `consult_chaos` · `create_tool` · `list_tools`
+- **Code tools (agent-only):** `create_code_tool` · `edit_code_tool` · `delete_code_tool` · `test_code_tool` · `list_code_tools` + динамически созданные `code_*`
 
 ---
 
@@ -182,10 +184,12 @@ Layer 4 (raw_log, RU Plain Text)
        │
        ▼
 ┌──────────────────────────────────────────────────────────┐
-│              MCP Tools / Playwright Browser              │
-│  memory_* · log_* · embed · search                       │
-│  web_navigate · web_snapshot · web_click · web_type      │
-│  tg_send_message (Bot API уведомления)                   │
+│          Tool Registry (src/mcp/registry/)               │
+│  Единое описание тулов → REST + MCP JSON-RPC + AgentLoop │
+│  public:    memory_* · log_* · embed_* · rag_*           │
+│             tg_* · web_* (Playwright, out-of-process)    │
+│  agent-only: think · done · consult_* · create_tool      │
+│              · *_code_tool (sandboxed JS runtime)        │
 └──────────────────────────────────────────────────────────┘
 ```
 

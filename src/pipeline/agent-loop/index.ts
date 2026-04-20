@@ -13,7 +13,7 @@ import { randomUUID } from "crypto";
 import type { MemoryDB } from "../../db";
 import type { ModelRouter } from "../../lib/model-router";
 import type { RAGPipeline } from "../../rag";
-import type { ToolExecutor } from "../../mcp/executor";
+import type { ToolExecutor, ToolRegistry } from "../../mcp";
 import type { Message, Tool } from "../../providers/types";
 import type { Metrics } from "../../lib/metrics";
 import type { ArbitrationRoom } from "../arbitration-room";
@@ -31,7 +31,6 @@ import {
   type AgentLoopResult,
 } from "./types";
 import { DynamicToolRegistry, type DynamicToolDef } from "./dynamic-tools";
-import { AGENT_TOOLS, CODE_TOOL_MGMT_TOOLS } from "./tool-defs";
 import { executeAgentTool, type ToolRunnerDeps } from "./tool-runner";
 import { buildAgentSystemPrompt } from "./system-prompt";
 import { CodeToolRegistry } from "./code-tools";
@@ -53,6 +52,7 @@ export class AgentLoop {
     private router: ModelRouter,
     private rag: RAGPipeline,
     private tools: ToolExecutor,
+    private registry: ToolRegistry,
   ) {
     this.codeTools = new CodeToolRegistry(memory.db);
     this.loadPersistedTools();
@@ -102,8 +102,7 @@ export class AgentLoop {
 
   private getAllTools(): Tool[] {
     return [
-      ...AGENT_TOOLS,
-      ...CODE_TOOL_MGMT_TOOLS,
+      ...this.registry.toOpenAITools(),
       ...this.dynamicTools.toToolDefs(),
       ...this.codeTools.toToolDefs(),
     ];
@@ -111,6 +110,7 @@ export class AgentLoop {
 
   private getToolRunnerDeps(): ToolRunnerDeps {
     return {
+      registry: this.registry,
       tools: this.tools,
       router: this.router,
       room: this.room,

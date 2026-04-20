@@ -204,20 +204,27 @@ bun run tests/night-cycle.test.ts
 bun run tests/hardening.test.ts
 
 # Интеграционные тесты (требуют живой сервер на :4000)
-bun run tests/integration.test.ts
+bun run tests/integration.live.ts
 ```
 
 ---
 
 ## Deploy
 
+**Прод-сервер:** `ssh root@109.120.187.244` (сейчас просто стоит, кайфует).
+
 Конфиги для продакшена в `deploy/`:
 
 - `Caddyfile` — reverse proxy с HTTPS
 - `setup-server.sh` — первоначальная настройка VPS
 
+> ⚠️ **Автодеплой выключен:** GitHub заблокировал аккаунт, push-to-deploy через `gh` не работает. Пока — обновляем руками по SSH.
+
 ```bash
-# Обновить сервер
+# Обновить сервер (вручную по SSH, пока автодеплой не восстановлен)
+ssh root@109.120.187.244
+cd /opt/subbrain  # или где лежит репо на сервере
+git pull
 docker compose build && docker compose up -d
 
 # Обновить Caddy-конфиг
@@ -238,7 +245,7 @@ Bun + Elysia (Proxy, :4000)
   ├─ Model Router: роль → модель, очередь 40 RPM
   ├─ Agent Pipeline: pre (Flash) → main → post (Flash)
   ├─ RAG: embed + FTS5 + rerank
-  └─ MCP Tools: memory, search, log, embed
+  └─ Tool Registry (MCP): memory, rag, log, embed, web, telegram
       │
       ▼
 NVIDIA NIM API (https://integrate.api.nvidia.com/v1)
@@ -432,7 +439,7 @@ bun run tests/night-cycle.test.ts
 bun run tests/hardening.test.ts
 
 # Интеграционные тесты (требуют живой API)
-bun run tests/integration.test.ts
+bun run tests/integration.live.ts
 ```
 
 > Unit-тесты используют собственный runner (не `bun:test`), результаты выводятся в консоль.
@@ -441,13 +448,20 @@ bun run tests/integration.test.ts
 
 ## Deploy
 
+**Прод-сервер:** `ssh root@109.120.187.244` (сейчас просто стоит, кайфует).
+
 Конфиги для продакшена в `deploy/`:
 
 - `Caddyfile` — reverse proxy с HTTPS
 - `setup-server.sh` — первоначальная настройка VPS
 
+> ⚠️ **Автодеплой выключен:** GitHub заблокировал аккаунт, push-to-deploy через `gh` не работает. Пока — обновляем руками по SSH.
+
 ```bash
-# Обновить сервер
+# Обновить сервер (вручную по SSH, пока автодеплой не восстановлен)
+ssh root@109.120.187.244
+cd /opt/subbrain  # или где лежит репо на сервере
+git pull
 docker compose build && docker compose up -d
 
 # Обновить Caddy-конфиг
@@ -464,7 +478,7 @@ src/
   index.ts          # Точка входа, инициализация
   db/               # MemoryDB (SQLite + FTS5 + sqlite-vec)
   lib/              # Auth, logger, metrics, model-map, rate-limiter
-  mcp/              # MCP-сервер (tools: memory, search, log, embed)
+  mcp/              # MCP-сервер + единый Tool Registry (src/mcp/registry/)
   pipeline/         # AgentPipeline, ArbitrationRoom, NightCycle, AgentLoop
   providers/        # GitHub Copilot + NVIDIA NIM клиенты
   rag/              # RAG: embed + hybrid search + rerank

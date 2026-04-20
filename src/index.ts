@@ -16,6 +16,7 @@ import {
   mcpRoute,
   PlaywrightClient,
   mcpProtocolRoute,
+  buildRegistry,
 } from "./mcp";
 import { RAGPipeline } from "./rag";
 import {
@@ -71,6 +72,7 @@ const router = new ModelRouter(providers);
 const memory = new MemoryDB(dbPath);
 logger.setMemory(memory);
 const tools = new ToolExecutor(memory, router);
+const registry = buildRegistry();
 const rag = new RAGPipeline(memory, router);
 tools.setRAG(rag);
 const playwright = new PlaywrightClient();
@@ -92,7 +94,7 @@ const room = new ArbitrationRoom(router);
 room.setMetrics(metrics);
 pipeline.setArbitrationRoom(room);
 const nightCycle = new NightCycle(memory, router, rag);
-const agentLoop = new AgentLoop(memory, router, rag, tools);
+const agentLoop = new AgentLoop(memory, router, rag, tools, registry);
 agentLoop.setMetrics(metrics);
 agentLoop.setRoom(room);
 
@@ -197,13 +199,13 @@ const app = new Elysia()
   // MCP SSE/messages route — placed BEFORE authMiddleware because it handles
   // its own auth internally and some clients (Continue) may not send the header
   // on every POST (they attach it per-session, not per-request).
-  .use(mcpProtocolRoute(tools, authToken))
+  .use(mcpProtocolRoute(registry, tools, authToken))
   .use(authMiddleware(authToken))
   .use(chatRoute(router, pipeline, memory))
   .use(modelsRoute(router))
   .use(embeddingsRoute(router))
   .use(logsRoute(memory))
-  .use(mcpRoute(tools))
+  .use(mcpRoute(registry, tools))
   .use(autonomousRoute(agentLoop, memory))
   .use(chatsRoute(memory))
   .listen(port);

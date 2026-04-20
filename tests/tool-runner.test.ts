@@ -5,11 +5,13 @@
 import { describe, test, expect, beforeAll, afterAll } from "bun:test";
 import { MemoryDB } from "../src/db";
 import { ToolExecutor } from "../src/mcp/executor";
+import { buildRegistry, type ToolRegistry } from "../src/mcp/registry";
 import { existsSync, unlinkSync } from "fs";
 
 const DB_PATH = "data/test-tool-runner.db";
 let db: MemoryDB;
 let executor: ToolExecutor;
+let registry: ToolRegistry;
 let executeAgentTool: Function;
 
 const mockLog = {
@@ -44,11 +46,13 @@ const mockDynamicTools = {
 
 function deps() {
   return {
+    registry,
     tools: executor,
     router: mockRouter,
     room: null,
     dynamicTools: mockDynamicTools,
     persistDynamicTools: () => {},
+    codeTools: null,
   };
 }
 
@@ -72,6 +76,7 @@ beforeAll(async () => {
   if (existsSync(DB_PATH)) unlinkSync(DB_PATH);
   db = new MemoryDB(DB_PATH);
   executor = new ToolExecutor(db, mockRouter);
+  registry = buildRegistry();
   const mod = await import("../src/pipeline/agent-loop/tool-runner");
   executeAgentTool = mod.executeAgentTool;
 });
