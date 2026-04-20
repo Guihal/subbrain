@@ -136,4 +136,45 @@ export function registerWebTools(registry: ToolRegistry): void {
         { key: args.key },
       ),
   });
+
+  registry.register({
+    name: "web_scroll",
+    description:
+      "Scroll the page. Positive dy scrolls down, negative up. Returns a fresh snapshot — use this to load more content on long / infinite-scroll pages.",
+    scope: "public",
+    input: t.Object({
+      dy: t.Optional(
+        t.Number({ description: "Vertical scroll in px (default 800, down)" }),
+      ),
+      dx: t.Optional(
+        t.Number({ description: "Horizontal scroll in px (default 0)" }),
+      ),
+    }),
+    handler: (args, ctx) =>
+      proxy(
+        (n, a) => ctx.executor.webCallTool(n, a),
+        "browser_scroll",
+        { dy: args.dy ?? 800, dx: args.dx ?? 0 },
+      ),
+  });
+
+  registry.register({
+    name: "web_screenshot",
+    description:
+      "Capture a PNG screenshot of the current page to /tmp. Useful for bug reports or for later vision-model analysis (main agents are text-only).",
+    scope: "public",
+    input: t.Object({
+      full_page: t.Optional(
+        t.Boolean({
+          description: "Capture the full scrollable page (default false = viewport)",
+        }),
+      ),
+    }),
+    handler: (args, ctx) =>
+      proxy(
+        (n, a) => ctx.executor.webCallTool(n, a),
+        "browser_screenshot",
+        { full_page: args.full_page ?? false },
+      ),
+  });
 }

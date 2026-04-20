@@ -9,6 +9,7 @@ import { embeddingsRoute } from "./routes/embeddings";
 import { logsRoute } from "./routes/logs";
 import { autonomousRoute } from "./routes/autonomous";
 import { chatsRoute } from "./routes/chats";
+import { memoryRoute } from "./routes/memory";
 import { telegramRoute } from "./routes/telegram";
 import { MemoryDB } from "./db";
 import {
@@ -45,8 +46,8 @@ const autonomousStartupDelayMs = Math.max(
   Number(process.env.AUTONOMOUS_STARTUP_DELAY_MS) || 30_000,
 );
 const autonomousMaxSteps = Math.min(
-  20,
-  Math.max(1, Number(process.env.AUTONOMOUS_MAX_STEPS) || 8),
+  100,
+  Math.max(1, Number(process.env.AUTONOMOUS_MAX_STEPS) || 100),
 );
 const autonomousTask =
   process.env.AUTONOMOUS_TASK ||
@@ -94,6 +95,9 @@ const room = new ArbitrationRoom(router);
 room.setMetrics(metrics);
 pipeline.setArbitrationRoom(room);
 const nightCycle = new NightCycle(memory, router, rag);
+let nightCycleRunning = false;
+let nightCycleStartedAt: number | null = null;
+let nightCycleLastResult: unknown = null;
 const agentLoop = new AgentLoop(memory, router, rag, tools, registry);
 agentLoop.setMetrics(metrics);
 agentLoop.setRoom(room);
@@ -193,7 +197,40 @@ const app = new Elysia()
     rpm: router.stats,
   }))
   .get("/metrics", ({ metrics }) => metrics.snapshot())
-  .post("/night-cycle", async ({ nightCycle }) => nightCycle.run())
+  // Fire-and-forget: night cycle can run for many minutes. Returning sync
+  // would force the client to hold a connection past Bun's idleTimeout cap.
+  // Progress is logged to stdout (`grep "[night]"` in docker logs); the
+  // `started` flag prevents overlapping runs (cron + manual + autonomous).
+  .post("/night-cycle", ({ nightCycle, set }) => {
+    if (nightCycleRunning) {
+      set.status = 409;
+      return { started: false, reason: "already_running", since: nightCycleStartedAt };
+    }
+    nightCycleRunning = true;
+    nightCycleStartedAt = Date.now();
+    nightCycle
+      .run()
+      .then((res) => {
+        nightCycleLastResult = res;
+        logger.info("night", `Run complete (HTTP-triggered)`, {
+          meta: { ...res },
+        });
+      })
+      .catch((err) => {
+        const msg = err instanceof Error ? err.message : String(err);
+        logger.error("night", `Run failed: ${msg}`);
+        nightCycleLastResult = { error: msg };
+      })
+      .finally(() => {
+        nightCycleRunning = false;
+      });
+    return { started: true, startedAt: nightCycleStartedAt };
+  })
+  .get("/night-cycle/status", () => ({
+    running: nightCycleRunning,
+    startedAt: nightCycleStartedAt,
+    lastResult: nightCycleLastResult,
+  }))
   // Token endpoint — no Bearer required, protected by Caddy basic auth
   .get("/api/token", () => ({ token: authToken }))
   // MCP SSE/messages route — placed BEFORE authMiddleware because it handles
@@ -208,7 +245,11 @@ const app = new Elysia()
   .use(mcpRoute(registry, tools))
   .use(autonomousRoute(agentLoop, memory))
   .use(chatsRoute(memory))
-  .listen(port);
+  .use(memoryRoute(memory))
+  // idleTimeout=255 (Bun max): night-cycle and slow agent loops can hold a
+  // connection without producing data for >10s (Bun default), which would
+  // otherwise be killed mid-handler with "Empty reply from server".
+  .listen({ port, idleTimeout: 255 });
 
 console.log(`🧠 Subbrain proxy running on http://localhost:${port}`);
 
@@ -288,6 +329,100 @@ if (autonomousEnabled) {
   setInterval(() => runAutonomous("interval"), intervalMs);
 } else {
   logger.info("autonomous", "Scheduler disabled");
+}
+
+// ─── Scheduled Night Cycle ───────────────────────────────
+// In-process scheduler. Fires daily at NIGHT_CYCLE_HOUR_UTC (default 03:00).
+// Survives container rebuilds because the schedule is re-computed on boot.
+// Also catches up on startup if the backlog is large (e.g. container was
+// down at the scheduled time).
+const nightCycleSchedulerEnabled = process.env.NIGHT_CYCLE_SCHEDULER !== "false";
+const nightCycleHourUtc = Number(process.env.NIGHT_CYCLE_HOUR_UTC ?? 3);
+const nightCycleBacklogTrigger = Number(process.env.NIGHT_CYCLE_BACKLOG_TRIGGER ?? 100);
+
+function triggerNightCycle(reason: "scheduled" | "startup-backlog"): void {
+  if (nightCycleRunning) {
+    logger.info("night", `Skipping ${reason}: already running`);
+    return;
+  }
+  nightCycleRunning = true;
+  nightCycleStartedAt = Date.now();
+  logger.info("night", `Run starting (${reason})`);
+  nightCycle
+    .run()
+    .then((res) => {
+      nightCycleLastResult = res;
+      logger.info(
+        "night",
+        `Run complete (${reason}): archived=${res.archiveEntriesCreated} errors=${res.errors.length}`,
+        { meta: { ...res, reason } },
+      );
+    })
+    .catch((err) => {
+      const msg = err instanceof Error ? err.message : String(err);
+      logger.error("night", `Run failed (${reason}): ${msg}`);
+      nightCycleLastResult = { error: msg, reason };
+    })
+    .finally(() => {
+      nightCycleRunning = false;
+    });
+}
+
+function msUntilNextNightRun(): number {
+  const now = new Date();
+  const target = new Date(
+    Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate(),
+      nightCycleHourUtc,
+      0,
+      0,
+      0,
+    ),
+  );
+  if (target.getTime() <= now.getTime()) {
+    target.setUTCDate(target.getUTCDate() + 1);
+  }
+  return target.getTime() - now.getTime();
+}
+
+function scheduleNightCycle(): void {
+  const delay = msUntilNextNightRun();
+  setTimeout(() => {
+    triggerNightCycle("scheduled");
+    scheduleNightCycle(); // re-arm for tomorrow
+  }, delay);
+  logger.info(
+    "night",
+    `Next scheduled run in ${Math.round(delay / 60_000)} min (target ${nightCycleHourUtc}:00 UTC)`,
+  );
+}
+
+if (nightCycleSchedulerEnabled) {
+  scheduleNightCycle();
+
+  // Startup catch-up: if there's significant backlog (container was down at
+  // the last scheduled fire), kick a run 2 minutes after boot.
+  setTimeout(() => {
+    const lastIdStr = memory.getFocus("night_cycle_last_processed_id");
+    const lastId = lastIdStr ? parseInt(lastIdStr, 10) : 0;
+    const backlog = memory.getLogsSince(lastId, 1000).length;
+    if (backlog >= nightCycleBacklogTrigger) {
+      logger.info(
+        "night",
+        `Startup catch-up: ${backlog} unprocessed logs (≥${nightCycleBacklogTrigger} threshold)`,
+      );
+      triggerNightCycle("startup-backlog");
+    } else {
+      logger.info(
+        "night",
+        `Startup catch-up not needed (backlog=${backlog} < ${nightCycleBacklogTrigger})`,
+      );
+    }
+  }, 120_000);
+} else {
+  logger.info("night", "In-process scheduler disabled (NIGHT_CYCLE_SCHEDULER=false)");
 }
 
 // ─── Auto-set Telegram webhook in production ────────────────

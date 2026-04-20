@@ -101,7 +101,7 @@ export class AgentPipeline {
         },
       );
       this.metrics?.record({
-        model: "flash",
+        model: "coder",
         priority: "normal",
         stage: "pre",
         latencyMs: preDur,
@@ -324,7 +324,7 @@ export class AgentPipeline {
               },
             );
             self.metrics?.record({
-              model: "flash",
+              model: "coder",
               priority: "normal",
               stage: "pre",
               latencyMs: preDur,

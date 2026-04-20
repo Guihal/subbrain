@@ -1,7 +1,7 @@
 /**
  * Stage 1: Pre-processing — Agentic hippocampus gathers full context via tool calls.
  *
- * The hippocampus (gpt-5-mini via flash role) runs in agentic mode:
+ * The hippocampus (devstral via coder role) runs in agentic mode:
  * 1. Receives focus directives + shared memory as seed context
  * 2. Uses memory_search / rag_search tools to iteratively gather relevant memories
  * 3. Produces an Executive Summary once it has enough context
@@ -214,7 +214,7 @@ export async function preProcess(
     let response;
     try {
       response = await router.chat(
-        "flash",
+        "coder",
         {
           messages,
           tools: HIPPO_TOOLS,
@@ -297,7 +297,7 @@ export async function preProcess(
         "You've reached the search limit. Now produce the Executive Summary based on everything you've gathered.",
     });
     const finalResponse = await router.chat(
-      "flash",
+      "coder",
       { messages, max_tokens: 2048, temperature: 0.3 },
       "normal",
     );

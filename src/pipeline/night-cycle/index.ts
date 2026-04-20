@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import type { MemoryDB } from "../../db";
 import type { ModelRouter } from "../../lib/model-router";
 import type { RAGPipeline } from "../../rag";
+import { logger } from "../../lib/logger";
 import {
   type NightCycleResult,
   BATCH_SIZE,
@@ -48,13 +49,19 @@ export class NightCycle {
       lastProcessedId: 0,
     };
 
+    const startedAt = Date.now();
+    logger.info("night", "Cycle started");
+
     // Get last processed position
     const lastIdStr = this.memory.getFocus(FOCUS_KEY_LAST_PROCESSED);
     const lastProcessedId = lastIdStr ? parseInt(lastIdStr, 10) : 0;
 
     // Fetch unprocessed logs
     const logs = this.memory.getLogsSince(lastProcessedId, BATCH_SIZE);
-    if (logs.length === 0) return result;
+    if (logs.length === 0) {
+      logger.info("night", "No unprocessed logs — nothing to do");
+      return result;
+    }
 
     result.processedLogs = logs.length;
     result.lastProcessedId = logs[logs.length - 1].id;
@@ -63,23 +70,53 @@ export class NightCycle {
     const sessions = this.memory.groupLogsBySession(logs);
     result.sessionsProcessed = sessions.size;
 
+    logger.info(
+      "night",
+      `Processing ${logs.length} logs across ${sessions.size} sessions (lastId: ${lastProcessedId} → ${result.lastProcessedId})`,
+    );
+
     // Process each session
+    let sessionIdx = 0;
     for (const [sessionId, sessionLogs] of sessions) {
+      sessionIdx++;
       try {
         const conversationText = buildConversationText(sessionLogs);
-        if (conversationText.length < 50) continue;
+        if (conversationText.length < 50) {
+          logger.debug(
+            "night",
+            `Session ${sessionIdx}/${sessions.size} skipped (text < 50 chars)`,
+          );
+          continue;
+        }
+
+        logger.info(
+          "night",
+          `[${sessionIdx}/${sessions.size}] session=${sessionId.slice(0, 8)} chars=${conversationText.length}`,
+        );
 
         const scrubbed = await scrubPII(conversationText, this.router);
         const translated = await translate(scrubbed, this.router);
 
         const requestIds = [...new Set(sessionLogs.map((l) => l.request_id))];
         const compressed = await compress(translated, requestIds, this.router);
-        if (!compressed) continue;
+        if (!compressed) {
+          logger.warn(
+            "night",
+            `[${sessionIdx}/${sessions.size}] compress returned empty — skipping`,
+          );
+          continue;
+        }
 
         const verified = await verify(compressed, translated, this.router);
 
         const isDuplicate = await dedup(verified, this.memory, this.router);
-        if (isDuplicate) continue;
+        if (isDuplicate) {
+          logger.info(
+            "night",
+            `[${sessionIdx}/${sessions.size}] dedup hit — skipping`,
+          );
+          continue;
+        }
 
         // Write to Layer 3
         const entryId = randomUUID();
@@ -96,12 +133,22 @@ export class NightCycle {
           .indexEntry(entryId, "archive", verified.content)
           .catch(() => {});
         result.archiveEntriesCreated++;
+        logger.info(
+          "night",
+          `[${sessionIdx}/${sessions.size}] archived "${verified.title.slice(0, 60)}"`,
+        );
       } catch (err) {
-        result.errors.push(`Session ${sessionId}: ${(err as Error).message}`);
+        const msg = (err as Error).message;
+        logger.error(
+          "night",
+          `[${sessionIdx}/${sessions.size}] session ${sessionId.slice(0, 8)} failed: ${msg}`,
+        );
+        result.errors.push(`Session ${sessionId}: ${msg}`);
       }
     }
 
     // Step 6: Anti-patterns
+    logger.info("night", "Extracting anti-patterns…");
     try {
       const antiPatterns = await extractAntiPatterns(logs, this.router);
       if (antiPatterns) {
@@ -119,21 +166,33 @@ export class NightCycle {
         result.antiPatternsFound = 1;
       }
     } catch (err) {
-      result.errors.push(`Anti-patterns: ${(err as Error).message}`);
+      const msg = (err as Error).message;
+      logger.error("night", `Anti-patterns failed: ${msg}`);
+      result.errors.push(`Anti-patterns: ${msg}`);
     }
 
     // Step 7: Resolve contradictions
+    logger.info("night", "Resolving contradictions…");
     try {
       const resolved = await resolveContradictions(this.memory, this.router);
       result.contradictionsResolved = resolved;
     } catch (err) {
-      result.errors.push(`Resolve: ${(err as Error).message}`);
+      const msg = (err as Error).message;
+      logger.error("night", `Resolve contradictions failed: ${msg}`);
+      result.errors.push(`Resolve: ${msg}`);
     }
 
     // Save progress
     this.memory.setFocus(
       FOCUS_KEY_LAST_PROCESSED,
       String(result.lastProcessedId),
+    );
+
+    const elapsedSec = Math.round((Date.now() - startedAt) / 1000);
+    logger.info(
+      "night",
+      `Cycle finished in ${elapsedSec}s — archived=${result.archiveEntriesCreated} antiPatterns=${result.antiPatternsFound} contradictions=${result.contradictionsResolved} errors=${result.errors.length}`,
+      { meta: { ...result } },
     );
 
     return result;

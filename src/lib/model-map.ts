@@ -16,28 +16,23 @@ export interface ModelRoute {
 /** Maps virtual role names to actual model IDs with provider + fallbacks */
 export const MODEL_MAP: Record<string, ModelRoute> = {
   teamlead: {
-    primary: "stepfun-ai/step-3.5-flash",
+    primary: "minimaxai/minimax-m2.7",
     primaryProvider: "nvidia",
+    fallback: "moonshotai/kimi-k2-thinking",
   },
   coder: {
-    primary: "stepfun-ai/step-3.5-flash",
-    primaryProvider: "nvidia",
+    primary: "mistralai/devstral-2-123b-instruct-2512",
+    fallback: "qwen/qwen3-coder-480b-a35b-instruct",
   },
   critic: {
-    primary: "stepfun-ai/step-3.5-flash",
-    primaryProvider: "nvidia",
-  },
-  generalist: {
-    primary: "stepfun-ai/step-3.5-flash",
-    primaryProvider: "nvidia",
-  },
-  chaos: {
-    primary: "stepfun-ai/step-3.5-flash",
-    primaryProvider: "nvidia",
+    primary: "moonshotai/kimi-k2-thinking",
+    fallback: "moonshotai/kimi-k2-instruct-0905",
   },
   flash: {
     primary: "stepfun-ai/step-3.5-flash",
-    primaryProvider: "nvidia",
+  },
+  chaos: {
+    primary: "mistralai/mistral-medium-3-instruct",
   },
 };
 

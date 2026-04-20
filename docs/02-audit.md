@@ -1,0 +1,223 @@
+# Audit 2026-04-20
+
+> Прежнее имя: `docs/14-audit-2026-04-20.md`
+
+Полный аудит кодовой базы перед рефакторингом. Группировка: Critical / High / Medium.
+Каждая запись: `путь:строка → проблема → фикс`.
+
+> **Статус верификации:**
+> - ✅ Подтверждено лично (typecheck output, прочитанный файл).
+> - 🟡 Получено от sub-агента, нужна проверка перед фиксом.
+
+---
+
+## Состояние тестов и типов
+
+- `bun test` без аргументов запускает только `db.test.ts` и `rate-limiter.test.ts`, далее процесс умирает (см. CRIT-1). **66 остальных тестов скрыто пропускаются.**
+- При явном запуске `bun test tests/...` (минус integration и rate-limiter) — **66 pass / 0 fail**.
+- `tests/integration.test.ts` — live-test, требует поднятый сервер на `:4000`. Не падает по сути, падает по доступности.
+- `bunx tsc --noEmit` — **22 ошибки** (см. CRIT-2…7).
+
+---
+
+## 🔴 CRITICAL
+
+### CRIT-1 ✅ `tests/rate-limiter.test.ts:72` — `process.exit(0)` ломает `bun test`
+`bun test` (без аргументов) обходит файлы по очереди в одном процессе. После `process.exit(0)` runner умирает, не запустив остальные тестовые файлы. CI этого не замечает — exit-code 0.
+**Fix:** убрать `process.exit(0)` и `process.exit(1)`. Если нужен standalone-режим — обернуть в `if (import.meta.main)` без exit.
+
+### CRIT-2 ✅ `src/providers/copilot.ts:62,72,84,111-116,144,205,222` — `logger.info("...")` с одним аргументом
+Сигнатура `Logger.info(stage, message, extra?)`. Сейчас вся строка попадает в `stage`, `message === undefined`. В DB-логах поле stage = текст сообщения, а сама запись начинается с `undefined`.
+**Fix:** заменить все 13 вызовов на `logger.info("copilot", "<message>")`.
+
+### CRIT-3 ✅ `src/db/index.ts:112,187,295` — `unknown[]` в `.run(...vals)`
+Typecheck падает. SQL-инъекций нет (имена колонок захардкожены), но типобезопасность сломана.
+**Fix:** объявить `vals: SQLQueryBindings[]` (импорт из `bun:sqlite`).
+
+### CRIT-4 ✅ `src/routes/chat.ts:110,119` — `role: string` уходит в провайдер без валидации
+Клиент может прислать произвольную роль, в т.ч. `"system"` → потенциальный prompt injection.
+**Fix:** Zod-схема на вход `/v1/chat/completions`, `role: z.enum([...])`.
+
+### CRIT-5 ✅ `src/routes/embeddings.ts:10` — `encoding_format` без валидации
+Любая строка пройдёт в провайдер.
+**Fix:** Zod-валидация.
+
+### CRIT-6 ✅ `src/providers/copilot.ts:266` — `as Message` из `Record<string, unknown>` без `role`/`content`
+Падает при первом доступе, если ответ Copilot отличается от ожидаемой структуры.
+**Fix:** runtime-валидация структуры ответа + дефолты.
+
+### CRIT-7 ✅ `src/mcp/tools/memory-tools.ts:122` — мёртвая ветка
+Сравнение с `"focus"` в типе `"context"|"archive"|"shared"|"agent"`. Никогда не сработает.
+**Fix:** либо добавить `"focus"` в union (если поведение нужно), либо удалить ветку.
+
+---
+
+## 🟠 HIGH
+
+### HIGH-1 🟡 `src/lib/rate-limiter.ts` — race между `canRun` и `record`
+Между проверкой и регистрацией реквеста может вклиниться другой → overrun лимита.
+**Fix:** атомарное `tryAcquire()` под одной критической секцией.
+
+### HIGH-2 🟡 `src/pipeline/arbitration-room.ts:~85` — `Promise.all` без `allSettled`
+Один упавший специалист валит весь арбитраж, остальные осиротевшие промисы продолжают жечь токены.
+**Fix:** `Promise.allSettled` + AbortController для отмены оставшихся при синтезе.
+
+### HIGH-3 🟡 `src/pipeline/agent-loop/index.ts:~220` — нет per-tool timeout
+Зависший `web_navigate` съедает весь 25s-бюджет.
+**Fix:** `Promise.race([exec, timeout(5_000)])` на каждый tool.
+
+### HIGH-4 🟡 `src/lib/model-router.ts:~153` — fallback-цепочка без cap
+При 4xx обоих провайдеров возможен повтор без счётчика.
+**Fix:** `maxFallbackAttempts = 1`.
+
+### HIGH-5 🟡 `src/pipeline/night-cycle/steps.ts:187` — `entry.tags` без `sanitizeFtsQuery`
+Тег с `"`, `:`, `*` ломает FTS5 MATCH → ночной цикл падает.
+**Fix:** прогнать через существующий `sanitizeFtsQuery`.
+
+### HIGH-6 🟡 `src/pipeline/night-cycle/index.ts:86-101` — `insertArchive` + `indexEntry` без транзакции
+При падении эмбеддинга архив сохранится без вектора → RAG не найдёт.
+**Fix:** транзакция + retry на embed, либо откат архива.
+
+### HIGH-7 🟡 `src/rag/pipeline.ts:130-145, 188-195` — N+1 в `vecSearch` и `getRecencyBoost`
+До 60 SELECT на один RAG-запрос.
+**Fix:** batch `WHERE id IN (?)` + кэш `updated_at` в `RAGResult`.
+
+### HIGH-8 🟡 Отсутствие `AbortSignal.timeout(...)` на `fetch` к провайдерам
+Висящий upstream блокирует worker.
+**Fix:** общий timeout-helper, оборачивать все `fetch` (60s default).
+
+### HIGH-9 🟡 `src/routes/chat.ts:~73` — race в SSE wrap при дисконнекте клиента
+`fullContent` может писаться в БД после ошибки потока / закрытия.
+**Fix:** флаг `isClosed` + ранний выход.
+
+### HIGH-10 ✅ `src/lib/auth.ts:40` — timing-safe сравнение (исправлено)
+`timingSafeEqual` + `createHash("sha256")` на обеих сторонах — длины всегда 32 байта.
+
+---
+
+## 🟡 MEDIUM
+
+### MED-1 `src/db/tables/memory.ts`, `shared.ts` — три почти идентичных `updateContext/Archive/Shared` ✅ файл разбит (PR 10)
+**Fix:** унифицировать через generic `updateRow(table, allowedFields, id, fields)` с whitelist колонок.
+
+### MED-2 `src/rag/pipeline.ts` — hardcoded `"nvidia/rerank-qa-mistral-4b"`
+**Fix:** вынести в `lib/model-map.ts` константу.
+
+### MED-3 `scripts/seed.ts` — нет confirm перед чисткой
+Может стереть прод-данные.
+**Fix:** требовать `--confirm` или `SUBBRAIN_DB_PATH=test.db`.
+
+### MED-4 `src/lib/logger.ts:107-121` — `meta` пишется без экранирования управляющих символов
+SQL-инъекции нет (parameterized), но в строке могут быть `\n`, `\t`, ANSI-escapes — портит просмотр логов.
+**Fix:** `JSON.stringify` всех значений, без raw-строк.
+
+### MED-5 `src/pipeline/agent-loop/code-tools/sandbox.ts:~43` — `new Function(...)` риск побега
+Если sandbox не в Worker — `globalThis` доступен.
+**Fix:** проверить, что Worker реально запускается, иначе обернуть в `vm`-подобный изолят.
+
+### MED-6 Множественный `(msg as any).reasoning_content` в pipeline
+**Fix:** расширить `Message` типом `reasoning_content?: string`, заменить на optional chaining.
+
+### MED-7 `src/pipeline/agent-pipeline/pre-processing.ts:151-154` — `Promise.all` для синхронных операций
+Лишняя обёртка, маскирует ошибки.
+**Fix:** убрать `Promise.all`, выполнять последовательно.
+
+### MED-8 `src/rag/pipeline.ts:69-116` — RRF merge без дедупликации между context/archive
+Тот же id может попасть из обоих слоёв → лишняя работа в `rrfMerge`.
+**Fix:** Set по `id` перед merge.
+
+### MED-9 `src/pipeline/night-cycle/steps.ts:181-245` — обновление содержимого без пересчёта эмбеддинга
+После merge старый вектор становится неактуальным.
+**Fix:** при `updateArchive(content)` — пересчитать embedding.
+
+### MED-10 `src/db/schema.ts:293-314` — миграция v3 без `BEGIN/COMMIT`
+DROP+RENAME не атомарны, при крэше теряется таблица.
+**Fix:** обернуть всю миграцию в транзакцию.
+
+### MED-11 `src/routes/logs.ts:65-66` — endpoint отдаёт полное содержимое логов
+Сейчас защищён auth, но при компрометации токена утекают raw-логи целиком.
+**Fix:** маскировать sensitive поля по умолчанию, флаг `?raw=1` под отдельным правом.
+
+### MED-12 `src/lib/model-router.ts:269-274` — error message в SSE без trunc
+Очень длинный upstream-error может ломать клиента.
+**Fix:** `msg.slice(0, 500)`.
+
+### MED-13 `src/providers/stream-utils.ts:37` — `console.error` напрямую
+Минует logger, могут протечь токены.
+**Fix:** через `logger.error("stream-utils", ...)`.
+
+### MED-14 `src/routes/chat.ts:131` — логирование полного тела upstream-ошибки
+Может содержать ключи/PII.
+**Fix:** обрезать `err.body.slice(0, 200)` + redact ключей.
+
+---
+
+## Приоритезация фиксов
+
+**Срочно (1 PR на каждое):**
+1. CRIT-1 (`process.exit` в тестах) — без этого CI слепой.
+2. CRIT-2…7 (typecheck zero) — закрыть 22 ошибки `tsc` + реальный баг с logger.info.
+3. HIGH-3 + HIGH-2 (per-tool timeout + allSettled в арбитраже).
+4. HIGH-6 + HIGH-5 (транзакция + sanitizeFts в night-cycle).
+
+**Дальше:** HIGH-1, HIGH-4, HIGH-7, HIGH-8, HIGH-9.
+
+**MEDIUM** — пакетным PR-ом «hardening + quality».
+
+---
+
+## Прогресс фиксов
+
+### Round 1 — все CRIT закрыты (2026-04-20)
+
+| # | Статус | Заметка |
+|---|---|---|
+| CRIT-1 | ✅ | `integration.test.ts` → `integration.live.ts` (вынесен из `bun test` glob); `db.test.ts` и `rate-limiter.test.ts` переписаны в стандартный `bun:test` API. `bun test` теперь прогоняет 78/0. |
+| CRIT-2 | ✅ | 13 вызовов `logger.info("[copilot] ...")` → `logger.info("copilot", "...")`. Stage больше не получает текст сообщения. |
+| CRIT-3 | ✅ | Импорт `SQLQueryBindings` из `bun:sqlite`, заменены 3 объявления `vals: unknown[]`. |
+| CRIT-4 | ✅ | `role` через `t.Union([t.Literal(...)])` в Elysia-схеме + новый `src/lib/messages.ts` (`normalizeMessages`) преобразует array-content к строке на входе роута. Расширен `Message` (`name?`, `reasoning_content?`). |
+| CRIT-5 | ✅ | `encoding_format` и `input_type` — через `t.Union([t.Literal(...)])`. |
+| CRIT-6 | ✅ | `sanitizeMessages` теперь типизирован `Message[] → Message[]`, без `as`-cast. Защита по array-content в глубину сохранена. |
+| CRIT-7 | ✅ | Убран dead-guard `params.layer !== "focus"` в `memory-tools.ts:122`. TS narrowing доказывает недостижимость. |
+
+`tsc --noEmit` → exit 0. `bun test` → 78 pass / 0 fail.
+
+---
+
+## 🟠 Новые баги (2026-04-20, ночь)
+
+### BROWSER-1 ✅ `@playwright/mcp` 0.0.70 зависает на `browser_navigate` в Docker
+
+**Симптом:** все `web_*` инструменты агента возвращают таймаут 60с.
+`docker logs` → `MCP error -32001: Request timed out`.
+
+**Что подтверждено (debug с `DEBUG=pw:browser*`):**
+- Chrome реально стартует (`/opt/google/chrome/chrome`, pid в логах).
+- Слушает CDP на `ws://127.0.0.1:45613/devtools/browser/...`.
+- Playwright открывает WS-коннект → **hangs forever**, handshake не завершается.
+
+**Уже сделано (не фикс, но инфраструктура на месте):**
+- `docker-compose.yml`: `shm_size: 1gb`, `init: true` (reap zombies).
+- `Dockerfile`: `bunx playwright install chrome --with-deps` вместо `chromium`.
+- `playwright-client.ts`: `--isolated --headless --no-sandbox`.
+
+**Что пробовал и не помогло:** конфиг с `launchOptions.args=[--no-sandbox]`,
+`--browser chrome`, `--executable-path`, снятие `--isolated`, прямой запуск
+installed cli (без bunx). Прямой вызов `chromium.launch({channel:"chrome"})`
+через Playwright работает за ~770ms — значит Playwright и Chrome в норме,
+**только MCP-обёртка ломается на CDP WS.**
+
+**План:**
+1. Обновить `@playwright/mcp` до свежей стабильной (`^0.1.x` если есть), перепроверить.
+2. Если баг жив — заменить `PlaywrightClient` (который сейчас MCP-клиент) на тонкий
+   локальный враппер поверх `playwright` напрямую: `browser_navigate`, `browser_snapshot`,
+   `browser_click`, `browser_type`, `browser_back`, `browser_press_key` — 6 методов,
+   2–3 часа работы. Убирает лишний процесс + MCP-протокол.
+
+## История
+
+- 2026-04-20 — первый аудит, ветка `main`, коммит `11aab45`.
+- 2026-04-20 — Round 1: CRIT-1…CRIT-7 закрыты.
+- 2026-04-20 (ночь) — BROWSER-1 открыт после ночной сессии фиксов
+  (heartbeat SSE, `MAX_STEPS=100`, fire-and-forget night-cycle, cron 03:00,
+  context compressor, agentic post-processing, web UI для автономных чатов).

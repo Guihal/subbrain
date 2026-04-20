@@ -5,7 +5,10 @@
  *
  * Usage:
  *   1. Start server: bun run src/index.ts
- *   2. Run tests:    bun run tests/integration.test.ts
+ *   2. Run tests:    bun run tests/integration.live.ts
+ *
+ * NOTE: file is named *.live.ts (not *.test.ts) so it is NOT picked up by
+ * `bun test`. It is a standalone live test that calls process.exit() at the end.
  *
  * Each test is sequential to respect 40 RPM limit.
  * Expected RPM usage: ~8-12 requests total.

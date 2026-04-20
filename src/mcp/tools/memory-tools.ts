@@ -117,9 +117,11 @@ export class MemoryTools {
         return { success: false, error: `Unknown layer: ${params.layer}` };
     }
 
-    // Fire-and-forget: embed for RAG index
+    // Fire-and-forget: embed for RAG index. The "focus" layer returned earlier
+    // in the switch and never reaches this point, so no extra guard is needed —
+    // params.layer here is always one of context | archive | shared | agent.
     const rag = this.getRag();
-    if (rag && params.layer !== "focus") {
+    if (rag) {
       rag.indexEntry(id, params.layer, params.content).catch(() => {});
     }
 

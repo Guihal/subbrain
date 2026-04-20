@@ -1,18 +1,9 @@
 import { Database } from "bun:sqlite";
-import { openDatabase, migrate, EMBEDDING_DIM } from "./schema";
-import { sanitizeFtsQuery } from "../lib/fts-utils";
-import type {
-  ContextRow,
-  ArchiveRow,
-  LogRow,
-  SharedRow,
-  AgentMemRow,
-  FtsResult,
-  VecResult,
-  ChatRow,
-  ChatMessageRow,
-  TgExcludedChatRow,
-} from "./types";
+import { openDatabase, migrate } from "./schema";
+import { MemoryTable } from "./tables/memory";
+import { SharedTable } from "./tables/shared";
+import { ChatsTable } from "./tables/chats";
+import { LogsTable } from "./tables/logs";
 
 export type {
   ContextRow,
@@ -29,10 +20,18 @@ export type {
 
 export class MemoryDB {
   db: Database;
+  private _mem: MemoryTable;
+  private _shared: SharedTable;
+  private _chats: ChatsTable;
+  private _logs: LogsTable;
 
   constructor(path: string) {
     this.db = openDatabase(path);
     migrate(this.db);
+    this._mem = new MemoryTable(this.db);
+    this._shared = new SharedTable(this.db);
+    this._chats = new ChatsTable(this.db);
+    this._logs = new LogsTable(this.db);
   }
 
   close(): void {
@@ -40,473 +39,100 @@ export class MemoryDB {
   }
 
   // ─── Layer 1: Focus ────────────────────────────────────────
-
-  getFocus(key: string): string | null {
-    const row = this.db
-      .query("SELECT value FROM layer1_focus WHERE key = ?")
-      .get(key) as { value: string } | null;
-    return row?.value ?? null;
-  }
-
-  setFocus(key: string, value: string): void {
-    this.db
-      .query(
-        "INSERT INTO layer1_focus (key, value, updated_at) VALUES (?, ?, unixepoch()) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
-      )
-      .run(key, value);
-  }
-
-  getAllFocus(): Record<string, string> {
-    const rows = this.db.query("SELECT key, value FROM layer1_focus").all() as {
-      key: string;
-      value: string;
-    }[];
-    return Object.fromEntries(rows.map((r) => [r.key, r.value]));
-  }
+  getFocus = (key: string) => this._mem.getFocus(key);
+  setFocus = (key: string, value: string) => this._mem.setFocus(key, value);
+  getAllFocus = () => this._mem.getAllFocus();
+  deleteFocus = (key: string) => this._mem.deleteFocus(key);
 
   // ─── Layer 2: Context ──────────────────────────────────────
-
-  insertContext(
-    id: string,
-    title: string,
-    content: string,
-    tags: string = "",
-    derivedFrom: string[] = [],
-    agentId?: string,
-  ): void {
-    this.db
-      .query(
-        "INSERT INTO layer2_context (id, title, content, tags, derived_from, agent_id) VALUES (?, ?, ?, ?, ?, ?)",
-      )
-      .run(
-        id,
-        title,
-        content,
-        tags,
-        JSON.stringify(derivedFrom),
-        agentId ?? null,
-      );
-  }
-
-  updateContext(
-    id: string,
-    fields: { title?: string; content?: string; tags?: string },
-  ): void {
-    const sets: string[] = ["updated_at = unixepoch()"];
-    const vals: unknown[] = [];
-    if (fields.title !== undefined) {
-      sets.push("title = ?");
-      vals.push(fields.title);
-    }
-    if (fields.content !== undefined) {
-      sets.push("content = ?");
-      vals.push(fields.content);
-    }
-    if (fields.tags !== undefined) {
-      sets.push("tags = ?");
-      vals.push(fields.tags);
-    }
-    vals.push(id);
-    this.db
-      .query(`UPDATE layer2_context SET ${sets.join(", ")} WHERE id = ?`)
-      .run(...vals);
-  }
-
-  getContext(id: string): ContextRow | null {
-    return this.db
-      .query("SELECT * FROM layer2_context WHERE id = ?")
-      .get(id) as ContextRow | null;
-  }
-
-  deleteContext(id: string): void {
-    this.db.query("DELETE FROM layer2_context WHERE id = ?").run(id);
-  }
+  insertContext = (id: string, title: string, content: string, tags?: string, derivedFrom?: string[], agentId?: string) =>
+    this._mem.insertContext(id, title, content, tags, derivedFrom, agentId);
+  updateContext = (id: string, fields: { title?: string; content?: string; tags?: string }) =>
+    this._mem.updateContext(id, fields);
+  getContext = (id: string) => this._mem.getContext(id);
+  listContext = (limit?: number, offset?: number) => this._mem.listContext(limit, offset);
+  countContext = () => this._mem.countContext();
+  deleteContext = (id: string) => this._mem.deleteContext(id);
 
   // ─── Layer 3: Archive ──────────────────────────────────────
+  insertArchive = (id: string, title: string, content: string, tags?: string, sourceRequestIds?: string[], confidence?: "HIGH" | "LOW", agentId?: string) =>
+    this._mem.insertArchive(id, title, content, tags, sourceRequestIds, confidence, agentId);
+  getArchive = (id: string) => this._mem.getArchive(id);
+  listArchive = (limit?: number, offset?: number) => this._mem.listArchive(limit, offset);
+  countArchive = () => this._mem.countArchive();
+  updateArchive = (id: string, fields: { title?: string; content?: string; tags?: string; confidence?: "HIGH" | "LOW" }) =>
+    this._mem.updateArchive(id, fields);
+  deleteArchive = (id: string) => this._mem.deleteArchive(id);
 
-  insertArchive(
-    id: string,
-    title: string,
-    content: string,
-    tags: string = "",
-    sourceRequestIds: string[] = [],
-    confidence: "HIGH" | "LOW" = "HIGH",
-    agentId?: string,
-  ): void {
-    this.db
-      .query(
-        "INSERT INTO layer3_archive (id, title, content, tags, source_request_ids, confidence, agent_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
-      )
-      .run(
-        id,
-        title,
-        content,
-        tags,
-        JSON.stringify(sourceRequestIds),
-        confidence,
-        agentId ?? null,
-      );
-  }
-
-  getArchive(id: string): ArchiveRow | null {
-    return this.db
-      .query("SELECT * FROM layer3_archive WHERE id = ?")
-      .get(id) as ArchiveRow | null;
-  }
-
-  updateArchive(
-    id: string,
-    fields: {
-      title?: string;
-      content?: string;
-      tags?: string;
-      confidence?: "HIGH" | "LOW";
-    },
-  ): void {
-    const sets: string[] = ["updated_at = unixepoch()"];
-    const vals: unknown[] = [];
-    if (fields.title !== undefined) {
-      sets.push("title = ?");
-      vals.push(fields.title);
-    }
-    if (fields.content !== undefined) {
-      sets.push("content = ?");
-      vals.push(fields.content);
-    }
-    if (fields.tags !== undefined) {
-      sets.push("tags = ?");
-      vals.push(fields.tags);
-    }
-    if (fields.confidence !== undefined) {
-      sets.push("confidence = ?");
-      vals.push(fields.confidence);
-    }
-    vals.push(id);
-    this.db
-      .query(`UPDATE layer3_archive SET ${sets.join(", ")} WHERE id = ?`)
-      .run(...vals);
-  }
-
-  deleteArchive(id: string): void {
-    this.db.query("DELETE FROM layer3_archive WHERE id = ?").run(id);
-  }
-
-  // ─── Layer 4: Raw Log ─────────────────────────────────────
-
-  appendLog(
-    requestId: string,
-    sessionId: string,
-    agentId: string,
-    role: string,
-    content: string,
-    tokenCount?: number,
-  ): number {
-    const result = this.db
-      .query(
-        "INSERT INTO layer4_log (request_id, session_id, agent_id, role, content, token_count) VALUES (?, ?, ?, ?, ?, ?)",
-      )
-      .run(requestId, sessionId, agentId, role, content, tokenCount ?? null);
-    return Number(result.lastInsertRowid);
-  }
-
-  getLogsByRequest(requestId: string): LogRow[] {
-    return this.db
-      .query("SELECT * FROM layer4_log WHERE request_id = ? ORDER BY id")
-      .all(requestId) as LogRow[];
-  }
-
-  getLogsBySession(sessionId: string, limit = 100): LogRow[] {
-    return this.db
-      .query(
-        "SELECT * FROM layer4_log WHERE session_id = ? ORDER BY id DESC LIMIT ?",
-      )
-      .all(sessionId, limit) as LogRow[];
-  }
-
-  /** Get log entries with id > afterId, ordered by id ASC. */
-  getLogsSince(afterId: number, limit = 500): LogRow[] {
-    return this.db
-      .query("SELECT * FROM layer4_log WHERE id > ? ORDER BY id ASC LIMIT ?")
-      .all(afterId, limit) as LogRow[];
-  }
-
-  /** Group log entries by session_id from a list of rows. */
-  groupLogsBySession(rows: LogRow[]): Map<string, LogRow[]> {
-    const groups = new Map<string, LogRow[]>();
-    for (const row of rows) {
-      const arr = groups.get(row.session_id) || [];
-      arr.push(row);
-      groups.set(row.session_id, arr);
-    }
-    return groups;
-  }
+  // ─── FTS5 Search (context + archive) ──────────────────────
+  searchContext = (query: string, limit?: number) => this._mem.searchContext(query, limit);
+  searchArchive = (query: string, limit?: number) => this._mem.searchArchive(query, limit);
 
   // ─── Shared Memory ─────────────────────────────────────────
-
-  insertShared(
-    id: string,
-    category: string,
-    content: string,
-    tags: string = "",
-    source?: string,
-  ): void {
-    this.db
-      .query(
-        "INSERT INTO shared_memory (id, category, content, tags, source) VALUES (?, ?, ?, ?, ?)",
-      )
-      .run(id, category, content, tags, source ?? null);
-  }
-
-  getAllShared(): SharedRow[] {
-    return this.db
-      .query("SELECT * FROM shared_memory ORDER BY updated_at DESC")
-      .all() as SharedRow[];
-  }
-
-  getSharedByCategory(category: string): SharedRow[] {
-    return this.db
-      .query(
-        "SELECT * FROM shared_memory WHERE category = ? ORDER BY updated_at DESC",
-      )
-      .all(category) as SharedRow[];
-  }
-
-  updateShared(
-    id: string,
-    fields: { content?: string; tags?: string; category?: string },
-  ): void {
-    const sets: string[] = ["updated_at = unixepoch()"];
-    const vals: unknown[] = [];
-    if (fields.content !== undefined) {
-      sets.push("content = ?");
-      vals.push(fields.content);
-    }
-    if (fields.tags !== undefined) {
-      sets.push("tags = ?");
-      vals.push(fields.tags);
-    }
-    if (fields.category !== undefined) {
-      sets.push("category = ?");
-      vals.push(fields.category);
-    }
-    vals.push(id);
-    this.db
-      .query(`UPDATE shared_memory SET ${sets.join(", ")} WHERE id = ?`)
-      .run(...vals);
-  }
-
-  deleteShared(id: string): void {
-    this.db.query("DELETE FROM shared_memory WHERE id = ?").run(id);
-  }
+  insertShared = (id: string, category: string, content: string, tags?: string, source?: string) =>
+    this._shared.insertShared(id, category, content, tags, source);
+  getAllShared = () => this._shared.getAllShared();
+  listShared = (limit?: number, offset?: number, category?: string) =>
+    this._shared.listShared(limit, offset, category);
+  countShared = (category?: string) => this._shared.countShared(category);
+  getShared = (id: string) => this._shared.getShared(id);
+  getSharedByCategory = (category: string) => this._shared.getSharedByCategory(category);
+  updateShared = (id: string, fields: { content?: string; tags?: string; category?: string }) =>
+    this._shared.updateShared(id, fields);
+  deleteShared = (id: string) => this._shared.deleteShared(id);
 
   // ─── Agent Memory ──────────────────────────────────────────
+  insertAgentMemory = (id: string, agentId: string, content: string, tags?: string) =>
+    this._shared.insertAgentMemory(id, agentId, content, tags);
+  getAgentMemories = (agentId: string) => this._shared.getAgentMemories(agentId);
+  listAllAgentMemories = (limit?: number, offset?: number, agentId?: string) =>
+    this._shared.listAllAgentMemories(limit, offset, agentId);
+  countAgentMemories = (agentId?: string) => this._shared.countAgentMemories(agentId);
+  listAgentIds = () => this._shared.listAgentIds();
+  getAgentMemory = (id: string) => this._shared.getAgentMemory(id);
+  updateAgentMemory = (id: string, fields: { content?: string; tags?: string }) =>
+    this._shared.updateAgentMemory(id, fields);
+  deleteAgentMemory = (id: string) => this._shared.deleteAgentMemory(id);
 
-  insertAgentMemory(
-    id: string,
-    agentId: string,
-    content: string,
-    tags: string = "",
-  ): void {
-    this.db
-      .query(
-        "INSERT INTO agent_memory (id, agent_id, content, tags) VALUES (?, ?, ?, ?)",
-      )
-      .run(id, agentId, content, tags);
-  }
-
-  getAgentMemories(agentId: string): AgentMemRow[] {
-    return this.db
-      .query(
-        "SELECT * FROM agent_memory WHERE agent_id = ? ORDER BY updated_at DESC",
-      )
-      .all(agentId) as AgentMemRow[];
-  }
-
-  deleteAgentMemory(id: string): void {
-    this.db.query("DELETE FROM agent_memory WHERE id = ?").run(id);
-  }
-
-  // ─── FTS5 Search ───────────────────────────────────────────
-
-  searchContext(query: string, limit = 10): FtsResult[] {
-    const ftsQuery = sanitizeFtsQuery(query);
-    if (!ftsQuery) return [];
-    return this.db
-      .query(
-        "SELECT c.id, c.title, c.tags, snippet(fts_context, 1, '<b>', '</b>', '...', 32) AS snippet, rank, c.created_at, c.updated_at FROM fts_context f JOIN layer2_context c ON c.rowid = f.rowid WHERE fts_context MATCH ? ORDER BY rank LIMIT ?",
-      )
-      .all(ftsQuery, limit) as FtsResult[];
-  }
-
-  searchArchive(query: string, limit = 10): FtsResult[] {
-    const ftsQuery = sanitizeFtsQuery(query);
-    if (!ftsQuery) return [];
-    return this.db
-      .query(
-        "SELECT a.id, a.title, a.tags, snippet(fts_archive, 1, '<b>', '</b>', '...', 32) AS snippet, rank, a.created_at, a.updated_at FROM fts_archive f JOIN layer3_archive a ON a.rowid = f.rowid WHERE fts_archive MATCH ? ORDER BY rank LIMIT ?",
-      )
-      .all(ftsQuery, limit) as FtsResult[];
-  }
-
-  searchShared(query: string, limit = 10): FtsResult[] {
-    const ftsQuery = sanitizeFtsQuery(query);
-    if (!ftsQuery) return [];
-    return this.db
-      .query(
-        "SELECT s.id, s.category AS title, s.tags, snippet(fts_shared, 1, '<b>', '</b>', '...', 32) AS snippet, rank, s.created_at, s.updated_at FROM fts_shared f JOIN shared_memory s ON s.rowid = f.rowid WHERE fts_shared MATCH ? ORDER BY rank LIMIT ?",
-      )
-      .all(ftsQuery, limit) as FtsResult[];
-  }
-
-  // ─── Vector Search (sqlite-vec) ────────────────────────────
-
-  upsertEmbedding(id: string, layer: string, embedding: Float32Array): void {
-    // vec0 uses INSERT OR REPLACE
-    this.db
-      .query(
-        "INSERT OR REPLACE INTO vec_embeddings (id, layer, embedding) VALUES (?, ?, ?)",
-      )
-      .run(id, layer, new Uint8Array(embedding.buffer));
-  }
-
-  searchEmbeddings(
-    embedding: Float32Array,
-    limit = 10,
-    layer?: string,
-  ): VecResult[] {
-    const blob = new Uint8Array(embedding.buffer);
-    if (layer) {
-      return this.db
-        .query(
-          "SELECT id, layer, distance FROM vec_embeddings WHERE embedding MATCH ? AND layer = ? ORDER BY distance LIMIT ?",
-        )
-        .all(blob, layer, limit) as VecResult[];
-    }
-    return this.db
-      .query(
-        "SELECT id, layer, distance FROM vec_embeddings WHERE embedding MATCH ? ORDER BY distance LIMIT ?",
-      )
-      .all(blob, limit) as VecResult[];
-  }
-
-  deleteEmbedding(id: string): void {
-    this.db.query("DELETE FROM vec_embeddings WHERE id = ?").run(id);
-  }
+  // ─── FTS5 + Vector Search (shared) ─────────────────────────
+  searchShared = (query: string, limit?: number) => this._shared.searchShared(query, limit);
+  upsertEmbedding = (id: string, layer: string, embedding: Float32Array) =>
+    this._shared.upsertEmbedding(id, layer, embedding);
+  searchEmbeddings = (embedding: Float32Array, limit?: number, layer?: string) =>
+    this._shared.searchEmbeddings(embedding, limit, layer);
+  deleteEmbedding = (id: string) => this._shared.deleteEmbedding(id);
 
   // ─── Chats ─────────────────────────────────────────────────
+  createChat = (id: string, title: string, model: string, source?: string) =>
+    this._chats.createChat(id, title, model, source);
+  getChat = (id: string) => this._chats.getChat(id);
+  listChats = (limit?: number, source?: string) => this._chats.listChats(limit, source);
+  updateChatTitle = (id: string, title: string) => this._chats.updateChatTitle(id, title);
+  updateChatModel = (id: string, model: string) => this._chats.updateChatModel(id, model);
+  updateChatTimestamp = (id: string) => this._chats.updateChatTimestamp(id);
+  deleteChat = (id: string) => this._chats.deleteChat(id);
 
-  createChat(
-    id: string,
-    title: string,
-    model: string,
-    source: string = "web",
-  ): void {
-    this.db
-      .query("INSERT INTO chats (id, title, model, source) VALUES (?, ?, ?, ?)")
-      .run(id, title, model, source);
-  }
-
-  getChat(id: string): ChatRow | null {
-    return this.db
-      .query("SELECT * FROM chats WHERE id = ?")
-      .get(id) as ChatRow | null;
-  }
-
-  listChats(limit = 50, source?: string): ChatRow[] {
-    if (source) {
-      return this.db
-        .query(
-          "SELECT * FROM chats WHERE source = ? ORDER BY updated_at DESC LIMIT ?",
-        )
-        .all(source, limit) as ChatRow[];
-    }
-    return this.db
-      .query("SELECT * FROM chats ORDER BY updated_at DESC LIMIT ?")
-      .all(limit) as ChatRow[];
-  }
-
-  updateChatTitle(id: string, title: string): void {
-    this.db
-      .query(
-        "UPDATE chats SET title = ?, updated_at = unixepoch() WHERE id = ?",
-      )
-      .run(title, id);
-  }
-
-  updateChatModel(id: string, model: string): void {
-    this.db
-      .query(
-        "UPDATE chats SET model = ?, updated_at = unixepoch() WHERE id = ?",
-      )
-      .run(model, id);
-  }
-
-  updateChatTimestamp(id: string): void {
-    this.db
-      .query("UPDATE chats SET updated_at = unixepoch() WHERE id = ?")
-      .run(id);
-  }
-
-  deleteChat(id: string): void {
-    this.db.query("DELETE FROM chats WHERE id = ?").run(id);
-  }
-
-  // ─── Chat Messages ────────────────────────────────────────
-
-  appendChatMessage(
-    chatId: string,
-    role: string,
-    content: string,
-    opts?: { reasoning?: string; model?: string; requestId?: string },
-  ): number {
-    const result = this.db
-      .query(
-        "INSERT INTO chat_messages (chat_id, role, content, reasoning, model, request_id) VALUES (?, ?, ?, ?, ?, ?)",
-      )
-      .run(
-        chatId,
-        role,
-        content,
-        opts?.reasoning ?? null,
-        opts?.model ?? null,
-        opts?.requestId ?? null,
-      );
-    this.updateChatTimestamp(chatId);
-    return Number(result.lastInsertRowid);
-  }
-
-  getChatMessages(chatId: string): ChatMessageRow[] {
-    return this.db
-      .query("SELECT * FROM chat_messages WHERE chat_id = ? ORDER BY id ASC")
-      .all(chatId) as ChatMessageRow[];
-  }
+  // ─── Chat Messages ─────────────────────────────────────────
+  appendChatMessage = (chatId: string, role: string, content: string, opts?: { reasoning?: string; model?: string; requestId?: string }) =>
+    this._chats.appendChatMessage(chatId, role, content, opts);
+  getChatMessages = (chatId: string) => this._chats.getChatMessages(chatId);
 
   // ─── Telegram Chat Exclusions ──────────────────────────────
+  getExcludedTgChats = () => this._chats.getExcludedTgChats();
+  getExcludedTgChatIds = () => this._chats.getExcludedTgChatIds();
+  excludeTgChat = (chatId: string, chatTitle: string, reason?: string) =>
+    this._chats.excludeTgChat(chatId, chatTitle, reason);
+  includeTgChat = (chatId: string) => this._chats.includeTgChat(chatId);
 
-  getExcludedTgChats(): TgExcludedChatRow[] {
-    return this.db
-      .query("SELECT * FROM tg_excluded_chats ORDER BY created_at")
-      .all() as TgExcludedChatRow[];
-  }
-
-  getExcludedTgChatIds(): Set<string> {
-    const rows = this.db
-      .query("SELECT chat_id FROM tg_excluded_chats")
-      .all() as { chat_id: string }[];
-    return new Set(rows.map((r) => r.chat_id));
-  }
-
-  excludeTgChat(chatId: string, chatTitle: string, reason = "private"): void {
-    this.db
-      .query(
-        "INSERT OR REPLACE INTO tg_excluded_chats (chat_id, chat_title, reason) VALUES (?, ?, ?)",
-      )
-      .run(chatId, chatTitle, reason);
-  }
-
-  includeTgChat(chatId: string): void {
-    this.db
-      .query("DELETE FROM tg_excluded_chats WHERE chat_id = ?")
-      .run(chatId);
-  }
+  // ─── Layer 4: Raw Log ─────────────────────────────────────
+  appendLog = (requestId: string, sessionId: string, agentId: string, role: string, content: string, tokenCount?: number) =>
+    this._logs.appendLog(requestId, sessionId, agentId, role, content, tokenCount);
+  getLogsByRequest = (requestId: string) => this._logs.getLogsByRequest(requestId);
+  getLogsBySession = (sessionId: string, limit?: number) => this._logs.getLogsBySession(sessionId, limit);
+  getLogsSince = (afterId: number, limit?: number) => this._logs.getLogsSince(afterId, limit);
+  listLog = (limit?: number, offset?: number, sessionId?: string) =>
+    this._logs.listLog(limit, offset, sessionId);
+  countLog = (sessionId?: string) => this._logs.countLog(sessionId);
+  listLogSessions = (limit?: number) => this._logs.listLogSessions(limit);
+  groupLogsBySession = (rows: import("./types").LogRow[]) => this._logs.groupLogsBySession(rows);
 }

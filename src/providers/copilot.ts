@@ -7,6 +7,7 @@ import type {
   RerankParams,
   RerankResponse,
   ModelInfo,
+  Message,
 } from "./types";
 import { ProviderError } from "./nvidia";
 import { createProxyStream } from "./stream-utils";
@@ -59,7 +60,7 @@ export class CopilotProvider implements LLMProvider {
   async init(): Promise<void> {
     // If we already have a ghu_ token, we're good
     if (this.oauthToken.startsWith("ghu_")) {
-      logger.info("[copilot] Using provided OAuth token (ghu_)");
+      logger.info("copilot", "Using provided OAuth token (ghu_)");
       return;
     }
 
@@ -69,7 +70,7 @@ export class CopilotProvider implements LLMProvider {
       const trimmed = saved.trim();
       if (trimmed.startsWith("ghu_")) {
         this.oauthToken = trimmed;
-        logger.info("[copilot] Loaded OAuth token from " + this.tokenFilePath);
+        logger.info("copilot", `Loaded OAuth token from ${this.tokenFilePath}`);
         return;
       }
     } catch {
@@ -81,7 +82,7 @@ export class CopilotProvider implements LLMProvider {
   }
 
   private async deviceFlow(): Promise<void> {
-    logger.info("[copilot] Starting GitHub Device OAuth flow...");
+    logger.info("copilot", "Starting GitHub Device OAuth flow...");
 
     const codeRes = await fetch(DEVICE_CODE_URL, {
       method: "POST",
@@ -108,12 +109,12 @@ export class CopilotProvider implements LLMProvider {
     };
 
     // Log the code for user to authorize
-    logger.info("═══════════════════════════════════════════════════════");
-    logger.info("[copilot] AUTHORIZE COPILOT:");
-    logger.info(`[copilot]   1. Open: ${codeData.verification_uri}`);
-    logger.info(`[copilot]   2. Enter code: ${codeData.user_code}`);
-    logger.info("[copilot]   Waiting for authorization...");
-    logger.info("═══════════════════════════════════════════════════════");
+    logger.info("copilot", "═══════════════════════════════════════════════════════");
+    logger.info("copilot", "AUTHORIZE COPILOT:");
+    logger.info("copilot", `  1. Open: ${codeData.verification_uri}`);
+    logger.info("copilot", `  2. Enter code: ${codeData.user_code}`);
+    logger.info("copilot", "  Waiting for authorization...");
+    logger.info("copilot", "═══════════════════════════════════════════════════════");
 
     // Poll for authorization
     const deadline = Date.now() + codeData.expires_in * 1000;
@@ -142,7 +143,8 @@ export class CopilotProvider implements LLMProvider {
         // Save to disk for future restarts
         await Bun.write(this.tokenFilePath, this.oauthToken);
         logger.info(
-          `[copilot] OAuth token obtained and saved to ${this.tokenFilePath}`,
+          "copilot",
+          `OAuth token obtained and saved to ${this.tokenFilePath}`,
         );
         return;
       }
@@ -203,7 +205,8 @@ export class CopilotProvider implements LLMProvider {
       // If 401/404 — OAuth token might have expired, clear saved file
       if (res.status === 401 || res.status === 404) {
         logger.info(
-          "[copilot] OAuth token invalid/expired, re-running device flow...",
+          "copilot",
+          "OAuth token invalid/expired, re-running device flow...",
         );
         try {
           await Bun.write(this.tokenFilePath, "");
@@ -220,7 +223,8 @@ export class CopilotProvider implements LLMProvider {
 
     const data = (await res.json()) as CopilotToken;
     logger.info(
-      `[copilot] Session token refreshed, expires at ${new Date(data.expires_at * 1000).toISOString()}`,
+      "copilot",
+      `Session token refreshed, expires at ${new Date(data.expires_at * 1000).toISOString()}`,
     );
     return data;
   }
@@ -241,29 +245,39 @@ export class CopilotProvider implements LLMProvider {
    * - Normalizes content: arrays → joined string, null → "" for assistant+tool_calls
    * - Strips unknown fields that Copilot API might reject
    */
-  private sanitizeMessages(
-    messages: ChatParams["messages"],
-  ): ChatParams["messages"] {
+  private sanitizeMessages(messages: Message[]): Message[] {
     return messages.map((msg) => {
-      const clean: Record<string, unknown> = { role: msg.role };
-
-      // Normalize content
-      if (Array.isArray(msg.content)) {
-        // OpenAI multipart content → flatten to string
-        clean.content = (msg.content as any[])
-          .map((p: any) => (typeof p === "string" ? p : p?.text || ""))
+      // Content normalization. Route-level normalization should already have
+      // flattened arrays, but defend in depth — pipeline code can build
+      // messages programmatically without going through the route.
+      let content: string | null;
+      const raw = msg.content as unknown;
+      if (Array.isArray(raw)) {
+        content = raw
+          .map((p) => {
+            if (typeof p === "string") return p;
+            if (p && typeof p === "object" && "text" in p) {
+              const t = (p as { text?: unknown }).text;
+              return typeof t === "string" ? t : "";
+            }
+            return "";
+          })
+          .filter(Boolean)
           .join("\n");
-      } else if (msg.content === null || msg.content === undefined) {
-        // Some APIs reject null content on assistant messages with tool_calls
-        clean.content = msg.tool_calls ? "" : (msg.content ?? null);
+      } else if (raw == null) {
+        // Copilot rejects null content on assistant messages with tool_calls.
+        content = msg.tool_calls ? "" : null;
+      } else if (typeof raw === "string") {
+        content = raw;
       } else {
-        clean.content = msg.content;
+        content = String(raw);
       }
 
+      const clean: Message = { role: msg.role, content };
       if (msg.tool_calls) clean.tool_calls = msg.tool_calls;
       if (msg.tool_call_id) clean.tool_call_id = msg.tool_call_id;
-
-      return clean as ChatParams["messages"][0];
+      if (msg.name) clean.name = msg.name;
+      return clean;
     });
   }
 
@@ -295,7 +309,7 @@ export class CopilotProvider implements LLMProvider {
     if (!res.ok) {
       const body = await res.text();
       logger.warn(
-        "[copilot]",
+        "copilot",
         `chat() error ${res.status}: ${body.slice(0, 300)}`,
         {
           meta: {
@@ -303,7 +317,7 @@ export class CopilotProvider implements LLMProvider {
             hasToolCalls: sanitized.messages.some((m) => m.tool_calls),
             hasToolResults: sanitized.messages.some((m) => m.role === "tool"),
           },
-        } as any,
+        },
       );
       if (res.status === 401) {
         this.cachedToken = null;
@@ -336,7 +350,7 @@ export class CopilotProvider implements LLMProvider {
     const bodyPayload = { ...sanitized, stream: true };
     const bodyStr = JSON.stringify(bodyPayload);
     logger.info(
-      "[copilot]",
+      "copilot",
       `chatStream() model=${sanitized.model} msgs=${sanitized.messages.length} tools=${sanitized.tools?.length ?? 0} bodySize=${bodyStr.length}`,
     );
     // Debug: log first few messages structure
@@ -351,7 +365,7 @@ export class CopilotProvider implements LLMProvider {
       if (m.tool_calls) info.tool_calls_count = m.tool_calls.length;
       if ((m as any).tool_call_id) info.tool_call_id = (m as any).tool_call_id;
       if ((m as any).name) info.name = (m as any).name;
-      logger.info("[copilot]", `  msg[${i}]: ${JSON.stringify(info)}`);
+      logger.info("copilot", `  msg[${i}]: ${JSON.stringify(info)}`);
     }
 
     return createProxyStream(async () => {

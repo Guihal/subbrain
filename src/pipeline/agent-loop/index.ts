@@ -34,6 +34,7 @@ import { DynamicToolRegistry, type DynamicToolDef } from "./dynamic-tools";
 import { executeAgentTool, type ToolRunnerDeps } from "./tool-runner";
 import { buildAgentSystemPrompt } from "./system-prompt";
 import { CodeToolRegistry } from "./code-tools";
+import { shouldCompress, compressContext } from "../context-compressor";
 
 // Re-export public API
 export { DynamicToolRegistry } from "./dynamic-tools";
@@ -166,6 +167,12 @@ export class AgentLoop {
 
     for (let step = 1; step <= maxSteps; step++) {
       log.info("agent-loop", `Step ${step}/${maxSteps}`, { model });
+
+      // Compress history if it's outgrown the soft limit. Mutates `messages`
+      // in-place so the final `steps` log and chat persistence still see it.
+      if (shouldCompress(messages)) {
+        await compressContext(messages, this.router, this.memory);
+      }
 
       // Budget note injected as user message to avoid "system after tool" error
       const estTokens = estimateTokens(messages);
@@ -324,13 +331,28 @@ export class AgentLoop {
 
     return new ReadableStream({
       async start(controller) {
+        let closed = false;
+        const safeEnqueue = (chunk: Uint8Array) => {
+          if (closed) return;
+          try {
+            controller.enqueue(chunk);
+          } catch {
+            closed = true;
+          }
+        };
         const emit = (event: string, data: unknown) => {
-          controller.enqueue(
+          safeEnqueue(
             encoder.encode(
               `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`,
             ),
           );
         };
+
+        // Heartbeat: SSE comment every 5s keeps HTTP/2 proxies (Caddy) from
+        // RST-ing the stream while preProcess / router.chat are running silently.
+        const heartbeat = setInterval(() => {
+          safeEnqueue(encoder.encode(": ping\n\n"));
+        }, 5000);
 
         try {
           const requestId = randomUUID();
@@ -342,6 +364,7 @@ export class AgentLoop {
           const deps = self.getToolRunnerDeps();
 
           emit("start", { requestId, sessionId, model, maxSteps });
+          emit("pre_processing", { status: "building_system_prompt" });
 
           const systemPrompt = await buildAgentSystemPrompt(
             self.memory,
@@ -357,6 +380,12 @@ export class AgentLoop {
 
           for (let step = 1; step <= maxSteps; step++) {
             emit("step", { step, maxSteps, status: "thinking" });
+
+            if (shouldCompress(messages)) {
+              emit("compressing", { tokens: estimateTokens(messages) });
+              await compressContext(messages, self.router, self.memory);
+              emit("compressed", { tokens: estimateTokens(messages) });
+            }
 
             // Budget note as user message to avoid "system after tool" error
             const estTokens = estimateTokens(messages);
@@ -470,9 +499,9 @@ export class AgentLoop {
                     log.error("post", `Agent post-processing failed: ${e instanceof Error ? e.message : e}`),
                   );
 
-                  controller.enqueue(
-                    encoder.encode("event: end\ndata: {}\n\n"),
-                  );
+                  safeEnqueue(encoder.encode("event: end\ndata: {}\n\n"));
+                  clearInterval(heartbeat);
+                  closed = true;
                   controller.close();
                   return;
                 }
@@ -536,17 +565,21 @@ export class AgentLoop {
             break;
           }
 
-          controller.enqueue(encoder.encode("event: end\ndata: {}\n\n"));
+          safeEnqueue(encoder.encode("event: end\ndata: {}\n\n"));
+          clearInterval(heartbeat);
+          closed = true;
           controller.close();
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
-          controller.enqueue(
+          safeEnqueue(
             encoder.encode(
               `event: error\ndata: ${JSON.stringify({ error: msg })}\n\n`,
             ),
           );
-          controller.enqueue(encoder.encode("event: end\ndata: {}\n\n"));
-          controller.close();
+          safeEnqueue(encoder.encode("event: end\ndata: {}\n\n"));
+          clearInterval(heartbeat);
+          closed = true;
+          try { controller.close(); } catch { /* already closed */ }
         }
       },
     });

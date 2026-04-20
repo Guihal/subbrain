@@ -1,8 +1,18 @@
+/**
+ * OpenAI-compatible chat message.
+ *
+ * `content` is `string | null` after route-level normalization; multipart
+ * arrays from clients are flattened to a single string at the API boundary.
+ * `reasoning_content` is non-standard but emitted by some upstreams (Copilot
+ * via Claude/Gemini) and surfaced through the pipeline.
+ */
 export interface Message {
   role: "system" | "user" | "assistant" | "tool";
   content: string | null;
+  name?: string;
   tool_calls?: ToolCall[];
   tool_call_id?: string;
+  reasoning_content?: string;
 }
 
 export interface ToolCall {

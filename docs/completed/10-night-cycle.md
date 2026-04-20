@@ -57,8 +57,13 @@
 
 ## Расписание
 
-- **Триггер:** Cron, ежедневно в 03:00 (или при неактивности > 4 часов)
-- **RPM:** Ночью весь бюджет 40 RPM свободен
+- **Триггер:** системный cron на VPS, ежедневно в 03:00 (server local time).
+- **In-process scheduler нет** — только endpoint `POST /night-cycle` (зарегистрирован до `authMiddleware`, авторизация не нужна).
+- **Установка:** `bash scripts/install-cron.sh` на VPS под root. Скрипт идемпотентен.
+- **Логи:** `/var/log/subbrain-night-cycle.log`.
+- **Ручной запуск:** `curl -X POST http://127.0.0.1:4000/night-cycle` (с VPS) или
+  `ssh root@109.120.187.244 'curl -X POST http://127.0.0.1:4000/night-cycle'`.
+- **RPM:** Ночью весь бюджет 40 RPM свободен.
 
 ## RPM Budget (одна ночная сессия)
 

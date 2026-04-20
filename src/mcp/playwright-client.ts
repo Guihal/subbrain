@@ -1,189 +1,351 @@
+/// <reference lib="dom" />
 /**
- * MCP client that connects to the Playwright MCP server via stdio.
- * Lazily spawns a headless Chromium browser on first tool call.
+ * Direct Playwright browser wrapper (replaces the out-of-process @playwright/mcp
+ * server, which hung on CDP WebSocket handshake in our Docker container — see
+ * docs/02-audit.md BROWSER-1).
  *
- * Resilience: connection timeout, auto-reconnect on failures, tool-call timeout.
+ * Public API is the same method surface the rest of the code uses
+ * (`callTool(name, args)`), so ToolExecutor / WebTools don't need to change.
+ *
+ * Ref system: each snapshot tags every interactive element in the live DOM
+ * with `data-pw-ref="N"`, then subsequent clicks/types select by that
+ * attribute. Refs are fresh per snapshot (old tags are stripped first) —
+ * the agent must always call web_snapshot after a navigation or click
+ * before referring to elements by ref.
  */
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import { chromium, type Browser, type BrowserContext, type Page } from "playwright";
 import { logger } from "../lib/logger";
 
-const CONNECT_TIMEOUT_MS = 30_000;
-const TOOL_CALL_TIMEOUT_MS = 60_000;
-const MAX_RETRIES = 2;
+const NAV_TIMEOUT_MS = 30_000;
+const ACTION_TIMEOUT_MS = 10_000;
+const MAX_INTERACTIVE_ELEMENTS = 200;
+const MAX_TEXT_PREVIEW = 3000;
+const MAX_ELEMENT_LABEL = 120;
 
-function withTimeout<T>(
-  promise: Promise<T>,
-  ms: number,
-  label: string,
-): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    const timer = setTimeout(
-      () => reject(new Error(`${label} timed out after ${ms}ms`)),
-      ms,
-    );
-    promise.then(
-      (v) => {
-        clearTimeout(timer);
-        resolve(v);
-      },
-      (e) => {
-        clearTimeout(timer);
-        reject(e);
-      },
-    );
-  });
-}
+const INTERACTIVE_SELECTOR = [
+  "a[href]",
+  "button",
+  "input:not([type=hidden])",
+  "textarea",
+  "select",
+  "[role=button]",
+  "[role=link]",
+  "[role=textbox]",
+  "[role=combobox]",
+  "[role=checkbox]",
+  "[role=radio]",
+  "[role=tab]",
+  "[role=menuitem]",
+  "[contenteditable=true]",
+].join(", ");
 
 export class PlaywrightClient {
-  private client: Client | null = null;
-  private transport: StdioClientTransport | null = null;
-  private connectPromise: Promise<Client> | null = null;
+  private browser: Browser | null = null;
+  private context: BrowserContext | null = null;
+  private page: Page | null = null;
+  private launchPromise: Promise<void> | null = null;
 
-  /** Resolve the @playwright/mcp binary path (avoids bunx download overhead) */
-  private resolveMcpBin(): { command: string; args: string[] } {
-    try {
-      const resolved = require.resolve("@playwright/mcp/cli");
-      return { command: "bun", args: [resolved, "--isolated"] };
-    } catch {
-      // Fallback to bunx if direct resolve fails
-      return { command: "bunx", args: ["@playwright/mcp", "--isolated"] };
-    }
-  }
-
-  private async connect(): Promise<Client> {
-    const bin = this.resolveMcpBin();
-    logger.info(
-      "playwright",
-      `Spawning MCP server: ${bin.command} ${bin.args.join(" ")}`,
-    );
-
-    const transport = new StdioClientTransport({
-      command: bin.command,
-      args: bin.args,
-    });
-
-    const client = new Client({
-      name: "subbrain-agent",
-      version: "1.0.0",
-    });
-
-    await withTimeout(
-      client.connect(transport),
-      CONNECT_TIMEOUT_MS,
-      "Playwright MCP connect",
-    );
-
-    this.transport = transport;
-    this.client = client;
-
-    logger.info("playwright", "MCP client connected to headless browser");
-    return client;
-  }
-
-  /** Get or create the MCP client connection (lazy singleton) */
-  private async ensureConnected(): Promise<Client> {
-    if (this.client) return this.client;
-    if (!this.connectPromise) {
-      this.connectPromise = this.connect().catch((err) => {
-        this.connectPromise = null;
-        logger.error("playwright", `Connection failed: ${err.message}`);
-        throw err;
-      });
-    }
-    return this.connectPromise;
-  }
-
-  /** Reset connection state so next call triggers a fresh connect */
-  private async resetConnection(): Promise<void> {
-    try {
-      if (this.transport) await this.transport.close().catch(() => {});
-    } catch {
-      /* ignore */
-    }
-    this.client = null;
-    this.transport = null;
-    this.connectPromise = null;
-  }
-
-  /** Call a Playwright MCP tool by name (with timeout + auto-reconnect) */
   async callTool(
     name: string,
     args: Record<string, unknown> = {},
   ): Promise<string> {
-    let lastError: Error | null = null;
-
-    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-      try {
-        const client = await this.ensureConnected();
-
-        const result = await withTimeout(
-          client.callTool({ name, arguments: args }),
-          TOOL_CALL_TIMEOUT_MS,
-          `Playwright ${name}`,
-        );
-
-        const parts: string[] = [];
-        for (const item of result.content as Array<{
-          type: string;
-          text?: string;
-        }>) {
-          if (item.type === "text" && item.text) {
-            parts.push(item.text);
-          } else if (item.type === "image") {
-            parts.push("[screenshot captured]");
-          }
-        }
-
-        if (result.isError) {
-          throw new Error(parts.join("\n") || "Playwright tool error");
-        }
-
-        return parts.join("\n") || "OK";
-      } catch (err) {
-        lastError = err instanceof Error ? err : new Error(String(err));
-        logger.warn(
-          "playwright",
-          `callTool(${name}) attempt ${attempt + 1}/${MAX_RETRIES + 1} failed: ${lastError.message}`,
-        );
-        // Reset connection so next attempt spawns a fresh MCP server
-        await this.resetConnection();
+    try {
+      await this.ensureLaunched();
+      switch (name) {
+        case "browser_navigate":
+          return await this.navigate(String(args.url ?? ""));
+        case "browser_snapshot":
+          return await this.snapshot();
+        case "browser_click":
+          return await this.click(String(args.ref ?? ""));
+        case "browser_type":
+          return await this.type(
+            String(args.ref ?? ""),
+            String(args.text ?? ""),
+            Boolean(args.submit),
+          );
+        case "browser_go_back":
+          return await this.goBack();
+        case "browser_press_key":
+          return await this.pressKey(String(args.key ?? ""));
+        case "browser_scroll":
+          return await this.scroll(
+            Number(args.dy ?? 800),
+            Number(args.dx ?? 0),
+          );
+        case "browser_screenshot":
+          return await this.screenshot(Boolean(args.full_page));
+        case "browser_close":
+          await this.close();
+          return "OK";
+        default:
+          return JSON.stringify({ error: `Unknown tool: ${name}` });
       }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      logger.warn("playwright", `${name} failed: ${msg}`);
+      // On fatal errors (crashed page, closed browser), reset for next call.
+      if (
+        /Target page, context or browser has been closed|browserContext|Protocol error/i.test(
+          msg,
+        )
+      ) {
+        await this.reset();
+      }
+      return JSON.stringify({ error: msg });
     }
-
-    throw lastError || new Error(`Playwright ${name} failed after retries`);
   }
 
-  /** List available tools from the Playwright MCP server */
   async listTools(): Promise<Array<{ name: string; description?: string }>> {
-    const client = await this.ensureConnected();
-    const result = await client.listTools();
-    return result.tools.map((t) => ({
-      name: t.name,
-      description: t.description,
-    }));
+    return [
+      { name: "browser_navigate", description: "Navigate to URL" },
+      { name: "browser_snapshot", description: "Get current page snapshot" },
+      { name: "browser_click", description: "Click element by ref" },
+      { name: "browser_type", description: "Type into element by ref" },
+      { name: "browser_go_back", description: "Navigate back" },
+      { name: "browser_press_key", description: "Press a keyboard key" },
+      { name: "browser_scroll", description: "Scroll the page by (dx, dy) pixels" },
+      { name: "browser_screenshot", description: "Capture a PNG screenshot to /tmp" },
+      { name: "browser_close", description: "Close the browser" },
+    ];
   }
 
-  /** Close browser and MCP connection */
   async close(): Promise<void> {
     try {
-      if (this.client) {
-        await this.callTool("browser_close").catch(() => {});
-      }
-      if (this.transport) {
-        await this.transport.close();
-      }
+      await this.context?.close();
     } catch {
-      // Ignore cleanup errors
-    } finally {
-      this.client = null;
-      this.transport = null;
-      this.connectPromise = null;
+      /* ignore */
     }
+    try {
+      await this.browser?.close();
+    } catch {
+      /* ignore */
+    }
+    this.browser = null;
+    this.context = null;
+    this.page = null;
+    this.launchPromise = null;
   }
 
-  /** Whether the client is currently connected */
   get connected(): boolean {
-    return this.client !== null;
+    return this.browser !== null && this.page !== null;
   }
+
+  // ─── Internal ──────────────────────────────────────────
+
+  private async ensureLaunched(): Promise<void> {
+    if (this.browser && this.page && !this.page.isClosed()) return;
+    if (this.launchPromise) return this.launchPromise;
+    this.launchPromise = this.launch().catch((err) => {
+      this.launchPromise = null;
+      throw err;
+    });
+    return this.launchPromise;
+  }
+
+  private async launch(): Promise<void> {
+    logger.info("playwright", "Launching Chrome (channel=chrome, headless)");
+    this.browser = await chromium.launch({
+      channel: "chrome",
+      headless: true,
+      args: ["--no-sandbox", "--disable-dev-shm-usage"],
+    });
+    this.context = await this.browser.newContext({
+      viewport: { width: 1280, height: 800 },
+      userAgent:
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+    });
+    this.page = await this.context.newPage();
+    this.browser.on("disconnected", () => {
+      logger.warn("playwright", "Browser disconnected — will relaunch on next call");
+      this.browser = null;
+      this.context = null;
+      this.page = null;
+      this.launchPromise = null;
+    });
+  }
+
+  private async reset(): Promise<void> {
+    await this.close();
+  }
+
+  private async navigate(url: string): Promise<string> {
+    if (!url) return JSON.stringify({ error: "url required" });
+    await this.page!.goto(url, {
+      waitUntil: "domcontentloaded",
+      timeout: NAV_TIMEOUT_MS,
+    });
+    // Best-effort settle for dynamic pages (don't block on slow trackers).
+    await this.page!.waitForLoadState("networkidle", { timeout: 3000 }).catch(
+      () => {},
+    );
+    return this.snapshot();
+  }
+
+  private async click(ref: string): Promise<string> {
+    if (!ref) return JSON.stringify({ error: "ref required" });
+    const selector = `[data-pw-ref="${cssEscape(ref)}"]`;
+    await this.page!.click(selector, { timeout: ACTION_TIMEOUT_MS });
+    await this.page!.waitForLoadState("domcontentloaded", { timeout: 5000 }).catch(
+      () => {},
+    );
+    return this.snapshot();
+  }
+
+  private async type(ref: string, text: string, submit: boolean): Promise<string> {
+    if (!ref) return JSON.stringify({ error: "ref required" });
+    const selector = `[data-pw-ref="${cssEscape(ref)}"]`;
+    await this.page!.fill(selector, text, { timeout: ACTION_TIMEOUT_MS });
+    if (submit) {
+      await this.page!.press(selector, "Enter", { timeout: ACTION_TIMEOUT_MS });
+      await this.page!.waitForLoadState("domcontentloaded", {
+        timeout: 5000,
+      }).catch(() => {});
+    }
+    return this.snapshot();
+  }
+
+  private async goBack(): Promise<string> {
+    await this.page!.goBack({
+      waitUntil: "domcontentloaded",
+      timeout: 15_000,
+    }).catch(() => {});
+    return this.snapshot();
+  }
+
+  private async pressKey(key: string): Promise<string> {
+    if (!key) return JSON.stringify({ error: "key required" });
+    await this.page!.keyboard.press(key);
+    await this.page!.waitForLoadState("domcontentloaded", { timeout: 3000 }).catch(
+      () => {},
+    );
+    return this.snapshot();
+  }
+
+  private async scroll(dy: number, dx: number): Promise<string> {
+    const page = this.page!;
+    await page.evaluate(
+      ({ dx, dy }: { dx: number; dy: number }) =>
+        window.scrollBy({ left: dx, top: dy, behavior: "instant" as ScrollBehavior }),
+      { dx, dy },
+    );
+    // Give lazy-loaded content a moment to render.
+    await page.waitForLoadState("networkidle", { timeout: 2000 }).catch(() => {});
+    return this.snapshot();
+  }
+
+  private async screenshot(fullPage: boolean): Promise<string> {
+    const page = this.page!;
+    const ts = Date.now();
+    const path = `/tmp/subbrain-shot-${ts}.png`;
+    const buf = await page.screenshot({ path, fullPage, type: "png" });
+    const url = page.url();
+    const title = await page.title().catch(() => "");
+    return [
+      `Screenshot saved: ${path}`,
+      `Size: ${buf.length} bytes`,
+      `Page: ${title}`,
+      `URL: ${url}`,
+    ].join("\n");
+  }
+
+  private async snapshot(): Promise<string> {
+    const page = this.page!;
+    const url = page.url();
+    const title = await page.title().catch(() => "");
+
+    const collected = await page
+      .evaluate(
+        ({ sel, maxLabel, maxCount }) => {
+          document
+            .querySelectorAll("[data-pw-ref]")
+            .forEach((el) => el.removeAttribute("data-pw-ref"));
+
+          const isVisible = (el: Element): boolean => {
+            const r = (el as HTMLElement).getBoundingClientRect();
+            if (r.width === 0 && r.height === 0) return false;
+            const style = window.getComputedStyle(el as HTMLElement);
+            if (style.display === "none" || style.visibility === "hidden")
+              return false;
+            return true;
+          };
+
+          const label = (el: HTMLElement): string => {
+            const texts = [
+              (el.getAttribute("aria-label") || "").trim(),
+              (el.innerText || "").trim(),
+              (el.getAttribute("title") || "").trim(),
+              (el.getAttribute("placeholder") || "").trim(),
+              ((el as HTMLInputElement).value || "").trim(),
+              (el.getAttribute("alt") || "").trim(),
+              (el.getAttribute("name") || "").trim(),
+            ];
+            for (const t of texts) if (t) return t.slice(0, maxLabel);
+            return "";
+          };
+
+          const nodes = Array.from(document.querySelectorAll(sel));
+          const out: Array<{
+            ref: string;
+            role: string;
+            type?: string;
+            name: string;
+            href?: string;
+          }> = [];
+          let counter = 0;
+          for (const n of nodes) {
+            if (!isVisible(n)) continue;
+            counter++;
+            if (counter > maxCount) break;
+            const el = n as HTMLElement;
+            const ref = String(counter);
+            el.setAttribute("data-pw-ref", ref);
+            const tag = n.tagName.toLowerCase();
+            const role = el.getAttribute("role") || tag;
+            const type =
+              tag === "input" ? (n as HTMLInputElement).type : undefined;
+            const href =
+              tag === "a" ? (n as HTMLAnchorElement).href || undefined : undefined;
+            out.push({ ref, role, type, name: label(el), href });
+          }
+          return out;
+        },
+        {
+          sel: INTERACTIVE_SELECTOR,
+          maxLabel: MAX_ELEMENT_LABEL,
+          maxCount: MAX_INTERACTIVE_ELEMENTS,
+        },
+      )
+      .catch((): Array<never> => []);
+
+    const textPreview = await page
+      .evaluate((max: number) => (document.body?.innerText || "").slice(0, max), MAX_TEXT_PREVIEW)
+      .catch(() => "");
+
+    const lines: string[] = [];
+    lines.push(`URL: ${url}`);
+    lines.push(`Title: ${title}`);
+    if (collected.length > 0) {
+      lines.push("");
+      lines.push(`Interactive elements (${collected.length}):`);
+      for (const el of collected) {
+        let line = `[${el.ref}] ${el.role}`;
+        if (el.type && el.type !== el.role) line += `(${el.type})`;
+        if (el.name) line += ` "${el.name}"`;
+        if (el.href) line += ` → ${el.href}`;
+        lines.push(line);
+      }
+    }
+    if (textPreview) {
+      lines.push("");
+      lines.push("Text:");
+      lines.push(textPreview);
+    }
+    return lines.join("\n");
+  }
+}
+
+/** Escape a ref for use inside a CSS attribute selector value. */
+function cssEscape(value: string): string {
+  return value.replace(/["\\]/g, "\\$&");
 }

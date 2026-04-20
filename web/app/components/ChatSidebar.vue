@@ -56,14 +56,20 @@ const filteredChats = computed(() => {
 
 <template>
   <div class="flex flex-col h-full bg-(--ui-bg-elevated)">
-    <!-- New chat button -->
-    <div class="p-3 border-b border-(--ui-border)">
+    <!-- New chat button + memory link -->
+    <div class="p-3 border-b border-(--ui-border) space-y-2">
       <UButton
         icon="i-lucide-plus"
         label="Новый чат"
         block
         @click="handleNewChat"
       />
+      <NuxtLink
+        to="/memory"
+        class="flex items-center justify-center gap-2 text-xs text-(--ui-text-muted) hover:text-(--ui-text) py-1 transition-colors"
+      >
+        🧠 Память
+      </NuxtLink>
     </div>
 
     <!-- Tabs -->

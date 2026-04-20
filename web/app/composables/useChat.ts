@@ -54,7 +54,7 @@ export function useChat() {
   // ─── Chat management ─────────────────────────────────
 
   async function loadChats() {
-    chats.value = await api<Chat[]>("/v1/chats/?source=web&limit=50");
+    chats.value = await api<Chat[]>("/v1/chats/?limit=50");
   }
 
   async function loadModels() {

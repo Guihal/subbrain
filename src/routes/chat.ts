@@ -2,11 +2,13 @@ import { Elysia, t } from "elysia";
 import { ProviderError } from "../providers";
 import { sseResponse } from "../lib/sse";
 import { MODEL_MAP } from "../lib/model-map";
+import { normalizeMessages } from "../lib/messages";
+import { shouldCompress, compressContext } from "../pipeline/context-compressor";
 import type { ModelRouter } from "../lib/model-router";
 import type { AgentPipeline } from "../pipeline";
 import type { MemoryDB } from "../db";
-import type { Message } from "../providers/types";
 import { logger } from "../lib/logger";
+import { parseSSEChunk } from "../providers/sse-parser";
 
 export function chatRoute(
   router: ModelRouter,
@@ -17,7 +19,16 @@ export function chatRoute(
     "/v1/chat/completions",
     async ({ body, headers }) => {
       const stream = body.stream ?? false;
-      const { model, ...rest } = body;
+      const { model, messages: rawMessages, ...rest } = body;
+      const messages = normalizeMessages(rawMessages);
+
+      // Compress long chat histories before forwarding. Inbound client sends
+      // the full history each turn, so this is the only chance to trim it.
+      if (shouldCompress(messages)) {
+        await compressContext(messages, router, memory ?? null);
+      }
+
+      const params = { ...rest, messages };
 
       // Chat persistence: use X-Chat-Id header if provided
       const chatId = headers["x-chat-id"] as string | undefined;
@@ -30,26 +41,24 @@ export function chatRoute(
       const isVirtual = model in MODEL_MAP;
       logger.info(
         "route",
-        `→ ${model} ${stream ? "stream" : "sync"} ${directMode ? "[direct]" : "[pipeline]"} msgs=${rest.messages.length}`,
+        `→ ${model} ${stream ? "stream" : "sync"} ${directMode ? "[direct]" : "[pipeline]"} msgs=${messages.length}`,
         {
           meta: { direct: directMode, virtual: isVirtual },
         },
       );
 
       // ─── Persist user message to chat ──────────────────
-      const lastUserMsg = rest.messages
-        .filter((m: any) => m.role === "user")
-        .pop();
+      const lastUserMsg = messages.filter((m) => m.role === "user").pop();
       if (memory && chatId && lastUserMsg?.content) {
         // Ensure chat exists
         const existing = memory.getChat(chatId);
         if (!existing) {
-          const title = (lastUserMsg.content as string).slice(0, 80);
+          const title = lastUserMsg.content.slice(0, 80);
           memory.createChat(chatId, title, model, source);
         } else if (existing.model !== model) {
           memory.updateChatModel(chatId, model);
         }
-        memory.appendChatMessage(chatId, "user", lastUserMsg.content as string);
+        memory.appendChatMessage(chatId, "user", lastUserMsg.content);
       }
 
       try {
@@ -57,14 +66,14 @@ export function chatRoute(
         if (pipeline && model in MODEL_MAP && !directMode) {
           const result = await pipeline.execute({
             model,
-            messages: rest.messages as Message[],
+            messages,
             stream,
             sessionId: headers["x-session-id"] as string | undefined,
-            temperature: rest.temperature,
-            max_tokens: rest.max_tokens,
-            top_p: rest.top_p,
-            tools: rest.tools,
-            tool_choice: rest.tool_choice,
+            temperature: params.temperature,
+            max_tokens: params.max_tokens,
+            top_p: params.top_p,
+            tools: params.tools,
+            tool_choice: params.tool_choice,
           });
 
           if (result.stream) {
@@ -107,7 +116,7 @@ export function chatRoute(
 
         // Direct proxy mode (no pipeline, or unknown real model)
         if (stream) {
-          const streamResult = await router.chatStream(model, rest);
+          const streamResult = await router.chatStream(model, params);
           if (memory && chatId) {
             return sseResponse(
               wrapStreamForChat(streamResult, memory, chatId, model),
@@ -116,7 +125,7 @@ export function chatRoute(
           return sseResponse(streamResult);
         }
 
-        const response = await router.chat(model, rest);
+        const response = await router.chat(model, params);
         const assistantMsg = response.choices?.[0]?.message?.content || "";
         if (memory && chatId && assistantMsg) {
           memory.appendChatMessage(chatId, "assistant", assistantMsg, {
@@ -153,7 +162,12 @@ export function chatRoute(
         model: t.String(),
         messages: t.Array(
           t.Object({
-            role: t.String(),
+            role: t.Union([
+              t.Literal("system"),
+              t.Literal("user"),
+              t.Literal("assistant"),
+              t.Literal("tool"),
+            ]),
             content: t.Optional(t.Union([t.String(), t.Null(), t.Array(t.Any())])),
             name: t.Optional(t.String()),
             tool_calls: t.Optional(t.Any()),
@@ -201,16 +215,10 @@ function wrapStreamForChat(
           const lines = buffer.split("\n");
           buffer = lines.pop() || "";
           for (const line of lines) {
-            if (!line.startsWith("data: ")) continue;
-            const payload = line.slice(6).trim();
-            if (payload === "[DONE]") continue;
-            try {
-              const chunk = JSON.parse(payload);
-              const delta = chunk.choices?.[0]?.delta;
-              if (delta?.content) fullContent += delta.content;
-              if (delta?.reasoning_content)
-                fullReasoning += delta.reasoning_content;
-            } catch {}
+            const delta = parseSSEChunk(line);
+            if (!delta) continue;
+            if (delta.content) fullContent += delta.content;
+            if (delta.reasoning_content) fullReasoning += delta.reasoning_content;
           }
         }
 

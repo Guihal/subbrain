@@ -31,8 +31,12 @@ export function embeddingsRoute(router: ModelRouter) {
       body: t.Object({
         model: t.String(),
         input: t.Union([t.String(), t.Array(t.String())]),
-        encoding_format: t.Optional(t.String()),
-        input_type: t.Optional(t.String()),
+        encoding_format: t.Optional(
+          t.Union([t.Literal("float"), t.Literal("base64")]),
+        ),
+        input_type: t.Optional(
+          t.Union([t.Literal("query"), t.Literal("passage")]),
+        ),
       }),
     },
   );

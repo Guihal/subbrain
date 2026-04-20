@@ -7,6 +7,17 @@ import type { ModelRouter } from "../../lib/model-router";
 import type { CompressedEntry } from "./types";
 import { buildConversationText, parseJson } from "./types";
 
+/**
+ * Virtual role used for all night-cycle LLM calls. Default is `coder`
+ * (devstral-2, NVIDIA, instruct/non-reasoning) — previous `flash`
+ * (stepfun-3.5-flash) is a reasoning model that spent ~25s/call on
+ * "thinking" even for mechanical tasks like PII scrubbing, stretching
+ * a full cycle to 7+ hours. `coder` does the same work in 3–5s/call.
+ *
+ * Override via NIGHT_CYCLE_MODEL env.
+ */
+const NIGHT_MODEL = process.env.NIGHT_CYCLE_MODEL || "coder";
+
 // ─── Step 1: PII Scrub ────────────────────────────────
 
 export async function scrubPII(
@@ -15,7 +26,7 @@ export async function scrubPII(
 ): Promise<string> {
   try {
     const response = await router.chat(
-      "flash",
+      NIGHT_MODEL,
       {
         messages: [
           {
@@ -55,7 +66,7 @@ export async function translate(
 
   try {
     const response = await router.chat(
-      "flash",
+      NIGHT_MODEL,
       {
         messages: [
           {
@@ -85,7 +96,7 @@ export async function compress(
 ): Promise<CompressedEntry | null> {
   try {
     const response = await router.chat(
-      "flash",
+      NIGHT_MODEL,
       {
         messages: [
           {
@@ -139,7 +150,7 @@ export async function verify(
 ): Promise<CompressedEntry> {
   try {
     const response = await router.chat(
-      "flash",
+      NIGHT_MODEL,
       {
         messages: [
           {
@@ -196,7 +207,7 @@ export async function dedup(
       .join("\n");
 
     const response = await router.chat(
-      "flash",
+      NIGHT_MODEL,
       {
         messages: [
           {
@@ -256,7 +267,7 @@ export async function extractAntiPatterns(
 
   try {
     const response = await router.chat(
-      "flash",
+      NIGHT_MODEL,
       {
         messages: [
           {
@@ -314,7 +325,7 @@ export async function resolveContradictions(
         .join("\n");
 
       const response = await router.chat(
-        "flash",
+        NIGHT_MODEL,
         {
           messages: [
             {

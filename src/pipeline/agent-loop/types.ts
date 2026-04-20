@@ -6,7 +6,7 @@ import type { Message } from "../../providers/types";
 
 // ─── Constants ───────────────────────────────────────────
 
-export const MAX_STEPS = 20;
+export const MAX_STEPS = 100;
 export const MAX_OUTPUT_TOKENS = 128_000;
 export const MAX_CONTEXT_TOKENS = 128_000;
 export const AGENT_MODEL = "teamlead";
