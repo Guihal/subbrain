@@ -9,6 +9,8 @@ import type {
   ModelInfo,
 } from "./types";
 import { createProxyStream } from "./stream-utils";
+import { fetchJson, fetchStream } from "../lib/http-client";
+import { HttpError } from "../lib/errors";
 
 export class NvidiaProvider implements LLMProvider {
   private baseUrl: string;
@@ -49,19 +51,23 @@ export class NvidiaProvider implements LLMProvider {
   }
 
   async chat(params: ChatParams): Promise<ChatResponse> {
+    if (params.signal?.aborted)
+      throw params.signal.reason ?? new DOMException("Aborted", "AbortError");
     const clamped = this.clamp(params);
-    const res = await fetch(`${this.baseUrl}/chat/completions`, {
-      method: "POST",
-      headers: this.headers(),
-      body: JSON.stringify({ ...clamped, stream: false }),
-    });
-
-    if (!res.ok) {
-      const body = await res.text();
-      throw new ProviderError(res.status, body);
+    try {
+      return await fetchJson<ChatResponse>(
+        `${this.baseUrl}/chat/completions`,
+        {
+          method: "POST",
+          headers: this.headers(),
+          body: JSON.stringify({ ...clamped, stream: false }),
+        },
+        { timeoutMs: 180_000, signal: params.signal },
+      );
+    } catch (e) {
+      if (e instanceof HttpError) throw new ProviderError(e.status, e.body);
+      throw e;
     }
-
-    return (await res.json()) as ChatResponse;
   }
 
   chatStream(params: ChatParams): ReadableStream<Uint8Array> {
@@ -70,65 +76,67 @@ export class NvidiaProvider implements LLMProvider {
     const headers = this.headers();
     const body = JSON.stringify({ ...clamped, stream: true });
 
-    return createProxyStream(() =>
-      fetch(url, {
-        method: "POST",
-        headers,
-        body,
-        signal: AbortSignal.timeout(180_000),
-      }),
-    );
+    return createProxyStream(() => {
+      if (params.signal?.aborted)
+        throw params.signal.reason ?? new DOMException("Aborted", "AbortError");
+      return fetchStream(
+        url,
+        { method: "POST", headers, body },
+        { timeoutMs: 180_000, signal: params.signal },
+      );
+    });
   }
 
   async embed(params: EmbedParams): Promise<EmbedResponse> {
-    const res = await fetch(`${this.baseUrl}/embeddings`, {
-      method: "POST",
-      headers: this.headers(),
-      body: JSON.stringify(params),
-      signal: AbortSignal.timeout(30_000), // 30s — cold start can be slow
-    });
-
-    if (!res.ok) {
-      const body = await res.text();
-      throw new ProviderError(res.status, body);
+    try {
+      return await fetchJson<EmbedResponse>(
+        `${this.baseUrl}/embeddings`,
+        {
+          method: "POST",
+          headers: this.headers(),
+          body: JSON.stringify(params),
+        },
+        { timeoutMs: 30_000 },
+      );
+    } catch (e) {
+      if (e instanceof HttpError) throw new ProviderError(e.status, e.body);
+      throw e;
     }
-
-    return res.json() as Promise<EmbedResponse>;
   }
 
   async rerank(params: RerankParams): Promise<RerankResponse> {
-    const res = await fetch(`${this.baseUrl}/ranking`, {
-      method: "POST",
-      headers: this.headers(),
-      body: JSON.stringify({
-        model: params.model,
-        query: { text: params.query },
-        passages: params.passages,
-        top_n: params.top_n,
-      }),
-      signal: AbortSignal.timeout(30_000), // 30s — cold start can be slow
-    });
-
-    if (!res.ok) {
-      const body = await res.text();
-      throw new ProviderError(res.status, body);
+    try {
+      return await fetchJson<RerankResponse>(
+        `${this.baseUrl}/ranking`,
+        {
+          method: "POST",
+          headers: this.headers(),
+          body: JSON.stringify({
+            model: params.model,
+            query: { text: params.query },
+            passages: params.passages,
+            top_n: params.top_n,
+          }),
+        },
+        { timeoutMs: 30_000 },
+      );
+    } catch (e) {
+      if (e instanceof HttpError) throw new ProviderError(e.status, e.body);
+      throw e;
     }
-
-    return res.json() as Promise<RerankResponse>;
   }
 
   async listModels(): Promise<ModelInfo[]> {
-    const res = await fetch(`${this.baseUrl}/models`, {
-      headers: this.headers(),
-    });
-
-    if (!res.ok) {
-      const body = await res.text();
-      throw new ProviderError(res.status, body);
+    try {
+      const data = await fetchJson<{ data: ModelInfo[] }>(
+        `${this.baseUrl}/models`,
+        { headers: this.headers() },
+      );
+      return data.data;
+    } catch (e) {
+      if (e instanceof HttpError) throw new ProviderError(e.status, e.body);
+      throw e;
     }
-
-    const data = (await res.json()) as { data: ModelInfo[] };
-    return data.data;
   }
 }
 

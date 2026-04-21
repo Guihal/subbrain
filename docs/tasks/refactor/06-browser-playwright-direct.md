@@ -2,7 +2,46 @@
 
 **Оценка:** 1–1.5 дня
 **Зависимости:** —
-**Status:** TODO
+**Status:** DONE (2026-04-21)
+
+## Что сделано
+
+- **Шаг B (прямой chromium.launch):** `src/mcp/playwright-client.ts` уже полностью переписан на `playwright` напрямую (`chromium.launch({channel:"chrome", headless:true, args:["--no-sandbox","--disable-dev-shm-usage"]})`). Реализует 9 методов (`browser_navigate|snapshot|click|type|go_back|press_key|scroll|screenshot|close`) через стабильный фасад `callTool(name, args)`. `registry/web.tools.ts` не трогался.
+- **Шаг C (leak-guard):**
+  - `playwright-client.ts`: глобальный `Set<PlaywrightClient>` + `process.on("beforeExit", ...)` закрывает все живые клиенты. Конструктор регистрирует инстанс, `close()` снимает. Добавлен геттер `contextCount` (live `browser.contexts().length ?? 0`).
+  - `src/app/shutdown.ts`: перед `playwright.close()` логируется `open contexts before close: N` — видно в logs во время graceful shutdown, ловит накопившиеся leaked-контексты.
+  - `tests/browser-smoke.ts` (новый): 5× `browser_navigate`, измеряет `ps ax -o comm= | grep -c '^chrome'` до/после, с poll-stabilize, exit 1 при `after > before`. Имя `*.ts` без `.test.` — `bun test` не подхватывает.
+- **package.json:** удалён `@playwright/mcp` (больше не импортируется в коде); добавлен прямой `"playwright": "^1.49.0"` (до этого тянулся транзитивом из mcp как alpha-версия).
+
+## Приёмка
+
+- [x] `bunx tsc --noEmit` = 0.
+- [x] `bun test` → 163 pass / 0 fail.
+- [ ] **Docker smoke (при деплое):**
+  ```
+  ssh root@109.120.187.244
+  cd /path/to/repo && git pull
+  docker compose build && docker compose up -d
+  docker compose exec subbrain bun run tests/browser-smoke.ts
+  ```
+  Ожидается `[smoke] OK — no leak`. Если fail — проверить `docker compose exec subbrain ps ax | grep chrome`.
+- [ ] BROWSER-1 ✅ в `docs/02-audit.md` (ниже).
+
+## PR-описание (шаблон)
+
+```
+BROWSER-1 closed: direct chromium wrapper + leak-guard.
+
+- remove @playwright/mcp (replaced by direct chromium.launch)
+- add playwright as direct dep
+- register process.on("beforeExit") — close all PlaywrightClient instances
+- log contextCount in shutdown.ts before close
+- tests/browser-smoke.ts: 5× navigate, ps chrome count before/after must match
+
+Deploy:
+  docker compose build && docker compose up -d
+  docker compose exec subbrain bun run tests/browser-smoke.ts    # expect: OK — no leak
+```
 
 ## Цель
 

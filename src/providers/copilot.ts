@@ -12,6 +12,10 @@ import type {
 import { ProviderError } from "./nvidia";
 import { createProxyStream } from "./stream-utils";
 import { logger } from "../lib/logger";
+import { fetchJson, fetchStream } from "../lib/http-client";
+import { HttpError } from "../lib/errors";
+
+const log = logger.child("copilot");
 
 const COPILOT_TOKEN_URL = "https://api.github.com/copilot_internal/v2/token";
 const COPILOT_API_URL = "https://api.githubcopilot.com";
@@ -60,7 +64,7 @@ export class CopilotProvider implements LLMProvider {
   async init(): Promise<void> {
     // If we already have a ghu_ token, we're good
     if (this.oauthToken.startsWith("ghu_")) {
-      logger.info("copilot", "Using provided OAuth token (ghu_)");
+      log.info("Using provided OAuth token (ghu_)");
       return;
     }
 
@@ -70,7 +74,7 @@ export class CopilotProvider implements LLMProvider {
       const trimmed = saved.trim();
       if (trimmed.startsWith("ghu_")) {
         this.oauthToken = trimmed;
-        logger.info("copilot", `Loaded OAuth token from ${this.tokenFilePath}`);
+        log.info(`Loaded OAuth token from ${this.tokenFilePath}`);
         return;
       }
     } catch {
@@ -82,39 +86,44 @@ export class CopilotProvider implements LLMProvider {
   }
 
   private async deviceFlow(): Promise<void> {
-    logger.info("copilot", "Starting GitHub Device OAuth flow...");
+    log.info("Starting GitHub Device OAuth flow...");
 
-    const codeRes = await fetch(DEVICE_CODE_URL, {
-      method: "POST",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: `client_id=${COPILOT_CLIENT_ID}&scope=copilot`,
-    });
-
-    if (!codeRes.ok) {
-      throw new ProviderError(
-        codeRes.status,
-        `Device code request failed: ${await codeRes.text()}`,
-      );
-    }
-
-    const codeData = (await codeRes.json()) as {
+    let codeData: {
       device_code: string;
       user_code: string;
       verification_uri: string;
       expires_in: number;
       interval: number;
     };
+    try {
+      codeData = await fetchJson(
+        DEVICE_CODE_URL,
+        {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: `client_id=${COPILOT_CLIENT_ID}&scope=copilot`,
+        },
+        { timeoutMs: 30_000 },
+      );
+    } catch (e) {
+      if (e instanceof HttpError)
+        throw new ProviderError(
+          e.status,
+          `Device code request failed: ${e.body}`,
+        );
+      throw e;
+    }
 
     // Log the code for user to authorize
-    logger.info("copilot", "═══════════════════════════════════════════════════════");
-    logger.info("copilot", "AUTHORIZE COPILOT:");
-    logger.info("copilot", `  1. Open: ${codeData.verification_uri}`);
-    logger.info("copilot", `  2. Enter code: ${codeData.user_code}`);
-    logger.info("copilot", "  Waiting for authorization...");
-    logger.info("copilot", "═══════════════════════════════════════════════════════");
+    log.info("═══════════════════════════════════════════════════════");
+    log.info("AUTHORIZE COPILOT:");
+    log.info(`  1. Open: ${codeData.verification_uri}`);
+    log.info(`  2. Enter code: ${codeData.user_code}`);
+    log.info("  Waiting for authorization...");
+    log.info("═══════════════════════════════════════════════════════");
 
     // Poll for authorization
     const deadline = Date.now() + codeData.expires_in * 1000;
@@ -123,27 +132,36 @@ export class CopilotProvider implements LLMProvider {
     while (Date.now() < deadline) {
       await new Promise((r) => setTimeout(r, interval));
 
-      const tokenRes = await fetch(DEVICE_TOKEN_URL, {
-        method: "POST",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: `client_id=${COPILOT_CLIENT_ID}&device_code=${codeData.device_code}&grant_type=urn:ietf:params:oauth:grant-type:device_code`,
-      });
-
-      const tokenData = (await tokenRes.json()) as {
-        access_token?: string;
-        error?: string;
-      };
+      let tokenData: { access_token?: string; error?: string };
+      try {
+        tokenData = await fetchJson(
+          DEVICE_TOKEN_URL,
+          {
+            method: "POST",
+            headers: {
+              Accept: "application/json",
+              "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body: `client_id=${COPILOT_CLIENT_ID}&device_code=${codeData.device_code}&grant_type=urn:ietf:params:oauth:grant-type:device_code`,
+          },
+          { timeoutMs: 30_000 },
+        );
+      } catch (e) {
+        if (e instanceof HttpError) {
+          throw new ProviderError(
+            e.status,
+            `Device token request failed: ${e.body}`,
+          );
+        }
+        throw e;
+      }
 
       if (tokenData.access_token) {
         this.oauthToken = tokenData.access_token;
 
         // Save to disk for future restarts
         await Bun.write(this.tokenFilePath, this.oauthToken);
-        logger.info(
-          "copilot",
+        log.info(
           `OAuth token obtained and saved to ${this.tokenFilePath}`,
         );
         return;
@@ -189,42 +207,39 @@ export class CopilotProvider implements LLMProvider {
   }
 
   private async fetchToken(): Promise<CopilotToken> {
-    const res = await fetch(COPILOT_TOKEN_URL, {
-      headers: {
-        Authorization: `token ${this.oauthToken}`,
-        Accept: "application/json",
-        "User-Agent": "GithubCopilot/1.0",
-        "Editor-Version": "vscode/1.100.0",
-        "Editor-Plugin-Version": "copilot-chat/0.25.0",
-      },
-      signal: AbortSignal.timeout(10_000),
-    });
-
-    if (!res.ok) {
-      const body = await res.text();
-      // If 401/404 — OAuth token might have expired, clear saved file
-      if (res.status === 401 || res.status === 404) {
-        logger.info(
-          "copilot",
-          "OAuth token invalid/expired, re-running device flow...",
-        );
-        try {
-          await Bun.write(this.tokenFilePath, "");
-        } catch {}
-        await this.deviceFlow();
-        // Retry with new token
-        return this.fetchToken();
-      }
-      throw new ProviderError(
-        res.status,
-        `Copilot token fetch failed: ${body}`,
+    let data: CopilotToken;
+    try {
+      data = await fetchJson<CopilotToken>(
+        COPILOT_TOKEN_URL,
+        {
+          headers: {
+            Authorization: `token ${this.oauthToken}`,
+            Accept: "application/json",
+            "User-Agent": "GithubCopilot/1.0",
+            "Editor-Version": "vscode/1.100.0",
+            "Editor-Plugin-Version": "copilot-chat/0.25.0",
+          },
+        },
+        { timeoutMs: 10_000 },
       );
+    } catch (e) {
+      if (e instanceof HttpError) {
+        // 401/404 — OAuth token might have expired, clear saved file
+        if (e.status === 401 || e.status === 404) {
+          log.info("OAuth token invalid/expired, re-running device flow...");
+          try {
+            await Bun.write(this.tokenFilePath, "");
+          } catch {}
+          await this.deviceFlow();
+          return this.fetchToken();
+        }
+        throw new ProviderError(e.status, `Copilot token fetch failed: ${e.body}`);
+      }
+      throw e;
     }
 
-    const data = (await res.json()) as CopilotToken;
-    logger.info(
-      "copilot",
-      `Session token refreshed, expires at ${new Date(data.expires_at * 1000).toISOString()}`,
+    log.info(
+`Session token refreshed, expires at ${new Date(data.expires_at * 1000).toISOString()}`,
     );
     return data;
   }
@@ -293,50 +308,50 @@ export class CopilotProvider implements LLMProvider {
   }
 
   async chat(params: ChatParams): Promise<ChatResponse> {
+    if (params.signal?.aborted) throw params.signal.reason ?? new DOMException("Aborted", "AbortError");
     const clamped = this.clamp(params);
     const sanitized = {
       ...clamped,
       messages: this.sanitizeMessages(clamped.messages),
     };
-    const reqHeaders = await this.headers();
-    const res = await fetch(`${COPILOT_API_URL}/chat/completions`, {
-      method: "POST",
-      headers: reqHeaders,
-      body: JSON.stringify({ ...sanitized, stream: false }),
-      signal: AbortSignal.timeout(60_000),
-    });
-
-    if (!res.ok) {
-      const body = await res.text();
-      logger.warn(
-        "copilot",
-        `chat() error ${res.status}: ${body.slice(0, 300)}`,
-        {
-          meta: {
-            roles: sanitized.messages.map((m) => m.role),
-            hasToolCalls: sanitized.messages.some((m) => m.tool_calls),
-            hasToolResults: sanitized.messages.some((m) => m.role === "tool"),
-          },
-        },
+    const body = JSON.stringify({ ...sanitized, stream: false });
+    const url = `${COPILOT_API_URL}/chat/completions`;
+    const doRequest = async (): Promise<ChatResponse> => {
+      const reqHeaders = await this.headers();
+      return await fetchJson<ChatResponse>(
+        url,
+        { method: "POST", headers: reqHeaders, body },
+        { timeoutMs: 60_000, signal: params.signal },
       );
-      if (res.status === 401) {
-        this.cachedToken = null;
-        const retryHeaders = await this.headers();
-        const retry = await fetch(`${COPILOT_API_URL}/chat/completions`, {
-          method: "POST",
-          headers: retryHeaders,
-          body: JSON.stringify({ ...sanitized, stream: false }),
-          signal: AbortSignal.timeout(60_000),
-        });
-        if (!retry.ok) {
-          throw new ProviderError(retry.status, await retry.text());
-        }
-        return (await retry.json()) as ChatResponse;
-      }
-      throw new ProviderError(res.status, body);
-    }
+    };
 
-    return (await res.json()) as ChatResponse;
+    try {
+      return await doRequest();
+    } catch (e) {
+      if (e instanceof HttpError) {
+        log.warn(
+`chat() error ${e.status}: ${e.body.slice(0, 300)}`,
+          {
+            meta: {
+              roles: sanitized.messages.map((m) => m.role),
+              hasToolCalls: sanitized.messages.some((m) => m.tool_calls),
+              hasToolResults: sanitized.messages.some((m) => m.role === "tool"),
+            },
+          },
+        );
+        if (e.status === 401) {
+          this.cachedToken = null;
+          try {
+            return await doRequest();
+          } catch (e2) {
+            if (e2 instanceof HttpError) throw new ProviderError(e2.status, e2.body);
+            throw e2;
+          }
+        }
+        throw new ProviderError(e.status, e.body);
+      }
+      throw e;
+    }
   }
 
   chatStream(params: ChatParams): ReadableStream<Uint8Array> {
@@ -349,9 +364,8 @@ export class CopilotProvider implements LLMProvider {
 
     const bodyPayload = { ...sanitized, stream: true };
     const bodyStr = JSON.stringify(bodyPayload);
-    logger.info(
-      "copilot",
-      `chatStream() model=${sanitized.model} msgs=${sanitized.messages.length} tools=${sanitized.tools?.length ?? 0} bodySize=${bodyStr.length}`,
+    log.info(
+`chatStream() model=${sanitized.model} msgs=${sanitized.messages.length} tools=${sanitized.tools?.length ?? 0} bodySize=${bodyStr.length}`,
     );
     // Debug: log first few messages structure
     for (let i = 0; i < Math.min(5, sanitized.messages.length); i++) {
@@ -365,17 +379,17 @@ export class CopilotProvider implements LLMProvider {
       if (m.tool_calls) info.tool_calls_count = m.tool_calls.length;
       if ((m as any).tool_call_id) info.tool_call_id = (m as any).tool_call_id;
       if ((m as any).name) info.name = (m as any).name;
-      logger.info("copilot", `  msg[${i}]: ${JSON.stringify(info)}`);
+      log.info(`  msg[${i}]: ${JSON.stringify(info)}`);
     }
 
     return createProxyStream(async () => {
+      if (params.signal?.aborted) throw params.signal.reason ?? new DOMException("Aborted", "AbortError");
       const hdrs = await self.headers();
-      return fetch(`${COPILOT_API_URL}/chat/completions`, {
-        method: "POST",
-        headers: hdrs,
-        body: bodyStr,
-        signal: AbortSignal.timeout(180_000),
-      });
+      return fetchStream(
+        `${COPILOT_API_URL}/chat/completions`,
+        { method: "POST", headers: hdrs, body: bodyStr },
+        { timeoutMs: 180_000, signal: params.signal },
+      );
     });
   }
 

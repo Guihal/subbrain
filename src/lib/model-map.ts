@@ -1,3 +1,6 @@
+export const EMBED_MODEL = "nvidia/llama-3.2-nemoretriever-300m-embed-v1";
+export const RERANK_MODEL = "nvidia/rerank-qa-mistral-4b";
+
 export type Priority = "critical" | "normal" | "low";
 export type ProviderName = "nvidia" | "openrouter" | "copilot";
 

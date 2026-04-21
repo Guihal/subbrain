@@ -12,7 +12,7 @@ import {
   MAX_CONTEXT_TOKENS,
   MAX_DYNAMIC_TOOLS,
 } from "./types";
-import { preProcess } from "../agent-pipeline/pre-processing";
+import { runPre } from "../agent-pipeline/phases/pre";
 
 export async function buildAgentSystemPrompt(
   memory: MemoryDB,
@@ -176,22 +176,24 @@ export default async (input: string) => {
   // ─── Memory context: prefer hippocampus summary when router available ───
   if (router) {
     try {
-      const preResult = await preProcess(
+      const preResult = await runPre({
         memory,
         router,
         rag,
-        task,
-        "autonomous",
-      );
-      if (preResult.executiveSummary) {
+        model,
+        userMessage: task,
+        firstMessage: true,
+      });
+      const { preOutput } = preResult;
+      if (preOutput.executiveSummary) {
         parts.push(
-          `\n## Executive Summary (собрано гиппокампом)\n${preResult.executiveSummary}`,
+          `\n## Executive Summary (собрано гиппокампом)\n${preOutput.executiveSummary}`,
         );
       }
       // Still include focus directives separately (they're always critical)
-      if (Object.keys(preResult.focusEntries).length > 0) {
+      if (Object.keys(preOutput.focusEntries).length > 0) {
         parts.push("\n## Текущие директивы");
-        for (const [key, value] of Object.entries(preResult.focusEntries)) {
+        for (const [key, value] of Object.entries(preOutput.focusEntries)) {
           parts.push(`- **${key}:** ${value}`);
         }
       }

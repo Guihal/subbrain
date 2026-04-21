@@ -4,6 +4,12 @@
  * State is shared across mounts via useState so switching tabs keeps
  * loaded lists (no refetch churn). All mutations go through api() which
  * injects the Bearer token via useApi().
+ *
+ * Structure: list-style layers (shared/context/archive/agent/log) are
+ * built via the internal `useMemoryLayer` factory — one load/save/remove
+ * shape, parametrized per layer by a `buildQuery` + optional
+ * `onAfterLoad` (for auxiliary aggregates like agentIds/logSessions) +
+ * `readonly` (log). Layer 1 (focus) is a KV shape and stays bespoke.
  */
 
 export type MemoryTab =
@@ -13,6 +19,8 @@ export type MemoryTab =
   | "archive"
   | "agent"
   | "log";
+
+export type ListLayer = Exclude<MemoryTab, "focus">;
 
 export interface FocusEntry {
   key: string;
@@ -85,6 +93,110 @@ interface ListEnvelope<T> {
   total: number;
 }
 
+/**
+ * Schema map — field metadata per layer. Exposed for future generic editors;
+ * current `MemoryEditor.vue` still uses per-kind template blocks, but new
+ * forms should read from here.
+ */
+export const LAYER_SCHEMAS = {
+  focus: { fields: ["key", "value"] as const, readonly: false, kind: "kv" as const },
+  shared: { fields: ["category", "content", "tags"] as const, readonly: false, kind: "list" as const },
+  context: { fields: ["title", "content", "tags"] as const, readonly: false, kind: "list" as const },
+  archive: {
+    fields: ["title", "content", "tags", "confidence"] as const,
+    readonly: false,
+    kind: "list" as const,
+  },
+  agent: { fields: ["content", "tags"] as const, readonly: false, kind: "list" as const },
+  log: { fields: [] as const, readonly: true, kind: "list" as const },
+} as const;
+
+type ApiFn = ReturnType<typeof useApi>["api"];
+
+function qs(params: Record<string, string | number | undefined>): string {
+  const parts: string[] = [];
+  for (const [k, v] of Object.entries(params)) {
+    if (v === undefined || v === "" || v === null) continue;
+    parts.push(`${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`);
+  }
+  return parts.length ? `?${parts.join("&")}` : "";
+}
+
+interface LayerDeps {
+  api: ApiFn;
+  loading: Ref<boolean>;
+  error: Ref<string | null>;
+  selected: Ref<MemoryRow | null>;
+}
+
+interface LayerOpts {
+  buildQuery: () => Record<string, string | number | undefined>;
+  readonly?: boolean;
+  onAfterLoad?: () => Promise<void>;
+}
+
+function useMemoryLayer<T extends { id: string | number }>(
+  layer: ListLayer,
+  deps: LayerDeps,
+  opts: LayerOpts,
+) {
+  const state = useState<ListEnvelope<T>>(
+    `memory-${layer}`,
+    () => ({ items: [], total: 0 }),
+  );
+
+  async function load() {
+    deps.loading.value = true;
+    deps.error.value = null;
+    try {
+      state.value = await deps.api<ListEnvelope<T>>(
+        `/v1/memory/${layer}${qs(opts.buildQuery())}`,
+      );
+      if (opts.onAfterLoad) await opts.onAfterLoad();
+    } catch (e) {
+      deps.error.value = (e as Error).message;
+    } finally {
+      deps.loading.value = false;
+    }
+  }
+
+  async function save(id: T["id"], patch: Partial<T>): Promise<void> {
+    if (opts.readonly) return;
+    const updated = await deps.api<T>(`/v1/memory/${layer}/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(patch),
+    });
+    const s = deps.selected.value;
+    if (
+      s &&
+      s.__kind === layer &&
+      (s as unknown as { id: T["id"] }).id === id
+    ) {
+      deps.selected.value = {
+        __kind: layer,
+        ...(updated as object),
+      } as MemoryRow;
+    }
+    await load();
+  }
+
+  async function remove(id: T["id"]): Promise<void> {
+    if (opts.readonly) return;
+    await deps.api(`/v1/memory/${layer}/${id}`, { method: "DELETE" });
+    const s = deps.selected.value;
+    if (
+      s &&
+      s.__kind === layer &&
+      (s as unknown as { id: T["id"] }).id === id
+    ) {
+      deps.selected.value = null;
+    }
+    await load();
+  }
+
+  return { state, load, save, remove };
+}
+
 export function useMemory() {
   const { api } = useApi();
 
@@ -94,28 +206,8 @@ export function useMemory() {
   const pageSize = useState<number>("memory-page-size", () => 50);
 
   const focus = useState<FocusEntry[]>("memory-focus", () => []);
-  const shared = useState<{ items: SharedRow[]; total: number }>(
-    "memory-shared",
-    () => ({ items: [], total: 0 }),
-  );
-  const context = useState<{ items: ContextRow[]; total: number }>(
-    "memory-context",
-    () => ({ items: [], total: 0 }),
-  );
-  const archive = useState<{ items: ArchiveRow[]; total: number }>(
-    "memory-archive",
-    () => ({ items: [], total: 0 }),
-  );
-  const agent = useState<{ items: AgentMemRow[]; total: number }>(
-    "memory-agent",
-    () => ({ items: [], total: 0 }),
-  );
   const agentIds = useState<string[]>("memory-agent-ids", () => []);
   const agentFilter = useState<string>("memory-agent-filter", () => "");
-  const log = useState<{ items: LogRow[]; total: number }>(
-    "memory-log",
-    () => ({ items: [], total: 0 }),
-  );
   const logSessions = useState<string[]>("memory-log-sessions", () => []);
   const logSessionFilter = useState<string>(
     "memory-log-session-filter",
@@ -126,33 +218,62 @@ export function useMemory() {
   const loading = useState<boolean>("memory-loading", () => false);
   const error = useState<string | null>("memory-error", () => null);
 
+  const deps: LayerDeps = { api, loading, error, selected };
+  const stdQuery = () => ({
+    limit: pageSize.value,
+    offset: (page.value - 1) * pageSize.value,
+    q: search.value || undefined,
+  });
+
+  const sharedL = useMemoryLayer<SharedRow>("shared", deps, {
+    buildQuery: stdQuery,
+  });
+  const contextL = useMemoryLayer<ContextRow>("context", deps, {
+    buildQuery: stdQuery,
+  });
+  const archiveL = useMemoryLayer<ArchiveRow>("archive", deps, {
+    buildQuery: stdQuery,
+  });
+  const agentL = useMemoryLayer<AgentMemRow>("agent", deps, {
+    buildQuery: () => ({
+      limit: pageSize.value,
+      offset: (page.value - 1) * pageSize.value,
+      agent_id: agentFilter.value || undefined,
+    }),
+    onAfterLoad: async () => {
+      agentIds.value = await api<string[]>("/v1/memory/agent/agents");
+    },
+  });
+  const logL = useMemoryLayer<LogRow>("log", deps, {
+    readonly: true,
+    buildQuery: () => ({
+      limit: pageSize.value,
+      offset: (page.value - 1) * pageSize.value,
+      session_id: logSessionFilter.value || undefined,
+    }),
+    onAfterLoad: async () => {
+      logSessions.value = await api<string[]>(
+        "/v1/memory/log/sessions?limit=50",
+      );
+    },
+  });
+
   const totalForActive = computed(() => {
     switch (activeTab.value) {
       case "focus":
         return focus.value.length;
       case "shared":
-        return shared.value.total;
+        return sharedL.state.value.total;
       case "context":
-        return context.value.total;
+        return contextL.state.value.total;
       case "archive":
-        return archive.value.total;
+        return archiveL.state.value.total;
       case "agent":
-        return agent.value.total;
+        return agentL.state.value.total;
       case "log":
-        return log.value.total;
+        return logL.state.value.total;
     }
   });
-
-  // ─── Loaders ─────────────────────────────────────────
-
-  function qs(params: Record<string, string | number | undefined>): string {
-    const parts: string[] = [];
-    for (const [k, v] of Object.entries(params)) {
-      if (v === undefined || v === "" || v === null) continue;
-      parts.push(`${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`);
-    }
-    return parts.length ? `?${parts.join("&")}` : "";
-  }
 
   async function loadFocus() {
     loading.value = true;
@@ -170,120 +291,20 @@ export function useMemory() {
     }
   }
 
-  async function loadShared() {
-    loading.value = true;
-    error.value = null;
-    try {
-      shared.value = await api<ListEnvelope<SharedRow>>(
-        `/v1/memory/shared${qs({
-          limit: pageSize.value,
-          offset: (page.value - 1) * pageSize.value,
-          q: search.value || undefined,
-        })}`,
-      );
-    } catch (e) {
-      error.value = (e as Error).message;
-    } finally {
-      loading.value = false;
-    }
-  }
-
-  async function loadContext() {
-    loading.value = true;
-    error.value = null;
-    try {
-      context.value = await api<ListEnvelope<ContextRow>>(
-        `/v1/memory/context${qs({
-          limit: pageSize.value,
-          offset: (page.value - 1) * pageSize.value,
-          q: search.value || undefined,
-        })}`,
-      );
-    } catch (e) {
-      error.value = (e as Error).message;
-    } finally {
-      loading.value = false;
-    }
-  }
-
-  async function loadArchive() {
-    loading.value = true;
-    error.value = null;
-    try {
-      archive.value = await api<ListEnvelope<ArchiveRow>>(
-        `/v1/memory/archive${qs({
-          limit: pageSize.value,
-          offset: (page.value - 1) * pageSize.value,
-          q: search.value || undefined,
-        })}`,
-      );
-    } catch (e) {
-      error.value = (e as Error).message;
-    } finally {
-      loading.value = false;
-    }
-  }
-
-  async function loadAgent() {
-    loading.value = true;
-    error.value = null;
-    try {
-      const [list, ids] = await Promise.all([
-        api<ListEnvelope<AgentMemRow>>(
-          `/v1/memory/agent${qs({
-            limit: pageSize.value,
-            offset: (page.value - 1) * pageSize.value,
-            agent_id: agentFilter.value || undefined,
-          })}`,
-        ),
-        api<string[]>("/v1/memory/agent/agents"),
-      ]);
-      agent.value = list;
-      agentIds.value = ids;
-    } catch (e) {
-      error.value = (e as Error).message;
-    } finally {
-      loading.value = false;
-    }
-  }
-
-  async function loadLog() {
-    loading.value = true;
-    error.value = null;
-    try {
-      const [list, sessions] = await Promise.all([
-        api<ListEnvelope<LogRow>>(
-          `/v1/memory/log${qs({
-            limit: pageSize.value,
-            offset: (page.value - 1) * pageSize.value,
-            session_id: logSessionFilter.value || undefined,
-          })}`,
-        ),
-        api<string[]>("/v1/memory/log/sessions?limit=50"),
-      ]);
-      log.value = list;
-      logSessions.value = sessions;
-    } catch (e) {
-      error.value = (e as Error).message;
-    } finally {
-      loading.value = false;
-    }
-  }
-
   async function loadActive() {
     switch (activeTab.value) {
       case "focus":
         return loadFocus();
       case "shared":
-        return loadShared();
+        return sharedL.load();
       case "context":
-        return loadContext();
+        return contextL.load();
       case "archive":
-        return loadArchive();
+        return archiveL.load();
       case "agent":
-        return loadAgent();
+        return agentL.load();
       case "log":
-        return loadLog();
+        return logL.load();
     }
   }
 
@@ -298,8 +319,6 @@ export function useMemory() {
   function select(row: MemoryRow | null) {
     selected.value = row;
   }
-
-  // ─── Mutations ───────────────────────────────────────
 
   async function saveFocus(key: string, value: string) {
     await api(`/v1/memory/focus/${encodeURIComponent(key)}`, {
@@ -319,82 +338,6 @@ export function useMemory() {
     await loadFocus();
   }
 
-  async function saveShared(id: string, patch: Partial<SharedRow>) {
-    const updated = await api<SharedRow>(`/v1/memory/shared/${id}`, {
-      method: "PATCH",
-      body: JSON.stringify(patch),
-    });
-    if (selected.value?.__kind === "shared" && selected.value.id === id) {
-      selected.value = { __kind: "shared", ...updated };
-    }
-    await loadShared();
-  }
-
-  async function deleteShared(id: string) {
-    await api(`/v1/memory/shared/${id}`, { method: "DELETE" });
-    if (selected.value?.__kind === "shared" && selected.value.id === id) {
-      selected.value = null;
-    }
-    await loadShared();
-  }
-
-  async function saveContext(id: string, patch: Partial<ContextRow>) {
-    const updated = await api<ContextRow>(`/v1/memory/context/${id}`, {
-      method: "PATCH",
-      body: JSON.stringify(patch),
-    });
-    if (selected.value?.__kind === "context" && selected.value.id === id) {
-      selected.value = { __kind: "context", ...updated };
-    }
-    await loadContext();
-  }
-
-  async function deleteContext(id: string) {
-    await api(`/v1/memory/context/${id}`, { method: "DELETE" });
-    if (selected.value?.__kind === "context" && selected.value.id === id) {
-      selected.value = null;
-    }
-    await loadContext();
-  }
-
-  async function saveArchive(id: string, patch: Partial<ArchiveRow>) {
-    const updated = await api<ArchiveRow>(`/v1/memory/archive/${id}`, {
-      method: "PATCH",
-      body: JSON.stringify(patch),
-    });
-    if (selected.value?.__kind === "archive" && selected.value.id === id) {
-      selected.value = { __kind: "archive", ...updated };
-    }
-    await loadArchive();
-  }
-
-  async function deleteArchive(id: string) {
-    await api(`/v1/memory/archive/${id}`, { method: "DELETE" });
-    if (selected.value?.__kind === "archive" && selected.value.id === id) {
-      selected.value = null;
-    }
-    await loadArchive();
-  }
-
-  async function saveAgent(id: string, patch: Partial<AgentMemRow>) {
-    const updated = await api<AgentMemRow>(`/v1/memory/agent/${id}`, {
-      method: "PATCH",
-      body: JSON.stringify(patch),
-    });
-    if (selected.value?.__kind === "agent" && selected.value.id === id) {
-      selected.value = { __kind: "agent", ...updated };
-    }
-    await loadAgent();
-  }
-
-  async function deleteAgent(id: string) {
-    await api(`/v1/memory/agent/${id}`, { method: "DELETE" });
-    if (selected.value?.__kind === "agent" && selected.value.id === id) {
-      selected.value = null;
-    }
-    await loadAgent();
-  }
-
   return {
     // state
     activeTab,
@@ -402,13 +345,13 @@ export function useMemory() {
     page,
     pageSize,
     focus,
-    shared,
-    context,
-    archive,
-    agent,
+    shared: sharedL.state,
+    context: contextL.state,
+    archive: archiveL.state,
+    agent: agentL.state,
+    log: logL.state,
     agentIds,
     agentFilter,
-    log,
     logSessions,
     logSessionFilter,
     selected,
@@ -417,24 +360,24 @@ export function useMemory() {
     totalForActive,
     // loaders
     loadFocus,
-    loadShared,
-    loadContext,
-    loadArchive,
-    loadAgent,
-    loadLog,
+    loadShared: sharedL.load,
+    loadContext: contextL.load,
+    loadArchive: archiveL.load,
+    loadAgent: agentL.load,
+    loadLog: logL.load,
     loadActive,
     switchTab,
     select,
     // mutations
     saveFocus,
     deleteFocus,
-    saveShared,
-    deleteShared,
-    saveContext,
-    deleteContext,
-    saveArchive,
-    deleteArchive,
-    saveAgent,
-    deleteAgent,
+    saveShared: sharedL.save,
+    deleteShared: sharedL.remove,
+    saveContext: contextL.save,
+    deleteContext: contextL.remove,
+    saveArchive: archiveL.save,
+    deleteArchive: archiveL.remove,
+    saveAgent: agentL.save,
+    deleteAgent: agentL.remove,
   };
 }

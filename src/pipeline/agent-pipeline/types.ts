@@ -24,6 +24,9 @@ export interface PipelineResult {
   stream?: ReadableStream<Uint8Array>;
 }
 
+/** Minimum combined (user + assistant) length to trigger post-processing extraction. */
+export const MIN_EXTRACTION_LENGTH = 100;
+
 export interface PreProcessingOutput {
   executiveSummary: string;
   ragResults: RAGResult[];

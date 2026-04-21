@@ -200,4 +200,35 @@ console.assert(
   "Happy path should have no timeouts",
 );
 
-console.log("✅ All 8 arbitration tests passed");
+// ─── Test 9: One specialist throws hard → others still synthesize ─
+
+chatCalls = [];
+let callIdx = 0;
+const mockRouterOneThrows = {
+  chat: async (model: string, params: any) => {
+    chatCalls.push({ model, messages: params.messages });
+    callIdx++;
+    // Second call (middle specialist) throws a non-timeout error
+    if (model !== "teamlead" && callIdx === 2) {
+      throw new Error("upstream 500");
+    }
+    if (model === "teamlead") return makeResponse("Synth after partial fail.");
+    return makeResponse(`${model} ok`);
+  },
+} as any;
+const roomPartial2 = new ArbitrationRoom(mockRouterOneThrows);
+const result4 = await roomPartial2.run("x", "", {
+  agents: ["coder", "critic", "generalist"],
+  category: "architecture",
+  timeout: 500,
+});
+console.assert(
+  result4.synthesis === "Synth after partial fail.",
+  `allSettled should synthesize with N-1, got: ${result4.synthesis}`,
+);
+console.assert(
+  result4.agentResponses.filter((r) => r.content.length > 0).length === 2,
+  "Exactly 2 of 3 specialists should have content",
+);
+
+console.log("✅ All 9 arbitration tests passed");

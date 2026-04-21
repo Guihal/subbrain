@@ -7,6 +7,8 @@ import type { Message } from "../providers/types";
 import { MODEL_MAP } from "../lib/model-map";
 import { logger } from "../lib/logger";
 
+const log = logger.child("telegram");
+
 export interface TelegramBotConfig {
   token: string;
   ownerChatId: number;
@@ -46,7 +48,7 @@ export class TelegramBot {
   /** Must be called before handling updates (fetches bot info from Telegram) */
   async init(): Promise<void> {
     await this.bot.init();
-    logger.info("telegram", `Bot @${this.bot.botInfo.username} initialized`);
+    log.info(`Bot @${this.bot.botInfo.username} initialized`);
   }
 
   // ─── Handlers ─────────────────────────────────────────────
@@ -187,7 +189,7 @@ export class TelegramBot {
         await sendLongMessage(ctx, content);
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        logger.error("telegram", `Pipeline error: ${msg}`);
+        log.error(`Pipeline error: ${msg}`);
         await ctx.reply(`❌ Ошибка: ${msg}`);
       }
     });
@@ -233,9 +235,7 @@ export class TelegramBot {
         parse_mode: "Markdown",
       });
     } catch (err) {
-      logger.error(
-        "telegram",
-        `Notify failed: ${err instanceof Error ? err.message : String(err)}`,
+      log.error(`Notify failed: ${err instanceof Error ? err.message : String(err)}`,
       );
     }
   }
@@ -262,18 +262,18 @@ export class TelegramBot {
     await this.bot.api.setWebhook(url, {
       secret_token: this.webhookSecret,
     });
-    logger.info("telegram", `Webhook set: ${url}`);
+    log.info(`Webhook set: ${url}`);
   }
 
   async removeWebhook(): Promise<void> {
     await this.bot.api.deleteWebhook();
-    logger.info("telegram", "Webhook removed");
+    log.info("Webhook removed");
   }
 
   /** Start long-polling (for local dev without webhook) */
   startPolling(): void {
     this.bot.start({
-      onStart: () => logger.info("telegram", "Bot polling started"),
+      onStart: () => log.info("Bot polling started"),
     });
   }
 

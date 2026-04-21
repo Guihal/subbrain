@@ -290,10 +290,14 @@ export function migrate(db: Database): void {
     `);
   }
 
-  // Migration 3: Add 'reasoning' role to layer4_log CHECK constraint
+  // Migration 3: Add 'reasoning' role to layer4_log CHECK constraint.
+  // Wrapped in a transaction — a crash mid-DROP/RENAME would otherwise leave
+  // both layer4_log and layer4_log_new present. Uses .run() per statement
+  // (not .exec()) so that a failure at any step throws and rolls back the tx;
+  // bun:sqlite's multi-statement .exec() silently skips failing statements.
   if (version < 3) {
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS layer4_log_new (
+    const mig3Stmts = [
+      `CREATE TABLE IF NOT EXISTS layer4_log_new (
         id          INTEGER PRIMARY KEY AUTOINCREMENT,
         request_id  TEXT NOT NULL,
         session_id  TEXT NOT NULL,
@@ -302,16 +306,19 @@ export function migrate(db: Database): void {
         content     TEXT NOT NULL,
         token_count INTEGER,
         created_at  INTEGER NOT NULL DEFAULT (unixepoch())
-      );
-      INSERT INTO layer4_log_new SELECT * FROM layer4_log;
-      DROP TABLE layer4_log;
-      ALTER TABLE layer4_log_new RENAME TO layer4_log;
-      CREATE INDEX IF NOT EXISTS idx_log_request  ON layer4_log(request_id);
-      CREATE INDEX IF NOT EXISTS idx_log_session  ON layer4_log(session_id);
-      CREATE INDEX IF NOT EXISTS idx_log_agent    ON layer4_log(agent_id);
-      CREATE INDEX IF NOT EXISTS idx_log_created  ON layer4_log(created_at);
-      PRAGMA user_version = 3;
-    `);
+      )`,
+      `INSERT INTO layer4_log_new SELECT * FROM layer4_log`,
+      `DROP TABLE layer4_log`,
+      `ALTER TABLE layer4_log_new RENAME TO layer4_log`,
+      `CREATE INDEX IF NOT EXISTS idx_log_request ON layer4_log(request_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_log_session ON layer4_log(session_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_log_agent   ON layer4_log(agent_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_log_created ON layer4_log(created_at)`,
+      `PRAGMA user_version = 3`,
+    ];
+    db.transaction(() => {
+      for (const sql of mig3Stmts) db.query(sql).run();
+    })();
   }
 }
 

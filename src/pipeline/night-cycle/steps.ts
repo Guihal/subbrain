@@ -4,6 +4,7 @@
  */
 import type { MemoryDB, LogRow } from "../../db";
 import type { ModelRouter } from "../../lib/model-router";
+import type { RAGPipeline } from "../../rag";
 import type { CompressedEntry } from "./types";
 import { buildConversationText, parseJson } from "./types";
 
@@ -193,6 +194,7 @@ export async function dedup(
   entry: CompressedEntry,
   memory: MemoryDB,
   router: ModelRouter,
+  rag?: RAGPipeline,
 ): Promise<boolean> {
   try {
     const existing = memory.searchArchive(
@@ -246,6 +248,14 @@ Output JSON:
         content: entry.content,
         tags: entry.tags,
       });
+      // Re-index: merged content must be searchable by its new vector.
+      if (rag) {
+        try {
+          await rag.indexEntry(parsed.duplicateOf, "archive", entry.content);
+        } catch {
+          // Skip re-embed on provider error — next night-cycle retries.
+        }
+      }
       return true;
     }
 
@@ -301,6 +311,7 @@ If no anti-patterns found, return exactly: "NONE"`,
 export async function resolveContradictions(
   memory: MemoryDB,
   router: ModelRouter,
+  rag?: RAGPipeline,
 ): Promise<number> {
   const lowConfidence = memory.db
     .query(
@@ -368,6 +379,13 @@ Output JSON:
           content: parsed.mergedContent,
           confidence: "HIGH",
         });
+        if (rag) {
+          try {
+            await rag.indexEntry(entry.id, "archive", parsed.mergedContent);
+          } catch {
+            // Skip re-embed on provider error
+          }
+        }
         resolved++;
       }
     } catch {

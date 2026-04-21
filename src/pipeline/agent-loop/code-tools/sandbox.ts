@@ -21,6 +21,10 @@ export async function executeSandboxed(
 ): Promise<CodeToolExecResult> {
   const start = Date.now();
 
+  if (typeof Worker === "undefined") {
+    throw new Error("sandbox_unavailable: Worker API not present");
+  }
+
   // Wrap user code in a worker script that:
   // 1. Blocks dangerous globals
   // 2. Defines the tool function

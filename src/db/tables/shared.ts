@@ -1,6 +1,11 @@
-import { Database, type SQLQueryBindings } from "bun:sqlite";
+import { Database } from "bun:sqlite";
 import { sanitizeFtsQuery } from "../../lib/fts-utils";
 import type { SharedRow, AgentMemRow, FtsResult, VecResult } from "../types";
+import { updateRow } from "./update-row";
+
+// columns updatable from REST/UI
+const SHARED_UPDATABLE = new Set(["content", "tags", "category"]);
+const AGENT_MEM_UPDATABLE = new Set(["content", "tags"]);
 
 export class SharedTable {
   constructor(public readonly db: Database) {}
@@ -52,13 +57,7 @@ export class SharedTable {
   }
 
   updateShared(id: string, fields: { content?: string; tags?: string; category?: string }): void {
-    const sets: string[] = ["updated_at = unixepoch()"];
-    const vals: SQLQueryBindings[] = [];
-    if (fields.content !== undefined) { sets.push("content = ?"); vals.push(fields.content); }
-    if (fields.tags !== undefined) { sets.push("tags = ?"); vals.push(fields.tags); }
-    if (fields.category !== undefined) { sets.push("category = ?"); vals.push(fields.category); }
-    vals.push(id);
-    this.db.query(`UPDATE shared_memory SET ${sets.join(", ")} WHERE id = ?`).run(...vals);
+    updateRow(this.db, "shared_memory", SHARED_UPDATABLE, id, fields);
   }
 
   deleteShared(id: string): void {
@@ -113,13 +112,7 @@ export class SharedTable {
   }
 
   updateAgentMemory(id: string, fields: { content?: string; tags?: string }): void {
-    const sets: string[] = ["updated_at = unixepoch()"];
-    const vals: SQLQueryBindings[] = [];
-    if (fields.content !== undefined) { sets.push("content = ?"); vals.push(fields.content); }
-    if (fields.tags !== undefined) { sets.push("tags = ?"); vals.push(fields.tags); }
-    if (sets.length === 1) return;
-    vals.push(id);
-    this.db.query(`UPDATE agent_memory SET ${sets.join(", ")} WHERE id = ?`).run(...vals);
+    updateRow(this.db, "agent_memory", AGENT_MEM_UPDATABLE, id, fields);
   }
 
   deleteAgentMemory(id: string): void {

@@ -1,6 +1,11 @@
-import { Database, type SQLQueryBindings } from "bun:sqlite";
+import { Database } from "bun:sqlite";
 import { sanitizeFtsQuery } from "../../lib/fts-utils";
 import type { ContextRow, ArchiveRow, FtsResult } from "../types";
+import { updateRow } from "./update-row";
+
+// columns updatable from REST/UI
+const CONTEXT_UPDATABLE = new Set(["title", "content", "tags"]);
+const ARCHIVE_UPDATABLE = new Set(["title", "content", "tags", "confidence"]);
 
 export class MemoryTable {
   constructor(public readonly db: Database) {}
@@ -55,19 +60,21 @@ export class MemoryTable {
     id: string,
     fields: { title?: string; content?: string; tags?: string },
   ): void {
-    const sets: string[] = ["updated_at = unixepoch()"];
-    const vals: SQLQueryBindings[] = [];
-    if (fields.title !== undefined) { sets.push("title = ?"); vals.push(fields.title); }
-    if (fields.content !== undefined) { sets.push("content = ?"); vals.push(fields.content); }
-    if (fields.tags !== undefined) { sets.push("tags = ?"); vals.push(fields.tags); }
-    vals.push(id);
-    this.db.query(`UPDATE layer2_context SET ${sets.join(", ")} WHERE id = ?`).run(...vals);
+    updateRow(this.db, "layer2_context", CONTEXT_UPDATABLE, id, fields);
   }
 
   getContext(id: string): ContextRow | null {
     return this.db
       .query("SELECT * FROM layer2_context WHERE id = ?")
       .get(id) as ContextRow | null;
+  }
+
+  getContextMany(ids: string[]): ContextRow[] {
+    if (ids.length === 0) return [];
+    const placeholders = ids.map(() => "?").join(",");
+    return this.db
+      .query(`SELECT * FROM layer2_context WHERE id IN (${placeholders})`)
+      .all(...ids) as ContextRow[];
   }
 
   listContext(limit = 50, offset = 0): ContextRow[] {
@@ -109,6 +116,14 @@ export class MemoryTable {
       .get(id) as ArchiveRow | null;
   }
 
+  getArchiveMany(ids: string[]): ArchiveRow[] {
+    if (ids.length === 0) return [];
+    const placeholders = ids.map(() => "?").join(",");
+    return this.db
+      .query(`SELECT * FROM layer3_archive WHERE id IN (${placeholders})`)
+      .all(...ids) as ArchiveRow[];
+  }
+
   listArchive(limit = 50, offset = 0): ArchiveRow[] {
     return this.db
       .query("SELECT * FROM layer3_archive ORDER BY updated_at DESC LIMIT ? OFFSET ?")
@@ -124,14 +139,7 @@ export class MemoryTable {
     id: string,
     fields: { title?: string; content?: string; tags?: string; confidence?: "HIGH" | "LOW" },
   ): void {
-    const sets: string[] = ["updated_at = unixepoch()"];
-    const vals: SQLQueryBindings[] = [];
-    if (fields.title !== undefined) { sets.push("title = ?"); vals.push(fields.title); }
-    if (fields.content !== undefined) { sets.push("content = ?"); vals.push(fields.content); }
-    if (fields.tags !== undefined) { sets.push("tags = ?"); vals.push(fields.tags); }
-    if (fields.confidence !== undefined) { sets.push("confidence = ?"); vals.push(fields.confidence); }
-    vals.push(id);
-    this.db.query(`UPDATE layer3_archive SET ${sets.join(", ")} WHERE id = ?`).run(...vals);
+    updateRow(this.db, "layer3_archive", ARCHIVE_UPDATABLE, id, fields);
   }
 
   deleteArchive(id: string): void {

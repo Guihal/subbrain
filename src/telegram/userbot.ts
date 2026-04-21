@@ -3,6 +3,8 @@ import { StringSession } from "telegram/sessions";
 import type { MemoryDB } from "../db";
 import { logger } from "../lib/logger";
 
+const log = logger.child("userbot");
+
 const TG_OP_TIMEOUT_MS = 30_000;
 
 function withTimeout<T>(
@@ -86,13 +88,11 @@ export class Userbot {
       phoneCode: async () => {
         return prompt("Введи код из Telegram: ") || "";
       },
-      onError: (err) => logger.error("userbot", `Login error: ${err.message}`),
+      onError: (err) => log.error(`Login error: ${err.message}`),
     });
 
     const sessionString = this.client.session.save() as unknown as string;
-    logger.info(
-      "userbot",
-      "Logged in. Save this session string to TG_SESSION env.",
+    log.info("Logged in. Save this session string to TG_SESSION env.",
     );
     console.log("\n=== SESSION STRING (save to .env as TG_SESSION) ===");
     console.log(sessionString);
@@ -105,9 +105,7 @@ export class Userbot {
     await this.client.connect();
     const me = await this.client.getMe();
     this.connected = true;
-    logger.info(
-      "userbot",
-      `Connected as ${(me as any).firstName} (@${(me as any).username})`,
+    log.info(`Connected as ${(me as any).firstName} (@${(me as any).username})`,
     );
   }
 
@@ -118,15 +116,15 @@ export class Userbot {
   /** Ensure the client is connected; reconnect if dropped */
   private async ensureConnected(): Promise<void> {
     if (this.connected && this.client.connected) return;
-    logger.warn("userbot", "Connection lost — attempting reconnect");
+    log.warn("Connection lost — attempting reconnect");
     this.connected = false;
     try {
       await withTimeout(this.client.connect(), TG_OP_TIMEOUT_MS, "reconnect");
       this.connected = true;
-      logger.info("userbot", "Reconnected successfully");
+      log.info("Reconnected successfully");
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      logger.error("userbot", `Reconnect failed: ${msg}`);
+      log.error(`Reconnect failed: ${msg}`);
       throw new Error(`Telegram reconnect failed: ${msg}`);
     }
   }
@@ -284,9 +282,7 @@ export class Userbot {
   /** Set channels to monitor (usernames or IDs) */
   setMonitoredChannels(channels: string[]): void {
     this.monitoredChannels = channels;
-    logger.info(
-      "userbot",
-      `Monitoring ${channels.length} channels: ${channels.join(", ")}`,
+    log.info(`Monitoring ${channels.length} channels: ${channels.join(", ")}`,
     );
   }
 
@@ -328,26 +324,22 @@ export class Userbot {
           `[${username || chatId}] ${text}`,
         );
 
-        logger.debug(
-          "userbot",
-          `New message in ${username || chatId}: ${text.slice(0, 100)}...`,
+        log.debug(`New message in ${username || chatId}: ${text.slice(0, 100)}...`,
         );
       } catch (err) {
-        logger.error(
-          "userbot",
-          `Event handler error: ${err instanceof Error ? err.message : String(err)}`,
+        log.error(`Event handler error: ${err instanceof Error ? err.message : String(err)}`,
         );
       }
     });
 
-    logger.info("userbot", "Channel monitoring started");
+    log.info("Channel monitoring started");
   }
 
   async disconnect(): Promise<void> {
     this.running = false;
     this.connected = false;
     await this.client.disconnect();
-    logger.info("userbot", "Disconnected");
+    log.info("Disconnected");
   }
 
   getSessionString(): string {

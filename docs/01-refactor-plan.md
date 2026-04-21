@@ -27,7 +27,7 @@
 - **HIGH-9** — `routes/chat.ts:wrapStreamForChat`: флаг `isClosed` при `signal.aborted || ws.closed`; запретить `db.updateChatMessage` после срабатывания. Тест: long-stream, клиент дисконнектится на 3-м chunk'е, БД не содержит частичный ответ.
 - **HIGH-10** — `lib/auth.ts:40`: хэш обе стороны через `crypto.subtle.digest('SHA-256')`, `timingSafeEqual` на 64-hex фиксированной длины.
 
-### Блок C. MEDIUM пачкой (один PR «hardening quality»)
+### Блок C. MEDIUM пачкой (один PR «hardening quality») ✅ PR 05
 
 - **MED-1** generic `updateRow(table, allowlist, id, patch)` в `db/index.ts` (whitelist колонок — `Set<string>` рядом с таблицей).
 - **MED-2** `RERANK_MODEL` константа в `lib/model-map.ts` рядом с `EMBED_MODEL`.
@@ -80,7 +80,7 @@
 - `compressor-hook.ts` — вызов `context-compressor` перед каждым step'ом.
 - `system-prompt.ts` остаётся как есть.
 
-### Agent pipeline
+### Agent pipeline ✅ PR 09
 
 [src/pipeline/agent-pipeline/index.ts](../src/pipeline/agent-pipeline/index.ts) (422) → разбить оркестратор:
 
@@ -197,19 +197,19 @@ Bugfix сначала, splitting после — чтобы diff-ы не смеш
 
 | PR | Содержание | Оценка | Блокер | Task |
 |---|---|---|---|---|
-| 1 | HIGH-2, 3, 5, 6 (pipeline robustness) | 1 день | — | [01](tasks/refactor/01-pipeline-robustness.md) |
-| 2 | HIGH-1, 4, 7, 9 (race / cap / N+1 / SSE) | 1 день | после PR 1 | [02](tasks/refactor/02-hardening-race-cap-n1-sse.md) |
-| 3 | HIGH-8 (http-client унификация) | **1 день** | — | [03](tasks/refactor/03-http-client-unification.md) |
+| ~~1~~ | ~~HIGH-2, 3, 5, 6 (pipeline robustness)~~ | ~~1 день~~ | ~~—~~ | ✅ [01](tasks/refactor/01-pipeline-robustness.md) |
+| ~~2~~ | ~~HIGH-1, 4, 7, 9 (race / cap / N+1 / SSE)~~ | ~~1 день~~ | ~~после PR 1~~ | ✅ [02](tasks/refactor/02-hardening-race-cap-n1-sse.md) |
+| ~~3~~ | ~~HIGH-8 (http-client унификация)~~ | ~~**1 день**~~ | ~~—~~ | ✅ [03](tasks/refactor/03-http-client-unification.md) |
 | 4 | ✅ HIGH-10 (auth timing) | 0.5 часа | — | [04](tasks/refactor/04-auth-timing.md) |
 | 5 | MEDIUM pack (MED-1…14) | 1 день | — | [05](tasks/refactor/05-medium-pack.md) |
-| 6 | BROWSER-1 попытка A → B + leak-smoke | 1–1.5 дня | — | [06](tasks/refactor/06-browser-playwright-direct.md) |
-| 7 | Splitting `src/index.ts` → `app/*` | 0.5 дня | — | [07](tasks/refactor/07-split-index-to-app.md) |
-| 8 | Splitting `agent-loop/index.ts` | 1 день | после 1, 2 | [08](tasks/refactor/08-split-agent-loop.md) |
-| 9 | Splitting `agent-pipeline/*` | 1 день | — | [09](tasks/refactor/09-split-agent-pipeline.md) |
+| ~~6~~ | ~~BROWSER-1 попытка A → B + leak-smoke~~ | ~~1–1.5 дня~~ | ~~—~~ | ✅ [06](tasks/refactor/06-browser-playwright-direct.md) |
+| ~~7~~ | ~~Splitting `src/index.ts` → `app/*`~~ | ~~0.5 дня~~ | ~~—~~ | ✅ [07](tasks/refactor/07-split-index-to-app.md) |
+| ~~8~~ | ~~Splitting `agent-loop/index.ts`~~ | ~~1 день~~ | ~~после 1, 2~~ | ✅ [08](tasks/refactor/08-split-agent-loop.md) |
+| ~~9~~ | ~~Splitting `agent-pipeline/*`~~ | ~~1 день~~ | ~~—~~ | ✅ [09](tasks/refactor/09-split-agent-pipeline.md) |
 | ~~10~~ | ~~Splitting `db/index.ts` → `db/tables/*`~~ | ~~0.5 дня~~ | ~~—~~ | ✅ [10](tasks/refactor/10-split-db-tables.md) |
-| 11 | Splitting `memory.vue` + `useMemory` | 1 день | — | [11](tasks/refactor/11-split-memory-page.md) |
-| 12 | Splitting `useChat.ts` | 0.5 дня | — | [12](tasks/refactor/12-split-use-chat.md) |
-| 13 | AppError + logger.child + PaginatedResponse | 0.5 дня | после 10 | [13](tasks/refactor/13-app-error-logger-envelope.md) |
+| 11 | ✅ (фаза A) Splitting `memory.vue` → `components/memory/{Tabs,FilterBar,List,Editor}.vue` | 1 день | — | [11](tasks/refactor/11-split-memory-page.md) — фаза B (useMemory factory) ещё TODO |
+| ~~12~~ | ~~Splitting `useChat.ts`~~ | ~~0.5 дня~~ | ~~—~~ | ✅ [12](tasks/refactor/12-split-use-chat.md) |
+| ~~13~~ | ~~AppError + logger.child + PaginatedResponse~~ | ~~0.5 дня~~ | ~~после 10~~ | ✅ [13](tasks/refactor/13-app-error-logger-envelope.md) |
 | 14 | ✅ SSE parser унификация в providers | 0.5 дня | — | [14](tasks/refactor/14-sse-parser-providers.md) |
 | 15 | Тесты smoke + docs update | 1 день | после всех | [15](tasks/refactor/15-tests-docs-acceptance.md) |
 

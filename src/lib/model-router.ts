@@ -8,9 +8,13 @@ import {
   type ModelTarget,
 } from "./model-map";
 import { RateLimiter } from "./rate-limiter";
+import { UpstreamExhaustedError } from "./errors";
 
 /** Hard timeout for any single provider call (ms) */
 const REQUEST_TIMEOUT = 60_000;
+
+/** Cap on fallback model switches per chat() call. */
+const MAX_FALLBACK_ATTEMPTS = 1;
 
 /** RPM limits per provider */
 const PROVIDER_RPM: Record<ProviderName, number> = {
@@ -122,7 +126,10 @@ export class ModelRouter {
     const fallback = getFallback(virtualModel);
     const backend = this.getBackend(primary.provider);
 
+    const attempts: { model: string; status: number; body: string }[] = [];
+
     return backend.limiter.schedule(priority, async () => {
+      // Primary (+ 5xx retry-same-once)
       try {
         return await withTimeout(
           backend.provider.chat({ ...params, model: primary.model }),
@@ -130,32 +137,61 @@ export class ModelRouter {
           primary.model,
         );
       } catch (err) {
-        if (err instanceof ProviderError) {
-          this.handleProviderError(err, primary.provider);
-
-          // Retry once with same model on 5xx
-          if (err.status >= 500) {
-            try {
-              return await withTimeout(
-                backend.provider.chat({ ...params, model: primary.model }),
-                REQUEST_TIMEOUT,
-                `${primary.model} (retry)`,
-              );
-            } catch (retryErr) {
-              if (fallback && retryErr instanceof ProviderError) {
-                return await this.callFallback(fallback, params, priority);
-              }
+        if (!(err instanceof ProviderError)) throw err;
+        this.handleProviderError(err, primary.provider);
+        attempts.push({
+          model: primary.model,
+          status: err.status,
+          body: err.message,
+        });
+        // Auth failures short-circuit — no fallback, no wrap.
+        if (err.status === 401 || err.status === 403) throw err;
+        if (err.status >= 500) {
+          try {
+            return await withTimeout(
+              backend.provider.chat({ ...params, model: primary.model }),
+              REQUEST_TIMEOUT,
+              `${primary.model} (retry)`,
+            );
+          } catch (retryErr) {
+            if (retryErr instanceof ProviderError) {
+              attempts.push({
+                model: primary.model,
+                status: retryErr.status,
+                body: retryErr.message,
+              });
+            } else {
               throw retryErr;
             }
           }
+        }
+      }
 
-          // On 4xx (except 429/401/403), try fallback
-          if (fallback && err.status !== 401 && err.status !== 403) {
-            return await this.callFallback(fallback, params, priority);
+      // Fallback (capped at MAX_FALLBACK_ATTEMPTS)
+      let fallbackUsed = 0;
+      if (fallback && fallbackUsed < MAX_FALLBACK_ATTEMPTS) {
+        fallbackUsed++;
+        try {
+          return await this.callFallback(fallback, params, priority);
+        } catch (fbErr) {
+          if (fbErr instanceof ProviderError) {
+            attempts.push({
+              model: fallback.model,
+              status: fbErr.status,
+              body: fbErr.message,
+            });
+          } else {
+            throw fbErr;
           }
         }
-        throw err;
       }
+
+      const last = attempts[attempts.length - 1];
+      throw new UpstreamExhaustedError({
+        lastStatus: last?.status,
+        lastBody: last?.body,
+        attempts,
+      });
     });
   }
 
@@ -266,7 +302,10 @@ export class ModelRouter {
             );
           }
         } catch (err) {
-          const msg = err instanceof Error ? err.message : String(err);
+          // Cap msg to 500 chars — provider error bodies can be multi-MB HTML
+          // pages and would otherwise be re-encoded into the client SSE stream.
+          const rawMsg = err instanceof Error ? err.message : String(err);
+          const msg = rawMsg.slice(0, 500);
           controller.enqueue(
             encoder.encode(
               `data: ${JSON.stringify({ error: { message: msg, type: "router_error" } })}\n\n`,

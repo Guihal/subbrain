@@ -177,4 +177,45 @@ describe("tool-runner handler dispatch", () => {
   });
 });
 
+// ─── Per-scope timeouts (HIGH-3) ────────────────────────
+
+describe("tool-runner per-scope timeouts", () => {
+  test("scope→timeout map: web_/memory_/embed_/consult_/default", async () => {
+    const { toolTimeoutMs } = await import("../src/pipeline/agent-loop/tool-runner");
+    expect(toolTimeoutMs("web_navigate")).toBe(15000);
+    expect(toolTimeoutMs("memory_search")).toBe(3000);
+    expect(toolTimeoutMs("embed_text")).toBe(5000);
+    expect(toolTimeoutMs("consult_coder")).toBe(20000);
+    expect(toolTimeoutMs("think")).toBe(5000);
+    expect(toolTimeoutMs("done")).toBe(5000);
+  });
+
+  test("hung memory_* handler → timeout error under 3.5s", async () => {
+    // Dynamic tool routed through router.chat — hung router proves timeout.
+    // Name "memory_hang" matches the memory_ scope → 3000ms cap.
+    const hangRouter = {
+      chat: () => new Promise(() => {}),
+      chatStream: () => new ReadableStream(),
+    } as any;
+    const hangDyn = {
+      ...mockDynamicTools,
+      get: (n: string) =>
+        n === "memory_hang"
+          ? { name: "memory_hang", model: "coder", promptTemplate: "" }
+          : null,
+    } as any;
+    const t0 = Date.now();
+    const r = await executeAgentTool(
+      tc("memory_hang", { input: "" }),
+      { ...deps(), router: hangRouter, dynamicTools: hangDyn },
+      mockLog,
+    );
+    const elapsed = Date.now() - t0;
+    expect(elapsed).toBeLessThan(3500);
+    const parsed = JSON.parse(r);
+    expect(parsed.error?.code).toBe("timeout");
+    expect(parsed.error?.name).toBe("memory_hang");
+  });
+});
+
 console.log("🎉 Tool runner tests passed!");

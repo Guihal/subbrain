@@ -314,4 +314,110 @@ try {
   unlinkSync("data/test-night-fail.db");
 } catch {}
 
-console.log("✅ All 8 night cycle tests passed");
+// ─── Test 9: HIGH-5 — tags with FTS meta-chars don't throw ──
+
+{
+  const dbPath = "data/test-night-fts.db";
+  try { unlinkSync(dbPath); } catch {}
+  const m = new MemoryDB(dbPath);
+  m.appendLog("r1", "s1", "a1", "user", "Tell me about tag sanitization in FTS");
+  m.appendLog(
+    "r1",
+    "s1",
+    "a1",
+    "assistant",
+    "FTS5 treats special characters as operators. Any quote, colon or star must be stripped or quoted before MATCH or the query throws.",
+  );
+  // Router that forces compressed tags with dangerous chars.
+  const ftsRouter = {
+    chat: async (_model: string, params: any) => {
+      const sys = params.messages?.[0]?.content || "";
+      if (sys.includes("PII scrubber")) return makeResponse(params.messages[1].content);
+      if (sys.includes("Translate")) return makeResponse(params.messages[1].content);
+      if (sys.includes("knowledge compressor")) {
+        return makeResponse(
+          JSON.stringify({
+            title: "Tag sanitization",
+            content: "FTS5 needs sanitized tokens.",
+            tags: 'tag"with:quote*,bun,elysia',
+            skip: false,
+          }),
+        );
+      }
+      if (sys.includes("fact verifier")) return makeResponse(JSON.stringify({ accurate: true, issues: [] }));
+      if (sys.includes("compare a new")) return makeResponse(JSON.stringify({ isDuplicate: false, action: "append" }));
+      return makeResponse("NONE");
+    },
+    scheduleRaw: async (_p: string, fn: () => Promise<any>) => fn(),
+    raw: { embed: async () => ({ data: [{ embedding: new Array(2048).fill(0) }] }), rerank: async () => ({ results: [] }) },
+  } as any;
+  const r = new RAGPipeline(m, ftsRouter);
+  const cyc = new NightCycle(m, ftsRouter, r);
+  const res = await cyc.run();
+  console.assert(
+    res.errors.length === 0,
+    `FTS-hostile tags should not error, got: ${res.errors.join(" | ")}`,
+  );
+  console.assert(res.archiveEntriesCreated >= 1, "Archive should be written despite hostile tags");
+  m.close();
+  try { unlinkSync(dbPath); } catch {}
+}
+
+// ─── Test 10: HIGH-6 — embed failure → no archive row ────
+
+{
+  const dbPath = "data/test-night-embed-fail.db";
+  try { unlinkSync(dbPath); } catch {}
+  const m = new MemoryDB(dbPath);
+  m.appendLog("r1", "s1", "a1", "user", "Explain transactions with RAG indexing");
+  m.appendLog(
+    "r1",
+    "s1",
+    "a1",
+    "assistant",
+    "Transactions ensure archive insert and vector upsert are atomic. If embed fails, no orphan row is left for RAG to miss later.",
+  );
+  let embedCalls = 0;
+  const embedFailRouter = {
+    chat: async (_model: string, params: any) => {
+      const sys = params.messages?.[0]?.content || "";
+      if (sys.includes("PII scrubber")) return makeResponse(params.messages[1].content);
+      if (sys.includes("Translate")) return makeResponse(params.messages[1].content);
+      if (sys.includes("knowledge compressor")) {
+        return makeResponse(
+          JSON.stringify({
+            title: "Atomic archive",
+            content: "Embed first, then insert + upsert in a db.transaction.",
+            tags: "archive,transaction",
+            skip: false,
+          }),
+        );
+      }
+      if (sys.includes("fact verifier")) return makeResponse(JSON.stringify({ accurate: true, issues: [] }));
+      if (sys.includes("compare a new")) return makeResponse(JSON.stringify({ isDuplicate: false, action: "append" }));
+      return makeResponse("NONE");
+    },
+    scheduleRaw: async (_p: string, fn: () => Promise<any>) => fn(),
+    raw: {
+      embed: async () => {
+        embedCalls++;
+        throw new Error("embed-upstream-down");
+      },
+      rerank: async () => ({ results: [] }),
+    },
+  } as any;
+  const r = new RAGPipeline(m, embedFailRouter);
+  const cyc = new NightCycle(m, embedFailRouter, r);
+  const res = await cyc.run();
+  console.assert(embedCalls > 0, "Embed should have been attempted");
+  console.assert(
+    res.archiveEntriesCreated === 0,
+    `Embed fail → no archive row (got ${res.archiveEntriesCreated})`,
+  );
+  const rows = m.db.query("SELECT count(*) AS c FROM layer3_archive").get() as { c: number };
+  console.assert(rows.c === 0, `No archive row expected, got ${rows.c}`);
+  m.close();
+  try { unlinkSync(dbPath); } catch {}
+}
+
+console.log("✅ All 10 night cycle tests passed");

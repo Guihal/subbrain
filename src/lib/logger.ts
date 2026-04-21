@@ -104,6 +104,15 @@ export class Logger {
     return new RequestLogger(this, requestId, sessionId);
   }
 
+  /**
+   * Create a scoped logger that prefixes every call with `stage`.
+   * Nested scopes chain via `.`: `logger.child("copilot").child("stream")`
+   * writes stage `copilot.stream`.
+   */
+  child(stage: string): ScopedLogger {
+    return new ScopedLogger(this, stage);
+  }
+
   private formatForDb(entry: LogEntry): string {
     const parts = [`[${entry.level.toUpperCase()}] ${entry.message}`];
     if (entry.model) parts.push(`model=${entry.model}`);
@@ -113,7 +122,16 @@ export class Logger {
     if (entry.tokensOut) parts.push(`tokens_out=${entry.tokensOut}`);
     if (entry.meta) {
       for (const [k, v] of Object.entries(entry.meta)) {
-        const val = typeof v === "string" ? v : JSON.stringify(v);
+        let val: string;
+        if (typeof v === "string") {
+          val = v;
+        } else {
+          try {
+            val = JSON.stringify(v ?? null);
+          } catch {
+            val = String(v);
+          }
+        }
         // Truncate long values
         parts.push(`${k}=${val.length > 500 ? val.slice(0, 500) + "…" : val}`);
       }
@@ -173,6 +191,31 @@ export class RequestLogger {
       sessionId: this.sessionId,
       ...extra,
     });
+  }
+}
+
+// ─── Scoped Logger (stage-prefixed) ──────────────────────
+
+export class ScopedLogger {
+  constructor(
+    private parent: Logger,
+    private stage: string,
+  ) {}
+
+  debug(message: string, extra?: Partial<LogEntry>): void {
+    this.parent.log({ level: "debug", stage: this.stage, message, ...extra });
+  }
+  info(message: string, extra?: Partial<LogEntry>): void {
+    this.parent.log({ level: "info", stage: this.stage, message, ...extra });
+  }
+  warn(message: string, extra?: Partial<LogEntry>): void {
+    this.parent.log({ level: "warn", stage: this.stage, message, ...extra });
+  }
+  error(message: string, extra?: Partial<LogEntry>): void {
+    this.parent.log({ level: "error", stage: this.stage, message, ...extra });
+  }
+  child(subStage: string): ScopedLogger {
+    return new ScopedLogger(this.parent, `${this.stage}.${subStage}`);
   }
 }
 

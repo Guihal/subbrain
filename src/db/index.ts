@@ -50,6 +50,7 @@ export class MemoryDB {
   updateContext = (id: string, fields: { title?: string; content?: string; tags?: string }) =>
     this._mem.updateContext(id, fields);
   getContext = (id: string) => this._mem.getContext(id);
+  getContextMany = (ids: string[]) => this._mem.getContextMany(ids);
   listContext = (limit?: number, offset?: number) => this._mem.listContext(limit, offset);
   countContext = () => this._mem.countContext();
   deleteContext = (id: string) => this._mem.deleteContext(id);
@@ -58,6 +59,7 @@ export class MemoryDB {
   insertArchive = (id: string, title: string, content: string, tags?: string, sourceRequestIds?: string[], confidence?: "HIGH" | "LOW", agentId?: string) =>
     this._mem.insertArchive(id, title, content, tags, sourceRequestIds, confidence, agentId);
   getArchive = (id: string) => this._mem.getArchive(id);
+  getArchiveMany = (ids: string[]) => this._mem.getArchiveMany(ids);
   listArchive = (limit?: number, offset?: number) => this._mem.listArchive(limit, offset);
   countArchive = () => this._mem.countArchive();
   updateArchive = (id: string, fields: { title?: string; content?: string; tags?: string; confidence?: "HIGH" | "LOW" }) =>

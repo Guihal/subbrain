@@ -1,6 +1,18 @@
 import { Elysia, t } from "elysia";
 import type { MemoryDB } from "../db";
 
+// Mask JSON-like and key=value occurrences of secret fields.
+// Handles both `"api_key":"secret"` (from JSON.stringify in logger meta)
+// and `api_key=secret` / `authorization=Bearer foo` (from formatForDb).
+const SECRET_KEYS = "(api[_-]?key|authorization|token|bearer)";
+const SECRET_JSON_RE = new RegExp(`"${SECRET_KEYS}"\\s*:\\s*"[^"]*"`, "gi");
+const SECRET_KV_RE = new RegExp(`\\b${SECRET_KEYS}=[^\\s|]+`, "gi");
+function maskSecrets(s: string): string {
+  return s
+    .replace(SECRET_JSON_RE, (_m, k) => `"${k}":"***"`)
+    .replace(SECRET_KV_RE, (_m, k) => `${k}=***`);
+}
+
 /**
  * Logs viewing endpoint for debugging and monitoring.
  *
@@ -16,6 +28,7 @@ export function logsRoute(memory: MemoryDB) {
         const limit = Number(query.limit) || 100;
         const afterId = Number(query.after) || 0;
         const roleFilter = query.role || null;
+        const raw = query.raw === "1";
 
         let rows = memory.getLogsSince(afterId, limit + 50);
         if (roleFilter) {
@@ -25,19 +38,23 @@ export function logsRoute(memory: MemoryDB) {
 
         return {
           count: rows.length,
-          logs: rows.map((r) => ({
-            id: r.id,
-            request_id: r.request_id,
-            session_id: r.session_id,
-            agent_id: r.agent_id,
-            role: r.role,
-            content:
+          logs: rows.map((r) => {
+            let content =
               r.content.length > 2000
                 ? r.content.slice(0, 2000) + "…"
-                : r.content,
-            token_count: r.token_count,
-            created_at: r.created_at,
-          })),
+                : r.content;
+            if (!raw) content = maskSecrets(content);
+            return {
+              id: r.id,
+              request_id: r.request_id,
+              session_id: r.session_id,
+              agent_id: r.agent_id,
+              role: r.role,
+              content,
+              token_count: r.token_count,
+              created_at: r.created_at,
+            };
+          }),
         };
       },
       {
@@ -45,6 +62,7 @@ export function logsRoute(memory: MemoryDB) {
           limit: t.Optional(t.String()),
           after: t.Optional(t.String()),
           role: t.Optional(t.String()),
+          raw: t.Optional(t.String()),
         }),
       },
     )
@@ -52,6 +70,7 @@ export function logsRoute(memory: MemoryDB) {
       "/v1/logs/session/:sessionId",
       ({ params, query }) => {
         const limit = Number(query.limit) || 200;
+        const raw = query.raw === "1";
         const rows = memory.getLogsBySession(params.sessionId, limit);
 
         return {
@@ -62,7 +81,7 @@ export function logsRoute(memory: MemoryDB) {
             request_id: r.request_id,
             agent_id: r.agent_id,
             role: r.role,
-            content: r.content,
+            content: raw ? r.content : maskSecrets(r.content),
             token_count: r.token_count,
             created_at: r.created_at,
           })),
@@ -70,12 +89,13 @@ export function logsRoute(memory: MemoryDB) {
       },
       {
         params: t.Object({ sessionId: t.String() }),
-        query: t.Object({ limit: t.Optional(t.String()) }),
+        query: t.Object({ limit: t.Optional(t.String()), raw: t.Optional(t.String()) }),
       },
     )
     .get(
       "/v1/logs/request/:requestId",
-      ({ params }) => {
+      ({ params, query }) => {
+        const raw = query.raw === "1";
         const rows = memory.getLogsByRequest(params.requestId);
 
         return {
@@ -86,7 +106,7 @@ export function logsRoute(memory: MemoryDB) {
             session_id: r.session_id,
             agent_id: r.agent_id,
             role: r.role,
-            content: r.content,
+            content: raw ? r.content : maskSecrets(r.content),
             token_count: r.token_count,
             created_at: r.created_at,
           })),
@@ -94,6 +114,7 @@ export function logsRoute(memory: MemoryDB) {
       },
       {
         params: t.Object({ requestId: t.String() }),
+        query: t.Object({ raw: t.Optional(t.String()) }),
       },
     )
     .get("/v1/logs/stats", () => {

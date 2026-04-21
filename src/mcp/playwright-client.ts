@@ -16,6 +16,8 @@
 import { chromium, type Browser, type BrowserContext, type Page } from "playwright";
 import { logger } from "../lib/logger";
 
+const log = logger.child("playwright");
+
 const NAV_TIMEOUT_MS = 30_000;
 const ACTION_TIMEOUT_MS = 10_000;
 const MAX_INTERACTIVE_ELEMENTS = 200;
@@ -39,11 +41,35 @@ const INTERACTIVE_SELECTOR = [
   "[contenteditable=true]",
 ].join(", ");
 
+/**
+ * Tracks every live PlaywrightClient so the `beforeExit` hook can close
+ * all of them — covers accidental leaks where an instance was not wired
+ * into the shutdown handler (scripts, tests, REPL sessions).
+ */
+const liveClients = new Set<PlaywrightClient>();
+
+let beforeExitRegistered = false;
+function registerBeforeExit() {
+  if (beforeExitRegistered) return;
+  beforeExitRegistered = true;
+  process.on("beforeExit", () => {
+    for (const c of liveClients) {
+      // Fire and forget — beforeExit doesn't await promises.
+      void c.close().catch(() => {});
+    }
+  });
+}
+
 export class PlaywrightClient {
   private browser: Browser | null = null;
   private context: BrowserContext | null = null;
   private page: Page | null = null;
   private launchPromise: Promise<void> | null = null;
+
+  constructor() {
+    liveClients.add(this);
+    registerBeforeExit();
+  }
 
   async callTool(
     name: string,
@@ -83,7 +109,7 @@ export class PlaywrightClient {
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      logger.warn("playwright", `${name} failed: ${msg}`);
+      log.warn(`${name} failed: ${msg}`);
       // On fatal errors (crashed page, closed browser), reset for next call.
       if (
         /Target page, context or browser has been closed|browserContext|Protocol error/i.test(
@@ -125,10 +151,16 @@ export class PlaywrightClient {
     this.context = null;
     this.page = null;
     this.launchPromise = null;
+    liveClients.delete(this);
   }
 
   get connected(): boolean {
     return this.browser !== null && this.page !== null;
+  }
+
+  /** How many browser contexts are currently open (0 or 1 in practice). */
+  get contextCount(): number {
+    return this.browser?.contexts().length ?? 0;
   }
 
   // ─── Internal ──────────────────────────────────────────
@@ -144,7 +176,7 @@ export class PlaywrightClient {
   }
 
   private async launch(): Promise<void> {
-    logger.info("playwright", "Launching Chrome (channel=chrome, headless)");
+    log.info("Launching Chrome (channel=chrome, headless)");
     this.browser = await chromium.launch({
       channel: "chrome",
       headless: true,
@@ -157,7 +189,7 @@ export class PlaywrightClient {
     });
     this.page = await this.context.newPage();
     this.browser.on("disconnected", () => {
-      logger.warn("playwright", "Browser disconnected — will relaunch on next call");
+      log.warn("Browser disconnected — will relaunch on next call");
       this.browser = null;
       this.context = null;
       this.page = null;

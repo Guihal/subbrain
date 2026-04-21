@@ -2,7 +2,7 @@
 
 **Оценка:** 1 день
 **Зависимости:** после PR 01 (tool timeout) и PR 02 (signal/abort инфраструктура)
-**Status:** TODO
+**Status:** DONE
 
 ## Цель
 

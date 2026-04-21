@@ -78,11 +78,32 @@ export class ArbitrationRoom {
     const timeout = config.timeout || SPECIALIST_TIMEOUT;
 
     // ─── 1. Dispatch to specialists in parallel ────────
-    const specialistPromises = config.agents.map((role) =>
-      this.callSpecialist(role, userMessage, executiveSummary, timeout),
+    // Per-specialist AbortControllers — used to cancel stragglers when the
+    // per-specialist timeout fires. `callSpecialist` already wraps errors, so
+    // this loop will never reject; `allSettled` guards against any future
+    // change where one specialist's rejection shouldn't kill the whole room.
+    const controllers = config.agents.map(() => new AbortController());
+    const settled = await Promise.allSettled(
+      config.agents.map((role, i) =>
+        this.callSpecialist(
+          role,
+          userMessage,
+          executiveSummary,
+          timeout,
+          controllers[i].signal,
+        ),
+      ),
     );
-
-    const agentResponses = await Promise.all(specialistPromises);
+    const agentResponses: AgentResponse[] = settled.map((s, i) =>
+      s.status === "fulfilled"
+        ? s.value
+        : {
+            role: config.agents[i],
+            content: "",
+            latencyMs: 0,
+            timedOut: false,
+          },
+    );
 
     // Filter out timed-out empty responses
     const validResponses = agentResponses.filter((r) => r.content.length > 0);
@@ -187,6 +208,7 @@ export class ArbitrationRoom {
     userMessage: string,
     executiveSummary: string,
     timeout: number,
+    signal?: AbortSignal,
   ): Promise<AgentResponse> {
     const systemPrompt = [
       ROLE_PROMPTS[role] || `You are a ${role}.`,
@@ -196,6 +218,7 @@ export class ArbitrationRoom {
     const start = Date.now();
 
     try {
+      let timer: ReturnType<typeof setTimeout> | undefined;
       const response = await Promise.race([
         this.router.chat(
           role,
@@ -206,15 +229,21 @@ export class ArbitrationRoom {
             ],
             max_tokens: 2048,
             temperature: 0.7,
+            signal,
           },
           "critical",
         ),
         timeout > 0
-          ? new Promise<never>((_, reject) =>
-              setTimeout(() => reject(new Error("timeout")), timeout),
-            )
+          ? new Promise<never>((_, reject) => {
+              timer = setTimeout(
+                () => reject(new Error("timeout")),
+                timeout,
+              );
+            })
           : new Promise<never>(() => {}),
-      ]);
+      ]).finally(() => {
+        if (timer) clearTimeout(timer);
+      });
 
       const content = response.choices[0]?.message?.content || "";
       const latencyMs = Date.now() - start;

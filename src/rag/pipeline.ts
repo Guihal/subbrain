@@ -1,5 +1,6 @@
 import type { MemoryDB, FtsResult, VecResult } from "../db";
 import type { ModelRouter } from "../lib/model-router";
+import { EMBED_MODEL, RERANK_MODEL } from "../lib/model-map";
 import {
   RRF_K,
   EMBED_CACHE_MAX,
@@ -10,6 +11,12 @@ import {
 } from "./types";
 
 export type { RAGResult, RAGSearchOptions } from "./types";
+
+function dedupeById(results: RAGResult[]): RAGResult[] {
+  const seen = new Map<string, RAGResult>();
+  for (const r of results) if (!seen.has(r.id)) seen.set(r.id, r);
+  return [...seen.values()];
+}
 
 /**
  * Hybrid RAG pipeline: FTS5 + Vector search → RRF merge → Rerank.
@@ -48,8 +55,12 @@ export class RAGPipeline {
       // Vector search unavailable — continue with FTS-only
     }
 
-    // 3. RRF Merge
-    const merged = this.rrfMerge(ftsResults, vecResults);
+    // 3. RRF Merge (dedup each source — FTS and vec can emit same id twice
+    // across layers or via union with tags; rrfMerge expects first-seen rank)
+    const merged = this.rrfMerge(
+      dedupeById(ftsResults),
+      dedupeById(vecResults),
+    );
 
     // 4. Rerank top candidates (1 RPM) — graceful degradation
     if (skipRerank || merged.length <= 1) {
@@ -129,17 +140,31 @@ export class RAGPipeline {
 
     for (const layer of layers) {
       const vecResults = this.memory.searchEmbeddings(queryVec, limit, layer);
+      if (vecResults.length === 0) continue;
+
+      const ids = vecResults.map((v) => v.id);
+      // One batch SELECT per layer, keyed by id.
+      const byId = new Map<
+        string,
+        { title: string; content: string; created_at?: number; updated_at?: number }
+      >();
+      if (layer === "context") {
+        for (const r of this.memory.getContextMany(ids)) byId.set(r.id, r);
+      } else if (layer === "archive") {
+        for (const r of this.memory.getArchiveMany(ids)) byId.set(r.id, r);
+      }
+      // shared layer: vec-only snippet, no batch table (intentional — no regression).
+
       for (const vr of vecResults) {
-        // Fetch full content for snippet
-        const entry = this.fetchEntry(vr.id, vr.layer);
+        const row = byId.get(vr.id);
         results.push({
           id: vr.id,
           layer: vr.layer,
-          title: entry?.title || vr.id,
-          snippet: entry?.snippet || "",
-          score: 1 / (1 + vr.distance), // Convert distance to similarity score
-          created_at: entry?.created_at,
-          updated_at: entry?.updated_at,
+          title: row?.title ?? vr.id,
+          snippet: row ? row.content.substring(0, 300) : "",
+          score: 1 / (1 + vr.distance),
+          created_at: row?.created_at,
+          updated_at: row?.updated_at,
         });
       }
     }
@@ -186,11 +211,7 @@ export class RAGPipeline {
     // Apply recency boost: entries from context/archive with timestamps
     const now = Date.now() / 1000; // Unix seconds
     for (const entry of scores.values()) {
-      const recency = this.getRecencyBoost(
-        entry.result.id,
-        entry.result.layer,
-        now,
-      );
+      const recency = this.getRecencyBoost(entry.result.updated_at, now);
       entry.score *= recency;
     }
 
@@ -203,22 +224,16 @@ export class RAGPipeline {
   /**
    * Recency boost factor: newer entries get slightly higher scores.
    * Returns 1.0..1.5 — a 50% max boost for very recent entries.
+   * Pure — updated_at must be populated by the caller (FTS/vec SELECTs
+   * already return it, no extra DB round-trips here).
    */
-  private getRecencyBoost(id: string, layer: string, nowSec: number): number {
-    let updatedAt: number | undefined;
-
-    if (layer === "context") {
-      const row = this.memory.getContext(id);
-      updatedAt = row?.updated_at;
-    } else if (layer === "archive") {
-      const row = this.memory.getArchive(id);
-      updatedAt = row?.updated_at;
-    }
-
+  private getRecencyBoost(
+    updatedAt: number | undefined,
+    nowSec: number,
+  ): number {
     if (!updatedAt) return 1.0;
 
-    const ageSec = nowSec - updatedAt;
-    const ageHours = ageSec / 3600;
+    const ageHours = (nowSec - updatedAt) / 3600;
 
     // Decay: 1.5 for < 1h, 1.3 for < 24h, 1.1 for < 7d, 1.0 for older
     if (ageHours < 1) return 1.5;
@@ -238,7 +253,7 @@ export class RAGPipeline {
 
     const result = await this.router.scheduleRaw("normal", () =>
       this.router.raw.rerank({
-        model: "nvidia/rerank-qa-mistral-4b",
+        model: RERANK_MODEL,
         query,
         passages: passages.map((text) => ({ text })),
         top_n: topN,
@@ -272,7 +287,7 @@ export class RAGPipeline {
     // Call provider
     const embedResult = await this.router.scheduleRaw("normal", () =>
       this.router.raw.embed({
-        model: "nvidia/llama-3.2-nemoretriever-300m-embed-v1",
+        model: EMBED_MODEL,
         input: [query],
         input_type: "query",
       }),
@@ -304,38 +319,19 @@ export class RAGPipeline {
 
   // ─── Helpers ───────────────────────────────────────────
 
-  private fetchEntry(
-    id: string,
-    layer: string,
-  ): {
-    title: string;
-    snippet: string;
-    created_at?: number;
-    updated_at?: number;
-  } | null {
-    if (layer === "context") {
-      const row = this.memory.getContext(id);
-      return row
-        ? {
-            title: row.title,
-            snippet: row.content.substring(0, 300),
-            created_at: row.created_at,
-            updated_at: row.updated_at,
-          }
-        : null;
-    }
-    if (layer === "archive") {
-      const row = this.memory.getArchive(id);
-      return row
-        ? {
-            title: row.title,
-            snippet: row.content.substring(0, 300),
-            created_at: row.created_at,
-            updated_at: row.updated_at,
-          }
-        : null;
-    }
-    return null;
+  /**
+   * Embed a piece of content via the embedding provider. Throws on failure —
+   * callers decide whether to swallow or propagate (night-cycle wants atomicity).
+   */
+  async embedContent(content: string): Promise<Float32Array> {
+    const embedResult = await this.router.scheduleRaw("low", () =>
+      this.router.raw.embed({
+        model: EMBED_MODEL,
+        input: [content],
+        input_type: "passage",
+      }),
+    );
+    return new Float32Array(embedResult.data[0].embedding);
   }
 
   /**
@@ -343,15 +339,7 @@ export class RAGPipeline {
    * Call this after memory_write to keep vec index in sync.
    */
   async indexEntry(id: string, layer: string, content: string): Promise<void> {
-    const embedResult = await this.router.scheduleRaw("low", () =>
-      this.router.raw.embed({
-        model: "nvidia/llama-3.2-nemoretriever-300m-embed-v1",
-        input: [content],
-        input_type: "passage",
-      }),
-    );
-
-    const vec = new Float32Array(embedResult.data[0].embedding);
+    const vec = await this.embedContent(content);
     this.memory.upsertEmbedding(id, layer, vec);
   }
 }

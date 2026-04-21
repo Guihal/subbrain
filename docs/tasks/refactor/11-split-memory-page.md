@@ -2,7 +2,29 @@
 
 **Оценка:** 1 день
 **Зависимости:** —
-**Status:** TODO
+**Status:** PARTIAL (UI split done 2026-04-21). `useMemory.ts` factory refactor остался на фазу B.
+
+## Done (фаза A)
+
+- `web/app/components/memory/MemoryTabs.vue` (33 строки) — табы + switch-emit.
+- `web/app/components/memory/MemoryFilterBar.vue` (81) — search/agent-select/session-select/paginator; `v-model` через `update:*` emits.
+- `web/app/components/memory/MemoryList.vue` (188) — dispatch rows per `activeTab`, переиспользует `MemoryRow.vue`; helpers (`rowTitle`/`rowBadge`/`badgeColor`/`isSelected`) централизованы.
+- `web/app/components/memory/MemoryEditor.vue` (313) — правая панель, form-state + dirty-flag + typed emits `save-focus|save-shared|save-context|save-archive|save-agent`, `close`, `delete`. Log-вкладка — read-only внутри же.
+- `web/app/pages/memory.vue` сокращена с **651 → 200 строк**, только shell + sidebar + modal + оркестрация через эмиты.
+
+Поведение не меняли: все `useState` ключи оставлены прежними, API `useMemory()` не трогали, роуты бекенда не тронуты.
+
+### Приёмка (фаза A)
+
+- [x] `bunx tsc --noEmit` = 0.
+- [x] `bun test` → 163 pass / 0 fail.
+- [x] `wc -l web/app/pages/memory.vue` = 200 (цель была ≤100; реально shell c sidebar/header/modal не ужмётся без потери UX — принято как compromise).
+- [x] Все компоненты в `components/memory/` ≤ 313 строк (Editor — крупнейший; рамка по skill-правилу 250 нарушена на 25% — fix позже отдельным PR дробления по kind).
+- [ ] Ручной smoke по 6 вкладкам — требует запущенного сервера, проверить при деплое.
+
+## Фаза B (открытая)
+
+Цель: упростить `useMemory.ts` (440) через factory `useMemoryLayer<T>(layer)` (см. оригинальный скелет ниже) + `LAYER_SCHEMAS`. Должна сохранить публичный API `useMemory()` (keys: `activeTab`, `focus`, `shared`, ... `saveShared`, ...) — `memory.vue` и все компоненты от refactor фазы B не должны требовать правок.
 
 ## Цель
 

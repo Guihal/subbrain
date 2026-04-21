@@ -44,6 +44,20 @@ describe("RateLimiter", () => {
     expect(order[0]).toBe("critical");
   });
 
+  test("tryAcquire: 100 parallel at limit 10 → exactly 10 ok", async () => {
+    const lim = new RateLimiter(10);
+    const results = await Promise.all(
+      Array.from({ length: 100 }, () =>
+        Promise.resolve(lim.tryAcquire("critical")),
+      ),
+    );
+    const ok = results.filter((r): r is { ok: true; release: () => void } => r.ok);
+    const fail = results.filter((r): r is { ok: false; waitMs: number } => !r.ok);
+    expect(ok.length).toBe(10);
+    expect(fail.length).toBe(90);
+    expect(fail.every((r) => r.waitMs > 0)).toBe(true);
+  });
+
   test("backoff429 fills all slots", () => {
     const limiter = new RateLimiter();
     limiter.backoff429();

@@ -3,6 +3,8 @@ import type { MemoryDB } from "../../db";
 import type { ModelRouter } from "../../lib/model-router";
 import type { RAGPipeline } from "../../rag";
 import { logger } from "../../lib/logger";
+
+const log = logger.child("night");
 import {
   type NightCycleResult,
   BATCH_SIZE,
@@ -50,7 +52,7 @@ export class NightCycle {
     };
 
     const startedAt = Date.now();
-    logger.info("night", "Cycle started");
+    log.info("Cycle started");
 
     // Get last processed position
     const lastIdStr = this.memory.getFocus(FOCUS_KEY_LAST_PROCESSED);
@@ -59,7 +61,7 @@ export class NightCycle {
     // Fetch unprocessed logs
     const logs = this.memory.getLogsSince(lastProcessedId, BATCH_SIZE);
     if (logs.length === 0) {
-      logger.info("night", "No unprocessed logs — nothing to do");
+      log.info("No unprocessed logs — nothing to do");
       return result;
     }
 
@@ -70,9 +72,7 @@ export class NightCycle {
     const sessions = this.memory.groupLogsBySession(logs);
     result.sessionsProcessed = sessions.size;
 
-    logger.info(
-      "night",
-      `Processing ${logs.length} logs across ${sessions.size} sessions (lastId: ${lastProcessedId} → ${result.lastProcessedId})`,
+    log.info(`Processing ${logs.length} logs across ${sessions.size} sessions (lastId: ${lastProcessedId} → ${result.lastProcessedId})`,
     );
 
     // Process each session
@@ -82,16 +82,12 @@ export class NightCycle {
       try {
         const conversationText = buildConversationText(sessionLogs);
         if (conversationText.length < 50) {
-          logger.debug(
-            "night",
-            `Session ${sessionIdx}/${sessions.size} skipped (text < 50 chars)`,
+          log.debug(`Session ${sessionIdx}/${sessions.size} skipped (text < 50 chars)`,
           );
           continue;
         }
 
-        logger.info(
-          "night",
-          `[${sessionIdx}/${sessions.size}] session=${sessionId.slice(0, 8)} chars=${conversationText.length}`,
+        log.info(`[${sessionIdx}/${sessions.size}] session=${sessionId.slice(0, 8)} chars=${conversationText.length}`,
         );
 
         const scrubbed = await scrubPII(conversationText, this.router);
@@ -100,85 +96,94 @@ export class NightCycle {
         const requestIds = [...new Set(sessionLogs.map((l) => l.request_id))];
         const compressed = await compress(translated, requestIds, this.router);
         if (!compressed) {
-          logger.warn(
-            "night",
-            `[${sessionIdx}/${sessions.size}] compress returned empty — skipping`,
+          log.warn(`[${sessionIdx}/${sessions.size}] compress returned empty — skipping`,
           );
           continue;
         }
 
         const verified = await verify(compressed, translated, this.router);
 
-        const isDuplicate = await dedup(verified, this.memory, this.router);
+        const isDuplicate = await dedup(verified, this.memory, this.router, this.rag);
         if (isDuplicate) {
-          logger.info(
-            "night",
-            `[${sessionIdx}/${sessions.size}] dedup hit — skipping`,
+          log.info(`[${sessionIdx}/${sessions.size}] dedup hit — skipping`,
           );
           continue;
         }
 
-        // Write to Layer 3
+        // Write to Layer 3 — embed first, then archive + vector atomically.
+        // If embed fails we skip the archive entirely rather than leave a NULL-vector
+        // row that's invisible to RAG. Same session data is compressed again next cycle.
         const entryId = randomUUID();
-        this.memory.insertArchive(
-          entryId,
-          verified.title,
-          verified.content,
-          verified.tags,
-          verified.sourceRequestIds,
-          verified.confidence,
-          "night-cycle",
-        );
-        this.rag
-          .indexEntry(entryId, "archive", verified.content)
-          .catch(() => {});
+        let vec: Float32Array;
+        try {
+          vec = await this.rag.embedContent(verified.content);
+        } catch (err) {
+          const msg = (err as Error).message;
+          log.warn(`[${sessionIdx}/${sessions.size}] archive_retry_next_cycle id=${entryId} reason=${msg}`);
+          continue;
+        }
+        this.memory.db.transaction(() => {
+          this.memory.insertArchive(
+            entryId,
+            verified.title,
+            verified.content,
+            verified.tags,
+            verified.sourceRequestIds,
+            verified.confidence,
+            "night-cycle",
+          );
+          this.memory.upsertEmbedding(entryId, "archive", vec);
+        })();
         result.archiveEntriesCreated++;
-        logger.info(
-          "night",
-          `[${sessionIdx}/${sessions.size}] archived "${verified.title.slice(0, 60)}"`,
+        log.info(`[${sessionIdx}/${sessions.size}] archived "${verified.title.slice(0, 60)}"`,
         );
       } catch (err) {
         const msg = (err as Error).message;
-        logger.error(
-          "night",
-          `[${sessionIdx}/${sessions.size}] session ${sessionId.slice(0, 8)} failed: ${msg}`,
+        log.error(`[${sessionIdx}/${sessions.size}] session ${sessionId.slice(0, 8)} failed: ${msg}`,
         );
         result.errors.push(`Session ${sessionId}: ${msg}`);
       }
     }
 
     // Step 6: Anti-patterns
-    logger.info("night", "Extracting anti-patterns…");
+    log.info("Extracting anti-patterns…");
     try {
       const antiPatterns = await extractAntiPatterns(logs, this.router);
       if (antiPatterns) {
         const apId = randomUUID();
-        this.memory.insertArchive(
-          apId,
-          "Anti-patterns: " + new Date().toISOString().slice(0, 10),
-          antiPatterns,
-          "anti-patterns,night-cycle",
-          [],
-          "HIGH",
-          "night-cycle",
-        );
-        this.rag.indexEntry(apId, "archive", antiPatterns).catch(() => {});
-        result.antiPatternsFound = 1;
+        try {
+          const vec = await this.rag.embedContent(antiPatterns);
+          this.memory.db.transaction(() => {
+            this.memory.insertArchive(
+              apId,
+              "Anti-patterns: " + new Date().toISOString().slice(0, 10),
+              antiPatterns,
+              "anti-patterns,night-cycle",
+              [],
+              "HIGH",
+              "night-cycle",
+            );
+            this.memory.upsertEmbedding(apId, "archive", vec);
+          })();
+          result.antiPatternsFound = 1;
+        } catch (err) {
+          log.warn(`anti-patterns_retry_next_cycle id=${apId} reason=${(err as Error).message}`);
+        }
       }
     } catch (err) {
       const msg = (err as Error).message;
-      logger.error("night", `Anti-patterns failed: ${msg}`);
+      log.error(`Anti-patterns failed: ${msg}`);
       result.errors.push(`Anti-patterns: ${msg}`);
     }
 
     // Step 7: Resolve contradictions
-    logger.info("night", "Resolving contradictions…");
+    log.info("Resolving contradictions…");
     try {
-      const resolved = await resolveContradictions(this.memory, this.router);
+      const resolved = await resolveContradictions(this.memory, this.router, this.rag);
       result.contradictionsResolved = resolved;
     } catch (err) {
       const msg = (err as Error).message;
-      logger.error("night", `Resolve contradictions failed: ${msg}`);
+      log.error(`Resolve contradictions failed: ${msg}`);
       result.errors.push(`Resolve: ${msg}`);
     }
 
@@ -189,9 +194,7 @@ export class NightCycle {
     );
 
     const elapsedSec = Math.round((Date.now() - startedAt) / 1000);
-    logger.info(
-      "night",
-      `Cycle finished in ${elapsedSec}s — archived=${result.archiveEntriesCreated} antiPatterns=${result.antiPatternsFound} contradictions=${result.contradictionsResolved} errors=${result.errors.length}`,
+    log.info(`Cycle finished in ${elapsedSec}s — archived=${result.archiveEntriesCreated} antiPatterns=${result.antiPatternsFound} contradictions=${result.contradictionsResolved} errors=${result.errors.length}`,
       { meta: { ...result } },
     );
 

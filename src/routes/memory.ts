@@ -3,21 +3,17 @@
  *
  * Covers all memory layers: layer1_focus (KV), shared_memory, layer2_context,
  * layer3_archive, agent_memory, layer4_log (read-only). All endpoints are
- * registered after authMiddleware in src/index.ts.
+ * registered after authMiddleware in src/app/bootstrap.ts.
  *
- * List endpoints return `{ items, total }` so the UI can paginate without a
- * second request. `?q=` delegates to the FTS5 helpers on MemoryDB (which
- * internally call sanitizeFtsQuery).
+ * List endpoints return a `PaginatedResponse<T>`-compatible `{items, total,
+ * page, page_size}` envelope (see `src/lib/api-envelope.ts`). `?q=`
+ * delegates to the FTS5 helpers on MemoryDB (which internally call
+ * sanitizeFtsQuery); FTS hits are rehydrated to full rows before returning.
  */
 import { Elysia, t } from "elysia";
 import type { MemoryDB } from "../db";
-
-function notFound(what: string): Response {
-  return new Response(
-    JSON.stringify({ error: { message: `${what} not found` } }),
-    { status: 404, headers: { "Content-Type": "application/json" } },
-  );
-}
+import { paginate } from "../lib/api-envelope";
+import { NotFoundError } from "../lib/errors";
 
 export function memoryRoute(memory: MemoryDB) {
   return (
@@ -39,35 +35,32 @@ export function memoryRoute(memory: MemoryDB) {
 
       // ─── Shared Memory ─────────────────────────────────────
       .get("/shared", ({ query }) => {
-        const limit = Number(query.limit) || 50;
-        const offset = Number(query.offset) || 0;
         const category =
           typeof query.category === "string" && query.category.length > 0
             ? query.category
             : undefined;
-        const q =
-          typeof query.q === "string" && query.q.trim().length > 0
-            ? query.q.trim()
-            : undefined;
-        if (q) {
-          // FTS returns sparse FtsResult; rehydrate to full rows so the UI
-          // editor has `content` / `category` / `source` / etc.
-          const hits = memory.searchShared(q, limit);
-          const items = hits
-            .map((h) => memory.getShared(h.id))
-            .filter((r): r is NonNullable<typeof r> => r !== null);
-          return { items, total: items.length };
-        }
-        return {
-          items: memory.listShared(limit, offset, category),
-          total: memory.countShared(category),
-        };
+        return paginate(
+          (limit, offset, q) => {
+            if (q) {
+              const hits = memory.searchShared(q, limit);
+              const items = hits
+                .map((h) => memory.getShared(h.id))
+                .filter((r): r is NonNullable<typeof r> => r !== null);
+              return { items, total: items.length };
+            }
+            return {
+              items: memory.listShared(limit, offset, category),
+              total: memory.countShared(category),
+            };
+          },
+          query,
+        );
       })
       .patch(
         "/shared/:id",
         ({ params, body }) => {
           const row = memory.getShared(params.id);
-          if (!row) return notFound("Shared entry");
+          if (!row) throw new NotFoundError("Shared entry");
           memory.updateShared(params.id, body);
           return memory.getShared(params.id);
         },
@@ -81,36 +74,35 @@ export function memoryRoute(memory: MemoryDB) {
       )
       .delete("/shared/:id", ({ params }) => {
         const row = memory.getShared(params.id);
-        if (!row) return notFound("Shared entry");
+        if (!row) throw new NotFoundError("Shared entry");
         memory.deleteShared(params.id);
         return { ok: true };
       })
 
       // ─── Layer 2: Context ──────────────────────────────────
-      .get("/context", ({ query }) => {
-        const limit = Number(query.limit) || 50;
-        const offset = Number(query.offset) || 0;
-        const q =
-          typeof query.q === "string" && query.q.trim().length > 0
-            ? query.q.trim()
-            : undefined;
-        if (q) {
-          const hits = memory.searchContext(q, limit);
-          const items = hits
-            .map((h) => memory.getContext(h.id))
-            .filter((r): r is NonNullable<typeof r> => r !== null);
-          return { items, total: items.length };
-        }
-        return {
-          items: memory.listContext(limit, offset),
-          total: memory.countContext(),
-        };
-      })
+      .get("/context", ({ query }) =>
+        paginate(
+          (limit, offset, q) => {
+            if (q) {
+              const hits = memory.searchContext(q, limit);
+              const items = hits
+                .map((h) => memory.getContext(h.id))
+                .filter((r): r is NonNullable<typeof r> => r !== null);
+              return { items, total: items.length };
+            }
+            return {
+              items: memory.listContext(limit, offset),
+              total: memory.countContext(),
+            };
+          },
+          query,
+        ),
+      )
       .patch(
         "/context/:id",
         ({ params, body }) => {
           const row = memory.getContext(params.id);
-          if (!row) return notFound("Context entry");
+          if (!row) throw new NotFoundError("Context entry");
           memory.updateContext(params.id, body);
           return memory.getContext(params.id);
         },
@@ -124,36 +116,35 @@ export function memoryRoute(memory: MemoryDB) {
       )
       .delete("/context/:id", ({ params }) => {
         const row = memory.getContext(params.id);
-        if (!row) return notFound("Context entry");
+        if (!row) throw new NotFoundError("Context entry");
         memory.deleteContext(params.id);
         return { ok: true };
       })
 
       // ─── Layer 3: Archive ──────────────────────────────────
-      .get("/archive", ({ query }) => {
-        const limit = Number(query.limit) || 50;
-        const offset = Number(query.offset) || 0;
-        const q =
-          typeof query.q === "string" && query.q.trim().length > 0
-            ? query.q.trim()
-            : undefined;
-        if (q) {
-          const hits = memory.searchArchive(q, limit);
-          const items = hits
-            .map((h) => memory.getArchive(h.id))
-            .filter((r): r is NonNullable<typeof r> => r !== null);
-          return { items, total: items.length };
-        }
-        return {
-          items: memory.listArchive(limit, offset),
-          total: memory.countArchive(),
-        };
-      })
+      .get("/archive", ({ query }) =>
+        paginate(
+          (limit, offset, q) => {
+            if (q) {
+              const hits = memory.searchArchive(q, limit);
+              const items = hits
+                .map((h) => memory.getArchive(h.id))
+                .filter((r): r is NonNullable<typeof r> => r !== null);
+              return { items, total: items.length };
+            }
+            return {
+              items: memory.listArchive(limit, offset),
+              total: memory.countArchive(),
+            };
+          },
+          query,
+        ),
+      )
       .patch(
         "/archive/:id",
         ({ params, body }) => {
           const row = memory.getArchive(params.id);
-          if (!row) return notFound("Archive entry");
+          if (!row) throw new NotFoundError("Archive entry");
           memory.updateArchive(params.id, body);
           return memory.getArchive(params.id);
         },
@@ -170,7 +161,7 @@ export function memoryRoute(memory: MemoryDB) {
       )
       .delete("/archive/:id", ({ params }) => {
         const row = memory.getArchive(params.id);
-        if (!row) return notFound("Archive entry");
+        if (!row) throw new NotFoundError("Archive entry");
         memory.deleteArchive(params.id);
         return { ok: true };
       })
@@ -178,22 +169,23 @@ export function memoryRoute(memory: MemoryDB) {
       // ─── Agent Memory ──────────────────────────────────────
       .get("/agent/agents", () => memory.listAgentIds())
       .get("/agent", ({ query }) => {
-        const limit = Number(query.limit) || 50;
-        const offset = Number(query.offset) || 0;
         const agentId =
           typeof query.agent_id === "string" && query.agent_id.length > 0
             ? query.agent_id
             : undefined;
-        return {
-          items: memory.listAllAgentMemories(limit, offset, agentId),
-          total: memory.countAgentMemories(agentId),
-        };
+        return paginate(
+          (limit, offset) => ({
+            items: memory.listAllAgentMemories(limit, offset, agentId),
+            total: memory.countAgentMemories(agentId),
+          }),
+          query,
+        );
       })
       .patch(
         "/agent/:id",
         ({ params, body }) => {
           const row = memory.getAgentMemory(params.id);
-          if (!row) return notFound("Agent memory entry");
+          if (!row) throw new NotFoundError("Agent memory entry");
           memory.updateAgentMemory(params.id, body);
           return memory.getAgentMemory(params.id);
         },
@@ -206,7 +198,7 @@ export function memoryRoute(memory: MemoryDB) {
       )
       .delete("/agent/:id", ({ params }) => {
         const row = memory.getAgentMemory(params.id);
-        if (!row) return notFound("Agent memory entry");
+        if (!row) throw new NotFoundError("Agent memory entry");
         memory.deleteAgentMemory(params.id);
         return { ok: true };
       })
@@ -217,16 +209,17 @@ export function memoryRoute(memory: MemoryDB) {
         return memory.listLogSessions(limit);
       })
       .get("/log", ({ query }) => {
-        const limit = Number(query.limit) || 100;
-        const offset = Number(query.offset) || 0;
         const sessionId =
           typeof query.session_id === "string" && query.session_id.length > 0
             ? query.session_id
             : undefined;
-        return {
-          items: memory.listLog(limit, offset, sessionId),
-          total: memory.countLog(sessionId),
-        };
+        return paginate(
+          (limit, offset) => ({
+            items: memory.listLog(limit, offset, sessionId),
+            total: memory.countLog(sessionId),
+          }),
+          query,
+        );
       })
   );
 }

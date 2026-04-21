@@ -16,6 +16,50 @@ import type { DynamicToolDef, DynamicToolRegistry } from "./dynamic-tools";
 import type { CodeToolRegistry } from "./code-tools";
 import { executeSandboxed } from "./code-tools/sandbox";
 
+/**
+ * Per-scope timeout (ms) for tool execution. Timeouts DO NOT throw — they
+ * surface as `{ error: { code: "timeout", name } }` in the tool_result so the
+ * model can decide whether to retry or skip ahead.
+ */
+const TOOL_TIMEOUTS: { prefix: string; ms: number }[] = [
+  { prefix: "web_", ms: 15000 },
+  { prefix: "memory_", ms: 3000 },
+  { prefix: "embed_", ms: 5000 },
+  { prefix: "consult_", ms: 20000 },
+];
+const DEFAULT_TOOL_TIMEOUT_MS = 5000;
+
+export function toolTimeoutMs(name: string): number {
+  for (const { prefix, ms } of TOOL_TIMEOUTS) {
+    if (name.startsWith(prefix)) return ms;
+  }
+  return DEFAULT_TOOL_TIMEOUT_MS;
+}
+
+const TIMEOUT_SENTINEL: unique symbol = Symbol("tool_timeout");
+
+async function withToolTimeout<T>(
+  name: string,
+  exec: () => Promise<T>,
+): Promise<T | string> {
+  const ms = toolTimeoutMs(name);
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeoutP = new Promise<typeof TIMEOUT_SENTINEL>((resolve) => {
+    timer = setTimeout(() => resolve(TIMEOUT_SENTINEL), ms);
+  });
+  try {
+    const res = await Promise.race([exec(), timeoutP]);
+    if (res === TIMEOUT_SENTINEL) {
+      return JSON.stringify({
+        error: { code: "timeout", name, timeout_ms: ms },
+      });
+    }
+    return res as T;
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 export interface ToolRunnerDeps {
   registry: ToolRegistry;
   tools: ToolExecutor;
@@ -48,61 +92,60 @@ export async function executeAgentTool(
   );
 
   try {
-    // 1) Статический реестр — покрывает все public + agent-only тулы.
-    if (deps.registry.has(name)) {
-      const result = await deps.registry.call(name, args, {
-        executor: deps.tools,
-        router: deps.router,
-        room: deps.room,
-        dynamicTools: deps.dynamicTools,
-        persistDynamicTools: deps.persistDynamicTools,
-        codeTools: deps.codeTools,
-        log,
-        registry: deps.registry,
-      });
+    const result = await withToolTimeout(name, async () => {
+      // 1) Статический реестр — покрывает все public + agent-only тулы.
+      if (deps.registry.has(name)) {
+        const r = await deps.registry.call(name, args, {
+          executor: deps.tools,
+          router: deps.router,
+          room: deps.room,
+          dynamicTools: deps.dynamicTools,
+          persistDynamicTools: deps.persistDynamicTools,
+          codeTools: deps.codeTools,
+          log,
+          registry: deps.registry,
+        });
 
-      // `done` — управляющий сигнал агента, возвращаем сырую строку summary,
-      // чтобы не ломать существующий fallback в agent-loop/index.ts.
-      if (
-        name === "done" &&
-        result.success &&
-        typeof result.data === "string"
-      ) {
-        return result.data;
+        // `done` — управляющий сигнал агента, возвращаем сырую строку summary,
+        // чтобы не ломать существующий fallback в agent-loop/index.ts.
+        if (name === "done" && r.success && typeof r.data === "string") {
+          return r.data;
+        }
+
+        return JSON.stringify(r);
       }
 
-      return JSON.stringify(result);
-    }
+      // 2) Dynamic tools (созданы агентом через create_tool)
+      const dynTool = deps.dynamicTools.get(name);
+      if (dynTool) {
+        return await executeDynamicTool(dynTool, args, deps.router, log);
+      }
 
-    // 2) Dynamic tools (созданы агентом через create_tool)
-    const dynTool = deps.dynamicTools.get(name);
-    if (dynTool) {
-      return await executeDynamicTool(dynTool, args, deps.router, log);
-    }
-
-    // 3) Code tools — исполняемые через префикс `code_`
-    if (name.startsWith("code_") && deps.codeTools) {
-      const toolName = name.slice(5);
-      const codeTool = deps.codeTools.getByName(toolName);
-      if (codeTool) {
-        if (!codeTool.enabled) {
+      // 3) Code tools — исполняемые через префикс `code_`
+      if (name.startsWith("code_") && deps.codeTools) {
+        const toolName = name.slice(5);
+        const codeTool = deps.codeTools.getByName(toolName);
+        if (codeTool) {
+          if (!codeTool.enabled) {
+            return JSON.stringify({
+              error: `Code tool "${toolName}" is disabled (too many errors)`,
+            });
+          }
+          const input = (args.input as string) || "";
+          log.info("agent-loop", `Executing code tool: ${toolName}`);
+          const res = await executeSandboxed(codeTool.code, input);
+          deps.codeTools.recordRun(toolName, res.success, res.error);
+          if (res.success) return res.output || "";
           return JSON.stringify({
-            error: `Code tool "${toolName}" is disabled (too many errors)`,
+            error: res.error,
+            durationMs: res.durationMs,
           });
         }
-        const input = (args.input as string) || "";
-        log.info("agent-loop", `Executing code tool: ${toolName}`);
-        const result = await executeSandboxed(codeTool.code, input);
-        deps.codeTools.recordRun(toolName, result.success, result.error);
-        if (result.success) return result.output || "";
-        return JSON.stringify({
-          error: result.error,
-          durationMs: result.durationMs,
-        });
       }
-    }
 
-    return JSON.stringify({ error: `Unknown tool: ${name}` });
+      return JSON.stringify({ error: `Unknown tool: ${name}` });
+    });
+    return result as string;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     log.error("agent-loop", `Tool ${name} failed: ${msg}`);

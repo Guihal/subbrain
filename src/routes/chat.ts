@@ -135,15 +135,20 @@ export function chatRoute(
         return response;
       } catch (err) {
         if (err instanceof ProviderError) {
+          // Cap body + redact api_key: provider bodies can be huge HTML pages
+          // and may echo the forwarded Authorization header.
+          const redactedBody = String(err.body)
+            .slice(0, 200)
+            .replace(/api[_-]?key/gi, "***");
           logger.error(
             "route",
-            `Provider error: ${err.status} ${err.body.slice(0, 200)}`,
+            `Provider error: ${err.status} ${redactedBody}`,
             { model },
           );
           return new Response(
             JSON.stringify({
               error: {
-                message: err.body,
+                message: redactedBody,
                 type: "upstream_error",
                 code: err.status,
               },
@@ -189,7 +194,7 @@ export function chatRoute(
  * Wraps an SSE stream to capture the full assistant response
  * and persist it to the chats table when the stream ends.
  */
-function wrapStreamForChat(
+export function wrapStreamForChat(
   stream: ReadableStream<Uint8Array>,
   memory: MemoryDB,
   chatId: string,
@@ -200,14 +205,16 @@ function wrapStreamForChat(
   let fullContent = "";
   let fullReasoning = "";
   let buffer = "";
+  let isClosed = false;
+  let innerReader: ReadableStreamDefaultReader<Uint8Array> | null = null;
 
   return new ReadableStream({
     async start(controller) {
-      const reader = stream.getReader();
+      innerReader = stream.getReader();
       try {
         while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
+          const { done, value } = await innerReader.read();
+          if (done || isClosed) break;
           controller.enqueue(value);
 
           // Parse SSE to capture content
@@ -221,19 +228,24 @@ function wrapStreamForChat(
             if (delta.reasoning_content) fullReasoning += delta.reasoning_content;
           }
         }
-
-        // Stream done — save to DB
-        if (fullContent) {
-          memory.appendChatMessage(chatId, "assistant", fullContent, {
-            reasoning: fullReasoning || undefined,
-            model,
-            requestId,
-          });
-        }
-        controller.close();
       } catch (err) {
-        controller.error(err);
+        if (!isClosed) controller.error(err);
+        return;
       }
+      // Client disconnected mid-stream — don't write a truncated message.
+      if (isClosed) return;
+      if (fullContent) {
+        memory.appendChatMessage(chatId, "assistant", fullContent, {
+          reasoning: fullReasoning || undefined,
+          model,
+          requestId,
+        });
+      }
+      controller.close();
+    },
+    cancel(reason) {
+      isClosed = true;
+      innerReader?.cancel(reason).catch(() => {});
     },
   });
 }

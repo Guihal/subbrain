@@ -39,6 +39,12 @@ export interface ChatParams {
   stream?: boolean;
   tools?: Tool[];
   tool_choice?: string | { type: string; function: { name: string } };
+  /**
+   * Abort signal propagated down to `fetch()` + SSE readers. Providers must
+   * check `signal?.aborted` at the start of chat/chatStream and rethrow
+   * `DOMException("Aborted", "AbortError")` from in-flight reads.
+   */
+  signal?: AbortSignal;
 }
 
 export interface ChatResponse {

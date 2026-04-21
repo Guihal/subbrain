@@ -8,6 +8,11 @@ import { MemoryDB } from "../src/db";
 import { randomUUID } from "crypto";
 
 const dbPath = process.env.DB_PATH || "data/subbrain.db";
+const isProd = dbPath.endsWith("subbrain.db") && !dbPath.includes("test");
+if (isProd && !process.argv.includes("--confirm")) {
+  console.error("seed: prod DB detected, pass --confirm to override");
+  process.exit(1);
+}
 const db = new MemoryDB(dbPath);
 
 console.log("🧹 Cleaning test junk from shared_memory...");

@@ -14,6 +14,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 When making non-trivial changes, read the matching doc first; if you change behavior described there, update the doc in the same change. Если задача одна из `docs/tasks/*` или `docs/tasks/refactor/*` — работать внутри соответствующего файла, синхронизировать со статусом.
 
+## Coding guardrails (from refactor PR 01-15)
+
+Before editing `src/`, `web/app/`, `scripts/`, `tests/` — invoke the `subbrain-guardrails` skill (`.claude/skills/subbrain-guardrails/SKILL.md`). It encodes the lessons of the 15-PR refactor; violating it re-opens closed audit items. Hard rules (see skill for detail + red-flags table):
+
+1. **File cap 250 lines**, one responsibility. Orchestrator ≤100 lines, logic in `phases/`/`steps/`/`tables/`/`post/`/`pre/`. Exceptions: `system-prompt.ts`, `model-map.ts`, `rag/pipeline.ts`, MCP registry, telegram.
+2. **`Promise.allSettled`**, never `Promise.all`, for fan-out upstream calls. `AbortController` composed with external signal, threaded through `ModelRouter.chat` → providers; providers check `signal.aborted` before start + in stream callback.
+3. **Per-tool timeout** in `tool-runner.ts` via `Promise.race`; scopes `web_*`=15s, `memory_*`=3s, `embed_*`=5s, `consult_*`=20s, default=5s. Timeout → `ToolError{code:"timeout"}`, not throw.
+4. **Rate-limit** atomic `tryAcquire()` under `Mutex`. **Fallback** capped `MAX_FALLBACK_ATTEMPTS=1` → `UpstreamExhaustedError` → 502.
+5. **SSE:** `: ping\n\n` every 5s, `idleTimeout:255`. `wrapStreamForChat` honors `isClosed` — no DB writes after cancel. SSE chunk parsing = `providers/sse-parser.ts` (no reimplementation).
+6. **DB:** insert + embed/index wrapped in `db.transaction()`. Batch lookups `WHERE id IN (?,?,…)`. FTS input → `sanitizeFtsQuery`. Migrations in `db.transaction()` + per-statement `.run()`. Mutations via `updateRow(table, ALLOW, id, patch)`.
+7. **HTTP:** all outbound `fetch` via `src/lib/http-client.ts` (`fetchJson`/`fetchStream`). Default 60s, Copilot streams 180s. No raw `fetch` in new code.
+8. **Validation:** Elysia TypeBox for every route input; `role` via `t.Union([t.Literal(...)])`. Inbound → `normalizeMessages()`. No `(x as any)` / `ctx.router!` — `AgentContext` discriminated union. `ToolResult = {ok:true,data}|{ok:false,error:{code,message}}`.
+9. **Logger:** `logger.info(stage, message, extra?)` — single-arg call is a bug. Top of module: `const log = logger.child("copilot")`. Meta → `logger.formatForDb`.
+10. **Errors + envelopes:** central `onError` + domain errors (`AppError`, `UpstreamExhaustedError`, `ToolError`, `HttpError`). `{ items, total }` via `lib/api-envelope.ts` (`PaginatedResponse<T>` + `paginate()`). Echoed upstream bodies sliced ≤200 chars + regex-redact secrets.
+11. **Single sources of truth:** virtual roles / embed / rerank — only `lib/model-map.ts`. MCP tools — only `mcp/registry/*.tools.ts` + `mcp/tools/*` domain logic. Tool dispatcher = priority array of resolvers.
+12. **Tests:** `bun:test` with `describe/test/expect`. No top-level `process.exit`. Live tests = `*.live.ts`. Test DB = `data/test.db`.
+13. **Security:** `timingSafeEqual` + SHA-256 for token compare. Destructive scripts require `--confirm` or non-prod path. Logs mask `api_key|authorization|token|bearer` by default. Sandbox throws `sandbox_unavailable` when `Worker` missing.
+14. **Docs sync:** split/move a file → update CLAUDE.md paths + matching `docs/completed/*.md` in the same PR. Close task: ✅ `docs/02-audit.md`, strike in `docs/01-refactor-plan.md`, `Status: DONE (PR #N)` in task file.
+
 ## Common commands
 
 ```bash
@@ -57,7 +76,7 @@ Docker: `docker compose build && docker compose up -d`. **Never `docker compose 
 
 `src/routes/chat.ts` decides between:
 
-1. **Pipeline mode** (default for virtual roles): `AgentPipeline.execute()` runs `pre-processing` (flash, agentic, builds executive summary from RAG + memory) → main specialist → `post-processing` (flash, writes Layer 4). Used when `model in MODEL_MAP` and not direct.
+1. **Pipeline mode** (default for virtual roles): `AgentPipeline.execute()` runs `phases/pre.ts` (agentic hippocampus, builds executive summary from RAG + memory via `pre/exec-summary.ts`) → main specialist (`phases/main.ts`) → `phases/post.ts` (writes Layer 4 + agentic extraction). Streaming path goes through `phases/stream.ts`; arbitration-room synthesis through `phases/room.ts`. Used when `model in MODEL_MAP` and not direct.
 2. **Direct mode**: routes straight through `ModelRouter` (no pre/post). Triggered by `X-Direct-Mode: true` header **or** automatically when `router.isOverloaded` (RPM saturated). This is a load-shedding mechanism, not a debugging flag.
 
 Inbound messages from any route go through `normalizeMessages()` in `src/lib/messages.ts` to flatten OpenAI multipart `content: [{type:"text",text:…}]` into the strict `Message.content: string | null` providers expect. **Add new ingress points (e.g. autonomous, telegram) through this helper** — providers and the pipeline assume normalized content.
@@ -93,7 +112,7 @@ Every tool is declared **once** in `src/mcp/registry/` and reused across REST (`
 
 ### Agentic post-processing (hippocampus)
 
-After **every** chat exchange (user message + assistant reply), `src/pipeline/agent-pipeline/post-processing.ts` runs a small agent loop (`model = POST_EXTRACTOR_MODEL`, default `coder`) with three tools: `memory_search`, `memory_write`, `done`. Cap: `MAX_HIPPO_STEPS = 5`. Gate: skipped if `userMessage.length + assistantText.length < 100` chars.
+After **every** chat exchange (user message + assistant reply), `src/pipeline/agent-pipeline/post/hippocampus.ts` (orchestrated by `phases/post.ts:runPost`) runs a small agent loop (`model = POST_EXTRACTOR_MODEL`, default `coder`) with three tools: `memory_search`, `memory_write`, `done`. Cap: `MAX_HIPPO_STEPS = 5`. Gate: `post/gate.ts:shouldRunHippocampus` skips if `userMessage.length + assistantText.length < MIN_EXTRACTION_LENGTH` (=100). Writers live in `post/extractors.ts` (`writeShared`/`writeContext`).
 
 - `memory_write layer:"shared"` → `memory.insertShared()` (global facts)
 - `memory_write layer:"context"` → `memory.insertContext()` + `rag.indexEntry()` (per-session context, FTS-indexed)
@@ -113,7 +132,7 @@ After **every** chat exchange (user message + assistant reply), `src/pipeline/ag
 
 ### Pipelines fan out and need careful error semantics
 
-`src/pipeline/arbitration-room.ts` runs N specialists in parallel and feeds their answers to the team-lead for synthesis. `src/pipeline/agent-loop/index.ts` runs a tool-calling loop with a step cap of `MAX_STEPS = 100` (hard ceiling in `agent-loop/types.ts`). The autonomous scheduler defaults to 100 steps too, overridable via env `AUTONOMOUS_MAX_STEPS` (clamped 1..100). The web frontend's interactive agent mode passes its own `max_steps` per request (currently 12). Pre/post-processing in `src/pipeline/agent-pipeline/` shares state with main execution via the request id; **don't reuse request ids across chats** — Layer 4 partitioning depends on it.
+`src/pipeline/arbitration-room.ts` runs N specialists in parallel and feeds their answers to the team-lead for synthesis. `src/pipeline/agent-loop/index.ts` is now a thin facade: orchestration lives in `run.ts` (non-stream) and `stream.ts` (SSE), per-step logic in `step.ts`, tool-call normalization/dispatch in `tool-dispatch.ts`, heartbeat in `heartbeat.ts`, compression hook in `compressor-hook.ts`, chat/tools persistence in `persist.ts`. Step cap `MAX_STEPS = 100` (hard ceiling in `agent-loop/types.ts`). The autonomous scheduler defaults to 100 steps too, overridable via env `AUTONOMOUS_MAX_STEPS` (clamped 1..100). The web frontend's interactive agent mode passes its own `max_steps` per request (currently 12). Pre/post phases in `src/pipeline/agent-pipeline/phases/` share state with main execution via the request id; **don't reuse request ids across chats** — Layer 4 partitioning depends on it.
 
 ### Logger contract
 

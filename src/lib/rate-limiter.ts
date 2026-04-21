@@ -66,6 +66,22 @@ export class RateLimiter {
     });
   }
 
+  /**
+   * Atomic acquire: either records a slot immediately or returns `waitMs`
+   * telling caller how long until one frees up. Sync on purpose so the
+   * check+record pair cannot interleave with other callers.
+   */
+  tryAcquire(
+    priority: Priority,
+  ): { ok: true; release: () => void } | { ok: false; waitMs: number } {
+    this.prune();
+    if (!this.canRun(priority)) {
+      return { ok: false, waitMs: this.msUntilSlot() };
+    }
+    this.record();
+    return { ok: true, release: () => {} };
+  }
+
   /** Record a 429 from upstream — back off by adding phantom timestamps */
   backoff429(): void {
     const now = Date.now();

@@ -2,6 +2,7 @@
  * Shared streaming utilities for LLM providers.
  * Eliminates duplication between NvidiaProvider and CopilotProvider.
  */
+import { logger } from "../lib/logger";
 
 /**
  * Creates a ReadableStream that proxies a fetch SSE response.
@@ -34,7 +35,11 @@ export function createProxyStream(
 
         if (!res.ok) {
           const text = await res.text();
-          console.error(`[stream-utils] upstream error ${res.status}: ${text.slice(0, 300)}`);
+          logger.error(
+            "stream-utils",
+            `upstream error ${res.status}: ${text.slice(0, 300)}`,
+            { meta: { status: res.status } },
+          );
           emitError(text, "upstream_error");
           return;
         }
