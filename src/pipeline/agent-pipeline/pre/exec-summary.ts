@@ -7,6 +7,7 @@ import type { ModelRouter } from "../../../lib/model-router";
 import type { RAGPipeline, RAGResult } from "../../../rag";
 import type { Message } from "../../../providers/types";
 import { logger } from "../../../lib/logger";
+import { getMoscowNow } from "../../../lib/clock";
 
 import { HIPPO_TOOLS, executeHippoTool } from "./rag-inject";
 
@@ -16,12 +17,7 @@ const MAX_HIPPO_STEPS = 6;
 const HIPPO_TIMEOUT_MS = 25_000;
 
 function getHippocampusPrompt(): string {
-  const today = new Date().toLocaleDateString("ru-RU", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
+  const today = getMoscowNow();
   return `You are the Hippocampus — the memory retrieval subsystem of Subbrain, a Digital Team AI infrastructure.
 Today's date: ${today}.
 

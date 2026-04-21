@@ -8,6 +8,7 @@
 - [02 — Polling Telegram и напоминания по задачам](02-telegram-polling.md)
 - [03 — Параллельный поисковый режим по фриланс-биржам](03-freelance-search-mode.md)
 - [04 — Починка Web UI: thinking и навигация](04-web-ui-fixes.md)
+- [05 — Пост-рефакторный фидбэк (2026-04-21)](05-post-refactor-feedback.md)
 
 ## Рефакторинг
 

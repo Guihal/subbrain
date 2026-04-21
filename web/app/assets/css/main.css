@@ -16,13 +16,33 @@
 /* Thinking block */
 .thinking-block {
   border-left: 3px solid var(--ui-border);
-  max-height: 200px;
   overflow-y: auto;
+  max-height: 70vh;
   transition: max-height 0.3s ease;
 }
 .thinking-block.collapsed {
   max-height: 1.5em;
   overflow: hidden;
+}
+
+/* Sidebar nav links */
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.625rem;
+  border-radius: 0.375rem;
+  font-size: 0.8125rem;
+  color: var(--ui-text-muted);
+  transition: background-color 0.15s, color 0.15s;
+}
+.nav-link:hover {
+  color: var(--ui-text);
+  background: var(--ui-bg);
+}
+.nav-link-active {
+  color: var(--ui-text);
+  background: var(--ui-bg-accented);
 }
 
 /* Markdown content inside messages */

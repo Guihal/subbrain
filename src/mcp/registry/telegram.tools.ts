@@ -85,6 +85,32 @@ export function registerTelegramTools(registry: ToolRegistry): void {
   });
 
   registry.register({
+    name: "telegram_search",
+    description:
+      "Full-text search of indexed Telegram messages (FTS5). Filter by chat_id and time range.",
+    scope: "agent-only",
+    input: t.Object({
+      query: t.String(),
+      chat_id: t.Optional(t.String()),
+      from: t.Optional(
+        t.String({ description: "ISO date, inclusive lower bound on message time" }),
+      ),
+      to: t.Optional(
+        t.String({ description: "ISO date, inclusive upper bound on message time" }),
+      ),
+      limit: t.Optional(t.Number({ description: "Max results (default 20, max 200)" })),
+    }),
+    handler: (args, ctx) =>
+      ctx.executor.tgFtsSearch(
+        args.query,
+        args.chat_id,
+        args.from,
+        args.to,
+        args.limit,
+      ),
+  });
+
+  registry.register({
     name: "tg_send_message",
     description:
       "Send a message to the user via Telegram. Use for summaries, reports, notifications, alerts. Supports Markdown. Max ~4000 chars.",

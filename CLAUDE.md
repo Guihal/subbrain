@@ -138,6 +138,24 @@ After **every** chat exchange (user message + assistant reply), `src/pipeline/ag
 
 `src/lib/logger.ts` exports `info/warn/error/debug` with the signature `(stage: string, message: string, extra?)` — passing only one argument silently puts the whole text into `stage`, leaving `message` undefined and writing garbage to Layer 4. Always use `logger.info("subsystem", "...")`.
 
+### Free agent (curious autonomous loop)
+
+`src/scheduler/free-agent.ts` — second autonomous scheduler running in parallel with `AUTONOMOUS`. Uses the same `AgentLoop.run({model:"teamlead", priority:"low"})` but with an open-ended "curiosity" task prompt (`FREE_AGENT_TASK` env override, default in the module). On finish, `result.finalAnswer` is sent as a TG digest via `telegramBot.notify` (`🤖 Free agent — <stoppedReason> (<steps>)`).
+
+Off by default (`FREE_AGENT=false`). Knobs: `FREE_AGENT_INTERVAL_MIN` (default 60), `FREE_AGENT_MAX_STEPS` (default 50), `FREE_AGENT_STARTUP_DELAY_MS` (default 60_000). Shares the main Playwright browser — no context isolation. Re-entry guard: same-instance runs cannot overlap.
+
+Safety rules are baked into the default prompt: no payments/irreversible actions, no leaking `PROXY_AUTH_TOKEN` / cookies, suggest-before-act for SMS/email/outbound calls. The agent can write new `code_tools` via `create_code_tool` and save findings via `memory_write`. All findings flow back via the TG digest.
+
+### Freelance scout (parallel freelance-exchange scraper)
+
+`src/scheduler/freelance/` — scout polls fl.ru / kwork.ru / freelance.ru in an **isolated Playwright context** (`PlaywrightClient.getScopePage("freelance")`, incognito + real-Chrome UA) so it doesn't pollute the main browsing session. Split upfront into `index.ts` (class ≤100 lines), `fetch.ts`, `evaluate.ts` (flash → coder fallback; JSON-parse result), `persist.ts` (writes `freelance_leads` row inside `db.transaction()` + TG alert via `TelegramBot.notify`), `types.ts`, `parsers/{fl,kwork,freelance,shared}.ts`. Fan-out across sources via `Promise.allSettled`. LLM eval wrapped in `AbortSignal.any([AbortSignal.timeout(10s), scout.abort.signal])`. 429 / anti-bot markers → `pausedUntil[domain] = now + 6h` + TG warn.
+
+Admin surface: `src/routes/freelance.ts` (under `authMiddleware`, envelope via `paginate`) — `POST /v1/search/freelance/start|stop`, `GET /status`, `GET /leads?status=`, `PATCH /leads/:id`. UI: `web/app/pages/freelance.vue` + `web/app/composables/useFreelance.ts`.
+
+Off by default (`FREELANCE_SCOUT=false`). Env: `FREELANCE_POLL_MIN`, `FREELANCE_CATEGORIES`, `FREELANCE_MIN_BUDGET`, `FREELANCE_MAX_BUDGET`, `FREELANCE_THRESHOLD`, `FREELANCE_TG_CHAT_ID`. Lifecycle: `installFreelanceScoutScheduler` in `app/schedulers.ts`; shutdown awaits `scout.stop()` (closes the `freelance` Playwright context) before the global `playwright.close()`.
+
+**Legal note:** ToS of exchanges forbid automated scraping. Scout runs incognito (no user login), but risk of IP ban is non-zero. Flag off by default; manual `POST /start` required. Parser tests use synthetic fixtures (`tests/fixtures/freelance/*`); real a11y snapshots to be captured from prod headful on first tick.
+
 ## Conventions specific to this repo
 
 - **Bun-only runtime.** Use `Bun.file`, `Bun.write`, `bun:sqlite`, `bun:test`. Don't reach for `node:fs` unless you have a reason.

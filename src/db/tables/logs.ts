@@ -38,6 +38,14 @@ export class LogsTable {
       .all(afterId, limit) as LogRow[];
   }
 
+  getLogsSinceTime(sinceUnix: number, limit = 500): LogRow[] {
+    return this.db
+      .query(
+        "SELECT * FROM layer4_log WHERE created_at >= ? ORDER BY created_at DESC LIMIT ?",
+      )
+      .all(sinceUnix, limit) as LogRow[];
+  }
+
   listLog(limit = 100, offset = 0, sessionId?: string): LogRow[] {
     if (sessionId) {
       return this.db

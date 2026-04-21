@@ -185,9 +185,10 @@ describe("tool-runner per-scope timeouts", () => {
     expect(toolTimeoutMs("web_navigate")).toBe(15000);
     expect(toolTimeoutMs("memory_search")).toBe(3000);
     expect(toolTimeoutMs("embed_text")).toBe(5000);
-    expect(toolTimeoutMs("consult_coder")).toBe(20000);
-    expect(toolTimeoutMs("think")).toBe(5000);
-    expect(toolTimeoutMs("done")).toBe(5000);
+    expect(toolTimeoutMs("consult_coder")).toBe(60000);
+    expect(toolTimeoutMs("critic_review")).toBe(120000);
+    expect(toolTimeoutMs("think")).toBe(10000);
+    expect(toolTimeoutMs("done")).toBe(10000);
   });
 
   test("hung memory_* handler → timeout error under 3.5s", async () => {

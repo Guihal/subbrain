@@ -10,7 +10,7 @@
 import { HttpAbortError, HttpError } from "./errors";
 
 export interface FetchJsonOpts {
-  /** Overall timeout per attempt. Default 60_000ms. */
+  /** Overall timeout per attempt. Default 180_000ms. */
   timeoutMs?: number;
   /** Upstream signal — composed with per-attempt timeout. */
   signal?: AbortSignal;
@@ -49,7 +49,7 @@ async function doFetch(
   opts: FetchJsonOpts,
 ): Promise<Response> {
   if (opts.signal?.aborted) throw new HttpAbortError("user", url);
-  const timeoutMs = opts.timeoutMs ?? 60_000;
+  const timeoutMs = opts.timeoutMs ?? 180_000;
   const reqId = opts.requestId ?? crypto.randomUUID();
   const headers = new Headers(init.headers);
   if (!headers.has("x-request-id")) headers.set("x-request-id", reqId);

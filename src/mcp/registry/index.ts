@@ -11,6 +11,7 @@ import { registerTelegramTools } from "./telegram.tools";
 import { registerWebTools } from "./web.tools";
 import { registerAgentMetaTools } from "./agent-meta.tools";
 import { registerCodeMgmtTools } from "./code-mgmt.tools";
+import { registerReportTools } from "./report.tools";
 
 export { ToolRegistry } from "./tool-registry";
 export type {
@@ -34,6 +35,7 @@ export function buildRegistry(): ToolRegistry {
   registerRagTools(registry);
   registerTelegramTools(registry);
   registerWebTools(registry);
+  registerReportTools(registry);
 
   // Agent-only (только агент-луп)
   registerAgentMetaTools(registry);

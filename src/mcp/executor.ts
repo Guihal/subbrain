@@ -6,6 +6,7 @@ import type { PlaywrightClient } from "./playwright-client";
 import type { ToolResult } from "./types";
 import { MemoryTools, EmbedTools, LogTools, WebTools } from "./tools/index";
 import * as tg from "./telegram-tools";
+import { sendReport } from "./tools/telegram-report";
 
 export type { ToolResult } from "./types";
 
@@ -37,6 +38,16 @@ export class ToolExecutor {
   /** Set RAG pipeline (avoids circular dependency) */
   setRAG(rag: RAGPipeline): void {
     this.rag = rag;
+  }
+
+  /** Expose memory for tools that need direct DB access (report-context). */
+  get memoryDb(): MemoryDB {
+    return this.memory;
+  }
+
+  /** Expose RAG for tools (may be null until setRAG was called). */
+  get ragPipeline(): RAGPipeline | null {
+    return this.rag;
   }
 
   /** Set Telegram bot notify function for sending messages to owner */
@@ -210,5 +221,64 @@ export class ToolExecutor {
 
   tgListExcluded(): ToolResult {
     return tg.tgListExcluded(this.memory);
+  }
+
+  /** FTS5 search over locally indexed TG messages. */
+  tgFtsSearch(
+    query: string,
+    chatId?: string,
+    from?: string,
+    to?: string,
+    limit?: number,
+  ): ToolResult {
+    try {
+      const fromTs = from ? Math.floor(Date.parse(from) / 1000) : undefined;
+      const toTs = to ? Math.floor(Date.parse(to) / 1000) : undefined;
+      if ((from && Number.isNaN(fromTs)) || (to && Number.isNaN(toTs))) {
+        return { success: false, error: "Invalid from/to ISO date" };
+      }
+      const opts: import("../db").TgSearchOpts = { query };
+      if (chatId) opts.chatId = chatId;
+      if (fromTs !== undefined) opts.from = fromTs;
+      if (toTs !== undefined) opts.to = toTs;
+      if (limit !== undefined) opts.limit = limit;
+      const { items, total } = this.memory.searchTgMessages(opts);
+      return {
+        success: true,
+        data: {
+          items: items.map((h) => ({
+            ts: h.ts,
+            chat: h.chat_name,
+            chat_id: h.chat_id,
+            from: h.from_name,
+            text: h.text,
+            message_id: h.message_id,
+          })),
+          total,
+        },
+      };
+    } catch (err) {
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : String(err),
+      };
+    }
+  }
+
+  /** RAG-обогащённая отправка отчёта (REPORT_RAG kill-switch внутри). */
+  async sendReportEnriched(
+    text: string,
+    opts?: { topic?: string; sinceHours?: number },
+  ): Promise<ToolResult> {
+    return sendReport(
+      { executor: this },
+      text,
+      {
+        topic: opts?.topic,
+        sinceHours: opts?.sinceHours,
+        memory: this.memory,
+        rag: this.rag,
+      },
+    );
   }
 }

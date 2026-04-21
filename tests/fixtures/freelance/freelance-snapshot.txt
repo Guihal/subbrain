@@ -1,0 +1,10 @@
+URL: https://freelance.ru/project
+Title: freelance.ru
+
+Interactive elements (2):
+[1] link "Скрипт парсинга" → https://freelance.ru/project/5555/parsing
+[2] link "Интеграция Slack" → https://freelance.ru/project/7777/slack
+
+Text:
+Скрипт парсинга — 4 000 руб, срок 2 дня. Парсинг RSS.
+Интеграция Slack — бюджет 12 000 ₽, дедлайн 3 дня. Python + webhooks.

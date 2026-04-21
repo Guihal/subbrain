@@ -321,7 +321,7 @@ export class CopilotProvider implements LLMProvider {
       return await fetchJson<ChatResponse>(
         url,
         { method: "POST", headers: reqHeaders, body },
-        { timeoutMs: 60_000, signal: params.signal },
+        { timeoutMs: 180_000, signal: params.signal },
       );
     };
 
@@ -388,7 +388,7 @@ export class CopilotProvider implements LLMProvider {
       return fetchStream(
         `${COPILOT_API_URL}/chat/completions`,
         { method: "POST", headers: hdrs, body: bodyStr },
-        { timeoutMs: 180_000, signal: params.signal },
+        { timeoutMs: 300_000, signal: params.signal },
       );
     });
   }

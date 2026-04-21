@@ -4,6 +4,9 @@ import { MemoryTable } from "./tables/memory";
 import { SharedTable } from "./tables/shared";
 import { ChatsTable } from "./tables/chats";
 import { LogsTable } from "./tables/logs";
+import { TgMessagesTable, type TgMessageInsert, type TgSearchOpts } from "./tables/tg-messages";
+import { FreelanceLeadsTable } from "./tables/freelance-leads";
+import type { FreelanceSource, FreelanceStatus } from "./types";
 
 export type {
   ContextRow,
@@ -16,7 +19,14 @@ export type {
   ChatRow,
   ChatMessageRow,
   TgExcludedChatRow,
+  TgMessageRow,
+  TgSearchHit,
+  FreelanceLeadRow,
+  FreelanceSource,
+  FreelanceStatus,
 } from "./types";
+
+export type { TgMessageInsert, TgSearchOpts } from "./tables/tg-messages";
 
 export class MemoryDB {
   db: Database;
@@ -24,6 +34,8 @@ export class MemoryDB {
   private _shared: SharedTable;
   private _chats: ChatsTable;
   private _logs: LogsTable;
+  private _tgmsg: TgMessagesTable;
+  private _freelance: FreelanceLeadsTable;
 
   constructor(path: string) {
     this.db = openDatabase(path);
@@ -32,6 +44,8 @@ export class MemoryDB {
     this._shared = new SharedTable(this.db);
     this._chats = new ChatsTable(this.db);
     this._logs = new LogsTable(this.db);
+    this._tgmsg = new TgMessagesTable(this.db);
+    this._freelance = new FreelanceLeadsTable(this.db);
   }
 
   close(): void {
@@ -132,9 +146,41 @@ export class MemoryDB {
   getLogsByRequest = (requestId: string) => this._logs.getLogsByRequest(requestId);
   getLogsBySession = (sessionId: string, limit?: number) => this._logs.getLogsBySession(sessionId, limit);
   getLogsSince = (afterId: number, limit?: number) => this._logs.getLogsSince(afterId, limit);
+  getLogsSinceTime = (sinceUnix: number, limit?: number) =>
+    this._logs.getLogsSinceTime(sinceUnix, limit);
   listLog = (limit?: number, offset?: number, sessionId?: string) =>
     this._logs.listLog(limit, offset, sessionId);
   countLog = (sessionId?: string) => this._logs.countLog(sessionId);
   listLogSessions = (limit?: number) => this._logs.listLogSessions(limit);
   groupLogsBySession = (rows: import("./types").LogRow[]) => this._logs.groupLogsBySession(rows);
+
+  // ─── Telegram Messages (FTS index) ─────────────────────────
+  insertTgMessage = (msg: TgMessageInsert) => this._tgmsg.insert(msg);
+  insertTgMessages = (rows: TgMessageInsert[]) => this._tgmsg.insertMany(rows);
+  searchTgMessages = (opts: TgSearchOpts) => this._tgmsg.search(opts);
+  recentTgMessages = (chatId: string, limit?: number) =>
+    this._tgmsg.recentByChat(chatId, limit);
+  countTgMessages = () => this._tgmsg.count();
+
+  // ─── Freelance Leads ───────────────────────────────────────
+  insertFreelanceLead = (lead: {
+    id: string;
+    url: string;
+    source: FreelanceSource;
+    title: string;
+    budget: number | null;
+    score: number | null;
+    reason: string | null;
+  }) => this._freelance.insert(lead);
+  getFreelanceLead = (id: string) => this._freelance.getById(id);
+  existsFreelanceByUrl = (url: string) => this._freelance.existsByUrl(url);
+  listFreelanceLeads = (opts: {
+    status?: FreelanceStatus;
+    limit: number;
+    offset: number;
+  }) => this._freelance.list(opts);
+  updateFreelanceStatus = (id: string, status: FreelanceStatus) =>
+    this._freelance.updateStatus(id, status);
+  countFreelanceLeadsSince = (ts: number) => this._freelance.countLeadsSince(ts);
+  lastFreelanceLeadAt = () => this._freelance.lastCreatedAt();
 }

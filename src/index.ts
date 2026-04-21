@@ -3,8 +3,11 @@ import { createApp } from "./app/bootstrap";
 import {
   installAutonomousScheduler,
   installNightCycleScheduler,
+  installTelegramPoller,
   installTelegramWebhook,
+  installFreelanceScoutScheduler,
 } from "./app/schedulers";
+import { installFreeAgentScheduler } from "./scheduler/free-agent";
 import { registerShutdown } from "./app/shutdown";
 
 const deps = await initDeps();
@@ -20,6 +23,9 @@ console.log(`🧠 Subbrain proxy running on http://localhost:${deps.config.port}
 installAutonomousScheduler(deps);
 installNightCycleScheduler(deps, nightCycleController);
 installTelegramWebhook(deps);
+installTelegramPoller(deps);
+installFreelanceScoutScheduler(deps);
+installFreeAgentScheduler(deps);
 registerShutdown(deps);
 
 // Re-exported so other modules (tests, tooling) can reach the configured bot.

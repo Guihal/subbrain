@@ -21,13 +21,15 @@ import { executeSandboxed } from "./code-tools/sandbox";
  * surface as `{ error: { code: "timeout", name } }` in the tool_result so the
  * model can decide whether to retry or skip ahead.
  */
+const CRITIC_TIMEOUT_MS = Number(process.env.CRITIC_TIMEOUT_MS ?? 120_000);
 const TOOL_TIMEOUTS: { prefix: string; ms: number }[] = [
-  { prefix: "web_", ms: 15000 },
-  { prefix: "memory_", ms: 3000 },
-  { prefix: "embed_", ms: 5000 },
-  { prefix: "consult_", ms: 20000 },
+  { prefix: "critic_", ms: CRITIC_TIMEOUT_MS },
+  { prefix: "web_", ms: 15_000 },
+  { prefix: "memory_", ms: 3_000 },
+  { prefix: "embed_", ms: 5_000 },
+  { prefix: "consult_", ms: 60_000 },
 ];
-const DEFAULT_TOOL_TIMEOUT_MS = 5000;
+const DEFAULT_TOOL_TIMEOUT_MS = 10_000;
 
 export function toolTimeoutMs(name: string): number {
   for (const { prefix, ms } of TOOL_TIMEOUTS) {

@@ -74,6 +74,7 @@ export interface ChatRow {
   title: string;
   model: string;
   source: string;
+  kind: string;
   created_at: number;
   updated_at: number;
 }
@@ -95,3 +96,34 @@ export interface TgExcludedChatRow {
   reason: string;
   created_at: number;
 }
+
+export interface TgMessageRow {
+  message_id: number;
+  chat_id: string;
+  chat_name: string;
+  from_name: string;
+  ts: number;
+  text: string;
+  created_at: number;
+}
+
+export interface TgSearchHit extends TgMessageRow {
+  rank: number;
+}
+
+export type FreelanceSource = "fl.ru" | "kwork.ru" | "freelance.ru";
+export type FreelanceStatus = "new" | "taken" | "rejected";
+
+export interface FreelanceLeadRow {
+  id: string;
+  url: string;
+  source: FreelanceSource;
+  title: string;
+  budget: number | null;
+  score: number | null;
+  reason: string | null;
+  status: FreelanceStatus;
+  created_at: number;
+  updated_at: number;
+}
+

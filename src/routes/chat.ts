@@ -7,6 +7,7 @@ import { shouldCompress, compressContext } from "../pipeline/context-compressor"
 import type { ModelRouter } from "../lib/model-router";
 import type { AgentPipeline } from "../pipeline";
 import type { MemoryDB } from "../db";
+import type { Message } from "../providers/types";
 import { logger } from "../lib/logger";
 import { parseSSEChunk } from "../providers/sse-parser";
 
@@ -20,15 +21,7 @@ export function chatRoute(
     async ({ body, headers }) => {
       const stream = body.stream ?? false;
       const { model, messages: rawMessages, ...rest } = body;
-      const messages = normalizeMessages(rawMessages);
-
-      // Compress long chat histories before forwarding. Inbound client sends
-      // the full history each turn, so this is the only chance to trim it.
-      if (shouldCompress(messages)) {
-        await compressContext(messages, router, memory ?? null);
-      }
-
-      const params = { ...rest, messages };
+      let messages = normalizeMessages(rawMessages);
 
       // Chat persistence: use X-Chat-Id header if provided
       const chatId = headers["x-chat-id"] as string | undefined;
@@ -60,6 +53,33 @@ export function chatRoute(
         }
         memory.appendChatMessage(chatId, "user", lastUserMsg.content);
       }
+
+      // Safety-net hydration: if client forgot to send assistant history,
+      // rebuild from chats table. No-op when client already sends full history.
+      if (memory && chatId && !messages.some((m) => m.role === "assistant")) {
+        const stored = memory.getChatMessages(chatId);
+        if (stored.length > messages.filter((m) => m.role !== "system").length) {
+          const systems = messages.filter((m) => m.role === "system");
+          const history: Message[] = stored.map((r) => ({
+            role: r.role as Message["role"],
+            content: r.content,
+          }));
+          messages = [...systems, ...history];
+          logger.info(
+            "route",
+            `hydrated history from chats: ${history.length} msgs`,
+            { meta: { chatId } },
+          );
+        }
+      }
+
+      // Compress long chat histories before forwarding. Runs AFTER hydration
+      // so compressor sees authoritative history.
+      if (shouldCompress(messages)) {
+        await compressContext(messages, router, memory ?? null);
+      }
+
+      const params = { ...rest, messages };
 
       try {
         // If pipeline is available, model is a virtual role, and NOT direct mode

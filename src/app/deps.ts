@@ -11,6 +11,9 @@ import {
   AgentLoop,
 } from "../pipeline";
 import { TelegramBot, Userbot } from "../telegram";
+import { TelegramPoller } from "../scheduler/telegram-poller";
+import { FreelanceScout, type FreelanceScoutConfig } from "../scheduler/freelance";
+import { FREE_AGENT_TASK } from "../scheduler/free-agent";
 import { Metrics } from "../lib/metrics";
 import { logger } from "../lib/logger";
 
@@ -34,6 +37,22 @@ export interface AppConfig {
     webhookUrl?: string;
     polling: boolean;
   };
+  telegramPoller: {
+    enabled: boolean;
+    remindChatId: string;
+    pollIntervalMs: number;
+    remindIntervalMs: number;
+    staleHours: number;
+    remindModel: string;
+  };
+  freelance: FreelanceScoutConfig;
+  freeAgent: {
+    enabled: boolean;
+    intervalMinutes: number;
+    startupDelayMs: number;
+    maxSteps: number;
+    task: string;
+  };
 }
 
 export interface AppDeps {
@@ -51,6 +70,8 @@ export interface AppDeps {
   agentLoop: AgentLoop;
   telegramBot: TelegramBot | null;
   userbot: Userbot | null;
+  telegramPoller: TelegramPoller | null;
+  freelanceScout: FreelanceScout | null;
 }
 
 export function loadConfig(): AppConfig {
@@ -106,6 +127,59 @@ export function loadConfig(): AppConfig {
       webhookUrl: process.env.TG_WEBHOOK_URL,
       polling: process.env.TG_POLLING === "true",
     },
+    telegramPoller: {
+      enabled: process.env.TG_POLLER === "true",
+      remindChatId: process.env.TG_REMIND_CHAT_ID || "",
+      pollIntervalMs: Math.max(
+        60_000,
+        (Number(process.env.TG_POLL_INTERVAL_MIN) || 10) * 60_000,
+      ),
+      remindIntervalMs: Math.max(
+        60_000,
+        (Number(process.env.TG_REMIND_INTERVAL_MIN) || 30) * 60_000,
+      ),
+      staleHours: Math.max(
+        1,
+        Number(process.env.TG_REMIND_STALE_HOURS) || 6,
+      ),
+      remindModel: process.env.TG_REMIND_MODEL || "flash",
+    },
+    freelance: {
+      enabled: process.env.FREELANCE_SCOUT === "true",
+      pollMs: Math.max(
+        60_000,
+        (Number(process.env.FREELANCE_POLL_MIN) || 30) * 60_000,
+      ),
+      categories: (process.env.FREELANCE_CATEGORIES || "web,backend,bots,scripts")
+        .split(",")
+        .map((s) => s.trim().toLowerCase())
+        .filter(Boolean),
+      minBudget: Number(process.env.FREELANCE_MIN_BUDGET) || 2000,
+      maxBudget: Number(process.env.FREELANCE_MAX_BUDGET) || 30000,
+      threshold: Math.max(
+        1,
+        Math.min(10, Number(process.env.FREELANCE_THRESHOLD) || 7),
+      ),
+      tgChatId: process.env.FREELANCE_TG_CHAT_ID
+        ? Number(process.env.FREELANCE_TG_CHAT_ID)
+        : null,
+    },
+    freeAgent: {
+      enabled: process.env.FREE_AGENT === "true",
+      intervalMinutes: Math.max(
+        5,
+        Number(process.env.FREE_AGENT_INTERVAL_MIN) || 60,
+      ),
+      startupDelayMs: Math.max(
+        0,
+        Number(process.env.FREE_AGENT_STARTUP_DELAY_MS) || 60_000,
+      ),
+      maxSteps: Math.min(
+        100,
+        Math.max(1, Number(process.env.FREE_AGENT_MAX_STEPS) || 50),
+      ),
+      task: process.env.FREE_AGENT_TASK || FREE_AGENT_TASK,
+    },
   };
 }
 
@@ -153,6 +227,21 @@ export async function initDeps(config: AppConfig = loadConfig()): Promise<AppDep
     tools,
     authToken: config.authToken,
   });
+  const telegramPoller = initTelegramPoller({
+    config,
+    memory,
+    router,
+    userbot,
+    telegramBot,
+  });
+
+  const freelanceScout = new FreelanceScout({
+    db: memory,
+    router,
+    playwright,
+    bot: telegramBot,
+    config: config.freelance,
+  });
 
   return {
     config,
@@ -169,7 +258,57 @@ export async function initDeps(config: AppConfig = loadConfig()): Promise<AppDep
     agentLoop,
     telegramBot,
     userbot,
+    telegramPoller,
+    freelanceScout,
   };
+}
+
+function initTelegramPoller(opts: {
+  config: AppConfig;
+  memory: MemoryDB;
+  router: ModelRouter;
+  userbot: Userbot | null;
+  telegramBot: TelegramBot | null;
+}): TelegramPoller | null {
+  const cfg = opts.config.telegramPoller;
+  if (!cfg.enabled) {
+    logger.info("tg-poller", "Disabled (TG_POLLER != true)");
+    return null;
+  }
+  if (!cfg.remindChatId) {
+    logger.warn("tg-poller", "Enabled but TG_REMIND_CHAT_ID not set — skipped");
+    return null;
+  }
+  if (!opts.userbot || !opts.telegramBot) {
+    logger.warn(
+      "tg-poller",
+      "Enabled but userbot or bot not configured — skipped",
+    );
+    return null;
+  }
+  const userbot = opts.userbot;
+  const telegramBot = opts.telegramBot;
+  return new TelegramPoller({
+    memory: opts.memory,
+    router: opts.router,
+    readInbox: async (chatId, limit) => {
+      const msgs = await userbot.readChat(chatId, limit);
+      return msgs.map((m) => ({
+        id: m.id,
+        text: m.text,
+        date: m.date,
+        sender: m.sender,
+      }));
+    },
+    sendNotify: (text) => telegramBot.notify(text),
+    config: {
+      remindChatId: cfg.remindChatId,
+      pollIntervalMs: cfg.pollIntervalMs,
+      remindIntervalMs: cfg.remindIntervalMs,
+      staleHours: cfg.staleHours,
+      remindModel: cfg.remindModel,
+    },
+  });
 }
 
 function initUserbot(memory: MemoryDB, tools: ToolExecutor): Userbot | null {
@@ -227,5 +366,8 @@ function initTelegramBot(opts: {
       logger.error("telegram", `Bot init failed: ${err.message}`),
     );
   opts.tools.setBotNotify((text) => bot.notify(text));
+  bot.setReportSender(async (text) => {
+    await opts.tools.sendReportEnriched(text);
+  });
   return bot;
 }

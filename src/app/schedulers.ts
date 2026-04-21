@@ -139,6 +139,18 @@ export function installNightCycleScheduler(
   }, 120_000);
 }
 
+export function installTelegramPoller(deps: AppDeps): void {
+  const { telegramPoller } = deps;
+  if (!telegramPoller) return;
+  telegramPoller.start();
+}
+
+export function installFreelanceScoutScheduler(deps: AppDeps): void {
+  const { freelanceScout } = deps;
+  if (!freelanceScout) return;
+  freelanceScout.start();
+}
+
 export function installTelegramWebhook(deps: AppDeps): void {
   const { telegramBot, config } = deps;
   if (!telegramBot) return;

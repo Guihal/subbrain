@@ -2,7 +2,7 @@
 
 **Оценка:** 1 день
 **Зависимости:** после всех PR 01-14
-**Status:** TODO
+**Status:** PARTIAL (тесты: mcp-registry, context-compressor, chat-continuity, clock, tool-timeouts добавлены 2026-04-21; остаются night-cycle-steps, memory-routes + докblock)
 
 ## Цель
 

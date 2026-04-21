@@ -36,7 +36,7 @@ const {
   deleteAgent,
 } = memory;
 
-const sidebarOpen = ref(false);
+const sidebarOpen = useState("sidebar-open", () => false);
 const confirmDelete = ref<MemoryRow | null>(null);
 const showDelete = computed({
   get: () => confirmDelete.value !== null,
@@ -85,40 +85,23 @@ async function handleDelete(row: MemoryRow) {
 </script>
 
 <template>
-  <div class="flex h-dvh">
+  <div class="flex-1 flex flex-col min-w-0">
     <div
-      v-if="sidebarOpen"
-      class="fixed inset-0 z-40 bg-black/40 md:hidden"
-      @click="sidebarOpen = false"
-    />
-
-    <div
-      class="w-64 min-w-64 border-r border-(--ui-border) bg-(--ui-bg-elevated) transition-transform duration-200"
-      :class="[
-        sidebarOpen ? 'fixed inset-y-0 left-0 z-50' : 'hidden',
-        'md:relative md:block md:translate-x-0',
-      ]"
+      class="h-12 border-b border-(--ui-border) flex items-center gap-2 px-4"
     >
-      <ChatSidebar @select="sidebarOpen = false" />
+      <UButton
+        icon="i-lucide-menu"
+        variant="ghost"
+        size="sm"
+        class="md:hidden"
+        @click="sidebarOpen = !sidebarOpen"
+      />
+      <span class="text-lg">🧠 Память</span>
+      <span class="text-xs text-(--ui-text-muted) ml-auto">
+        {{ totalForActive }} записей
+        <span v-if="loading" class="ml-2">· загрузка…</span>
+      </span>
     </div>
-
-    <div class="flex-1 flex flex-col min-w-0">
-      <div
-        class="h-12 border-b border-(--ui-border) flex items-center gap-2 px-4"
-      >
-        <UButton
-          icon="i-lucide-menu"
-          variant="ghost"
-          size="sm"
-          class="md:hidden"
-          @click="sidebarOpen = !sidebarOpen"
-        />
-        <span class="text-lg">🧠 Память</span>
-        <span class="text-xs text-(--ui-text-muted) ml-auto">
-          {{ totalForActive }} записей
-          <span v-if="loading" class="ml-2">· загрузка…</span>
-        </span>
-      </div>
 
       <MemoryTabs :active="activeTab" @switch="switchTab" />
 
@@ -194,7 +177,6 @@ async function handleDelete(row: MemoryRow) {
             />
           </div>
         </template>
-      </UModal>
-    </div>
+    </UModal>
   </div>
 </template>

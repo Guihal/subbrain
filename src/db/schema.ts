@@ -320,6 +320,67 @@ export function migrate(db: Database): void {
       for (const sql of mig3Stmts) db.query(sql).run();
     })();
   }
+
+  // Migration 4: tg_messages + FTS5 mirror (Telegram search index).
+  if (version < 4) {
+    const mig4Stmts = [
+      `CREATE TABLE IF NOT EXISTS tg_messages (
+        message_id  INTEGER NOT NULL,
+        chat_id     TEXT NOT NULL,
+        chat_name   TEXT NOT NULL DEFAULT '',
+        from_name   TEXT NOT NULL DEFAULT '',
+        ts          INTEGER NOT NULL,
+        text        TEXT NOT NULL,
+        created_at  INTEGER NOT NULL DEFAULT (unixepoch()),
+        PRIMARY KEY (chat_id, message_id)
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_tgmsg_ts ON tg_messages(ts DESC)`,
+      `CREATE INDEX IF NOT EXISTS idx_tgmsg_chat ON tg_messages(chat_id, ts DESC)`,
+      `CREATE VIRTUAL TABLE IF NOT EXISTS fts_tg_messages USING fts5(
+        text, chat_name, from_name,
+        content=tg_messages,
+        content_rowid=rowid
+      )`,
+      `CREATE TRIGGER IF NOT EXISTS fts_tgmsg_ai AFTER INSERT ON tg_messages BEGIN
+        INSERT INTO fts_tg_messages(rowid, text, chat_name, from_name)
+        VALUES (new.rowid, new.text, new.chat_name, new.from_name);
+      END`,
+      `CREATE TRIGGER IF NOT EXISTS fts_tgmsg_ad AFTER DELETE ON tg_messages BEGIN
+        INSERT INTO fts_tg_messages(fts_tg_messages, rowid, text, chat_name, from_name)
+        VALUES ('delete', old.rowid, old.text, old.chat_name, old.from_name);
+      END`,
+      `PRAGMA user_version = 4`,
+    ];
+    db.transaction(() => {
+      for (const sql of mig4Stmts) db.query(sql).run();
+    })();
+  }
+
+  // Migration 5: chats.kind + freelance_leads table (freelance scout).
+  if (version < 5) {
+    const mig5Stmts = [
+      `ALTER TABLE chats ADD COLUMN kind TEXT NOT NULL DEFAULT 'main'`,
+      `CREATE INDEX IF NOT EXISTS idx_chats_kind ON chats(kind)`,
+      `CREATE TABLE IF NOT EXISTS freelance_leads (
+        id         TEXT PRIMARY KEY,
+        url        TEXT NOT NULL UNIQUE,
+        source     TEXT NOT NULL,
+        title      TEXT NOT NULL,
+        budget     INTEGER,
+        score      INTEGER,
+        reason     TEXT,
+        status     TEXT NOT NULL DEFAULT 'new' CHECK(status IN ('new','taken','rejected')),
+        created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+        updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_fl_status ON freelance_leads(status)`,
+      `CREATE INDEX IF NOT EXISTS idx_fl_created ON freelance_leads(created_at DESC)`,
+      `PRAGMA user_version = 5`,
+    ];
+    db.transaction(() => {
+      for (const sql of mig5Stmts) db.query(sql).run();
+    })();
+  }
 }
 
 export { EMBEDDING_DIM };

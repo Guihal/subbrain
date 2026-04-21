@@ -3,6 +3,7 @@ import type { MemoryDB } from "../../db";
 import type { ModelRouter } from "../../lib/model-router";
 import type { RAGPipeline } from "../../rag";
 import { logger } from "../../lib/logger";
+import { getMoscowDate } from "../../lib/clock";
 
 const log = logger.child("night");
 import {
@@ -156,7 +157,7 @@ export class NightCycle {
           this.memory.db.transaction(() => {
             this.memory.insertArchive(
               apId,
-              "Anti-patterns: " + new Date().toISOString().slice(0, 10),
+              "Anti-patterns: " + getMoscowDate(),
               antiPatterns,
               "anti-patterns,night-cycle",
               [],

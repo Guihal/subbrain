@@ -42,13 +42,10 @@ export interface AgentLoopResult {
 
 // ─── Helpers ─────────────────────────────────────────────
 
+import { getMoscowNow } from "../../lib/clock";
+
 export function getCurrentDate(): string {
-  return new Date().toLocaleDateString("ru-RU", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
+  return getMoscowNow();
 }
 
 export function estimateTokens(messages: Message[]): number {

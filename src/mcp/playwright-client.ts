@@ -65,10 +65,42 @@ export class PlaywrightClient {
   private context: BrowserContext | null = null;
   private page: Page | null = null;
   private launchPromise: Promise<void> | null = null;
+  private scopes = new Map<string, { ctx: BrowserContext; page: Page }>();
 
   constructor() {
     liveClients.add(this);
     registerBeforeExit();
+  }
+
+  /**
+   * Returns a dedicated incognito context+page bound to the given name.
+   * Used by freelance-scout to avoid polluting the main browsing session.
+   * Scope persists until closeScope(name) or client close().
+   */
+  async getScopePage(name: string): Promise<Page> {
+    await this.ensureLaunched();
+    const existing = this.scopes.get(name);
+    if (existing && !existing.page.isClosed()) return existing.page;
+    const ctx = await this.browser!.newContext({
+      viewport: { width: 1280, height: 800 },
+      userAgent:
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+      serviceWorkers: "block",
+    });
+    const page = await ctx.newPage();
+    this.scopes.set(name, { ctx, page });
+    return page;
+  }
+
+  async closeScope(name: string): Promise<void> {
+    const s = this.scopes.get(name);
+    if (!s) return;
+    try {
+      await s.ctx.close();
+    } catch {
+      /* ignore */
+    }
+    this.scopes.delete(name);
   }
 
   async callTool(
@@ -137,6 +169,15 @@ export class PlaywrightClient {
   }
 
   async close(): Promise<void> {
+    for (const [name, s] of this.scopes) {
+      try {
+        await s.ctx.close();
+      } catch {
+        /* ignore */
+      }
+      void name;
+    }
+    this.scopes.clear();
     try {
       await this.context?.close();
     } catch {

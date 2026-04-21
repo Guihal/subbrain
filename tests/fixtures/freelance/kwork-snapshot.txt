@@ -1,0 +1,10 @@
+URL: https://kwork.ru/projects
+Title: Kwork Projects
+
+Interactive elements (2):
+[1] link "Python бот для чатов" → https://kwork.ru/projects/999/py-bot
+[2] link "Миграция БД" → https://kwork.ru/projects/1234/db-migration
+
+Text:
+Python бот для чатов — бюджет 3 500 ₽, срок 2 дня.
+Миграция БД — 20000 руб, дедлайн 7 дней.

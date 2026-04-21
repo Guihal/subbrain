@@ -1,0 +1,13 @@
+URL: https://www.fl.ru/projects/
+Title: Лента проектов | FL.ru
+
+Interactive elements (4):
+[1] link "Главная" → https://www.fl.ru/
+[2] link "Написать бота на Python за 2 дня" → https://www.fl.ru/projects/12345/napisat-bota.html
+[3] link "Верстка лендинга" → https://www.fl.ru/projects/67890/verstka.html
+[4] link "Создать кодовый тест" → https://www.fl.ru/projects/11111/test-code.html
+
+Text:
+Написать бота на Python за 2 дня — бюджет 5 000 руб, срок 3 дня. Нужен простой Telegram бот.
+Верстка лендинга — 15 000 ₽, дедлайн 5 дней. HTML/CSS адаптив.
+Создать кодовый тест — 1 000 руб, срок 1 день. Несколько задач по JS.

@@ -62,7 +62,7 @@ export class NvidiaProvider implements LLMProvider {
           headers: this.headers(),
           body: JSON.stringify({ ...clamped, stream: false }),
         },
-        { timeoutMs: 180_000, signal: params.signal },
+        { timeoutMs: 240_000, signal: params.signal },
       );
     } catch (e) {
       if (e instanceof HttpError) throw new ProviderError(e.status, e.body);

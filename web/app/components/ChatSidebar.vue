@@ -56,7 +56,7 @@ const filteredChats = computed(() => {
 
 <template>
   <div class="flex flex-col h-full bg-(--ui-bg-elevated)">
-    <!-- New chat button + memory link -->
+    <!-- New chat button + nav links -->
     <div class="p-3 border-b border-(--ui-border) space-y-2">
       <UButton
         icon="i-lucide-plus"
@@ -64,12 +64,29 @@ const filteredChats = computed(() => {
         block
         @click="handleNewChat"
       />
-      <NuxtLink
-        to="/memory"
-        class="flex items-center justify-center gap-2 text-xs text-(--ui-text-muted) hover:text-(--ui-text) py-1 transition-colors"
-      >
-        🧠 Память
-      </NuxtLink>
+      <nav class="flex flex-col gap-0.5 pt-1">
+        <NuxtLink
+          to="/"
+          class="nav-link"
+          active-class="nav-link-active"
+        >
+          💬 Чат
+        </NuxtLink>
+        <NuxtLink
+          to="/memory"
+          class="nav-link"
+          active-class="nav-link-active"
+        >
+          🧠 Память
+        </NuxtLink>
+        <NuxtLink
+          to="/freelance"
+          class="nav-link"
+          active-class="nav-link-active"
+        >
+          💼 Фриланс
+        </NuxtLink>
+      </nav>
     </div>
 
     <!-- Tabs -->
@@ -153,6 +170,7 @@ const filteredChats = computed(() => {
     </div>
 
     <!-- Delete confirmation -->
+
     <UModal v-model:open="showDeleteModal" title="Удалить чат?">
       <template #body>
         <p class="text-sm text-(--ui-text-muted)">Отменить нельзя.</p>

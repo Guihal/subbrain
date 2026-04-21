@@ -33,6 +33,12 @@ export class TelegramBot {
   private chatMap = new Map<number, string>();
   /** Current model per Telegram chat */
   private modelMap = new Map<number, string>();
+  /** Optional RAG-enriched sender. Falls back to raw notify() when absent. */
+  private reportSender: ((text: string) => Promise<void>) | null = null;
+
+  setReportSender(fn: (text: string) => Promise<void>): void {
+    this.reportSender = fn;
+  }
 
   constructor(config: TelegramBotConfig) {
     this.bot = new Bot(config.token);
@@ -241,13 +247,33 @@ export class TelegramBot {
   }
 
   async notifyDigest(digest: string): Promise<void> {
-    await this.notify(`📋 *Ночной дайджест*\n\n${digest.slice(0, 4000)}`);
+    const text = `📋 *Ночной дайджест*\n\n${digest.slice(0, 4000)}`;
+    if (this.reportSender) {
+      try {
+        await this.reportSender(text);
+        return;
+      } catch (err) {
+        log.warn(
+          `notifyDigest reportSender failed: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+    await this.notify(text);
   }
 
   async notifyAutonomous(summary: string): Promise<void> {
-    await this.notify(
-      `🤖 *Автономный агент завершил работу*\n\n${summary.slice(0, 4000)}`,
-    );
+    const text = `🤖 *Автономный агент завершил работу*\n\n${summary.slice(0, 4000)}`;
+    if (this.reportSender) {
+      try {
+        await this.reportSender(text);
+        return;
+      } catch (err) {
+        log.warn(
+          `notifyAutonomous reportSender failed: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+    await this.notify(text);
   }
 
   // ─── Webhook handler for Elysia ──────────────────────────
