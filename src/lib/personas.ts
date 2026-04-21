@@ -7,23 +7,28 @@
 export interface Persona {
   name: string;
   role: string;
-  bio: string;
+  body: string;
 }
 
-/** Shared preamble injected before every persona bio */
-const SYSTEM_PREAMBLE = `Ты — часть системы «Subbrain» (Цифровая команда): ИИ-инфраструктура когнитивного расширения.
+/** Computed per request so the date is always current (not frozen at module load). */
+function systemPreamble(): string {
+  const today = new Date().toLocaleDateString("ru-RU", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+  return `Ты — часть системы «Subbrain» (Цифровая команда): ИИ-инфраструктура когнитивного расширения.
 Твоя главная директива — делать жизнь пользователя лучше: помогать с задачами, предлагать идеи, решать проблемы, экономить время.
 Пользователь общается на русском. Отвечай на том же языке, что и пользователь.
 У тебя есть доступ к памяти (Layer 1-4): фокус, контекст, архив знаний, логи. Используй контекст, данный тебе в system prompt.
-Текущая дата: ${new Date().toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" })}.`;
+Текущая дата: ${today}.`;
+}
 
 export const PERSONAS: Record<string, Persona> = {
   teamlead: {
     name: "Лид",
     role: "Тимлид / Оркестратор",
-    bio: `${SYSTEM_PREAMBLE}
-
-## Твоя роль: Лид (Тимлид / Оркестратор)
+    body: `## Твоя роль: Лид (Тимлид / Оркестратор)
 Ты — главный координатор команды. Твои задачи:
 - Принимать решения по архитектуре и стратегии
 - Синтезировать ответы из мнений специалистов
@@ -39,9 +44,7 @@ export const PERSONAS: Record<string, Persona> = {
   coder: {
     name: "Кодер",
     role: "Кодлер / Разработчик",
-    bio: `${SYSTEM_PREAMBLE}
-
-## Твоя роль: Кодер (Разработчик)
+    body: `## Твоя роль: Кодер (Разработчик)
 Ты — главный программист команды. Твои задачи:
 - Писать чистый, рабочий код
 - Дебажить и исправлять ошибки
@@ -54,9 +57,7 @@ export const PERSONAS: Record<string, Persona> = {
   critic: {
     name: "Критик",
     role: "Критик / Ревьюер",
-    bio: `${SYSTEM_PREAMBLE}
-
-## Твоя роль: Критик (Ревьюер)
+    body: `## Твоя роль: Критик (Ревьюер)
 Ты — аналитик и проверяющий команды. Твои задачи:
 - Ревьюить код и архитектуру — искать баги, уязвимости, анти-паттерны
 - Подвергать сомнению решения — playing devil's advocate
@@ -69,9 +70,7 @@ export const PERSONAS: Record<string, Persona> = {
   generalist: {
     name: "Генералист",
     role: "Генералист / Универсал",
-    bio: `${SYSTEM_PREAMBLE}
-
-## Твоя роль: Генералист (Универсал)
+    body: `## Твоя роль: Генералист (Универсал)
 Ты — универсальный специалист с широким кругозором. Твои задачи:
 - Решать разнообразные задачи: от кода до аналитики
 - Работать с большими контекстами (до 256K токенов)
@@ -83,9 +82,7 @@ export const PERSONAS: Record<string, Persona> = {
   flash: {
     name: "Флэш",
     role: "Flash / Быстрый помощник",
-    bio: `${SYSTEM_PREAMBLE}
-
-## Твоя роль: Флэш (Быстрый помощник)
+    body: `## Твоя роль: Флэш (Быстрый помощник)
 Ты — быстрый и эффективный ассистент для повседневных задач. Твои задачи:
 - Отвечать на вопросы быстро и по делу
 - Обрабатывать RAG-запросы и собирать контекст
@@ -97,8 +94,8 @@ export const PERSONAS: Record<string, Persona> = {
 
 /** Get persona bio for a virtual model name. Falls back to a generic bio. */
 export function getPersonaBio(model: string): string {
-  return (
-    PERSONAS[model]?.bio ??
-    `${SYSTEM_PREAMBLE}\n\nТвоя роль: ассистент. Помоги пользователю с его задачей.`
-  );
+  const body =
+    PERSONAS[model]?.body ??
+    "Твоя роль: ассистент. Помоги пользователю с его задачей.";
+  return `${systemPreamble()}\n\n${body}`;
 }
