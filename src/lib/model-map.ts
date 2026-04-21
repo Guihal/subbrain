@@ -2,7 +2,7 @@ export const EMBED_MODEL = "nvidia/llama-3.2-nemoretriever-300m-embed-v1";
 export const RERANK_MODEL = "nvidia/rerank-qa-mistral-4b";
 
 export type Priority = "critical" | "normal" | "low";
-export type ProviderName = "nvidia" | "openrouter" | "copilot";
+export type ProviderName = "nvidia" | "openrouter" | "copilot" | "minimax";
 
 export interface ModelTarget {
   model: string;
@@ -19,23 +19,34 @@ export interface ModelRoute {
 /** Maps virtual role names to actual model IDs with provider + fallbacks */
 export const MODEL_MAP: Record<string, ModelRoute> = {
   teamlead: {
-    primary: "minimaxai/minimax-m2.7",
-    primaryProvider: "nvidia",
-    fallback: "moonshotai/kimi-k2-thinking",
+    primary: "MiniMax-M2.7",
+    primaryProvider: "minimax",
+    fallback: "minimaxai/minimax-m2.7",
+    fallbackProvider: "nvidia",
   },
   coder: {
-    primary: "mistralai/devstral-2-123b-instruct-2512",
-    fallback: "qwen/qwen3-coder-480b-a35b-instruct",
+    primary: "MiniMax-M2.7",
+    primaryProvider: "minimax",
+    fallback: "mistralai/devstral-2-123b-instruct-2512",
+    fallbackProvider: "nvidia",
   },
   critic: {
-    primary: "moonshotai/kimi-k2-thinking",
-    fallback: "moonshotai/kimi-k2-instruct-0905",
+    primary: "MiniMax-M2.7",
+    primaryProvider: "minimax",
+    fallback: "moonshotai/kimi-k2-thinking",
+    fallbackProvider: "nvidia",
   },
   flash: {
-    primary: "stepfun-ai/step-3.5-flash",
+    primary: "MiniMax-M2.7",
+    primaryProvider: "minimax",
+    fallback: "stepfun-ai/step-3.5-flash",
+    fallbackProvider: "nvidia",
   },
   chaos: {
-    primary: "mistralai/mistral-medium-3-instruct",
+    primary: "MiniMax-M2.7",
+    primaryProvider: "minimax",
+    fallback: "mistralai/mistral-medium-3-instruct",
+    fallbackProvider: "nvidia",
   },
 };
 
@@ -44,11 +55,16 @@ function detectProvider(model: string): ProviderName {
   if (model.endsWith(":free") || model.startsWith("openrouter/")) {
     return "openrouter";
   }
+  // MiniMax API uses "MiniMax-*" model IDs (platform.minimax.io)
+  if (model.startsWith("MiniMax-") || model.startsWith("abab")) {
+    return "minimax";
+  }
   // NVIDIA NIM models use org/model naming (e.g. nvidia/llama-...)
   if (
     model.startsWith("nvidia/") ||
     model.startsWith("mistralai/") ||
-    model.startsWith("nv-mistralai/")
+    model.startsWith("nv-mistralai/") ||
+    model.startsWith("minimaxai/")
   ) {
     return "nvidia";
   }

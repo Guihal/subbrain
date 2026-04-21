@@ -21,6 +21,8 @@ const PROVIDER_RPM: Record<ProviderName, number> = {
   nvidia: 40,
   openrouter: 200,
   copilot: 10,
+  // Token Plan quota = 1500 req / 5h ≈ 5 RPM sustained; cap at 20 to absorb bursts.
+  minimax: 20,
 };
 
 function withTimeout<T>(

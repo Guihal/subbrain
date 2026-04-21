@@ -76,8 +76,11 @@ const hasReasoning = computed(() => !!props.message.reasoning?.trim());
       </div>
       <div v-else class="msg-content" v-html="renderedContent" />
 
-      <!-- Streaming indicator -->
-      <div v-if="isStreaming && !message.content" class="flex gap-1 mt-1">
+      <!-- Streaming indicator — hide once any reasoning or content arrives -->
+      <div
+        v-if="isStreaming && !message.content && !message.reasoning"
+        class="flex gap-1 mt-1"
+      >
         <span
           class="size-1.5 rounded-full bg-(--ui-text-muted) animate-pulse"
         />

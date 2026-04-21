@@ -44,6 +44,15 @@ export async function createProviders(): Promise<Record<ProviderName, LLMProvide
   const copilot = new CopilotProvider(copilotToken, 16384);
   await copilot.init();
 
+  // MiniMax: OpenAI-compatible endpoint at platform.minimax.io.
+  // Falls back to NVIDIA NIM instance of minimax-m2.7 if key not configured.
+  const minimaxUrl =
+    process.env.MINIMAX_BASE_URL || "https://api.minimax.io/v1";
+  const minimaxKey = process.env.MINIMAX_API_KEY;
+  const minimax: LLMProvider = minimaxKey
+    ? new NvidiaProvider(minimaxUrl, minimaxKey)
+    : new NvidiaProvider(nvidiaUrl, nvidiaKey);
+
   return {
     nvidia: new NvidiaProvider(nvidiaUrl, nvidiaKey),
     openrouter: new NvidiaProvider(orUrl, orKey, {
@@ -51,5 +60,6 @@ export async function createProviders(): Promise<Record<ProviderName, LLMProvide
       "X-Title": "Subbrain",
     }),
     copilot,
+    minimax,
   };
 }
