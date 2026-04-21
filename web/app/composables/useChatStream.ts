@@ -1,12 +1,62 @@
 export function useChatStream() {
   const { updateLastAssistant, flushStreamingPaint } = useChatState();
 
+  /**
+   * Incremental <think>...</think> splitter. Routes chars entering while
+   * inside a think block to `reasoning`, rest to `content`. Handles partial
+   * tags arriving across SSE chunks via a small carry buffer.
+   */
+  function makeThinkSplitter() {
+    let inThink = false;
+    let carry = ""; // partial tag awaiting completion
+    return (delta: string, onContent: (s: string) => void, onThink: (s: string) => void) => {
+      let buf = carry + delta;
+      carry = "";
+      while (buf.length > 0) {
+        if (inThink) {
+          const close = buf.indexOf("</think>");
+          if (close === -1) {
+            // Keep a tail that could be a partial "</think>" prefix.
+            const tail = Math.min(buf.length, 7);
+            onThink(buf.slice(0, buf.length - tail));
+            carry = buf.slice(buf.length - tail);
+            // Only carry if the tail is actually a prefix of "</think>".
+            if (!"</think>".startsWith(carry)) {
+              onThink(carry);
+              carry = "";
+            }
+            return;
+          }
+          onThink(buf.slice(0, close));
+          buf = buf.slice(close + "</think>".length);
+          inThink = false;
+        } else {
+          const open = buf.indexOf("<think>");
+          if (open === -1) {
+            const tail = Math.min(buf.length, 6);
+            onContent(buf.slice(0, buf.length - tail));
+            carry = buf.slice(buf.length - tail);
+            if (!"<think>".startsWith(carry)) {
+              onContent(carry);
+              carry = "";
+            }
+            return;
+          }
+          onContent(buf.slice(0, open));
+          buf = buf.slice(open + "<think>".length);
+          inThink = true;
+        }
+      }
+    };
+  }
+
   async function readSSEStream(res: Response) {
     const reader = res.body!.getReader();
     const decoder = new TextDecoder();
     let buffer = "";
     let content = "";
     let reasoning = "";
+    const split = makeThinkSplitter();
 
     try {
       while (true) {
@@ -34,16 +84,12 @@ export function useChatStream() {
               didUpdate = true;
             }
             if (delta.content) {
-              content += delta.content;
-              const thinkRegex = /<think>([\s\S]*?)<\/think>/g;
-              let thinkMatch;
-              while ((thinkMatch = thinkRegex.exec(content)) !== null) {
-                reasoning += thinkMatch[1];
-              }
-              const cleanContent = content
-                .replace(/<think>[\s\S]*?<\/think>/g, "")
-                .trim();
-              updateLastAssistant({ content: cleanContent, reasoning });
+              split(
+                delta.content,
+                (c) => { content += c; },
+                (r) => { reasoning += r; },
+              );
+              updateLastAssistant({ content: content.trim(), reasoning });
               didUpdate = true;
             }
           } catch {
