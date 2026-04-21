@@ -58,10 +58,6 @@ export class FreelanceScout {
 
   start(): void {
     if (this.running) return;
-    if (!this.deps.config.enabled) {
-      log.info("freelance scout disabled (flag)");
-      return;
-    }
     this.running = true;
     this.abort = new AbortController();
     const ms = this.deps.config.pollMs;

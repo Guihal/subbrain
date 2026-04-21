@@ -57,10 +57,10 @@ Docker: `docker compose build && docker compose up -d`. **Never `docker compose 
 
 > ⚠️ **Deploys are 100% manual right now.** GitHub has blocked the account, so `gh` CLI and every push-to-deploy / PR-triggered path is dead. `git push` / merging a PR does NOT reach prod. Don't suggest `gh pr create`, `gh workflow run`, or any GitHub-automation flow until this is unblocked — it will just fail.
 
-- **Prod VPS:** `ssh root@109.120.187.244`. Caddy reverse-proxy terminates HTTPS and proxies to the Bun container on `:4000`. The SQLite volume lives inside the container — `docker compose down -v` on this box wipes real memory, not just dev data.
+- **Prod VPS:** `ssh root@109.120.187.244`. Repo path: `/opt/subbrain` (NOT `/root/subbrain` — that path doesn't exist; creating it via rsync is a mistake). Caddy reverse-proxy terminates HTTPS and proxies to the Bun container on `:4000`. The SQLite volume lives inside the container — `docker compose down -v` on this box wipes real memory, not just dev data.
 - **Manual deploy procedure** (the only working path):
-  1. `ssh root@109.120.187.244`
-  2. `cd` into the repo and `git pull` — or, if `git` itself is blocked by GitHub auth, `scp` / `rsync` the changed files from your workstation.
+  1. `ssh root@109.120.187.244 && cd /opt/subbrain`
+  2. `git pull` — or, if `git` itself is blocked by GitHub auth, `rsync` changed files from workstation: `rsync -avz <files> root@109.120.187.244:/opt/subbrain/ --relative`.
   3. `docker compose build && docker compose up -d`
   4. `docker compose logs -f` to confirm boot.
 - **Night cycle:** two schedulers, both idempotent (the HTTP endpoint and the in-process trigger share the same `nightCycleRunning` guard):

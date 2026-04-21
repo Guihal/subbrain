@@ -146,8 +146,12 @@ export function installTelegramPoller(deps: AppDeps): void {
 }
 
 export function installFreelanceScoutScheduler(deps: AppDeps): void {
-  const { freelanceScout } = deps;
+  const { freelanceScout, config } = deps;
   if (!freelanceScout) return;
+  if (!config.freelance.enabled) {
+    logger.info("freelance", "freelance scout disabled (flag)");
+    return;
+  }
   freelanceScout.start();
 }
 
