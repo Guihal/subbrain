@@ -121,7 +121,7 @@ export function loadConfig(): AppConfig {
     nightCycle: {
       schedulerEnabled: process.env.NIGHT_CYCLE_SCHEDULER !== "false",
       hourUtc: Number(process.env.NIGHT_CYCLE_HOUR_UTC ?? 3),
-      backlogTrigger: Number(process.env.NIGHT_CYCLE_BACKLOG_TRIGGER ?? 100),
+      backlogTrigger: Number(process.env.NIGHT_CYCLE_BACKLOG_TRIGGER ?? 10),
     },
     telegram: {
       webhookUrl: process.env.TG_WEBHOOK_URL,

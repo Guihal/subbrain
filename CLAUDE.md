@@ -64,7 +64,7 @@ Docker: `docker compose build && docker compose up -d`. **Never `docker compose 
   3. `docker compose build && docker compose up -d`
   4. `docker compose logs -f` to confirm boot.
 - **Night cycle:** two schedulers, both idempotent (the HTTP endpoint and the in-process trigger share the same `nightCycleRunning` guard):
-  - **In-process** (primary): fires daily at `NIGHT_CYCLE_HOUR_UTC` (default `3` = 03:00 UTC). On startup, checks `night_cycle_last_processed_id` vs. current log count; if backlog ≥ `NIGHT_CYCLE_BACKLOG_TRIGGER` (default 100), runs a catch-up 2 min after boot. Disable with `NIGHT_CYCLE_SCHEDULER=false`.
+  - **In-process** (primary): fires daily at `NIGHT_CYCLE_HOUR_UTC` (default `3` = 03:00 UTC). On startup, checks `night_cycle_last_processed_id` vs. current log count; if backlog ≥ `NIGHT_CYCLE_BACKLOG_TRIGGER` (default 10 — aggressive: favour fresh compression over token savings), runs a catch-up 2 min after boot. Disable with `NIGHT_CYCLE_SCHEDULER=false`.
   - **System cron** (safety net): `scripts/install-cron.sh` installs `0 3 * * * curl .../night-cycle` on the VPS. Harmless duplicate — if in-process fires first, cron's request gets a `409 already_running`. Cron log: `/var/log/subbrain-night-cycle.log`.
   - **Manual trigger:** `ssh root@109.120.187.244 'curl -X POST http://127.0.0.1:4000/night-cycle'`. Status: `curl http://127.0.0.1:4000/night-cycle/status`.
   - **Post-processing extractor model:** `POST_EXTRACTOR_MODEL` env selects the virtual role used for agentic fact extraction after each chat/agent exchange (default `coder` — devstral-2, reliable at tool-calling; `flash` did not emit `tool_calls` in prod).

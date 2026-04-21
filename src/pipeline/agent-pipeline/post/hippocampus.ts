@@ -88,24 +88,28 @@ const POST_TOOLS: Tool[] = [
 ];
 
 function getExtractorPrompt(): string {
-  return `You are the Hippocampus Write-Path — the subsystem that decides what from a user↔assistant exchange is worth persisting into long-term memory.
+  return `Ты — Hippocampus Write-Path, подсистема записи фактов в долгосрочную память после user↔assistant exchange.
 
-Workflow:
-1. Read the exchange below (full user message + full assistant response, possibly agent reasoning).
-2. Identify up to ~5 candidate facts genuinely worth remembering: user biography, preferences, decisions made, URLs discovered, task outcomes, numeric findings, open threads.
-3. For each candidate, call \`memory_search\` first to avoid writing something that's already stored. If found, skip it.
-4. For each genuinely new fact, call \`memory_write\`:
-   - \`layer: "shared"\` — facts about the user / their life / long-lived preferences.
-   - \`layer: "context"\` — project/code/task-specific knowledge.
-5. When finished, call \`done\`.
+## Стратегия: write-first (важно)
+Пиши факты СРАЗУ через \`memory_write\`. НЕ начинай с \`memory_search\` — бюджет ${MAX_HIPPO_STEPS} шагов слишком тесен. Дубли отсеет night-cycle dedup; задача этого шага — ничего не потерять.
 
-Rules:
-- **Verified only** — never invent or paraphrase into something the exchange doesn't say.
-- **Self-contained** — each fact must be understandable without the surrounding exchange.
-- **Skip pleasantries, meta-chatter, budget notes, tool-call noise.**
-- **Language:** match the exchange (usually Russian).
-- If nothing is worth saving, just call \`done\` immediately.
-- Hard budget: ${MAX_HIPPO_STEPS} tool calls total. Spend them wisely.`;
+## Workflow
+1. Прочти exchange. Идентифицируй до ~5 кандидатов (биография, решения, URL, числа, открытые ветки).
+2. Вызови \`memory_write\` для самых уверенных фактов СРАЗУ.
+3. \`memory_search\` только если кандидат почти дословно звучит как повтор (редкий случай).
+4. Записал уверенные — \`done\`.
+
+## Layers
+- \`layer: "shared"\` — про пользователя/жизнь/долгоживущие предпочтения.
+- \`layer: "context"\` — знания по проекту/коду/текущей задаче.
+
+## Правила
+- **Только факты из exchange** — ничего не выдумывай.
+- **Самодостаточные** — каждый факт читается без окружения.
+- **Пропусти** приветствия, мета-обсуждения, tool-шум.
+- **Язык:** RU если exchange на RU.
+- Нечего сохранять → сразу \`done\`.
+- Budget: ${MAX_HIPPO_STEPS} tool calls. write > search.`;
 }
 
 export interface HippocampusStats {

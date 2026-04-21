@@ -32,16 +32,26 @@ export async function scrubPII(
         messages: [
           {
             role: "system",
-            content: `You are a PII scrubber. Replace all personal identifiable information in the text with placeholders:
-- Names → [NAME]
-- Email → [EMAIL]
-- Phone → [PHONE]
-- Address → [ADDRESS]
-- Card numbers → [CARD]
-- Dates of birth → [DOB]
-- Any other PII → [REDACTED]
+            content: `Ты — PII scrubber для личного архива. Архив принадлежит одному пользователю (owner) — это его память. Его персональные данные НЕ PII — это core-контекст.
 
-Return ONLY the scrubbed text, nothing else. Preserve all other content exactly.`,
+## Whitelist (НЕ скрабь — это owner/family):
+- Имена членов семьи и близких (обычно 2-3 уникальных имени, повторяющихся в архиве).
+- Own email/Telegram/GitHub owner'а (тот, кто повторяется в системных сообщениях).
+- Технический стек и названия проектов owner'а.
+
+## Scrub (замени на placeholder):
+- **Внешние люди** (разовые контакты, клиенты): → [CONTACT_NAME]
+- **Внешние email/телефоны** (не owner'а): → [EXT_EMAIL], [EXT_PHONE]
+- **Физические адреса** (любые): → [ADDRESS]
+- **Платёжные данные**: карта → [CARD], bank account → [ACCOUNT], CVV/PIN → [SECRET]
+- **Гос-ID**: паспорт/СНИЛС/ИНН → [GOV_ID]
+- **Медицина**: диагнозы/рецепты → [MEDICAL]
+
+## Правила
+- Сомневаешься, owner ли это? — оставь. False-positive вреднее false-negative для личного архива.
+- НЕ catch-all «любая PII → [REDACTED]».
+
+Верни ТОЛЬКО отредактированный текст.`,
           },
           { role: "user", content: text },
         ],
@@ -73,7 +83,7 @@ export async function translate(
           {
             role: "system",
             content:
-              "Translate the following text from Russian to English. Preserve all technical terms, code snippets, and structure. Return ONLY the translation.",
+              "Переведи текст с русского на английский. Сохрани технические термины, код, структуру. Верни ТОЛЬКО перевод.",
           },
           { role: "user", content: text },
         ],
@@ -102,21 +112,21 @@ export async function compress(
         messages: [
           {
             role: "system",
-            content: `You are a knowledge compressor. Given a conversation transcript, extract the key knowledge into a structured entry.
+            content: `Ты — knowledge compressor. Из транскрипта разговора извлеки ключевое знание в структурированную запись.
 
-Output JSON:
+Вывод JSON:
 {
-  "title": "Short descriptive title (max 80 chars)",
-  "content": "Markdown-formatted summary of decisions, insights, and patterns",
+  "title": "Короткий заголовок (≤80 символов)",
+  "content": "Markdown-сводка: решения, инсайты, паттерны",
   "tags": "comma,separated,tags",
   "skip": false
 }
 
-Rules:
-- Only extract genuine new knowledge (decisions, insights, patterns, preferences)
-- Content should be self-contained and understandable without the original conversation
-- Use Markdown with headers for multi-topic entries
-- If the conversation is trivial (greetings, simple Q&A), return {"skip": true}`,
+Правила:
+- Только настоящее новое знание (решения, инсайты, паттерны, предпочтения).
+- Content самодостаточен — читается без оригинального разговора.
+- Markdown с заголовками для multi-topic записей.
+- Тривиальный разговор (приветствия, короткие Q&A) → {"skip": true}.`,
           },
           { role: "user", content: text },
         ],
@@ -156,15 +166,23 @@ export async function verify(
         messages: [
           {
             role: "system",
-            content: `You are a fact verifier. Compare a compressed summary with the original text to detect inaccuracies.
+            content: `Ты — fact verifier. Сравни сжатую сводку с оригинальным текстом.
 
-Output JSON:
+Вывод JSON:
 {
   "accurate": true/false,
-  "issues": ["list of issues if any"]
+  "issues": ["список проблем"]
 }
 
-Only flag genuine factual inaccuracies, not stylistic differences.`,
+Accurate=false → confidence записи понижается до LOW (запись НЕ удаляется). Флагуй ТОЛЬКО:
+- Числа/имена/URL в сводке не совпадают с оригиналом.
+- Факты в сводке, которых нет в оригинале (галлюцинация).
+- Противоречия оригиналу.
+
+НЕ флагуй (accurate=true):
+- Стилистические различия.
+- Пропуск второстепенного (цель compression).
+- Переформулировки с сохранением смысла.`,
           },
           {
             role: "user",
@@ -214,17 +232,19 @@ export async function dedup(
         messages: [
           {
             role: "system",
-            content: `You compare a new knowledge entry with existing archive entries.
-Output JSON:
+            content: `Ты сравниваешь новую запись с existing archive entries, которые найдены по пересечению тегов (FTS OR-search по top-3 тегов новой записи).
+
+Вывод JSON:
 {
   "isDuplicate": true/false,
-  "duplicateOf": "id of duplicate entry or null",
+  "duplicateOf": "id дубликата или null",
   "action": "skip" | "merge" | "append"
 }
 
-- "skip": new entry is fully contained in existing
-- "merge": new entry adds to existing (return the id to merge with)
-- "append": new entry is genuinely new`,
+Actions:
+- **skip**: новая ПОЛНОСТЬЮ перекрывается existing по теме и содержанию. Теги «python,scripting» — новая «Python — скриптовый язык», existing «Python — динамический язык для scripting и ML». Новая ничего не добавляет.
+- **merge**: общие теги + новая добавляет детали по той же теме. Теги «nuxt,vue» — новая «Nuxt 3 получил Vapor mode», existing «Nuxt 3 — SSR фреймворк на Vue 3». Верни \`duplicateOf\` = id existing.
+- **append**: теги пересекаются, но тема реально другая. Теги «python,ml» — новая «PyTorch лучше TensorFlow для RL», existing «Python как язык программирования».`,
           },
           {
             role: "user",
@@ -282,13 +302,17 @@ export async function extractAntiPatterns(
         messages: [
           {
             role: "system",
-            content: `Analyze the day's conversations and identify anti-patterns — recurring mistakes, blockers, and time-wasters.
+            content: `Проанализируй диалоги дня и найди анти-паттерны — повторяющиеся ошибки, блокеры, time-wasters.
 
-Output Markdown with:
+Вывод Markdown:
 ## Anti-patterns detected
-- Pattern name: description + how to avoid next time
+- Имя паттерна: описание + как избежать
 
-If no anti-patterns found, return exactly: "NONE"`,
+Правила:
+- Флагай ТОЛЬКО повторяющееся (≥2 раза) или системное.
+- Одиночная ошибка в тяжёлой задаче — не pattern.
+- Если нет паттернов → верни точно "NONE".
+- Если есть — описывай развёрнуто: ответ короче 20 символов (content.trim().length < 20) код интерпретирует как null.`,
           },
           { role: "user", content: conversationText },
         ],
