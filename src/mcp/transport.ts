@@ -30,7 +30,12 @@ export function mcpRoute(registry: ToolRegistry, executor: ToolExecutor) {
         );
       }
 
-      const result = await registry.call(name, args ?? {}, { executor });
+      const result = await registry.call(name, args ?? {}, {
+        executor,
+        router: executor.modelRouter,
+        room: executor.room,
+        codeTools: executor.codeTools,
+      });
       return result;
     });
 }

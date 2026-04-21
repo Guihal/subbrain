@@ -120,7 +120,12 @@ export function mcpProtocolRoute(
                 arguments: Record<string, unknown>;
               };
 
-              const result = await registry.call(name, args ?? {}, { executor });
+              const result = await registry.call(name, args ?? {}, {
+                executor,
+                router: executor.modelRouter,
+                room: executor.room,
+                codeTools: executor.codeTools,
+              });
               const text = JSON.stringify(result, null, 2);
 
               response = jsonrpc(id, {

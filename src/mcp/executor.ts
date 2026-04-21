@@ -7,6 +7,8 @@ import type { ToolResult } from "./types";
 import { MemoryTools, EmbedTools, LogTools, WebTools } from "./tools/index";
 import * as tg from "./telegram-tools";
 import { sendReport } from "./tools/telegram-report";
+import type { CodeToolRegistry } from "../pipeline/agent-loop/code-tools";
+import type { ArbitrationRoom } from "../pipeline/arbitration-room";
 
 export type { ToolResult } from "./types";
 
@@ -18,6 +20,8 @@ export class ToolExecutor {
   private rag: RAGPipeline | null = null;
   private userbot: Userbot | null = null;
   private botNotify: ((text: string) => Promise<void>) | null = null;
+  private _codeTools: CodeToolRegistry | null = null;
+  private _room: ArbitrationRoom | null = null;
 
   // Domain modules
   readonly memoryTools: MemoryTools;
@@ -72,6 +76,31 @@ export class ToolExecutor {
       const message = err instanceof Error ? err.message : String(err);
       return { success: false, error: message };
     }
+  }
+
+  /** Set CodeToolRegistry for public code-tools access */
+  setCodeTools(codeTools: CodeToolRegistry): void {
+    this._codeTools = codeTools;
+  }
+
+  /** Get CodeToolRegistry instance */
+  get codeTools(): CodeToolRegistry | null {
+    return this._codeTools;
+  }
+
+  /** Set ArbitrationRoom so public tool callers (MCP/REST) can invoke consult_* */
+  setRoom(room: ArbitrationRoom): void {
+    this._room = room;
+  }
+
+  /** Arbitration room (may be null until setRoom was called) */
+  get room(): ArbitrationRoom | null {
+    return this._room;
+  }
+
+  /** Expose router for public tool callers (consult_chaos et al.) */
+  get modelRouter(): ModelRouter {
+    return this.router;
   }
 
   /** Set Playwright MCP client for web browsing */
@@ -270,15 +299,11 @@ export class ToolExecutor {
     text: string,
     opts?: { topic?: string; sinceHours?: number },
   ): Promise<ToolResult> {
-    return sendReport(
-      { executor: this },
-      text,
-      {
-        topic: opts?.topic,
-        sinceHours: opts?.sinceHours,
-        memory: this.memory,
-        rag: this.rag,
-      },
-    );
+    return sendReport({ executor: this }, text, {
+      topic: opts?.topic,
+      sinceHours: opts?.sinceHours,
+      memory: this.memory,
+      rag: this.rag,
+    });
   }
 }

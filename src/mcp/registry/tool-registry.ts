@@ -37,6 +37,21 @@ export interface ToolContext {
   log?: ToolLog;
   /** Ссылка на реестр (нужна list_tools). Заполняет тот, кто вызывает. */
   registry?: ToolRegistry;
+  /** Session quotas. Populated by agent-loop only. REST/MCP callers → undefined. */
+  session?: AgentLoopSession;
+}
+
+/**
+ * Session-scoped quotas for cost-heavy tools. Agent-loop creates a fresh
+ * instance per run (run.ts / stream.ts); handlers check presence and
+ * increment before the costly call (attempt-based semantics — a failed
+ * upstream still consumes the slot, to avoid retry-amplified load).
+ */
+export interface AgentLoopSession {
+  consultSpecialistsCount: number;
+  consultSpecialistsMax: number;
+  consultChaosCount: number;
+  consultChaosMax: number;
 }
 
 /**

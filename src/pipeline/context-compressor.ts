@@ -21,24 +21,36 @@ import { estimateTokens } from "./agent-loop/types";
 
 export const SOFT_LIMIT = 80_000;
 const KEEP_RECENT_MESSAGES = 10;
-const MAX_INPUT_CHARS = 200_000; // cap input to flash to stay under its own ctx
-const COMPRESSOR_MODEL = "flash";
+// cap input to compressor context window (env COMPRESSOR_MAX_INPUT_CHARS)
+const MAX_INPUT_CHARS = Number(process.env.COMPRESSOR_MAX_INPUT_CHARS) || 200_000;
+const COMPRESSOR_MODEL = process.env.COMPRESSOR_MODEL || "flash";
 
-const COMPRESSION_PROMPT = `You are the Context Compressor — a subsystem that shrinks long agent/chat histories so the main model stays under its context budget.
+const VALID_FACT_CATEGORIES = new Set([
+  "user",
+  "project",
+  "finding",
+  "url",
+  "decision",
+  "preference",
+  "other",
+]);
 
-You will receive a slice of conversation (assistant ↔ tools ↔ user). Produce:
+const COMPRESSION_PROMPT = `Ты сжимаешь длинную историю агента/чата в компактную выжимку для следующего хода основной модели.
 
-1. **SUMMARY** — 300–500 words, Russian. Cover: decisions made, facts discovered, tool results worth remembering, open threads, unresolved errors. Skip pleasantries and budget notes. Be dense, no filler.
+Вход: срез переписки (assistant ↔ tools ↔ user). Выход: JSON с двумя полями:
 
-2. **FACTS** — up to 12 items worth keeping in shared memory forever (user facts, preferences, URLs, numeric findings, completed subtasks). Each has a \`category\` (e.g. "user", "project", "finding", "url", "decision") and \`content\` (one sentence).
+**summary** (300-500 слов, русский) — плотная сводка: принятые решения, фактические находки (результаты web_navigate/search, числа, URL), открытые ветки, незакрытые ошибки. Пропусти приветствия, мета-обсуждения, budget-логи, шум tool-calls.
 
-Return **strict JSON, no markdown fences, no prose before/after**:
+**facts** (≤12 записей, больше обычно шум) — факты для долгосрочной памяти. Добавляй ТОЛЬКО те, что пригодятся в **следующей** сессии (не в текущей — для неё есть summary). Для каждого:
+- \`category\`: одно из \`user\`, \`project\`, \`finding\`, \`url\`, \`decision\`, \`preference\`. Если ничего не подходит — \`other\`.
+- \`content\`: строка в 1-2 предложения, самодостаточное (читается без этой переписки). Только текст, не числа и не объекты.
 
+Формат ответа — строгий JSON. Допускается обёртка в \`\`\`json fenced block (парсер толерантен). Схема:
+\`\`\`json
+{ "summary": "<текст>", "facts": [{"category": "<enum>", "content": "<текст>"}, ...] }
 \`\`\`
-{"summary": "...", "facts": [{"category": "...", "content": "..."}, ...]}
-\`\`\`
 
-If the slice has nothing worth saving, return \`{"summary": "(nothing notable)", "facts": []}\`.`;
+Если ничего значимого: \`{"summary": "(ничего значимого)", "facts": []}\`.`;
 
 export function shouldCompress(
   messages: Message[],
@@ -50,7 +62,7 @@ export function shouldCompress(
 /**
  * Compress `messages` in-place. Returns true if compression happened.
  *
- * On any failure (flash error, malformed JSON, no middle section) the function
+ * On any failure (compressor error, malformed JSON, no middle section) the function
  * logs a warning and returns false — messages untouched. Callers must handle
  * the "still too big" case themselves (usually by letting the next model call
  * fail with a clear error rather than silently truncating).
@@ -112,7 +124,7 @@ export async function compressContext(
     `Compressing ${middle.length} messages (~${estimateTokens(middle)} tokens), keeping head=${headEnd} tail=${messages.length - tailStart}`,
   );
 
-  // ── Serialize middle for flash ──
+  // ── Serialize middle for compressor ──
   const conversationText = middle
     .map((m) => {
       if (m.role === "assistant" && m.tool_calls && m.tool_calls.length > 0) {
@@ -131,7 +143,7 @@ export async function compressContext(
     .join("\n\n")
     .slice(0, MAX_INPUT_CHARS);
 
-  // ── Ask flash ──
+  // ── Ask compressor ──
   let summary = "";
   let facts: Array<{ category?: string; content?: string }> = [];
   try {
@@ -163,23 +175,49 @@ export async function compressContext(
   } catch (err) {
     logger.warn(
       "compressor",
-      `Flash call failed, keeping original: ${(err as Error).message}`,
+      `${COMPRESSOR_MODEL} call failed, keeping original: ${(err as Error).message}`,
     );
     return false;
   }
 
-  if (!summary || summary.trim() === "(nothing notable)") {
-    logger.warn("compressor", "Flash returned no usable summary — keeping original");
+  if (!summary || summary.trim() === "(ничего значимого)" || summary.trim() === "(nothing notable)") {
+    logger.warn(
+      "compressor",
+      `${COMPRESSOR_MODEL} returned no usable summary — keeping original`,
+    );
     return false;
   }
 
+  // ── Normalize facts: coerce content to string, map unknown categories to `other`.
+  const normalizedFacts: Array<{ category: string; content: string }> = [];
+  let droppedCount = 0;
+  for (const f of facts) {
+    const rawContent = (f as { content?: unknown })?.content;
+    const content =
+      typeof rawContent === "string"
+        ? rawContent.trim()
+        : String(rawContent ?? "").trim();
+    if (!content) {
+      droppedCount += 1;
+      continue;
+    }
+    const rawCat = (f as { category?: unknown })?.category;
+    const catStr = typeof rawCat === "string" ? rawCat : "other";
+    const category = VALID_FACT_CATEGORIES.has(catStr) ? catStr : "other";
+    normalizedFacts.push({ category, content });
+  }
+  if (droppedCount > 0) {
+    logger.warn(
+      "compressor",
+      `Dropped ${droppedCount} facts with empty content`,
+    );
+  }
   // ── Persist facts (best-effort) ──
-  if (memory && facts.length > 0) {
+  if (memory && normalizedFacts.length > 0) {
     let written = 0;
-    for (const f of facts) {
-      const category = (f.category || "general").slice(0, 64);
-      const content = (f.content || "").trim();
-      if (!content) continue;
+    for (const f of normalizedFacts) {
+      const category = f.category.slice(0, 64);
+      const content = f.content;
       try {
         memory.insertShared(
           randomUUID(),
@@ -198,7 +236,7 @@ export async function compressContext(
     }
     logger.info(
       "compressor",
-      `Persisted ${written}/${facts.length} facts to shared_memory`,
+      `Persisted ${written}/${normalizedFacts.length} facts to shared_memory`,
     );
   }
 

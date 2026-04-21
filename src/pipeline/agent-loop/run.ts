@@ -16,6 +16,7 @@ import { buildAgentSystemPrompt } from "./system-prompt";
 import { executeStep } from "./step";
 import { persistToChat } from "./persist";
 import { firePost, stepDeps, type AgentLoopDeps } from "./shared";
+import type { AgentLoopSession } from "../../mcp/registry/tool-registry";
 
 export { runStreamLoop } from "./stream";
 export type { AgentLoopDeps } from "./shared";
@@ -31,6 +32,19 @@ export async function runLoop(
   const priority = req.priority || "critical";
   const log = logger.forRequest(requestId, sessionId);
 
+  const session: AgentLoopSession = {
+    consultSpecialistsCount: 0,
+    consultSpecialistsMax: Math.max(
+      1,
+      Number(process.env.AGENT_CONSULT_SPECIALISTS_MAX) || 3,
+    ),
+    consultChaosCount: 0,
+    consultChaosMax: Math.max(
+      1,
+      Number(process.env.AGENT_CONSULT_CHAOS_MAX) || 5,
+    ),
+  };
+
   log.info(
     "agent-loop",
     `▶ Starting autonomous loop: "${req.task.slice(0, 100)}"`,
@@ -43,6 +57,7 @@ export async function runLoop(
     req.task,
     model,
     deps.router,
+    req.schedule,
   );
   const messages: Message[] = [
     { role: "system", content: systemPrompt },
@@ -58,7 +73,7 @@ export async function runLoop(
     log.info("agent-loop", `Step ${step}/${maxSteps}`, { model });
 
     const result = await executeStep(
-      stepDeps(deps),
+      stepDeps(deps, session),
       {
         step,
         maxSteps,

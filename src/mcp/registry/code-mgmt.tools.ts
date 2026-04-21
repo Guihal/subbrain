@@ -10,7 +10,7 @@ export function registerCodeMgmtTools(registry: ToolRegistry): void {
     name: "create_code_tool",
     description:
       "Create a new executable code tool. Code must be a TS module exporting a default async function: `export default async (input: string) => { return 'result'; }`. Has fetch(). Max 10KB.",
-    scope: "agent-only",
+    scope: "public",
     input: t.Object({
       name: t.String({
         description: "Tool name (snake_case). Callable as code_<name>.",
@@ -39,7 +39,7 @@ export function registerCodeMgmtTools(registry: ToolRegistry): void {
   registry.register({
     name: "edit_code_tool",
     description: "Edit an existing code tool's code or description.",
-    scope: "agent-only",
+    scope: "public",
     input: t.Object({
       name: t.String(),
       code: t.Optional(t.String()),
@@ -66,7 +66,7 @@ export function registerCodeMgmtTools(registry: ToolRegistry): void {
   registry.register({
     name: "delete_code_tool",
     description: "Delete a code tool by name.",
-    scope: "agent-only",
+    scope: "public",
     input: t.Object({ name: t.String() }),
     handler: (args, ctx) => {
       if (!ctx.codeTools) {
@@ -84,7 +84,7 @@ export function registerCodeMgmtTools(registry: ToolRegistry): void {
   registry.register({
     name: "test_code_tool",
     description: "Test a code tool with sample input. Returns output or error.",
-    scope: "agent-only",
+    scope: "public",
     input: t.Object({
       name: t.String(),
       input: t.String(),
@@ -109,7 +109,7 @@ export function registerCodeMgmtTools(registry: ToolRegistry): void {
     name: "list_code_tools",
     description:
       "List all code tools with their status, run count, and error count.",
-    scope: "agent-only",
+    scope: "public",
     input: t.Object({
       include_disabled: t.Optional(t.Boolean()),
     }),

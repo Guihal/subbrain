@@ -13,6 +13,7 @@ import type { DynamicToolRegistry } from "./dynamic-tools";
 import type { CodeToolRegistry } from "./code-tools";
 import type { ToolRunnerDeps } from "./tool-runner";
 import type { StepDeps } from "./step";
+import type { AgentLoopSession } from "../../mcp/registry/tool-registry";
 
 export interface AgentLoopDeps {
   memory: MemoryDB;
@@ -27,7 +28,10 @@ export interface AgentLoopDeps {
   getAllTools: () => Tool[];
 }
 
-export function toolRunnerDeps(deps: AgentLoopDeps): ToolRunnerDeps {
+export function toolRunnerDeps(
+  deps: AgentLoopDeps,
+  session: AgentLoopSession,
+): ToolRunnerDeps {
   return {
     registry: deps.registry,
     tools: deps.tools,
@@ -36,14 +40,18 @@ export function toolRunnerDeps(deps: AgentLoopDeps): ToolRunnerDeps {
     dynamicTools: deps.dynamicTools,
     persistDynamicTools: deps.persistDynamicTools,
     codeTools: deps.codeTools,
+    session,
   };
 }
 
-export function stepDeps(deps: AgentLoopDeps): StepDeps {
+export function stepDeps(
+  deps: AgentLoopDeps,
+  session: AgentLoopSession,
+): StepDeps {
   return {
     router: deps.router,
     memory: deps.memory,
-    tools: toolRunnerDeps(deps),
+    tools: toolRunnerDeps(deps, session),
   };
 }
 

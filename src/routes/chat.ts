@@ -20,7 +20,7 @@ export function chatRoute(
     "/v1/chat/completions",
     async ({ body, headers }) => {
       const stream = body.stream ?? false;
-      const { model, messages: rawMessages, ...rest } = body;
+      const { model: requestedModel, messages: rawMessages, ...rest } = body;
       let messages = normalizeMessages(rawMessages);
 
       // Chat persistence: use X-Chat-Id header if provided
@@ -30,6 +30,12 @@ export function chatRoute(
       // Direct mode: explicit header OR auto-degrade when RPM overloaded
       const directMode =
         headers["x-direct-mode"] === "true" || router.isOverloaded;
+
+      // Flash persona is pipeline-only. In direct-mode (RPM overload or explicit
+      // debug header) upgrade to generalist so the user gets a coherent reply
+      // instead of flash's "structured-output-only" persona.
+      const model =
+        directMode && requestedModel === "flash" ? "generalist" : requestedModel;
 
       const isVirtual = model in MODEL_MAP;
       logger.info(

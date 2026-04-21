@@ -25,6 +25,9 @@ export function autonomousRoute(agentLoop: AgentLoop, memory?: MemoryDB) {
         memory.appendChatMessage(chatId, "user", body.task);
       }
 
+      // interactive-only endpoint: do NOT populate req.schedule here.
+      // Scheduler-initiated runs go through src/app/schedulers.ts and
+      // src/scheduler/free-agent.ts, which set schedule explicitly.
       const req = {
         task: body.task,
         model,

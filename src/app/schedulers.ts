@@ -34,6 +34,10 @@ export function installAutonomousScheduler(deps: AppDeps): void {
         maxSteps: autonomous.maxSteps,
         sessionId,
         priority: "low",
+        schedule: {
+          intervalMinutes: autonomous.intervalMinutes,
+          source: "autonomous",
+        },
       })
       .then((result) => {
         logger.info(

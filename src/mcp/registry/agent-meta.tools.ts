@@ -37,8 +37,8 @@ export function registerAgentMetaTools(registry: ToolRegistry): void {
   registry.register({
     name: "consult_specialists",
     description:
-      "Consult other AI specialists (Coder, Critic, Generalist, Chaos) in parallel and synthesize a combined answer. Costs 3-5 RPM.",
-    scope: "agent-only",
+      "Parallel consult with specialists (coder/critic/generalist/chaos) + synthesis. Cost: 5 LLM calls. Quota: 3 per agent-loop session (env AGENT_CONSULT_SPECIALISTS_MAX). For architecture choices and irreversible decisions.",
+    scope: "public",
     input: t.Object({
       question: t.String(),
       context: t.Optional(t.String()),
@@ -64,6 +64,18 @@ export function registerAgentMetaTools(registry: ToolRegistry): void {
     handler: async (args, ctx) => {
       if (!ctx.room) {
         return { success: false, error: "ArbitrationRoom not configured" };
+      }
+      if (ctx.session) {
+        if (
+          ctx.session.consultSpecialistsCount >=
+          ctx.session.consultSpecialistsMax
+        ) {
+          return {
+            success: false,
+            error: `consult_specialists quota exceeded (${ctx.session.consultSpecialistsMax} per session). Decide alone or use consult_chaos (cheap).`,
+          };
+        }
+        ctx.session.consultSpecialistsCount += 1;
       }
       const specialists =
         args.specialists && args.specialists.length > 0
@@ -95,8 +107,8 @@ export function registerAgentMetaTools(registry: ToolRegistry): void {
   registry.register({
     name: "consult_chaos",
     description:
-      "Ask the Chaos Advisor (Mistral, free NVIDIA) for proactive ideas when you don't know what to do next. Returns 3 concrete action suggestions. Costs 0 Copilot RPM.",
-    scope: "agent-only",
+      "Chaos Advisor (NVIDIA Mistral, 0 Copilot RPM) — 3 unconventional action ideas. Quota: 5 per agent-loop session (env AGENT_CONSULT_CHAOS_MAX). Use at session start without explicit task or when stuck.",
+    scope: "public",
     input: t.Object({
       context: t.String({
         description:
@@ -110,24 +122,45 @@ export function registerAgentMetaTools(registry: ToolRegistry): void {
       if (!ctx.router) {
         return { success: false, error: "Router not configured" };
       }
+      if (ctx.session) {
+        if (ctx.session.consultChaosCount >= ctx.session.consultChaosMax) {
+          return {
+            success: false,
+            error: `consult_chaos quota exceeded (${ctx.session.consultChaosMax} per session). Decide alone.`,
+          };
+        }
+        ctx.session.consultChaosCount += 1;
+      }
       const context = args.context || "Нет контекста";
       const question =
         args.question ||
         "Что делать дальше? Предложи 3 конкретных действия.";
 
-      const chaosPrompt = `Ты — генератор идей для AI-агента. Агент работает на фрилансера Дмитрия (22 года, Nuxt/TypeScript/PHP стек, ищет доход, живёт с девушкой Никой).
+      const shared = ctx.executor.memoryDb.getAllShared();
+      const profile = shared.length
+        ? shared.map((e) => `- [${e.category}] ${e.content}`).join("\n")
+        : "(профиль пользователя отсутствует в shared_memory)";
+
+      const chaosPrompt = `Ты — генератор идей для AI-агента, работающего на одного пользователя.
+
+Профиль пользователя (из памяти, актуален на сейчас):
+${profile}
 
 Что агент уже сделал / знает: ${context}
 Текущее время: ${new Date().toLocaleString("ru-RU")}
 
-Предложи 3 КОНКРЕТНЫХ действия, которые агент может сделать ПРЯМО СЕЙЧАС.
-Требования:
-- Каждое действие выполнимо за 5-10 минут с помощью интернета
-- Будь дерзким и нестандартным — агент осторожный, ему нужен пинок
-- Не повторяй то, что уже сделано
-- Формат: 1. [действие] — [почему полезно]
+Предложи 3 КОНКРЕТНЫХ действия. Требования:
+- Выполнимо за 5-10 минут через интернет/инструменты.
+- Релевантно профилю выше (стек, цели, болевые точки), не абстрактно.
+- Не повторяет сделанное.
+- Дерзко, нестандартно.
 
-НЕ предлагай банальщину типа "проверь почту". Предлагай конкретные сайты, запросы, действия.`;
+Формат строго:
+1. [действие] — [почему полезно именно этому пользователю]
+2. [действие] — [почему полезно именно этому пользователю]
+3. [действие] — [почему полезно именно этому пользователю]
+
+НЕ банальщина («проверь почту»). Конкретные сайты/запросы/инструменты.`;
 
       ctx.log?.info("agent-loop", "Consulting chaos advisor (NVIDIA Mistral)");
 

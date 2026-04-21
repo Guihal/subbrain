@@ -14,7 +14,7 @@ export function registerReportTools(registry: ToolRegistry): void {
     name: "report_context",
     description:
       "Собирает RAG-контекст для отчёта: факты из shared_memory, события из raw_log за period, релевантные context/archive. Вызови ДО генерации текста отчёта.",
-    scope: "agent-only",
+    scope: "public",
     input: t.Object({
       topic: t.Optional(
         t.String({

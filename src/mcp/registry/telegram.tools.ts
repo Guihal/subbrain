@@ -88,7 +88,7 @@ export function registerTelegramTools(registry: ToolRegistry): void {
     name: "telegram_search",
     description:
       "Full-text search of indexed Telegram messages (FTS5). Filter by chat_id and time range.",
-    scope: "agent-only",
+    scope: "public",
     input: t.Object({
       query: t.String(),
       chat_id: t.Optional(t.String()),

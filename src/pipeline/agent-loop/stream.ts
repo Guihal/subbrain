@@ -16,6 +16,7 @@ import { executeStep } from "./step";
 import { setupHeartbeat } from "./heartbeat";
 import { persistToChat } from "./persist";
 import { firePost, stepDeps, type AgentLoopDeps } from "./shared";
+import type { AgentLoopSession } from "../../mcp/registry/tool-registry";
 
 export function runStreamLoop(
   deps: AgentLoopDeps,
@@ -60,6 +61,19 @@ export function runStreamLoop(
         const priority = req.priority || "critical";
         const log = logger.forRequest(requestId, sessionId);
 
+        const session: AgentLoopSession = {
+          consultSpecialistsCount: 0,
+          consultSpecialistsMax: Math.max(
+            1,
+            Number(process.env.AGENT_CONSULT_SPECIALISTS_MAX) || 3,
+          ),
+          consultChaosCount: 0,
+          consultChaosMax: Math.max(
+            1,
+            Number(process.env.AGENT_CONSULT_CHAOS_MAX) || 5,
+          ),
+        };
+
         let lastContent = "";
         let finishedViaDone = false;
 
@@ -72,6 +86,7 @@ export function runStreamLoop(
           req.task,
           model,
           deps.router,
+          req.schedule,
         );
         const messages: Message[] = [
           { role: "system", content: systemPrompt },
@@ -82,7 +97,7 @@ export function runStreamLoop(
           emit("step", { step, maxSteps, status: "thinking" });
 
           const result = await executeStep(
-            stepDeps(deps),
+            stepDeps(deps, session),
             {
               step,
               maxSteps,

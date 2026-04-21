@@ -2,6 +2,12 @@
  * Types & constants for the Agent Loop.
  */
 import type { Priority } from "../../lib/model-map";
+
+export type ScheduleSource = "autonomous" | "free-agent";
+export interface ScheduleContext {
+  intervalMinutes: number;
+  source: ScheduleSource;
+}
 import type { Message } from "../../providers/types";
 
 // ─── Constants ───────────────────────────────────────────
@@ -20,6 +26,12 @@ export interface AgentLoopRequest {
   maxSteps?: number;
   sessionId?: string;
   priority?: Priority;
+  /**
+   * Scheduler context. Present = scheduled run (agent can defer optional work
+   * to next cycle). Absent = interactive/one-shot (must finish in this call).
+   * Only scheduler entry points populate it; /v1/autonomous leaves it undefined.
+   */
+  schedule?: ScheduleContext;
 }
 
 export interface AgentLoopStep {

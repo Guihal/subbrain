@@ -14,6 +14,7 @@ import type { ArbitrationRoom } from "../arbitration-room";
 import type { logger } from "../../lib/logger";
 import type { DynamicToolDef, DynamicToolRegistry } from "./dynamic-tools";
 import type { CodeToolRegistry } from "./code-tools";
+import type { AgentLoopSession } from "../../mcp/registry/tool-registry";
 import { executeSandboxed } from "./code-tools/sandbox";
 
 /**
@@ -70,6 +71,7 @@ export interface ToolRunnerDeps {
   dynamicTools: DynamicToolRegistry;
   persistDynamicTools: () => void;
   codeTools: CodeToolRegistry | null;
+  session: AgentLoopSession;
 }
 
 type Log = ReturnType<typeof logger.forRequest>;
@@ -106,6 +108,7 @@ export async function executeAgentTool(
           codeTools: deps.codeTools,
           log,
           registry: deps.registry,
+          session: deps.session,
         });
 
         // `done` — управляющий сигнал агента, возвращаем сырую строку summary,
