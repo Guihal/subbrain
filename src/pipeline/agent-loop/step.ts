@@ -52,30 +52,6 @@ const NUDGE_AFTER_CONTENT =
 const NUDGE_AFTER_EMPTY =
   "[Системная метка] Пустой ответ. Вызови инструмент или `done`, чтобы продолжить.";
 
-/**
- * MiniMax-M2 embeds reasoning inside `content` as <think>...</think>; other
- * providers use a separate `reasoning_content` field. Extract think tags so
- * the agent loop emits uniform `thinking` / `response` events regardless of
- * provider. Returns the inner thinking concatenated + content stripped of
- * think tags. The UNSTRIPPED original must be kept in history (MiniMax docs
- * require preserving think tags across turns).
- */
-function splitThinkTags(content: string | null): {
-  thinking: string;
-  visible: string;
-} {
-  if (!content) return { thinking: "", visible: "" };
-  let thinking = "";
-  const visible = content.replace(
-    /<think>([\s\S]*?)<\/think>/g,
-    (_m, inner) => {
-      thinking += inner;
-      return "";
-    },
-  );
-  return { thinking, visible: visible.trim() };
-}
-
 type Log = ReturnType<typeof logger.forRequest>;
 
 export async function executeStep(
@@ -121,10 +97,7 @@ export async function executeStep(
   if (!choice) return { kind: "error", error: "Empty response from model" };
 
   const msg = choice.message;
-  const { thinking: thinkFromContent, visible: visibleContent } = splitThinkTags(
-    msg.content,
-  );
-  const reasoning = (msg.reasoning_content || "") + thinkFromContent;
+  const reasoning = msg.reasoning_content || "";
   if (reasoning) hooks.onThinking?.(reasoning);
 
   // Case 1: tool_calls
@@ -133,6 +106,7 @@ export async function executeStep(
       role: "assistant",
       content: msg.content,
       tool_calls: msg.tool_calls,
+      ...(reasoning ? { reasoning_content: reasoning } : {}),
     };
     hooks.onAssistantWithTools?.(assistantMsg);
     messages.push(assistantMsg);
@@ -160,11 +134,15 @@ export async function executeStep(
   }
 
   // Case 2: plain content → nudge to keep iterating
-  const content = visibleContent || reasoning || "";
+  const visible = msg.content?.trim() ?? "";
+  const content = visible || reasoning;
   if (content) {
     hooks.onAssistantContent?.(content);
-    // Keep original (with think tags) in history — MiniMax-M2 requires it.
-    messages.push({ role: "assistant", content: msg.content || content });
+    messages.push({
+      role: "assistant",
+      content: msg.content,
+      ...(reasoning ? { reasoning_content: reasoning } : {}),
+    });
     messages.push({ role: "user", content: NUDGE_AFTER_CONTENT });
     return { kind: "assistant", content };
   }

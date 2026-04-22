@@ -28,6 +28,7 @@ const TOOL_TIMEOUTS: { prefix: string; ms: number }[] = [
   { prefix: "web_", ms: 15_000 },
   { prefix: "memory_", ms: 3_000 },
   { prefix: "embed_", ms: 5_000 },
+  { prefix: "task_", ms: 3_000 },
   { prefix: "consult_", ms: 60_000 },
 ];
 const DEFAULT_TOOL_TIMEOUT_MS = 10_000;

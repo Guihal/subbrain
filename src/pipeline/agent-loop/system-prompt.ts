@@ -2,7 +2,7 @@
  * System prompt builder for the autonomous agent.
  * Includes hippocampus (flash) executive summary for memory context.
  */
-import type { MemoryDB } from "../../db";
+import type { MemoryDB, TaskScope } from "../../db";
 import type { ModelRouter } from "../../lib/model-router";
 import type { RAGPipeline, RAGResult } from "../../rag";
 import { getPersonaBio } from "../../lib/personas";
@@ -14,6 +14,13 @@ import {
 } from "./types";
 import type { ScheduleContext } from "./types";
 import { runPre } from "../agent-pipeline/phases/pre";
+import { renderActiveTasks, renderTgStatus } from "./prompt-blocks/tasks";
+
+function deriveTaskScope(s?: ScheduleContext): TaskScope {
+  if (s?.source === "autonomous") return "autonomous";
+  if (s?.source === "free-agent") return "free-agent";
+  return "global";
+}
 
 export async function buildAgentSystemPrompt(
   memory: MemoryDB,
@@ -74,7 +81,7 @@ ${schedulerLine}
 Режим определяется блоком «Режим: Автономный агент» выше (autonomous / free-agent / interactive).
 
 **Autonomous — требуется ВСЕ три:**
-1. Выбрана одна задача из AUTONOMOUS_TASK; перед выполнением обязан вызвать \`memory_search\` с текстом задачи. Если за <24ч дубликат — выбери другую. Если \`memory_search\` вернул ошибку — считай что дубликата нет, продолжай.
+1. Выбрана одна задача из активных (см. \`Active tasks\` блок выше) или из направлений работы; перед выполнением обязан вызвать \`memory_search\` с текстом задачи. Если за <24ч дубликат — выбери другую. Если \`memory_search\` вернул ошибку — считай что дубликата нет, продолжай.
 2. Задача выполнена: результат записан через \`memory_write\` **AND** отправлен через \`tg_send_message\` (оба обязательны).
 3. \`done\`-summary: 1-2 строки «[задача] → [результат]». Пример: «Телеграм-дайджест: собрал 12 непрочитанных, выделил 3 приоритета, отправил в ТГ».
 
@@ -247,6 +254,15 @@ export default async (input: string) => {
     } catch {
       // RAG failure is non-critical
     }
+  }
+
+  // ─── Task-store injection (Phase 2) ─────────────────────────
+  const taskScope = deriveTaskScope(schedule);
+  const activeTasksBlock = renderActiveTasks(memory, taskScope);
+  if (activeTasksBlock) parts.push(`\n${activeTasksBlock}`);
+  if (taskScope === "autonomous" || taskScope === "free-agent") {
+    const tgBlock = renderTgStatus(memory);
+    if (tgBlock) parts.push(`\n${tgBlock}`);
   }
 
   return parts.join("\n");

@@ -8,6 +8,8 @@
 import type { MemoryDB } from "../../../db";
 import type { ModelRouter } from "../../../lib/model-router";
 import type { RAGPipeline } from "../../../rag";
+import type { ToolExecutor } from "../../../mcp";
+import type { ToolRegistry } from "../../../mcp/registry";
 import { logger, type RequestLogger } from "../../../lib/logger";
 import { parseSSEChunk } from "../../../providers/sse-parser";
 
@@ -18,6 +20,8 @@ export interface RunPostArgs {
   memory: MemoryDB;
   router: ModelRouter;
   rag: RAGPipeline;
+  executor: ToolExecutor;
+  registry: ToolRegistry;
   userMessage: string;
   assistantMessage: string;
   requestId: string;
@@ -34,7 +38,7 @@ export interface RunPostArgs {
 
 export async function runPost(args: RunPostArgs): Promise<void> {
   const {
-    memory, router, rag,
+    memory, router, rag, executor, registry,
     userMessage, assistantMessage, requestId, sessionId, model,
     usage, reasoning, options,
   } = args;
@@ -78,6 +82,8 @@ export async function runPost(args: RunPostArgs): Promise<void> {
       memory,
       router,
       rag,
+      executor,
+      registry,
       userMessage,
       assistantText,
       reasoning,
@@ -86,7 +92,7 @@ export async function runPost(args: RunPostArgs): Promise<void> {
     });
     log.info(
       "post",
-      `Extraction done in ${Date.now() - start}ms: ${stats.factsWritten} facts written, ${stats.searchCalls} searches, ${stats.steps} tool calls`,
+      `Extraction done in ${Date.now() - start}ms: ${stats.factsWritten} facts, ${stats.tasksAdded} tasks, ${stats.searchCalls} searches, ${stats.steps} tool calls`,
       { meta: { ...stats } },
     );
   } catch (err) {
@@ -101,6 +107,8 @@ export async function runPostFromStream(args: {
   memory: MemoryDB;
   router: ModelRouter;
   rag: RAGPipeline;
+  executor: ToolExecutor;
+  registry: ToolRegistry;
   stream: ReadableStream<Uint8Array>;
   userMessage: string;
   requestId: string;
@@ -108,7 +116,10 @@ export async function runPostFromStream(args: {
   model: string;
   log: RequestLogger;
 }): Promise<void> {
-  const { memory, router, rag, stream, userMessage, requestId, sessionId, model, log } = args;
+  const {
+    memory, router, rag, executor, registry,
+    stream, userMessage, requestId, sessionId, model, log,
+  } = args;
 
   const decoder = new TextDecoder();
   const contentChunks: string[] = [];
@@ -145,6 +156,8 @@ export async function runPostFromStream(args: {
       memory,
       router,
       rag,
+      executor,
+      registry,
       userMessage,
       assistantMessage: fullResponse,
       requestId,

@@ -10,6 +10,7 @@ import { chatsRoute } from "../routes/chats";
 import { memoryRoute } from "../routes/memory";
 import { freelanceRoute } from "../routes/freelance";
 import { telegramRoute } from "../routes/telegram";
+import { tasksRoute } from "../routes/tasks";
 import { mcpRoute, mcpProtocolRoute } from "../mcp";
 import { logger } from "../lib/logger";
 import { AppError } from "../lib/errors";
@@ -110,7 +111,8 @@ export function createApp(deps: AppDeps) {
     .use(autonomousRoute(agentLoop, memory))
     .use(chatsRoute(memory))
     .use(memoryRoute(memory))
-    .use(freelanceRoute(memory, deps.freelanceScout));
+    .use(freelanceRoute(memory, deps.freelanceScout))
+    .use(tasksRoute(memory));
 
   return { app, nightCycleController } as const;
 }

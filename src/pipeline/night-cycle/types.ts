@@ -8,6 +8,9 @@ export interface NightCycleResult {
   archiveEntriesCreated: number;
   antiPatternsFound: number;
   contradictionsResolved: number;
+  sharedPruned: number;
+  contextPruned: number;
+  focusPruned: number;
   errors: string[];
   lastProcessedId: number;
 }
@@ -34,9 +37,19 @@ export function buildConversationText(logs: LogRow[]): string {
     .join("\n\n");
 }
 
+/**
+ * MiniMax-M2 wraps reasoning in <think>...</think> inside `content` (non-stream
+ * path doesn't split it into `reasoning_content`). Strip before downstream
+ * parsing so JSON/text consumers see only the final answer.
+ */
+export function stripThinkTags(text: string): string {
+  return text.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
+}
+
 export function parseJson(text: string): any {
-  const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-  const raw = jsonMatch ? jsonMatch[1].trim() : text.trim();
+  const stripped = stripThinkTags(text);
+  const jsonMatch = stripped.match(/```(?:json)?\s*([\s\S]*?)```/);
+  const raw = jsonMatch ? jsonMatch[1].trim() : stripped;
   try {
     return JSON.parse(raw);
   } catch {

@@ -6,7 +6,14 @@ import { ChatsTable } from "./tables/chats";
 import { LogsTable } from "./tables/logs";
 import { TgMessagesTable, type TgMessageInsert, type TgSearchOpts } from "./tables/tg-messages";
 import { FreelanceLeadsTable } from "./tables/freelance-leads";
-import type { FreelanceSource, FreelanceStatus } from "./types";
+import { TasksTable, type UpsertResult } from "./tables/tasks";
+import { SchedulerStateTable } from "./tables/scheduler-state";
+import type {
+  FreelanceSource,
+  FreelanceStatus,
+  TaskScope,
+  TaskStatus,
+} from "./types";
 
 export type {
   ContextRow,
@@ -24,7 +31,14 @@ export type {
   FreelanceLeadRow,
   FreelanceSource,
   FreelanceStatus,
+  TaskRow,
+  TaskScope,
+  TaskStatus,
+  SchedulerStateRow,
 } from "./types";
+
+export { InvalidTransitionError } from "./tables/task-transitions";
+export type { UpsertResult } from "./tables/tasks";
 
 export type { TgMessageInsert, TgSearchOpts } from "./tables/tg-messages";
 
@@ -36,6 +50,8 @@ export class MemoryDB {
   private _logs: LogsTable;
   private _tgmsg: TgMessagesTable;
   private _freelance: FreelanceLeadsTable;
+  private _tasks: TasksTable;
+  private _scheduler: SchedulerStateTable;
 
   constructor(path: string) {
     this.db = openDatabase(path);
@@ -46,6 +62,8 @@ export class MemoryDB {
     this._logs = new LogsTable(this.db);
     this._tgmsg = new TgMessagesTable(this.db);
     this._freelance = new FreelanceLeadsTable(this.db);
+    this._tasks = new TasksTable(this.db);
+    this._scheduler = new SchedulerStateTable(this.db);
   }
 
   close(): void {
@@ -183,4 +201,63 @@ export class MemoryDB {
     this._freelance.updateStatus(id, status);
   countFreelanceLeadsSince = (ts: number) => this._freelance.countLeadsSince(ts);
   lastFreelanceLeadAt = () => this._freelance.lastCreatedAt();
+
+  // ─── Tasks (lifecycle state) ───────────────────────────────
+  insertTask = (task: {
+    id: string;
+    title: string;
+    description?: string;
+    scope: TaskScope;
+    priority?: number;
+    due_at?: number | null;
+    source?: string | null;
+  }) => this._tasks.insert(task);
+  upsertTaskBySource = (
+    source: string,
+    fields: {
+      scope: TaskScope;
+      title: string;
+      description?: string;
+      priority?: number;
+    },
+    newId: string,
+  ): UpsertResult => this._tasks.upsertBySource(source, fields, newId);
+  getTask = (id: string) => this._tasks.get(id);
+  listTasks = (opts: {
+    scope?: TaskScope;
+    status?: TaskStatus | "active";
+    limit: number;
+    offset: number;
+  }) => this._tasks.list(opts);
+  listTasksActive = (scope: TaskScope, limit: number) =>
+    this._tasks.listActive(scope, limit);
+  countTasksActive = (scope: TaskScope) => this._tasks.countActive(scope);
+  updateTask = (
+    id: string,
+    fields: {
+      title?: string;
+      description?: string;
+      priority?: number;
+      due_at?: number | null;
+    },
+  ) => this._tasks.update(id, fields);
+  transitionTask = (id: string, to: TaskStatus) =>
+    this._tasks.transition(id, to);
+  deleteTask = (id: string) => this._tasks.delete(id);
+  listCompletedTasksSince = (opts: {
+    scope?: TaskScope;
+    sinceUnix: number;
+    limit: number;
+    offset: number;
+  }) => this._tasks.listCompletedSince(opts);
+
+  // ─── Scheduler state (ephemeral runtime flags) ─────────────
+  getSchedulerState = (key: string) => this._scheduler.get(key);
+  upsertSchedulerState = (key: string, value: string) =>
+    this._scheduler.upsert(key, value);
+  deleteSchedulerState = (key: string) => this._scheduler.delete(key);
+  tryAcquireSchedulerLock = (key: string, myId: string, staleSec: number) =>
+    this._scheduler.tryAcquireLock(key, myId, staleSec);
+  heartbeatSchedulerLock = (key: string, myId: string) =>
+    this._scheduler.heartbeat(key, myId);
 }

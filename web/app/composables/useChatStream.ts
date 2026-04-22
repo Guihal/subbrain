@@ -1,62 +1,12 @@
 export function useChatStream() {
   const { updateLastAssistant, flushStreamingPaint } = useChatState();
 
-  /**
-   * Incremental <think>...</think> splitter. Routes chars entering while
-   * inside a think block to `reasoning`, rest to `content`. Handles partial
-   * tags arriving across SSE chunks via a small carry buffer.
-   */
-  function makeThinkSplitter() {
-    let inThink = false;
-    let carry = ""; // partial tag awaiting completion
-    return (delta: string, onContent: (s: string) => void, onThink: (s: string) => void) => {
-      let buf = carry + delta;
-      carry = "";
-      while (buf.length > 0) {
-        if (inThink) {
-          const close = buf.indexOf("</think>");
-          if (close === -1) {
-            // Keep a tail that could be a partial "</think>" prefix.
-            const tail = Math.min(buf.length, 7);
-            onThink(buf.slice(0, buf.length - tail));
-            carry = buf.slice(buf.length - tail);
-            // Only carry if the tail is actually a prefix of "</think>".
-            if (!"</think>".startsWith(carry)) {
-              onThink(carry);
-              carry = "";
-            }
-            return;
-          }
-          onThink(buf.slice(0, close));
-          buf = buf.slice(close + "</think>".length);
-          inThink = false;
-        } else {
-          const open = buf.indexOf("<think>");
-          if (open === -1) {
-            const tail = Math.min(buf.length, 6);
-            onContent(buf.slice(0, buf.length - tail));
-            carry = buf.slice(buf.length - tail);
-            if (!"<think>".startsWith(carry)) {
-              onContent(carry);
-              carry = "";
-            }
-            return;
-          }
-          onContent(buf.slice(0, open));
-          buf = buf.slice(open + "<think>".length);
-          inThink = true;
-        }
-      }
-    };
-  }
-
   async function readSSEStream(res: Response) {
     const reader = res.body!.getReader();
     const decoder = new TextDecoder();
     let buffer = "";
     let content = "";
     let reasoning = "";
-    const split = makeThinkSplitter();
 
     try {
       while (true) {
@@ -78,17 +28,13 @@ export function useChatStream() {
             const delta = chunk.choices?.[0]?.delta;
             if (!delta) continue;
 
-            if (delta.reasoning_content) {
+            if (typeof delta.reasoning_content === "string" && delta.reasoning_content) {
               reasoning += delta.reasoning_content;
               updateLastAssistant({ reasoning, content });
               didUpdate = true;
             }
-            if (delta.content) {
-              split(
-                delta.content,
-                (c) => { content += c; },
-                (r) => { reasoning += r; },
-              );
+            if (typeof delta.content === "string" && delta.content) {
+              content += delta.content;
               updateLastAssistant({ content: content.trim(), reasoning });
               didUpdate = true;
             }
@@ -162,15 +108,11 @@ export function useChatStream() {
                 didUpdate = true;
                 break;
               case "response":
-                content = extractThinkFromContent(data.content || "", (t) => {
-                  reasoning += t;
-                });
+                content = data.content || "";
                 didUpdate = true;
                 break;
               case "done":
-                content = extractThinkFromContent(data.summary || "", (t) => {
-                  reasoning += t;
-                });
+                content = data.summary || "";
                 didUpdate = true;
                 break;
               case "error":
@@ -195,18 +137,6 @@ export function useChatStream() {
     } finally {
       reader.releaseLock();
     }
-  }
-
-  function extractThinkFromContent(
-    text: string,
-    onThink: (t: string) => void,
-  ): string {
-    const thinkRegex = /<think>([\s\S]*?)<\/think>/g;
-    let match;
-    while ((match = thinkRegex.exec(text)) !== null) {
-      onThink(match[1] || "");
-    }
-    return text.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
   }
 
   return { readSSEStream, readAgentSSE };

@@ -2,6 +2,7 @@ import { describe, test, expect, beforeAll } from "bun:test";
 import { unlinkSync } from "fs";
 import { MemoryDB } from "../src/db";
 import { RAGPipeline } from "../src/rag";
+import { ToolExecutor, buildRegistry } from "../src/mcp";
 import { runHippocampus } from "../src/pipeline/agent-pipeline/post/hippocampus";
 import type { ChatResponse } from "../src/providers/types";
 
@@ -26,6 +27,8 @@ function mkRouter(responses: ChatResponse[]) {
 }
 
 const rag = new RAGPipeline(memory, mkRouter([]));
+const registry = buildRegistry();
+const executor = new ToolExecutor(memory, mkRouter([]));
 
 describe("post/hippocampus.runHippocampus", () => {
   test("memory_write shared then done → insertShared invoked, factsWritten=1", async () => {
@@ -68,7 +71,7 @@ describe("post/hippocampus.runHippocampus", () => {
     ]);
 
     const stats = await runHippocampus({
-      memory, router, rag,
+      memory, router, rag, executor, registry,
       userMessage: "Я люблю Bun",
       assistantText: "Понял, запомню",
       requestId: "req-test-1",
@@ -96,7 +99,7 @@ describe("post/hippocampus.runHippocampus", () => {
       usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
     }]);
     const stats = await runHippocampus({
-      memory, router, rag,
+      memory, router, rag, executor, registry,
       userMessage: "hi", assistantText: "hello",
       requestId: "req-test-2", log,
     });

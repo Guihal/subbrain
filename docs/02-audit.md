@@ -192,3 +192,29 @@ installed cli (без bunx). Прямой вызов `chromium.launch({channel:"
   (heartbeat SSE, `MAX_STEPS=100`, fire-and-forget night-cycle, cron 03:00,
   context compressor, agentic post-processing, web UI для автономных чатов).
 - 2026-04-21 — BROWSER-1 закрыт (PR 06). Все HIGH/MED + CRIT + BROWSER закрыты.
+
+---
+
+## Addendum 2026-04-22 — найдено при разработке prune-шагов night-cycle
+
+### MEM-1 🟡 `src/pipeline/night-cycle/steps.ts:267, 399` — delete без `deleteEmbedding` → orphan vec-rows
+`dedup()` (merge-ветка на `memory.updateArchive` — ok, не удаляет) и особенно `resolveContradictions()` (строки 398-400 `memory.deleteArchive(entry.id)` на resolution=`keep_old`) не вызывают `memory.deleteEmbedding(id)`. `vec_embeddings.id` остаётся сиротой — при следующем hybrid-search попадает в vec-результаты, но `getArchiveMany([id])` вернёт пусто → запись фильтруется, но процесс дороже.
+**Fix:** обернуть `deleteArchive(id)` + `deleteEmbedding(id)` в `db.transaction()`. Также проверить аналогичный паттерн в routes/memory.ts admin DELETE.
+**Scope:** отдельный PR, вне prune-задачи.
+
+### MEM-2 🟡 `src/rag/pipeline.ts:112` — поиск по слою `shared` без индекса
+RAG ищет в трёх слоях, включая `shared`. Но `grep "upsertEmbedding.*shared" src/` → 0 hits. Никто не индексирует `shared_memory` в `vec_embeddings`. Vec-ветка для `shared` всегда пуста; работает только FTS-ветка.
+**Fix (варианты):**
+- (a) Удалить `shared` из default `layers` массива в RAG — корректнее отражает реальность.
+- (b) Или добавить вызов `rag.indexEntry(id, "shared", content)` в каждую запись `shared` (hippocampus `writeShared`, context-compressor `insertShared`, seed-script) — поднимет качество RAG, но увеличит latency post-processing.
+**Scope:** design-решение, обсудить отдельно.
+
+### MEM-3 🟡 `src/db/tables/memory.ts:151` — `searchContext` не фильтрует по `agent_id`
+`layer2_context` имеет колонку `agent_id` (nullable), но `searchContext(query, limit)` никогда её не учитывает. Публичный и agent-приватный контексты смешиваются при поиске. `pruneContext` уведомляет LLM через prompt, но это soft guard — при ошибке LLM возможен cross-agent merge.
+**Fix:** опциональный параметр `agentId?: string` в `searchContext`/`searchShared`, SQL `AND (agent_id = ? OR agent_id IS NULL)`. Также проверить `rag/pipeline.ts` search-ветку контекста.
+**Scope:** security/isolation; закрыть вместе с agent-rights аудитом.
+
+### MEM-4 🟡 `src/mcp/tools/memory-tools.ts:148` — `deleteEmbedding` дёргается ВНЕ `db.transaction()`
+`deleteMemory` tool (handler для `memory_delete`) сначала `delete*(id)` из основной таблицы, потом `deleteEmbedding(id)` — но не в одной транзакции. Если процесс умер между → orphan embedding (как MEM-1) или наоборот — мёртвая ссылка в главной таблице при живом vec.
+**Fix:** обернуть пару в `db.transaction(() => {...})()`.
+**Scope:** тривиальный PR.

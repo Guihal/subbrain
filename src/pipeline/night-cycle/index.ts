@@ -21,6 +21,7 @@ import {
   extractAntiPatterns,
   resolveContradictions,
 } from "./steps";
+import { pruneShared, pruneContext, pruneFocus } from "./prune";
 
 export type { NightCycleResult } from "./types";
 
@@ -48,6 +49,9 @@ export class NightCycle {
       archiveEntriesCreated: 0,
       antiPatternsFound: 0,
       contradictionsResolved: 0,
+      sharedPruned: 0,
+      contextPruned: 0,
+      focusPruned: 0,
       errors: [],
       lastProcessedId: 0,
     };
@@ -188,6 +192,39 @@ export class NightCycle {
       result.errors.push(`Resolve: ${msg}`);
     }
 
+    // Step 8: Prune shared_memory
+    log.info("Pruning shared_memory…");
+    try {
+      result.sharedPruned = await pruneShared(this.memory, this.router);
+      log.info(`shared pruned=${result.sharedPruned}`);
+    } catch (err) {
+      const msg = (err as Error).message;
+      log.error(`Prune shared failed: ${msg}`);
+      result.errors.push(`Prune shared: ${msg}`);
+    }
+
+    // Step 9: Prune layer2_context
+    log.info("Pruning layer2_context…");
+    try {
+      result.contextPruned = await pruneContext(this.memory, this.router, this.rag);
+      log.info(`context pruned=${result.contextPruned}`);
+    } catch (err) {
+      const msg = (err as Error).message;
+      log.error(`Prune context failed: ${msg}`);
+      result.errors.push(`Prune context: ${msg}`);
+    }
+
+    // Step 10: Prune layer1_focus
+    log.info("Pruning layer1_focus…");
+    try {
+      result.focusPruned = await pruneFocus(this.memory, this.router);
+      log.info(`focus pruned=${result.focusPruned}`);
+    } catch (err) {
+      const msg = (err as Error).message;
+      log.error(`Prune focus failed: ${msg}`);
+      result.errors.push(`Prune focus: ${msg}`);
+    }
+
     // Save progress
     this.memory.setFocus(
       FOCUS_KEY_LAST_PROCESSED,
@@ -195,7 +232,7 @@ export class NightCycle {
     );
 
     const elapsedSec = Math.round((Date.now() - startedAt) / 1000);
-    log.info(`Cycle finished in ${elapsedSec}s — archived=${result.archiveEntriesCreated} antiPatterns=${result.antiPatternsFound} contradictions=${result.contradictionsResolved} errors=${result.errors.length}`,
+    log.info(`Cycle finished in ${elapsedSec}s — archived=${result.archiveEntriesCreated} antiPatterns=${result.antiPatternsFound} contradictions=${result.contradictionsResolved} sharedPruned=${result.sharedPruned} contextPruned=${result.contextPruned} focusPruned=${result.focusPruned} errors=${result.errors.length}`,
       { meta: { ...result } },
     );
 

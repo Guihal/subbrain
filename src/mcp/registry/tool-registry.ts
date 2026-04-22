@@ -39,6 +39,15 @@ export interface ToolContext {
   registry?: ToolRegistry;
   /** Session quotas. Populated by agent-loop only. REST/MCP callers → undefined. */
   session?: AgentLoopSession;
+  /**
+   * Per-exchange task mutation budget. Populated by hippocampus only; every
+   * `task_*` mutating handler (add/update/start/done/cancel) decrements by 1
+   * and returns `rate_limit` when remaining ≤ 0. `undefined` → unlimited
+   * (normal agent-loop + REST/MCP paths bypass the guard).
+   * Attempt-based: failed upstream still consumes the slot (retry-amplified
+   * spam protection), symmetric with AgentLoopSession.
+   */
+  taskBudget?: TaskMutationBudget;
 }
 
 /**
@@ -52,6 +61,11 @@ export interface AgentLoopSession {
   consultSpecialistsMax: number;
   consultChaosCount: number;
   consultChaosMax: number;
+}
+
+/** Hippocampus per-exchange guard. Mutable shared reference — every task_* mutation decrements `remaining`. */
+export interface TaskMutationBudget {
+  remaining: number;
 }
 
 /**

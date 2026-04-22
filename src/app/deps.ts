@@ -84,8 +84,12 @@ export function loadConfig(): AppConfig {
     process.env.AUTONOMOUS_ENABLED === "true" ||
     (process.env.AUTONOMOUS_ENABLED !== "false" &&
       process.env.NODE_ENV === "production");
+  if (process.env.AUTONOMOUS_TASK?.trim()) {
+    throw new Error(
+      "AUTONOMOUS_TASK env is obsolete. Use POST /v1/tasks scope=autonomous. Unset and restart.",
+    );
+  }
   const autonomousTask =
-    process.env.AUTONOMOUS_TASK ||
     `Ты — личный ИИ-ассистент пользователя в автономном режиме. Профиль, стек и миссия — в shared_memory.
 Каждый запуск выбери ОДНУ задачу из списка ниже и выполни её до конца:
 
@@ -208,7 +212,7 @@ export async function initDeps(config: AppConfig = loadConfig()): Promise<AppDep
     },
   });
 
-  const pipeline = new AgentPipeline(memory, router, rag);
+  const pipeline = new AgentPipeline(memory, router, rag, tools, registry);
   pipeline.setMetrics(metrics);
   const room = new ArbitrationRoom(router);
   room.setMetrics(metrics);

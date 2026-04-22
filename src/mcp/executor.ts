@@ -4,7 +4,13 @@ import type { RAGPipeline } from "../rag";
 import type { Userbot } from "../telegram/userbot";
 import type { PlaywrightClient } from "./playwright-client";
 import type { ToolResult } from "./types";
-import { MemoryTools, EmbedTools, LogTools, WebTools } from "./tools/index";
+import {
+  MemoryTools,
+  EmbedTools,
+  LogTools,
+  WebTools,
+  TasksTools,
+} from "./tools/index";
 import * as tg from "./telegram-tools";
 import { sendReport } from "./tools/telegram-report";
 import type { CodeToolRegistry } from "../pipeline/agent-loop/code-tools";
@@ -28,6 +34,7 @@ export class ToolExecutor {
   readonly embedTools: EmbedTools;
   readonly logTools: LogTools;
   readonly webTools: WebTools;
+  readonly tasksTools: TasksTools;
 
   constructor(
     private memory: MemoryDB,
@@ -37,6 +44,7 @@ export class ToolExecutor {
     this.embedTools = new EmbedTools(memory, router, () => this.rag);
     this.logTools = new LogTools(memory, router);
     this.webTools = new WebTools();
+    this.tasksTools = new TasksTools(memory);
   }
 
   /** Set RAG pipeline (avoids circular dependency) */

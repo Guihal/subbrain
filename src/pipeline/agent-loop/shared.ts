@@ -71,6 +71,8 @@ export function firePost(
     memory: deps.memory,
     router: deps.router,
     rag: deps.rag,
+    executor: deps.tools,
+    registry: deps.registry,
     userMessage: params.userMessage,
     assistantMessage: params.assistantMessage,
     requestId: params.requestId,

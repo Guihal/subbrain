@@ -1,6 +1,7 @@
 import type { LLMProvider } from "./types";
 import { NvidiaProvider } from "./nvidia";
 import { CopilotProvider } from "./copilot";
+import { MiniMaxProvider } from "./minimax";
 import type { ProviderName } from "../lib/model-map";
 
 export type { LLMProvider } from "./types";
@@ -50,7 +51,7 @@ export async function createProviders(): Promise<Record<ProviderName, LLMProvide
     process.env.MINIMAX_BASE_URL || "https://api.minimax.io/v1";
   const minimaxKey = process.env.MINIMAX_API_KEY;
   const minimax: LLMProvider = minimaxKey
-    ? new NvidiaProvider(minimaxUrl, minimaxKey)
+    ? new MiniMaxProvider(minimaxUrl, minimaxKey)
     : new NvidiaProvider(nvidiaUrl, nvidiaKey);
 
   return {

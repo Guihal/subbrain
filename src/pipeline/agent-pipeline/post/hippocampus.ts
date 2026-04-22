@@ -4,116 +4,38 @@
  *
  * Default model is `coder` (devstral) — `flash` (stepfun) is a reasoning model
  * and does not reliably emit tool_calls, so it cannot be used here.
+ *
+ * Tool surface:
+ *   - memory_search / memory_write — dispatched inline against MemoryDB + RAG.
+ *   - task_add — dispatched through ToolRegistry so the rate-limit guard in
+ *     tasks.tools.ts is the single source of truth.
+ *   - done — terminates the loop.
+ *
+ * Per-exchange task mutation budget = 3 (add/update/start/done/cancel share
+ * the counter). Budget lives in a single `TaskMutationBudget` object passed
+ * into every registry.call, so all task_* handlers see the same `remaining`.
  */
 import type { MemoryDB } from "../../../db";
 import type { ModelRouter } from "../../../lib/model-router";
 import type { RAGPipeline } from "../../../rag";
-import type { Tool, Message } from "../../../providers/types";
+import type { Message } from "../../../providers/types";
 import type { RequestLogger } from "../../../lib/logger";
+import type { ToolExecutor } from "../../../mcp";
+import type { ToolRegistry, TaskMutationBudget } from "../../../mcp/registry";
 
 import { writeShared, writeContext } from "./extractors";
+import { POST_TOOLS } from "./tools";
+import { getExtractorPrompt } from "./prompt";
 
 const MAX_HIPPO_STEPS = 5;
 const MAX_SNIPPET_CHARS = 12_000;
+const TASK_BUDGET_PER_EXCHANGE = 3;
 
 const EXTRACTOR_MODEL = process.env.POST_EXTRACTOR_MODEL || "coder";
 
-const POST_TOOLS: Tool[] = [
-  {
-    type: "function",
-    function: {
-      name: "memory_search",
-      description:
-        "FTS5 search across memory layers. Use to check whether a candidate fact is already stored before writing a duplicate.",
-      parameters: {
-        type: "object",
-        properties: {
-          query: { type: "string" },
-          layer: {
-            type: "string",
-            enum: ["context", "shared", "all"],
-            description: "Default: all",
-          },
-          limit: { type: "number", description: "Default: 5" },
-        },
-        required: ["query"],
-      },
-    },
-  },
-  {
-    type: "function",
-    function: {
-      name: "memory_write",
-      description:
-        "Persist one fact. Use `shared` for long-lived facts about the user / their life / persistent preferences. Use `context` for project decisions, code findings, transient domain knowledge.",
-      parameters: {
-        type: "object",
-        properties: {
-          layer: { type: "string", enum: ["context", "shared"] },
-          category: {
-            type: "string",
-            description:
-              "Short category tag: user, project, decision, finding, url, preference, etc.",
-          },
-          content: {
-            type: "string",
-            description: "Self-contained fact, one or two sentences.",
-          },
-          tags: {
-            type: "string",
-            description: "Comma-separated, optional",
-          },
-        },
-        required: ["layer", "category", "content"],
-      },
-    },
-  },
-  {
-    type: "function",
-    function: {
-      name: "done",
-      description:
-        "Finish extraction. Call this once you've either written all worthwhile facts or determined the exchange has nothing new.",
-      parameters: {
-        type: "object",
-        properties: {
-          note: {
-            type: "string",
-            description: "Optional short debug note about what you did.",
-          },
-        },
-      },
-    },
-  },
-];
-
-function getExtractorPrompt(): string {
-  return `Ты — Hippocampus Write-Path, подсистема записи фактов в долгосрочную память после user↔assistant exchange.
-
-## Стратегия: write-first (важно)
-Пиши факты СРАЗУ через \`memory_write\`. НЕ начинай с \`memory_search\` — бюджет ${MAX_HIPPO_STEPS} шагов слишком тесен. Дубли отсеет night-cycle dedup; задача этого шага — ничего не потерять.
-
-## Workflow
-1. Прочти exchange. Идентифицируй до ~5 кандидатов (биография, решения, URL, числа, открытые ветки).
-2. Вызови \`memory_write\` для самых уверенных фактов СРАЗУ.
-3. \`memory_search\` только если кандидат почти дословно звучит как повтор (редкий случай).
-4. Записал уверенные — \`done\`.
-
-## Layers
-- \`layer: "shared"\` — про пользователя/жизнь/долгоживущие предпочтения.
-- \`layer: "context"\` — знания по проекту/коду/текущей задаче.
-
-## Правила
-- **Только факты из exchange** — ничего не выдумывай.
-- **Самодостаточные** — каждый факт читается без окружения.
-- **Пропусти** приветствия, мета-обсуждения, tool-шум.
-- **Язык:** RU если exchange на RU.
-- Нечего сохранять → сразу \`done\`.
-- Budget: ${MAX_HIPPO_STEPS} tool calls. write > search.`;
-}
-
 export interface HippocampusStats {
   factsWritten: number;
+  tasksAdded: number;
   searchCalls: number;
   steps: number;
 }
@@ -122,13 +44,18 @@ export async function runHippocampus(args: {
   memory: MemoryDB;
   router: ModelRouter;
   rag: RAGPipeline;
+  executor: ToolExecutor;
+  registry: ToolRegistry;
   userMessage: string;
   assistantText: string;
   reasoning?: string;
   requestId: string;
   log: RequestLogger;
 }): Promise<HippocampusStats> {
-  const { memory, router, rag, userMessage, assistantText, reasoning, requestId, log } = args;
+  const {
+    memory, router, rag, executor, registry,
+    userMessage, assistantText, reasoning, requestId, log,
+  } = args;
 
   const exchangeBlock = [
     `=== User ===`,
@@ -143,11 +70,14 @@ export async function runHippocampus(args: {
     .join("\n\n");
 
   const messages: Message[] = [
-    { role: "system", content: getExtractorPrompt() },
+    { role: "system", content: getExtractorPrompt(MAX_HIPPO_STEPS) },
     { role: "user", content: exchangeBlock },
   ];
 
+  const taskBudget: TaskMutationBudget = { remaining: TASK_BUDGET_PER_EXCHANGE };
+
   let factsWritten = 0;
+  let tasksAdded = 0;
   let searchCalls = 0;
   let steps = 0;
 
@@ -227,6 +157,23 @@ export async function runHippocampus(args: {
           result = JSON.stringify(wr);
           break;
         }
+        case "task_add": {
+          const out = await registry.call("task_add", toolArgs, {
+            executor,
+            taskBudget,
+          });
+          if (out.success) {
+            tasksAdded++;
+            const title = String(toolArgs.title || "").slice(0, 100);
+            log.info("post", `→ task_add: ${title}`, {
+              meta: { layer: "tasks", remaining: taskBudget.remaining },
+            });
+          } else {
+            log.warn("post", `task_add rejected: ${out.error}`);
+          }
+          result = JSON.stringify(out);
+          break;
+        }
         case "done": {
           finished = true;
           result = JSON.stringify({ ok: true });
@@ -248,5 +195,5 @@ export async function runHippocampus(args: {
     if (finished) break;
   }
 
-  return { factsWritten, searchCalls, steps };
+  return { factsWritten, tasksAdded, searchCalls, steps };
 }

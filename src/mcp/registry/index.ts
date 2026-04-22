@@ -12,6 +12,7 @@ import { registerWebTools } from "./web.tools";
 import { registerAgentMetaTools } from "./agent-meta.tools";
 import { registerCodeMgmtTools } from "./code-mgmt.tools";
 import { registerReportTools } from "./report.tools";
+import { registerTasksTools } from "./tasks.tools";
 
 export { ToolRegistry } from "./tool-registry";
 export type {
@@ -19,6 +20,7 @@ export type {
   ToolDef,
   ToolScope,
   ToolLog,
+  TaskMutationBudget,
 } from "./tool-registry";
 
 /**
@@ -40,6 +42,7 @@ export function buildRegistry(): ToolRegistry {
   // Agent-only (только агент-луп)
   registerAgentMetaTools(registry);
   registerCodeMgmtTools(registry);
+  registerTasksTools(registry);
 
   return registry;
 }

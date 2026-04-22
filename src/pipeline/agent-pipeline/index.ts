@@ -8,6 +8,8 @@ import type { MemoryDB } from "../../db";
 import type { ModelRouter } from "../../lib/model-router";
 import type { Metrics } from "../../lib/metrics";
 import type { RAGPipeline } from "../../rag";
+import type { ToolExecutor } from "../../mcp";
+import type { ToolRegistry } from "../../mcp/registry";
 import type { ArbitrationRoom } from "../arbitration-room";
 import { logger } from "../../lib/logger";
 
@@ -29,6 +31,8 @@ export class AgentPipeline {
     private memory: MemoryDB,
     private router: ModelRouter,
     private rag: RAGPipeline,
+    private executor: ToolExecutor,
+    private registry: ToolRegistry,
   ) {}
 
   setMetrics(metrics: Metrics): void { this.metrics = metrics; }
@@ -40,7 +44,13 @@ export class AgentPipeline {
     const userMessage = extractLastUserMessage(req.messages);
     const log = logger.forRequest(requestId, sessionId);
     const firstMsg = isFirstMessage(req.messages);
-    const deps = { memory: this.memory, router: this.router, rag: this.rag };
+    const deps = {
+      memory: this.memory,
+      router: this.router,
+      rag: this.rag,
+      executor: this.executor,
+      registry: this.registry,
+    };
 
     log.info("pipeline",
       `▶ model=${req.model} stream=${!!req.stream} msgs=${req.messages.length} first=${firstMsg}`,
@@ -49,7 +59,14 @@ export class AgentPipeline {
     if (req.stream) {
       const stream = buildPipelineStream({
         req, requestId, sessionId, log, userMessage, firstMessage: firstMsg,
-        deps: { ...deps, metrics: this.metrics },
+        deps: {
+          memory: this.memory,
+          router: this.router,
+          rag: this.rag,
+          executor: this.executor,
+          registry: this.registry,
+          metrics: this.metrics,
+        },
       });
       return { requestId, sessionId, stream };
     }

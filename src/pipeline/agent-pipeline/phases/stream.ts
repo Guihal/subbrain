@@ -5,6 +5,8 @@ import type { MemoryDB } from "../../../db";
 import type { ModelRouter } from "../../../lib/model-router";
 import type { Metrics } from "../../../lib/metrics";
 import type { RAGPipeline } from "../../../rag";
+import type { ToolExecutor } from "../../../mcp";
+import type { ToolRegistry } from "../../../mcp/registry";
 import type { RequestLogger } from "../../../lib/logger";
 
 import type { PipelineRequest } from "../types";
@@ -18,6 +20,8 @@ export interface StreamDeps {
   memory: MemoryDB;
   router: ModelRouter;
   rag: RAGPipeline;
+  executor: ToolExecutor;
+  registry: ToolRegistry;
   metrics: Metrics | null;
 }
 
@@ -126,6 +130,8 @@ export function buildPipelineStream(args: {
           memory: deps.memory,
           router: deps.router,
           rag: deps.rag,
+          executor: deps.executor,
+          registry: deps.registry,
           stream: capturedStream,
           userMessage,
           requestId,

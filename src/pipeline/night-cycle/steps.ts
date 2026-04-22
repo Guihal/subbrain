@@ -6,7 +6,10 @@ import type { MemoryDB, LogRow } from "../../db";
 import type { ModelRouter } from "../../lib/model-router";
 import type { RAGPipeline } from "../../rag";
 import type { CompressedEntry } from "./types";
-import { buildConversationText, parseJson } from "./types";
+import { buildConversationText, parseJson, stripThinkTags } from "./types";
+import { logger } from "../../lib/logger";
+
+const log = logger.child("night");
 
 /**
  * Virtual role used for all night-cycle LLM calls. Default is `coder`
@@ -60,8 +63,11 @@ export async function scrubPII(
       },
       "low",
     );
-    return response.choices[0]?.message?.content || text;
-  } catch {
+    const raw = response.choices[0]?.message?.content || "";
+    const cleaned = stripThinkTags(raw);
+    return cleaned || text;
+  } catch (err) {
+    log.warn(`scrubPII: ${(err as Error).message}`);
     return text;
   }
 }
@@ -72,6 +78,7 @@ export async function translate(
   text: string,
   router: ModelRouter,
 ): Promise<string> {
+  if (!text.length) return text;
   const cyrillicRatio = (text.match(/[а-яё]/gi) || []).length / text.length;
   if (cyrillicRatio < 0.1) return text;
 
@@ -92,8 +99,11 @@ export async function translate(
       },
       "low",
     );
-    return response.choices[0]?.message?.content || text;
-  } catch {
+    const raw = response.choices[0]?.message?.content || "";
+    const cleaned = stripThinkTags(raw);
+    return cleaned || text;
+  } catch (err) {
+    log.warn(`translate: ${(err as Error).message}`);
     return text;
   }
 }
@@ -147,7 +157,8 @@ export async function compress(
       sourceRequestIds: requestIds,
       confidence: "HIGH",
     };
-  } catch {
+  } catch (err) {
+    log.warn(`compress: ${(err as Error).message}`);
     return null;
   }
 }
@@ -201,7 +212,8 @@ Accurate=false → confidence записи понижается до LOW (зап
       return { ...entry, confidence: "LOW" };
     }
     return entry;
-  } catch {
+  } catch (err) {
+    log.warn(`verify: ${(err as Error).message}`);
     return { ...entry, confidence: "LOW" };
   }
 }
@@ -272,15 +284,16 @@ Actions:
       if (rag) {
         try {
           await rag.indexEntry(parsed.duplicateOf, "archive", entry.content);
-        } catch {
-          // Skip re-embed on provider error — next night-cycle retries.
+        } catch (err) {
+          log.warn(`dedup: reindex failed — ${(err as Error).message}`);
         }
       }
       return true;
     }
 
     return false;
-  } catch {
+  } catch (err) {
+    log.warn(`dedup: ${(err as Error).message}`);
     return false;
   }
 }
@@ -322,10 +335,11 @@ export async function extractAntiPatterns(
       "low",
     );
 
-    const content = response.choices[0]?.message?.content || "";
-    if (content.trim() === "NONE" || content.length < 20) return null;
+    const content = stripThinkTags(response.choices[0]?.message?.content || "");
+    if (content === "NONE" || content.length < 20) return null;
     return content;
-  } catch {
+  } catch (err) {
+    log.warn(`extractAntiPatterns: ${(err as Error).message}`);
     return null;
   }
 }
@@ -406,14 +420,14 @@ Output JSON:
         if (rag) {
           try {
             await rag.indexEntry(entry.id, "archive", parsed.mergedContent);
-          } catch {
-            // Skip re-embed on provider error
+          } catch (err) {
+            log.warn(`resolveContradictions: reindex failed — ${(err as Error).message}`);
           }
         }
         resolved++;
       }
-    } catch {
-      // Skip this entry
+    } catch (err) {
+      log.warn(`resolveContradictions: entry=${entry.id.slice(0, 8)} ${(err as Error).message}`);
     }
   }
 
