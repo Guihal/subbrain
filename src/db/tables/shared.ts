@@ -50,6 +50,14 @@ export class SharedTable {
     return this.db.query("SELECT * FROM shared_memory WHERE id = ?").get(id) as SharedRow | null;
   }
 
+  getSharedMany(ids: string[]): SharedRow[] {
+    if (ids.length === 0) return [];
+    const placeholders = ids.map(() => "?").join(",");
+    return this.db
+      .query(`SELECT * FROM shared_memory WHERE id IN (${placeholders})`)
+      .all(...ids) as SharedRow[];
+  }
+
   getSharedByCategory(category: string): SharedRow[] {
     return this.db
       .query("SELECT * FROM shared_memory WHERE category = ? ORDER BY updated_at DESC")
