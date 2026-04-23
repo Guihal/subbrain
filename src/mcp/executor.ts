@@ -72,7 +72,13 @@ export class ToolExecutor {
     this.userbot = userbot;
   }
 
-  /** Send a message to the owner via Telegram bot */
+  /**
+   * Send a message to the owner via Telegram bot.
+   *
+   * Relies on `botNotify` being the throwing variant (`notifyOrThrow`) so we
+   * can surface real delivery failures — `notify` (fire-and-forget) would
+   * resolve `void` even on HTTP 500, masking the error.
+   */
   async tgSendMessage(text: string): Promise<ToolResult> {
     if (!this.botNotify) {
       return { success: false, error: "Telegram bot not configured" };

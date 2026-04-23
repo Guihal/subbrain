@@ -118,6 +118,19 @@ export function registerTelegramTools(registry: ToolRegistry): void {
     input: t.Object({
       text: t.String(),
     }),
-    handler: (args, ctx) => ctx.executor.tgSendMessage(args.text),
+    // Convert delivery failure into an honest tool error so the agent
+    // (which JSON.stringify's ToolResult and shows it to the model) cannot
+    // silently believe the message was delivered. Code prefix
+    // `tg_delivery_failed` encodes the reason — `ToolResult.error` is a
+    // plain string today; a future migration to `{code, message}` can swap
+    // this format without touching callers.
+    handler: async (args, ctx) => {
+      const r = await ctx.executor.tgSendMessage(args.text);
+      if (r.success) return r;
+      return {
+        success: false,
+        error: `tg_delivery_failed: ${r.error ?? "unknown error"}`,
+      };
+    },
   });
 }

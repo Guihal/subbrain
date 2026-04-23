@@ -235,6 +235,10 @@ export class TelegramBot {
 
   // ─── Notifications (outbound) ─────────────────────────────
 
+  /**
+   * Fire-and-forget notify — swallows delivery errors to log.
+   * Use for digests / alerts where failure should not bubble up to caller.
+   */
   async notify(text: string): Promise<void> {
     try {
       await this.bot.api.sendMessage(this.ownerChatId, text, {
@@ -244,6 +248,17 @@ export class TelegramBot {
       log.error(`Notify failed: ${err instanceof Error ? err.message : String(err)}`,
       );
     }
+  }
+
+  /**
+   * Strict notify — rethrows underlying Telegram API error so the caller can
+   * see that delivery failed (used by `tg_send_message` tool). Keeps
+   * agent honest instead of returning a false-positive success.
+   */
+  async notifyOrThrow(text: string): Promise<void> {
+    await this.bot.api.sendMessage(this.ownerChatId, text, {
+      parse_mode: "Markdown",
+    });
   }
 
   async notifyDigest(digest: string): Promise<void> {

@@ -370,7 +370,8 @@ function initTelegramBot(opts: {
     .catch((err) =>
       logger.error("telegram", `Bot init failed: ${err.message}`),
     );
-  opts.tools.setBotNotify((text) => bot.notify(text));
+  // Use notifyOrThrow so tgSendMessage sees real delivery errors (TG-1).
+  opts.tools.setBotNotify((text) => bot.notifyOrThrow(text));
   bot.setReportSender(async (text) => {
     await opts.tools.sendReportEnriched(text);
   });
