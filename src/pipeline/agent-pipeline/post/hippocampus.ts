@@ -152,16 +152,19 @@ export async function runHippocampus(args: {
           const wr =
             layer === "shared"
               ? writeShared(memory, { category, content, tags }, log)
-              : writeContext(memory, rag, { category, content, tags }, requestId, log);
+              : await writeContext(memory, rag, { category, content, tags }, requestId, log);
           if (wr.ok) factsWritten++;
           result = JSON.stringify(wr);
           break;
         }
         case "task_add": {
-          const out = await registry.call("task_add", toolArgs, {
+          // Hippocampus provides a minimal agent-like ctx: task_add only uses
+          // ctx.executor + ctx.taskBudget; other AgentToolContext fields
+          // (router/room/log/registry/dynamicTools/codeTools) are not touched.
+          const out = await registry.callAsAgent("task_add", toolArgs, {
             executor,
             taskBudget,
-          });
+          } as unknown as import("../../../mcp/registry/tool-registry").AgentToolContext);
           if (out.success) {
             tasksAdded++;
             const title = String(toolArgs.title || "").slice(0, 100);

@@ -53,7 +53,7 @@ describe("MCP registry smoke", () => {
   });
 
   test("unknown tool call returns graceful error, not throw", async () => {
-    const res = await registry.call("this_tool_does_not_exist", {}, {
+    const res = await registry.callAsPublic("this_tool_does_not_exist", {}, {
       executor: {} as any,
     });
     expect(res.success).toBe(false);

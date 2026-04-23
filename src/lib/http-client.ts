@@ -9,6 +9,28 @@
 
 import { HttpAbortError, HttpError } from "./errors";
 
+/**
+ * Cancellable sleep. Resolves after `ms` or rejects with AbortError if the
+ * caller's signal fires first. Avoids leaking the timer past abort.
+ */
+function sleepCancellable(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(signal.reason ?? new Error("aborted"));
+      return;
+    }
+    const timer = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    const onAbort = () => {
+      clearTimeout(timer);
+      reject(signal?.reason ?? new Error("aborted"));
+    };
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
+}
+
 export interface FetchJsonOpts {
   /** Overall timeout per attempt. Default 180_000ms. */
   timeoutMs?: number;
@@ -93,7 +115,7 @@ export async function fetchStream(
         await res.text();
       } catch {}
       if (retry.backoffMs) {
-        await Bun.sleep(retry.backoffMs * attempt);
+        await sleepCancellable(retry.backoffMs * attempt, opts.signal);
       }
       continue;
     }

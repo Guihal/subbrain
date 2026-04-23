@@ -63,3 +63,19 @@ export function getCurrentDate(): string {
 export function estimateTokens(messages: Message[]): number {
   return Math.ceil(JSON.stringify(messages).length / 4);
 }
+
+/**
+ * Session-scoped quotas for cost-heavy tools. Agent-loop creates a fresh
+ * instance per run (run.ts / stream.ts); handlers check presence and
+ * increment before the costly call (attempt-based semantics — a failed
+ * upstream still consumes the slot, to avoid retry-amplified load).
+ *
+ * Lives here (not in mcp/registry) so the registry stays transport-neutral
+ * and does not pull agent-loop concepts into its shape (guardrail #11).
+ */
+export interface AgentLoopSession {
+  consultSpecialistsCount: number;
+  consultSpecialistsMax: number;
+  consultChaosCount: number;
+  consultChaosMax: number;
+}

@@ -1,4 +1,4 @@
-import { t, type ToolContext, type ToolRegistry } from "./tool-registry";
+import { t, type AgentToolContext, type ToolRegistry } from "./tool-registry";
 import type { ToolResult } from "../types";
 
 /**
@@ -8,7 +8,7 @@ import type { ToolResult } from "../types";
  * with AgentLoopSession quotas). Applied to add/update/start/done/cancel.
  * `task_list` is read-only and skips the guard.
  */
-function spendBudget(ctx: ToolContext): ToolResult | null {
+function spendBudget(ctx: AgentToolContext): ToolResult | null {
   if (!ctx.taskBudget) return null;
   if (ctx.taskBudget.remaining <= 0) {
     return {

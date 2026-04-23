@@ -42,10 +42,17 @@ watch(
   { deep: true },
 );
 
+let healthTimer: ReturnType<typeof setInterval> | null = null;
+
 onMounted(async () => {
   await Promise.all([loadChats(), loadModels()]);
   checkHealth();
-  setInterval(checkHealth, 15000);
+  healthTimer = setInterval(checkHealth, 15000);
+});
+
+onUnmounted(() => {
+  if (healthTimer) clearInterval(healthTimer);
+  healthTimer = null;
 });
 
 useEventListener("keydown", (e: KeyboardEvent) => {

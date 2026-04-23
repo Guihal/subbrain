@@ -2,18 +2,24 @@ import { logger } from "../lib/logger";
 import type { AppDeps } from "./deps";
 import type { NightCycleController } from "./night-cycle-controller";
 
-export function installAutonomousScheduler(deps: AppDeps): void {
+export function installAutonomousScheduler(
+  deps: AppDeps,
+): { stop: () => void } {
   const { config, agentLoop } = deps;
   const { autonomous } = config;
   if (!autonomous.enabled) {
     logger.info("autonomous", "Scheduler disabled");
-    return;
+    return { stop: () => {} };
   }
 
   const intervalMs = autonomous.intervalMinutes * 60_000;
   let running = false;
+  let stopped = false;
+  let startupTimer: ReturnType<typeof setTimeout> | null = null;
+  let intervalTimer: ReturnType<typeof setInterval> | null = null;
 
   const run = (reason: "startup" | "interval") => {
+    if (stopped) return;
     if (running) {
       logger.warn(
         "autonomous",
@@ -76,10 +82,23 @@ export function installAutonomousScheduler(deps: AppDeps): void {
     },
   );
 
-  setTimeout(() => run("startup"), autonomous.startupDelayMs);
-  setInterval(() => run("interval"), intervalMs);
+  startupTimer = setTimeout(() => run("startup"), autonomous.startupDelayMs);
+  intervalTimer = setInterval(() => run("interval"), intervalMs);
+
+  return {
+    stop: () => {
+      stopped = true;
+      if (startupTimer) clearTimeout(startupTimer);
+      if (intervalTimer) clearInterval(intervalTimer);
+      startupTimer = null;
+      intervalTimer = null;
+    },
+  };
 }
 
+// TODO(C-1 follow-up): expose {stop} to cancel the schedule() chain + 2-min
+// startup catch-up setTimeout on shutdown. See
+// docs/audits/2026-04-23-global-refactor-plan.md.
 export function installNightCycleScheduler(
   deps: AppDeps,
   controller: NightCycleController,

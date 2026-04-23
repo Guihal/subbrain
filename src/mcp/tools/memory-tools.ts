@@ -150,7 +150,10 @@ export class MemoryTools {
   }
 
   search(query: string, layer?: string, limit?: number): ToolResult {
-    const n = limit || 10;
+    // Q-10: hard cap on per-layer result count to avoid unbounded payloads
+    // when a caller forwards an LLM-chosen `limit`.
+    const MAX_LIMIT = 50;
+    const n = Math.min(MAX_LIMIT, Math.max(1, limit || 10));
     const target = layer || "all";
     const results: Record<string, FtsResult[]> = {};
 

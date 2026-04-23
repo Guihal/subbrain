@@ -4,6 +4,10 @@
  *
  * Добавление нового тула = одна registry.register(...). Забыл —
  * TypeScript ругается на неполные пути, а не ломается в рантайме.
+ *
+ * Scope split (A-9): PublicToolContext (REST/MCP) vs AgentToolContext (agent-loop).
+ * ToolDef<Schema, Scope> infers handler's ctx type from declared scope; registry
+ * exposes callAsPublic/callAsAgent — callAsPublic rejects agent-only tools at runtime.
  */
 import { t, type TSchema, type Static } from "elysia";
 import type { ToolExecutor } from "../executor";
@@ -11,57 +15,35 @@ import type { ToolResult } from "../types";
 import type { ModelRouter } from "../../lib/model-router";
 import type { ArbitrationRoom } from "../../pipeline/arbitration-room";
 import type { logger } from "../../lib/logger";
-import type {
-  DynamicToolRegistry,
-} from "../../pipeline/agent-loop/dynamic-tools";
+import type { DynamicToolRegistry } from "../../pipeline/agent-loop/dynamic-tools";
 import type { CodeToolRegistry } from "../../pipeline/agent-loop/code-tools";
+import type { AgentLoopSession } from "../../pipeline/agent-loop/types";
+// Re-export so existing imports from ./tool-registry keep working (A-8).
+export type { AgentLoopSession } from "../../pipeline/agent-loop/types";
 
 /** Тип лог-объекта, который агент-луп прокидывает в хендлеры. */
 export type ToolLog = ReturnType<typeof logger.forRequest>;
 
-/**
- * Контекст, доступный каждому хендлеру.
- *
- * Публичные вызовы (REST, MCP JSON-RPC) заполняют только `executor`.
- * Агент-луп дополнительно передаёт `router`, `room`, `dynamicTools`,
- * `codeTools`, `log`, `registry`. Хендлеры agent-only-тулов обязаны
- * проверять, что нужные поля не пустые.
- */
-export interface ToolContext {
+/** Public context — REST + MCP JSON-RPC. Minimal. */
+export interface PublicToolContext {
   executor: ToolExecutor;
-  router?: ModelRouter;
-  room?: ArbitrationRoom | null;
-  dynamicTools?: DynamicToolRegistry;
+}
+
+/** Agent context — agent-loop only. All agent fields strictly present (null where legitimately nullable). */
+export interface AgentToolContext extends PublicToolContext {
+  router: ModelRouter;
+  room: ArbitrationRoom | null; // nullable: single-specialist mode
+  dynamicTools: DynamicToolRegistry;
   persistDynamicTools?: () => void;
-  codeTools?: CodeToolRegistry | null;
-  log?: ToolLog;
-  /** Ссылка на реестр (нужна list_tools). Заполняет тот, кто вызывает. */
-  registry?: ToolRegistry;
-  /** Session quotas. Populated by agent-loop only. REST/MCP callers → undefined. */
+  codeTools: CodeToolRegistry | null; // nullable: sandbox unavailable
+  log: ToolLog;
+  registry: ToolRegistry;
   session?: AgentLoopSession;
-  /**
-   * Per-exchange task mutation budget. Populated by hippocampus only; every
-   * `task_*` mutating handler (add/update/start/done/cancel) decrements by 1
-   * and returns `rate_limit` when remaining ≤ 0. `undefined` → unlimited
-   * (normal agent-loop + REST/MCP paths bypass the guard).
-   * Attempt-based: failed upstream still consumes the slot (retry-amplified
-   * spam protection), symmetric with AgentLoopSession.
-   */
   taskBudget?: TaskMutationBudget;
 }
 
-/**
- * Session-scoped quotas for cost-heavy tools. Agent-loop creates a fresh
- * instance per run (run.ts / stream.ts); handlers check presence and
- * increment before the costly call (attempt-based semantics — a failed
- * upstream still consumes the slot, to avoid retry-amplified load).
- */
-export interface AgentLoopSession {
-  consultSpecialistsCount: number;
-  consultSpecialistsMax: number;
-  consultChaosCount: number;
-  consultChaosMax: number;
-}
+/** Backward-compat alias for existing imports. */
+export type ToolContext = PublicToolContext | AgentToolContext;
 
 /** Hippocampus per-exchange guard. Mutable shared reference — every task_* mutation decrements `remaining`. */
 export interface TaskMutationBudget {
@@ -74,22 +56,32 @@ export interface TaskMutationBudget {
  */
 export type ToolScope = "public" | "agent-only";
 
-export interface ToolDef<S extends TSchema = TSchema> {
+/** Map scope → ctx type. */
+export type ToolContextFor<Scope extends ToolScope> = Scope extends "agent-only"
+  ? AgentToolContext
+  : PublicToolContext;
+
+export interface ToolDef<
+  Schema extends TSchema = TSchema,
+  Scope extends ToolScope = ToolScope,
+> {
   name: string;
   description: string;
-  scope: ToolScope;
+  scope: Scope;
   /** TypeBox схема. Работает и как JSON Schema для OpenAI, и как валидатор. */
-  input: S;
+  input: Schema;
   handler: (
-    args: Static<S>,
-    ctx: ToolContext,
+    args: Static<Schema>,
+    ctx: ToolContextFor<Scope>,
   ) => ToolResult | Promise<ToolResult>;
 }
 
 export class ToolRegistry {
   private tools = new Map<string, ToolDef>();
 
-  register<S extends TSchema>(def: ToolDef<S>): void {
+  register<Schema extends TSchema, Scope extends ToolScope>(
+    def: ToolDef<Schema, Scope>,
+  ): void {
     if (this.tools.has(def.name)) {
       throw new Error(`Duplicate tool: ${def.name}`);
     }
@@ -143,19 +135,38 @@ export class ToolRegistry {
     }));
   }
 
-  /** Единая точка вызова: REST, MCP JSON-RPC и tool-runner. */
-  async call(
+  /** Public caller (REST, MCP JSON-RPC). Agent-only tools rejected at runtime. */
+  async callAsPublic(
     name: string,
     args: unknown,
-    ctx: ToolContext,
+    ctx: PublicToolContext,
+  ): Promise<ToolResult> {
+    const tool = this.tools.get(name);
+    if (!tool) return { success: false, error: `Unknown tool: ${name}` };
+    if (tool.scope === "agent-only") {
+      return {
+        success: false,
+        error: `Tool "${name}" requires agent context (scope=agent-only)`,
+      };
+    }
+    try {
+      return await tool.handler(args as Static<typeof tool.input>, ctx);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return { success: false, error: msg };
+    }
+  }
+
+  /** Agent caller (agent-loop). No scope check — agent context is superset of public. */
+  async callAsAgent(
+    name: string,
+    args: unknown,
+    ctx: AgentToolContext,
   ): Promise<ToolResult> {
     const tool = this.tools.get(name);
     if (!tool) return { success: false, error: `Unknown tool: ${name}` };
     try {
-      return await tool.handler(
-        args as Static<typeof tool.input>,
-        ctx,
-      );
+      return await tool.handler(args as Static<typeof tool.input>, ctx);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       return { success: false, error: msg };

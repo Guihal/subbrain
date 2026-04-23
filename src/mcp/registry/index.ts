@@ -17,6 +17,9 @@ import { registerTasksTools } from "./tasks.tools";
 export { ToolRegistry } from "./tool-registry";
 export type {
   ToolContext,
+  PublicToolContext,
+  AgentToolContext,
+  ToolContextFor,
   ToolDef,
   ToolScope,
   ToolLog,

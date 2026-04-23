@@ -30,11 +30,8 @@ export function mcpRoute(registry: ToolRegistry, executor: ToolExecutor) {
         );
       }
 
-      const result = await registry.call(name, args ?? {}, {
+      const result = await registry.callAsPublic(name, args ?? {}, {
         executor,
-        router: executor.modelRouter,
-        room: executor.room,
-        codeTools: executor.codeTools,
       });
       return result;
     });

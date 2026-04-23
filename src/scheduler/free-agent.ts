@@ -7,9 +7,11 @@
  * findings, send short TG digest at the end). Uses the same AgentLoop +
  * shared Playwright context (no isolation requested).
  *
- * Lifecycle: fire-and-forget setInterval, same as AUTONOMOUS. Re-entry guard
- * prevents overlapping runs. Not added to shutdown.ts — SIGTERM ends the
- * process, loop dies with it (same as AUTONOMOUS).
+ * Lifecycle: returns `{ stop }` so the timers are cleared on SIGTERM.
+ * `stop()` is synchronous + idempotent; it flips a `stopped` flag so a timer
+ * that fires between clear and return is suppressed. In-flight agentLoop.run
+ * is NOT aborted (no cancellation API); the process shutdown terminates it
+ * when playwright.close() and memory.close() run.
  */
 import { logger } from "../lib/logger";
 import type { AppDeps } from "../app/deps";
@@ -40,16 +42,20 @@ export const FREE_AGENT_TASK = `Ты — автономный любопытны
 
 Завершай через done с резюме: что пробовал, что нашёл, какие code_tools написал, какие идеи сохранил. Резюме уйдёт в TG-дайджест пользователю.`;
 
-export function installFreeAgentScheduler(deps: AppDeps): void {
+export function installFreeAgentScheduler(deps: AppDeps): { stop: () => void } {
   const { config, agentLoop, telegramBot } = deps;
   const cfg = config.freeAgent;
   if (!cfg.enabled) {
     log.info("scheduler disabled");
-    return;
+    return { stop: () => {} };
   }
   let running = false;
+  let stopped = false;
+  let startupTimer: ReturnType<typeof setTimeout> | null = null;
+  let intervalTimer: ReturnType<typeof setInterval> | null = null;
 
   const run = (reason: "startup" | "interval") => {
+    if (stopped) return;
     if (running) {
       log.warn(`skipped: previous run still in progress (${reason})`);
       return;
@@ -105,8 +111,18 @@ export function installFreeAgentScheduler(deps: AppDeps): void {
       startupDelayMs: cfg.startupDelayMs,
     },
   });
-  setTimeout(() => run("startup"), cfg.startupDelayMs);
-  setInterval(() => run("interval"), cfg.intervalMinutes * 60_000);
+  startupTimer = setTimeout(() => run("startup"), cfg.startupDelayMs);
+  intervalTimer = setInterval(() => run("interval"), cfg.intervalMinutes * 60_000);
+
+  return {
+    stop: () => {
+      stopped = true;
+      if (startupTimer) clearTimeout(startupTimer);
+      if (intervalTimer) clearInterval(intervalTimer);
+      startupTimer = null;
+      intervalTimer = null;
+    },
+  };
 }
 
 function formatDigest(

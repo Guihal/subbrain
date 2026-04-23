@@ -1,7 +1,14 @@
 import { logger } from "../lib/logger";
 import type { AppDeps } from "./deps";
 
-export function registerShutdown(deps: AppDeps): void {
+export interface ShutdownScheduler {
+  stop: () => void | Promise<void>;
+}
+
+export function registerShutdown(
+  deps: AppDeps,
+  schedulers: ShutdownScheduler[] = [],
+): void {
   const { memory, playwright, telegramPoller, freelanceScout } = deps;
   let shuttingDown = false;
 
@@ -9,6 +16,24 @@ export function registerShutdown(deps: AppDeps): void {
     if (shuttingDown) return;
     shuttingDown = true;
     logger.info("shutdown", `Received ${signal}, closing`);
+
+    if (schedulers.length > 0) {
+      const SCHEDULER_STOP_TIMEOUT_MS = 2000;
+      const settled = Promise.allSettled(
+        schedulers.map((s) => Promise.resolve().then(() => s.stop())),
+      );
+      const timeout = new Promise<"timeout">((resolve) =>
+        setTimeout(() => resolve("timeout"), SCHEDULER_STOP_TIMEOUT_MS),
+      );
+      const result = await Promise.race([settled, timeout]);
+      if (result === "timeout") {
+        logger.warn(
+          "shutdown",
+          `schedulers stop timed out after ${SCHEDULER_STOP_TIMEOUT_MS}ms`,
+        );
+      }
+    }
+
     if (freelanceScout) {
       try {
         await freelanceScout.stop();

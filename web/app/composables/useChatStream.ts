@@ -2,7 +2,11 @@ export function useChatStream() {
   const { updateLastAssistant, flushStreamingPaint } = useChatState();
 
   async function readSSEStream(res: Response) {
-    const reader = res.body!.getReader();
+    if (!res.body) {
+      updateLastAssistant({ content: "⚠️ Пустой ответ (no body)" });
+      return;
+    }
+    const reader = res.body.getReader();
     const decoder = new TextDecoder();
     let buffer = "";
     let content = "";
@@ -57,7 +61,11 @@ export function useChatStream() {
   }
 
   async function readAgentSSE(res: Response) {
-    const reader = res.body!.getReader();
+    if (!res.body) {
+      updateLastAssistant({ content: "⚠️ Пустой ответ (no body)" });
+      return;
+    }
+    const reader = res.body.getReader();
     const decoder = new TextDecoder();
     let buffer = "";
     let reasoning = "";

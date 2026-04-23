@@ -9,6 +9,7 @@ import type { AgentPipeline } from "../pipeline";
 import type { MemoryDB } from "../db";
 import type { Message } from "../providers/types";
 import { logger } from "../lib/logger";
+import { maskSecrets } from "../lib/redact";
 import { parseSSEChunk } from "../providers/sse-parser";
 
 export function chatRoute(
@@ -162,10 +163,9 @@ export function chatRoute(
       } catch (err) {
         if (err instanceof ProviderError) {
           // Cap body + redact api_key: provider bodies can be huge HTML pages
-          // and may echo the forwarded Authorization header.
-          const redactedBody = String(err.body)
-            .slice(0, 200)
-            .replace(/api[_-]?key/gi, "***");
+          // and may echo the forwarded Authorization header. Mask BEFORE
+          // slicing so a secret past char 200 still gets redacted.
+          const redactedBody = maskSecrets(String(err.body)).slice(0, 200);
           logger.error(
             "route",
             `Provider error: ${err.status} ${redactedBody}`,

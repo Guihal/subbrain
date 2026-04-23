@@ -38,7 +38,7 @@ export function registerAgentMetaTools(registry: ToolRegistry): void {
     name: "consult_specialists",
     description:
       "Parallel consult with specialists (coder/critic/generalist/chaos) + synthesis. Cost: 5 LLM calls. Quota: 3 per agent-loop session (env AGENT_CONSULT_SPECIALISTS_MAX). For architecture choices and irreversible decisions.",
-    scope: "public",
+    scope: "agent-only",
     input: t.Object({
       question: t.String(),
       context: t.Optional(t.String()),
@@ -108,7 +108,7 @@ export function registerAgentMetaTools(registry: ToolRegistry): void {
     name: "consult_chaos",
     description:
       "Chaos Advisor (NVIDIA Mistral, 0 Copilot RPM) — 3 unconventional action ideas. Quota: 5 per agent-loop session (env AGENT_CONSULT_CHAOS_MAX). Use at session start without explicit task or when stuck.",
-    scope: "public",
+    scope: "agent-only",
     input: t.Object({
       context: t.String({
         description:
@@ -119,9 +119,6 @@ export function registerAgentMetaTools(registry: ToolRegistry): void {
       ),
     }),
     handler: async (args, ctx) => {
-      if (!ctx.router) {
-        return { success: false, error: "Router not configured" };
-      }
       if (ctx.session) {
         if (ctx.session.consultChaosCount >= ctx.session.consultChaosMax) {
           return {
@@ -162,7 +159,7 @@ ${profile}
 
 НЕ банальщина («проверь почту»). Конкретные сайты/запросы/инструменты.`;
 
-      ctx.log?.info("agent-loop", "Consulting chaos advisor (NVIDIA Mistral)");
+      ctx.log.info("agent-loop", "Consulting chaos advisor (NVIDIA Mistral)");
 
       try {
         const response = await ctx.router.chat(
@@ -181,7 +178,7 @@ ${profile}
         return { success: true, data: content };
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        ctx.log?.error("agent-loop", `Chaos advisor failed: ${msg}`);
+        ctx.log.error("agent-loop", `Chaos advisor failed: ${msg}`);
         return { success: false, error: msg };
       }
     },
@@ -214,9 +211,6 @@ ${profile}
       ),
     }),
     handler: (args, ctx) => {
-      if (!ctx.dynamicTools) {
-        return { success: false, error: "Dynamic tools not configured" };
-      }
       const def: DynamicToolDef = {
         name: args.name,
         description: args.description,
@@ -237,7 +231,7 @@ ${profile}
       const result = ctx.dynamicTools.register(def);
       if (result.success) {
         ctx.persistDynamicTools?.();
-        ctx.log?.info(
+        ctx.log.info(
           "agent-loop",
           `Dynamic tool created: ${def.name} → ${def.model}`,
         );
@@ -254,10 +248,8 @@ ${profile}
     scope: "agent-only",
     input: t.Object({}),
     handler: (_args, ctx) => {
-      const staticTools = ctx.registry
-        ? ctx.registry.list().map((t) => t.name)
-        : [];
-      const dynamic = ctx.dynamicTools?.list() || [];
+      const staticTools = ctx.registry.list().map((t) => t.name);
+      const dynamic = ctx.dynamicTools.list();
       return {
         success: true,
         data: {

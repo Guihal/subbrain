@@ -7,7 +7,7 @@
 import type { MemoryDB } from "../../db";
 import type { RAGPipeline } from "../../rag";
 import { buildReportContext, truncateReportContext } from "../../rag";
-import type { ToolContext } from "../registry/tool-registry";
+import type { PublicToolContext } from "../registry/tool-registry";
 import type { ToolResult } from "../types";
 
 /** Максимум байт под весь результат (TG ≈ 4096 chars, ~3500 байт с запасом). */
@@ -39,7 +39,7 @@ function extractTopic(text: string): string {
 }
 
 export async function sendReport(
-  ctx: ToolContext,
+  ctx: PublicToolContext,
   text: string,
   opts: SendReportOptions = {},
 ): Promise<ToolResult> {

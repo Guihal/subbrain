@@ -13,7 +13,7 @@ import {
   ToolExecutor,
   buildRegistry,
   type ToolRegistry,
-  type ToolContext,
+  type AgentToolContext,
 } from "../src/mcp";
 import type { TaskMutationBudget } from "../src/mcp/registry";
 
@@ -39,10 +39,10 @@ function mkExecutor(memory: MemoryDB): ToolExecutor {
 
 async function addTask(
   registry: ToolRegistry,
-  ctx: ToolContext,
+  ctx: AgentToolContext,
   title: string,
 ) {
-  return registry.call("task_add", { title, scope: "global" }, ctx);
+  return registry.callAsAgent("task_add", { title, scope: "global" }, ctx);
 }
 
 describe("Hippocampus taskBudget — registry guard", () => {
@@ -59,7 +59,7 @@ describe("Hippocampus taskBudget — registry guard", () => {
 
   test("3 task_add calls succeed; 4th returns rate_limit", async () => {
     const budget: TaskMutationBudget = { remaining: 3 };
-    const ctx: ToolContext = { executor, taskBudget: budget };
+    const ctx = { executor, taskBudget: budget } as unknown as AgentToolContext;
 
     const r1 = await addTask(registry, ctx, "t1");
     const r2 = await addTask(registry, ctx, "t2");
@@ -78,7 +78,7 @@ describe("Hippocampus taskBudget — registry guard", () => {
   });
 
   test("no taskBudget in ctx → unlimited (non-hippocampus path unchanged)", async () => {
-    const ctx: ToolContext = { executor };
+    const ctx = { executor } as unknown as AgentToolContext;
     for (let i = 0; i < 10; i++) {
       const r = await addTask(registry, ctx, `x${i}`);
       expect(r.success).toBe(true);
@@ -87,14 +87,14 @@ describe("Hippocampus taskBudget — registry guard", () => {
 
   test("budget shared across task_add/update/start/done (symmetry)", async () => {
     const budget: TaskMutationBudget = { remaining: 3 };
-    const ctx: ToolContext = { executor, taskBudget: budget };
+    const ctx = { executor, taskBudget: budget } as unknown as AgentToolContext;
 
     const added = await addTask(registry, ctx, "symmetry");
     expect(added.success).toBe(true);
     const taskId = (added.data as { id: string }).id;
     expect(budget.remaining).toBe(2);
 
-    const updated = await registry.call(
+    const updated = await registry.callAsAgent(
       "task_update",
       { id: taskId, priority: 5 },
       ctx,
@@ -102,11 +102,11 @@ describe("Hippocampus taskBudget — registry guard", () => {
     expect(updated.success).toBe(true);
     expect(budget.remaining).toBe(1);
 
-    const started = await registry.call("task_start", { id: taskId }, ctx);
+    const started = await registry.callAsAgent("task_start", { id: taskId }, ctx);
     expect(started.success).toBe(true);
     expect(budget.remaining).toBe(0);
 
-    const doneAttempt = await registry.call(
+    const doneAttempt = await registry.callAsAgent(
       "task_done",
       { id: taskId, summary: "fin" },
       ctx,
@@ -117,12 +117,12 @@ describe("Hippocampus taskBudget — registry guard", () => {
 
   test("task_cancel also consumes the same budget", async () => {
     const budget: TaskMutationBudget = { remaining: 1 };
-    const ctx: ToolContext = { executor, taskBudget: budget };
-    const added = await addTask(registry, { executor }, "cancel-me");
+    const ctx = { executor, taskBudget: budget } as unknown as AgentToolContext;
+    const added = await addTask(registry, { executor } as unknown as AgentToolContext, "cancel-me");
     expect(added.success).toBe(true);
     const taskId = (added.data as { id: string }).id;
 
-    const cancelled = await registry.call(
+    const cancelled = await registry.callAsAgent(
       "task_cancel",
       { id: taskId, reason: "nope" },
       ctx,
@@ -130,7 +130,7 @@ describe("Hippocampus taskBudget — registry guard", () => {
     expect(cancelled.success).toBe(true);
     expect(budget.remaining).toBe(0);
 
-    const extra = await registry.call(
+    const extra = await registry.callAsAgent(
       "task_cancel",
       { id: taskId, reason: "again" },
       ctx,
@@ -141,9 +141,9 @@ describe("Hippocampus taskBudget — registry guard", () => {
 
   test("task_list is free — does NOT consume budget even at remaining=0", async () => {
     const budget: TaskMutationBudget = { remaining: 0 };
-    const ctx: ToolContext = { executor, taskBudget: budget };
+    const ctx = { executor, taskBudget: budget } as unknown as AgentToolContext;
 
-    const listed = await registry.call("task_list", { scope: "global" }, ctx);
+    const listed = await registry.callAsAgent("task_list", { scope: "global" }, ctx);
     expect(listed.success).toBe(true);
     expect(budget.remaining).toBe(0);
   });
@@ -151,8 +151,8 @@ describe("Hippocampus taskBudget — registry guard", () => {
   test("fresh TaskMutationBudget object is independent (no global state leak)", async () => {
     const a: TaskMutationBudget = { remaining: 3 };
     const b: TaskMutationBudget = { remaining: 3 };
-    const ctxA: ToolContext = { executor, taskBudget: a };
-    const ctxB: ToolContext = { executor, taskBudget: b };
+    const ctxA = { executor, taskBudget: a } as unknown as AgentToolContext;
+    const ctxB = { executor, taskBudget: b } as unknown as AgentToolContext;
 
     await addTask(registry, ctxA, "a1");
     await addTask(registry, ctxA, "a2");

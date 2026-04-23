@@ -100,7 +100,7 @@ export async function executeAgentTool(
     const result = await withToolTimeout(name, async () => {
       // 1) Статический реестр — покрывает все public + agent-only тулы.
       if (deps.registry.has(name)) {
-        const r = await deps.registry.call(name, args, {
+        const r = await deps.registry.callAsAgent(name, args, {
           executor: deps.tools,
           router: deps.router,
           room: deps.room,

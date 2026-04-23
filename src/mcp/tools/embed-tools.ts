@@ -5,6 +5,11 @@ import type { ModelRouter } from "../../lib/model-router";
 import type { MemoryDB } from "../../db";
 import type { RAGPipeline } from "../../rag";
 import type { ToolResult } from "../types";
+import {
+  EMBED_MODEL,
+  EMBED_CODE_MODEL,
+  RERANK_MODEL,
+} from "../../lib/model-map";
 
 export class EmbedTools {
   constructor(
@@ -52,10 +57,7 @@ export class EmbedTools {
     text: string,
     type: "text" | "code" = "text",
   ): Promise<ToolResult> {
-    const modelId =
-      type === "code"
-        ? "nvidia/nv-embedcode-7b-v1"
-        : "nvidia/llama-3.2-nemoretriever-300m-embed-v1";
+    const modelId = type === "code" ? EMBED_CODE_MODEL : EMBED_MODEL;
 
     const result = await this.router.scheduleRaw("normal", () =>
       this.router.raw.embed({
@@ -82,7 +84,7 @@ export class EmbedTools {
   ): Promise<ToolResult> {
     const embedResult = await this.router.scheduleRaw("normal", () =>
       this.router.raw.embed({
-        model: "nvidia/llama-3.2-nemoretriever-300m-embed-v1",
+        model: EMBED_MODEL,
         input: [query],
         input_type: "query",
       }),
@@ -101,7 +103,7 @@ export class EmbedTools {
   ): Promise<ToolResult> {
     const result = await this.router.scheduleRaw("normal", () =>
       this.router.raw.rerank({
-        model: "nvidia/rerank-qa-mistral-4b",
+        model: RERANK_MODEL,
         query,
         passages: passages.map((text) => ({ text })),
         top_n: topN || passages.length,

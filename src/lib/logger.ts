@@ -1,4 +1,5 @@
 import type { MemoryDB } from "../db";
+import { maskSecrets } from "./redact";
 
 // ─── Types ───────────────────────────────────────────────
 
@@ -136,7 +137,9 @@ export class Logger {
         parts.push(`${k}=${val.length > 500 ? val.slice(0, 500) + "…" : val}`);
       }
     }
-    return parts.join(" | ");
+    // Write-path secret redaction: strip any api_key / Bearer / sk- / ghp_
+    // occurrences before the line lands in layer4_log.
+    return maskSecrets(parts.join(" | "));
   }
 }
 

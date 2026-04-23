@@ -5,6 +5,9 @@ export { mcpProtocolRoute } from "./mcp-protocol";
 export { buildRegistry, ToolRegistry } from "./registry";
 export type {
   ToolContext,
+  PublicToolContext,
+  AgentToolContext,
+  ToolContextFor,
   ToolDef,
   ToolScope,
   ToolLog,

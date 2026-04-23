@@ -20,13 +20,13 @@ app.listen({ port: deps.config.port, idleTimeout: 255 });
 
 console.log(`🧠 Subbrain proxy running on http://localhost:${deps.config.port}`);
 
-installAutonomousScheduler(deps);
+const autonomous = installAutonomousScheduler(deps);
 installNightCycleScheduler(deps, nightCycleController);
 installTelegramWebhook(deps);
 installTelegramPoller(deps);
 installFreelanceScoutScheduler(deps);
-installFreeAgentScheduler(deps);
-registerShutdown(deps);
+const freeAgent = installFreeAgentScheduler(deps);
+registerShutdown(deps, [autonomous, freeAgent]);
 
 // Re-exported so other modules (tests, tooling) can reach the configured bot.
 export const telegramBot = deps.telegramBot;

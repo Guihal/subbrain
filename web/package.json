@@ -19,6 +19,7 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "isomorphic-dompurify": "^3.10.0",
     "nuxt": "^4.4.2"
   }
 }

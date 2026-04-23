@@ -1,17 +1,6 @@
 import { Elysia, t } from "elysia";
 import type { MemoryDB } from "../db";
-
-// Mask JSON-like and key=value occurrences of secret fields.
-// Handles both `"api_key":"secret"` (from JSON.stringify in logger meta)
-// and `api_key=secret` / `authorization=Bearer foo` (from formatForDb).
-const SECRET_KEYS = "(api[_-]?key|authorization|token|bearer)";
-const SECRET_JSON_RE = new RegExp(`"${SECRET_KEYS}"\\s*:\\s*"[^"]*"`, "gi");
-const SECRET_KV_RE = new RegExp(`\\b${SECRET_KEYS}=[^\\s|]+`, "gi");
-function maskSecrets(s: string): string {
-  return s
-    .replace(SECRET_JSON_RE, (_m, k) => `"${k}":"***"`)
-    .replace(SECRET_KV_RE, (_m, k) => `${k}=***`);
-}
+import { maskSecrets } from "../lib/redact";
 
 /**
  * Logs viewing endpoint for debugging and monitoring.

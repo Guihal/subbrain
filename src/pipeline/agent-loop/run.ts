@@ -1,22 +1,20 @@
 /**
- * runLoop — non-stream agent loop. Owns the outer step iteration, system
- * prompt build, chat row persistence, and fire-and-forget post-processing.
+ * runLoop — non-stream agent loop. Shares session init + finalization with
+ * `runStreamLoop` via `initAgentLoopContext` / `finalizeAgentRun`; owns only
+ * the step-collecting iteration and result shape.
  */
-import { randomUUID } from "crypto";
-import type { Message } from "../../providers/types";
-import { logger } from "../../lib/logger";
-import {
-  MAX_STEPS,
-  AGENT_MODEL,
-  type AgentLoopRequest,
-  type AgentLoopStep,
-  type AgentLoopResult,
+import type {
+  AgentLoopRequest,
+  AgentLoopStep,
+  AgentLoopResult,
 } from "./types";
-import { buildAgentSystemPrompt } from "./system-prompt";
 import { executeStep } from "./step";
-import { persistToChat } from "./persist";
-import { firePost, stepDeps, type AgentLoopDeps } from "./shared";
-import type { AgentLoopSession } from "../../mcp/registry/tool-registry";
+import {
+  stepDeps,
+  initAgentLoopContext,
+  finalizeAgentRun,
+  type AgentLoopDeps,
+} from "./shared";
 
 export { runStreamLoop } from "./stream";
 export type { AgentLoopDeps } from "./shared";
@@ -25,44 +23,14 @@ export async function runLoop(
   deps: AgentLoopDeps,
   req: AgentLoopRequest,
 ): Promise<AgentLoopResult> {
-  const requestId = randomUUID();
-  const sessionId = req.sessionId || randomUUID();
-  const model = req.model || AGENT_MODEL;
-  const maxSteps = Math.min(req.maxSteps || MAX_STEPS, MAX_STEPS);
-  const priority = req.priority || "critical";
-  const log = logger.forRequest(requestId, sessionId);
-
-  const session: AgentLoopSession = {
-    consultSpecialistsCount: 0,
-    consultSpecialistsMax: Math.max(
-      1,
-      Number(process.env.AGENT_CONSULT_SPECIALISTS_MAX) || 3,
-    ),
-    consultChaosCount: 0,
-    consultChaosMax: Math.max(
-      1,
-      Number(process.env.AGENT_CONSULT_CHAOS_MAX) || 5,
-    ),
-  };
+  const ctx = await initAgentLoopContext(deps, req);
+  const { requestId, sessionId, model, maxSteps, priority, log, session, messages } = ctx;
 
   log.info(
     "agent-loop",
     `▶ Starting autonomous loop: "${req.task.slice(0, 100)}"`,
     { model, meta: { maxSteps, priority } },
   );
-
-  const systemPrompt = await buildAgentSystemPrompt(
-    deps.memory,
-    deps.rag,
-    req.task,
-    model,
-    deps.router,
-    req.schedule,
-  );
-  const messages: Message[] = [
-    { role: "system", content: systemPrompt },
-    { role: "user", content: req.task },
-  ];
 
   const steps: AgentLoopStep[] = [];
   let finalAnswer = "";
@@ -132,25 +100,12 @@ export async function runLoop(
     { model, meta: { steps: steps.length, reason: stoppedReason } },
   );
 
-  deps.memory.appendLog(requestId, sessionId, model, "user", req.task);
-  deps.memory.appendLog(
-    requestId,
-    sessionId,
-    model,
-    "assistant",
-    `[Autonomous loop: ${steps.length} steps, reason: ${stoppedReason}]\n\n${finalAnswer}`,
-  );
-  persistToChat(deps.memory, sessionId, requestId, model, req.task, finalAnswer);
-  firePost(
+  finalizeAgentRun(
     deps,
-    {
-      requestId,
-      sessionId,
-      model,
-      userMessage: req.task,
-      assistantMessage: finalAnswer,
-    },
-    log,
+    ctx,
+    req,
+    finalAnswer,
+    `[Autonomous loop: ${steps.length} steps, reason: ${stoppedReason}]\n\n`,
   );
 
   return {

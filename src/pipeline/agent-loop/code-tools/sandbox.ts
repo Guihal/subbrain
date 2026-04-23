@@ -25,27 +25,38 @@ export async function executeSandboxed(
     throw new Error("sandbox_unavailable: Worker API not present");
   }
 
+  // Tool code is written as TypeScript ("export default async (input: string) => …").
+  // new Function() parses raw JS, so strip TS syntax via Bun.Transpiler first.
+  let jsCode: string;
+  try {
+    const transpiler = new Bun.Transpiler({ loader: "ts", target: "browser" });
+    jsCode = transpiler.transformSync(code);
+  } catch (err) {
+    return {
+      success: false,
+      error: `Transpile error: ${err instanceof Error ? err.message : String(err)}`,
+      durationMs: Date.now() - start,
+    };
+  }
+
   // Wrap user code in a worker script that:
   // 1. Blocks dangerous globals
   // 2. Defines the tool function
   // 3. Runs it with the input
   // 4. Posts the result back
   const workerScript = `
-// Block dangerous APIs
-const _blocked = ["Bun", "process", "require"];
-for (const name of _blocked) {
-  Object.defineProperty(globalThis, name, {
-    get() { throw new Error("Access denied: " + name); },
-    configurable: false
-  });
-}
+// Globals Bun/process/require are non-configurable in a Bun Worker, so we cannot
+// redefine them on globalThis. Instead we shadow them lexically inside the
+// user-code scope (see __factory body below) via \`let Bun, process, require;\`.
 
 // User code (as async function body)
 const __userModule = {};
 (async () => {
   // Wrap in a function factory to capture export default
   const __factory = new Function("exports", "fetch", "URL", "URLSearchParams", "TextEncoder", "TextDecoder", "JSON", "Date", "Math", "console", \`
-    ${code.replace(/export\s+default/g, "exports.default =")}
+    "use strict";
+    let Bun, process, require, globalThis, self, global;
+    ${jsCode.replace(/export\s+default/g, "exports.default =")}
   \`);
   __factory(__userModule, fetch, URL, URLSearchParams, TextEncoder, TextDecoder, JSON, Date, Math, console);
 })().then(async () => {

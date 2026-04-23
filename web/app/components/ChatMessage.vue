@@ -64,8 +64,8 @@ const hasReasoning = computed(() => !!props.message.reasoning?.trim());
           💭 Размышления
         </button>
         <div
+          v-show="!thinkingCollapsed"
           class="thinking-block pl-3 text-xs text-(--ui-text-muted) leading-relaxed"
-          :class="{ collapsed: thinkingCollapsed }"
           v-html="renderedReasoning"
         />
       </div>

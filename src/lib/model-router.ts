@@ -5,56 +5,11 @@ import {
   getFallback,
   type Priority,
   type ProviderName,
-  type ModelTarget,
 } from "./model-map";
 import { RateLimiter } from "./rate-limiter";
-import { UpstreamExhaustedError } from "./errors";
-
-/** Hard timeout for any single provider call (ms) */
-const REQUEST_TIMEOUT = 60_000;
-
-/** Cap on fallback model switches per chat() call. */
-const MAX_FALLBACK_ATTEMPTS = 1;
-
-/** RPM limits per provider */
-const PROVIDER_RPM: Record<ProviderName, number> = {
-  nvidia: 40,
-  openrouter: 200,
-  copilot: 10,
-  // Token Plan quota = 1500 req / 5h ≈ 5 RPM sustained; cap at 20 to absorb bursts.
-  minimax: 20,
-};
-
-function withTimeout<T>(
-  promise: Promise<T>,
-  ms: number,
-  label: string,
-): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    const timer = setTimeout(
-      () =>
-        reject(
-          new ProviderError(408, `Request timeout after ${ms}ms: ${label}`),
-        ),
-      ms,
-    );
-    promise.then(
-      (v) => {
-        clearTimeout(timer);
-        resolve(v);
-      },
-      (e) => {
-        clearTimeout(timer);
-        reject(e);
-      },
-    );
-  });
-}
-
-interface Backend {
-  provider: LLMProvider;
-  limiter: RateLimiter;
-}
+import { PROVIDER_RPM, type Backend } from "./model-router/constants";
+import { runChatDispatch } from "./model-router/dispatch";
+import { createFallbackStream } from "./model-router/stream";
 
 /**
  * ModelRouter wraps multiple LLMProviders with:
@@ -112,13 +67,17 @@ export class ModelRouter {
     return this.backends.nvidia.provider;
   }
 
-  private getBackend(provider: ProviderName): Backend {
+  private getBackend = (provider: ProviderName): Backend => {
     return this.backends[provider] ?? this.backends.nvidia;
-  }
+  };
 
-  /**
-   * Non-streaming chat with rate limiting + fallback.
-   */
+  private handleProviderError = (err: ProviderError, provider: ProviderName): void => {
+    if (err.status === 429) {
+      this.getBackend(provider).limiter.backoff429();
+    }
+  };
+
+  /** Non-streaming chat with rate limiting + fallback. */
   async chat(
     virtualModel: string,
     params: Omit<ChatParams, "model">,
@@ -127,101 +86,15 @@ export class ModelRouter {
     const primary = resolveModel(virtualModel);
     const fallback = getFallback(virtualModel);
     const backend = this.getBackend(primary.provider);
-
-    const attempts: { model: string; status: number; body: string }[] = [];
-
-    return backend.limiter.schedule(priority, async () => {
-      // Primary (+ 5xx retry-same-once)
-      try {
-        return await withTimeout(
-          backend.provider.chat({ ...params, model: primary.model }),
-          REQUEST_TIMEOUT,
-          primary.model,
-        );
-      } catch (err) {
-        if (!(err instanceof ProviderError)) throw err;
-        this.handleProviderError(err, primary.provider);
-        attempts.push({
-          model: primary.model,
-          status: err.status,
-          body: err.message,
-        });
-        // Auth failures short-circuit — no fallback, no wrap.
-        if (err.status === 401 || err.status === 403) throw err;
-        if (err.status >= 500) {
-          try {
-            return await withTimeout(
-              backend.provider.chat({ ...params, model: primary.model }),
-              REQUEST_TIMEOUT,
-              `${primary.model} (retry)`,
-            );
-          } catch (retryErr) {
-            if (retryErr instanceof ProviderError) {
-              attempts.push({
-                model: primary.model,
-                status: retryErr.status,
-                body: retryErr.message,
-              });
-            } else {
-              throw retryErr;
-            }
-          }
-        }
-      }
-
-      // Fallback (capped at MAX_FALLBACK_ATTEMPTS)
-      let fallbackUsed = 0;
-      if (fallback && fallbackUsed < MAX_FALLBACK_ATTEMPTS) {
-        fallbackUsed++;
-        try {
-          return await this.callFallback(fallback, params, priority);
-        } catch (fbErr) {
-          if (fbErr instanceof ProviderError) {
-            attempts.push({
-              model: fallback.model,
-              status: fbErr.status,
-              body: fbErr.message,
-            });
-          } else {
-            throw fbErr;
-          }
-        }
-      }
-
-      const last = attempts[attempts.length - 1];
-      throw new UpstreamExhaustedError({
-        lastStatus: last?.status,
-        lastBody: last?.body,
-        attempts,
-      });
-    });
+    return backend.limiter.schedule(priority, () =>
+      runChatDispatch(backend, primary, fallback, params, priority, {
+        getBackend: this.getBackend,
+        handleProviderError: this.handleProviderError,
+      }),
+    );
   }
 
-  /**
-   * Call fallback — may be on a different provider with its own rate limiter.
-   */
-  private async callFallback(
-    target: ModelTarget,
-    params: Omit<ChatParams, "model">,
-    priority: Priority,
-  ): Promise<ChatResponse> {
-    const fb = this.getBackend(target.provider);
-    // If same provider, we're already inside its limiter — call directly
-    // If different provider, schedule through its limiter
-    const call = () =>
-      withTimeout(
-        fb.provider.chat({ ...params, model: target.model }),
-        REQUEST_TIMEOUT,
-        target.model,
-      );
-
-    // Always use the fallback backend's limiter
-    return fb.limiter.schedule(priority, call);
-  }
-
-  /**
-   * Streaming chat with rate limiting + fallback.
-   */
+  /** Streaming chat with rate limiting + fallback. */
   chatStream(
     virtualModel: string,
     params: Omit<ChatParams, "model">,
@@ -230,97 +103,19 @@ export class ModelRouter {
     const primary = resolveModel(virtualModel);
     const fallback = getFallback(virtualModel);
     const backend = this.getBackend(primary.provider);
-
-    return backend.limiter.schedule(priority, async () => {
-      return this.createFallbackStream(primary, fallback, params);
-    });
+    return backend.limiter.schedule(priority, async () =>
+      createFallbackStream(
+        this.backends,
+        primary,
+        fallback,
+        params,
+        this.handleProviderError,
+      ),
+    );
   }
 
-  /**
-   * Direct rate-limited call — for embed, rerank, etc.
-   * Always uses NVIDIA provider.
-   */
+  /** Direct rate-limited call — for embed, rerank, etc. Always uses NVIDIA. */
   scheduleRaw<T>(priority: Priority, fn: () => Promise<T>): Promise<T> {
     return this.backends.nvidia.limiter.schedule(priority, fn);
-  }
-
-  // ─── Internal ──────────────────────────────────────────────
-
-  private handleProviderError(
-    err: ProviderError,
-    provider: ProviderName,
-  ): void {
-    if (err.status === 429) {
-      this.getBackend(provider).limiter.backoff429();
-    }
-  }
-
-  private createFallbackStream(
-    primary: ModelTarget,
-    fallback: ModelTarget | null,
-    params: Omit<ChatParams, "model">,
-  ): ReadableStream<Uint8Array> {
-    const backends = this.backends;
-    const handleError = this.handleProviderError.bind(this);
-
-    return new ReadableStream({
-      async start(controller) {
-        const encoder = new TextEncoder();
-
-        const tryModel = async (target: ModelTarget): Promise<boolean> => {
-          try {
-            const backend = backends[target.provider] ?? backends.nvidia;
-            const stream = backend.provider.chatStream({
-              ...params,
-              model: target.model,
-            });
-            const reader = stream.getReader();
-            while (true) {
-              const { done, value } = await reader.read();
-              if (done) break;
-              controller.enqueue(value);
-            }
-            return true;
-          } catch (err) {
-            if (err instanceof ProviderError) {
-              handleError(err, target.provider);
-            }
-            return false;
-          }
-        };
-
-        let ok = false;
-        try {
-          ok = await tryModel(primary);
-          if (!ok && fallback) {
-            ok = await tryModel(fallback);
-          }
-
-          if (!ok) {
-            controller.enqueue(
-              encoder.encode(
-                `data: ${JSON.stringify({ error: { message: "All models failed" } })}\n\n`,
-              ),
-            );
-          }
-        } catch (err) {
-          // Cap msg to 500 chars — provider error bodies can be multi-MB HTML
-          // pages and would otherwise be re-encoded into the client SSE stream.
-          const rawMsg = err instanceof Error ? err.message : String(err);
-          const msg = rawMsg.slice(0, 500);
-          controller.enqueue(
-            encoder.encode(
-              `data: ${JSON.stringify({ error: { message: msg, type: "router_error" } })}\n\n`,
-            ),
-          );
-        }
-
-        // Only emit DONE if upstream didn't (error cases). Successful streams already include [DONE].
-        if (!ok) {
-          controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-        }
-        controller.close();
-      },
-    });
   }
 }

@@ -36,7 +36,11 @@ export async function paginate<T>(
   loader: PaginateLoader<T>,
   opts: PaginateOpts,
 ): Promise<PaginatedResponse<T>> {
-  const rawQ = typeof opts.q === "string" ? opts.q.trim() : "";
+  // Q-12: cap query length at 500 chars — sanitizeFtsQuery already limits
+  // term count but the raw string is still allocated downstream.
+  const MAX_Q_LEN = 500;
+  const rawQ =
+    typeof opts.q === "string" ? opts.q.trim().slice(0, MAX_Q_LEN) : "";
   const q = rawQ.length > 0 ? rawQ : undefined;
 
   // Prefer explicit page/page_size; fall back to limit/offset if given.

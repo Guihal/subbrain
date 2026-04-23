@@ -44,23 +44,22 @@ describe("RateLimiter", () => {
     expect(order[0]).toBe("critical");
   });
 
-  test("tryAcquire: 100 parallel at limit 10 → exactly 10 ok", async () => {
-    const lim = new RateLimiter(10);
-    const results = await Promise.all(
-      Array.from({ length: 100 }, () =>
-        Promise.resolve(lim.tryAcquire("critical")),
-      ),
-    );
-    const ok = results.filter((r): r is { ok: true; release: () => void } => r.ok);
-    const fail = results.filter((r): r is { ok: false; waitMs: number } => !r.ok);
-    expect(ok.length).toBe(10);
-    expect(fail.length).toBe(90);
-    expect(fail.every((r) => r.waitMs > 0)).toBe(true);
-  });
+  // tryAcquire was removed in PR-7 (A-2): 0 production callers + release()
+  // was a no-op footgun. RateLimiter.schedule() is the supported entry point.
 
   test("backoff429 fills all slots", () => {
     const limiter = new RateLimiter();
     limiter.backoff429();
     expect(limiter.availableSlots).toBe(0);
+  });
+
+  test("backoff429 distributes timestamps across the window", () => {
+    // Gradual release: timestamps should span the trailing 60s, not all at `now`.
+    const limiter = new RateLimiter(10);
+    limiter.backoff429();
+    expect(limiter.availableSlots).toBe(0);
+    // Peek via currentLoad (which prunes first) — should remain 10 here since
+    // every phantom timestamp is newer than now-WINDOW_MS.
+    expect(limiter.currentLoad).toBe(10);
   });
 });

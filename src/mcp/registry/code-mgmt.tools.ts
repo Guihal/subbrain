@@ -10,7 +10,7 @@ export function registerCodeMgmtTools(registry: ToolRegistry): void {
     name: "create_code_tool",
     description:
       "Create a new executable code tool. Code must be a TS module exporting a default async function: `export default async (input: string) => { return 'result'; }`. Has fetch(). Max 10KB.",
-    scope: "public",
+    scope: "agent-only",
     input: t.Object({
       name: t.String({
         description: "Tool name (snake_case). Callable as code_<name>.",
@@ -27,7 +27,7 @@ export function registerCodeMgmtTools(registry: ToolRegistry): void {
       }
       try {
         const tool = ctx.codeTools.create(args.name, args.description, args.code);
-        ctx.log?.info("agent-loop", `Code tool created: ${tool.name}`);
+        ctx.log.info("agent-loop", `Code tool created: ${tool.name}`);
         return { success: true, data: { name: tool.name, id: tool.id } };
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
@@ -39,7 +39,7 @@ export function registerCodeMgmtTools(registry: ToolRegistry): void {
   registry.register({
     name: "edit_code_tool",
     description: "Edit an existing code tool's code or description.",
-    scope: "public",
+    scope: "agent-only",
     input: t.Object({
       name: t.String(),
       code: t.Optional(t.String()),
@@ -54,7 +54,7 @@ export function registerCodeMgmtTools(registry: ToolRegistry): void {
           code: args.code,
           description: args.description,
         });
-        ctx.log?.info("agent-loop", `Code tool updated: ${tool.name}`);
+        ctx.log.info("agent-loop", `Code tool updated: ${tool.name}`);
         return { success: true, data: { name: tool.name } };
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
@@ -66,14 +66,14 @@ export function registerCodeMgmtTools(registry: ToolRegistry): void {
   registry.register({
     name: "delete_code_tool",
     description: "Delete a code tool by name.",
-    scope: "public",
+    scope: "agent-only",
     input: t.Object({ name: t.String() }),
     handler: (args, ctx) => {
       if (!ctx.codeTools) {
         return { success: false, error: "Code tools not available" };
       }
       const deleted = ctx.codeTools.delete(args.name);
-      ctx.log?.info(
+      ctx.log.info(
         "agent-loop",
         `Code tool deleted: ${args.name} (${deleted})`,
       );
@@ -84,7 +84,7 @@ export function registerCodeMgmtTools(registry: ToolRegistry): void {
   registry.register({
     name: "test_code_tool",
     description: "Test a code tool with sample input. Returns output or error.",
-    scope: "public",
+    scope: "agent-only",
     input: t.Object({
       name: t.String(),
       input: t.String(),
@@ -96,7 +96,7 @@ export function registerCodeMgmtTools(registry: ToolRegistry): void {
       const tool = ctx.codeTools.getByName(args.name);
       if (!tool) return { success: false, error: `Tool not found: ${args.name}` };
 
-      ctx.log?.info("agent-loop", `Testing code tool: ${tool.name}`);
+      ctx.log.info("agent-loop", `Testing code tool: ${tool.name}`);
       const result = await executeSandboxed(tool.code, args.input);
       ctx.codeTools.recordRun(tool.name, result.success, result.error);
       return result.success
@@ -109,7 +109,7 @@ export function registerCodeMgmtTools(registry: ToolRegistry): void {
     name: "list_code_tools",
     description:
       "List all code tools with their status, run count, and error count.",
-    scope: "public",
+    scope: "agent-only",
     input: t.Object({
       include_disabled: t.Optional(t.Boolean()),
     }),

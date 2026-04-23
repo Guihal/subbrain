@@ -67,29 +67,24 @@ export class RateLimiter {
   }
 
   /**
-   * Atomic acquire: either records a slot immediately or returns `waitMs`
-   * telling caller how long until one frees up. Sync on purpose so the
-   * check+record pair cannot interleave with other callers.
+   * Record a 429 from upstream — back off by adding phantom timestamps.
+   *
+   * Timestamps are distributed evenly across the trailing sliding window so
+   * that slots free gradually (one every `WINDOW_MS / slotsToFill` ms)
+   * instead of all at once — this prevents a thundering-herd when the
+   * window rolls.
    */
-  tryAcquire(
-    priority: Priority,
-  ): { ok: true; release: () => void } | { ok: false; waitMs: number } {
-    this.prune();
-    if (!this.canRun(priority)) {
-      return { ok: false, waitMs: this.msUntilSlot() };
-    }
-    this.record();
-    return { ok: true, release: () => {} };
-  }
-
-  /** Record a 429 from upstream — back off by adding phantom timestamps */
   backoff429(): void {
     const now = Date.now();
-    // Fill remaining window to force waiting
     const slotsToFill = this.maxRpm - this.currentLoad;
+    if (slotsToFill <= 0) return;
+    const step = WINDOW_MS / slotsToFill;
     for (let i = 0; i < slotsToFill; i++) {
-      this.timestamps.push(now);
+      // Skew oldest phantoms first so they expire first; newest ones hold
+      // the window until the very end.
+      this.timestamps.push(now - WINDOW_MS + step * (i + 1));
     }
+    this.timestamps.sort((a, b) => a - b);
   }
 
   // ─── Internal ──────────────────────────────────────────────
