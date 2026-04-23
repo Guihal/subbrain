@@ -5,8 +5,9 @@
 # Run this ONCE on the VPS as root:
 #   bash scripts/install-cron.sh
 #
-# It appends a daily 03:00 (server local time) entry to root's crontab that
+# It appends a daily 00:00 UTC (= 03:00 MSK) entry to root's crontab that
 # triggers the night cycle via the Bun container's published port.
+# Keep the hour in sync with NIGHT_CYCLE_HOUR_UTC in .env.
 #
 # /night-cycle is registered before authMiddleware in src/index.ts, so it does
 # not require a Bearer token. The container only publishes :4000 on
@@ -14,7 +15,7 @@
 
 set -euo pipefail
 
-CRON_LINE='0 3 * * * curl -fsS -X POST http://127.0.0.1:4000/night-cycle -m 600 >> /var/log/subbrain-night-cycle.log 2>&1'
+CRON_LINE='0 0 * * * curl -fsS -X POST http://127.0.0.1:4000/night-cycle -m 600 >> /var/log/subbrain-night-cycle.log 2>&1'
 MARKER='# subbrain night-cycle'
 
 current="$(crontab -l 2>/dev/null || true)"
