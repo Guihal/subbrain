@@ -9,7 +9,7 @@ import { autonomousRoute } from "../routes/autonomous";
 import { chatsRoute } from "../routes/chats";
 import { memoryRoute } from "../routes/memory";
 import { freelanceRoute } from "../routes/freelance";
-import { telegramRoute } from "../routes/telegram";
+import { telegramPublicRoute, telegramAdminRoute } from "../routes/telegram";
 import { tasksRoute } from "../routes/tasks";
 import { mcpRoute, mcpProtocolRoute } from "../mcp";
 import { logger } from "../lib/logger";
@@ -83,13 +83,25 @@ export function createApp(deps: AppDeps) {
     .decorate("tools", tools)
     .decorate("metrics", metrics)
     .decorate("nightCycle", nightCycle)
-    .use(telegramRoute(telegramBot))
+    // ── Public surface (BEFORE authMiddleware) ─────────────────────────────
+    //   /health, /metrics — health/observability, infrastructure-only.
+    //   telegramPublicRoute — /telegram/webhook, authed via grammy secret
+    //     header; listed in `auth.ts` bypass to allow that single path.
+    //   mcpProtocolRoute — carries its own bearer check inside the handler.
     .get("/health", ({ router }) => ({
       status: "ok",
       timestamp: Date.now(),
       rpm: router.stats,
     }))
     .get("/metrics", ({ metrics }) => metrics.snapshot())
+    .use(telegramPublicRoute(telegramBot))
+    .use(mcpProtocolRoute(registry, tools, config.authToken))
+    // ── Protected surface (AFTER authMiddleware) ──────────────────────────
+    //   Everything below requires Bearer auth. `/api/token`, `/night-cycle`
+    //   and telegramAdminRoute (set/remove webhook) were previously mounted
+    //   before the middleware — AUTH-16. Do not move them back.
+    .use(authMiddleware(config.authToken))
+    .get("/api/token", () => ({ token: config.authToken }))
     .post("/night-cycle", ({ set }) => {
       const r = nightCycleController.trigger("http");
       if (!r.started) set.status = 409;
@@ -100,9 +112,7 @@ export function createApp(deps: AppDeps) {
       startedAt: nightCycleController.startedAt,
       lastResult: nightCycleController.lastResult,
     }))
-    .get("/api/token", () => ({ token: config.authToken }))
-    .use(mcpProtocolRoute(registry, tools, config.authToken))
-    .use(authMiddleware(config.authToken))
+    .use(telegramAdminRoute(telegramBot))
     .use(chatRoute(router, pipeline, memory))
     .use(modelsRoute(router))
     .use(embeddingsRoute(router))

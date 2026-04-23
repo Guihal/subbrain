@@ -32,7 +32,7 @@
 
 | # | Задача | Оценка | Зависимости |
 |---|---|---|---|
-| [17](17-auth-hardening.md) | AUTH-16: закрыть auth на `/api/token`, `/night-cycle*`, `/telegram/set-webhook`, `/telegram/remove-webhook`; сузить `/telegram/*` bypass | 2 часа | — |
+| ~~[17](17-auth-hardening.md)~~ | ~~AUTH-16: закрыть auth на `/api/token`, `/night-cycle*`, `/telegram/set-webhook`, `/telegram/remove-webhook`; сузить `/telegram/*` bypass~~ ✅ | 2 часа | — |
 | ~~[18](18-tg-honest-errors.md)~~ | ~~TG-1: `notifyOrThrow()` + честный `tgSendMessage`~~ ✅ | 2 часа | — |
 | [19](19-log-roles-migration.md) | OBS-1: migration 6 CHECK + fix logger swallow | 2 часа | — |
 | [20](20-abort-propagation.md) | CANCEL-1: AbortSignal в tool-runner + arbitration | 4–6 часов | — |

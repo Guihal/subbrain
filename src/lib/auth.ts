@@ -22,10 +22,13 @@ export function authMiddleware(token: string) {
       if (path === "/health") return;
       if (path === "/" || path === "/index.html" || path.startsWith("/public/"))
         return;
-      // Token endpoint is protected by Caddy basic auth, not Bearer
-      if (path === "/api/token") return;
-      // Telegram webhook is validated by secret_token header (grammy handles it)
-      if (path.startsWith("/telegram/")) return;
+      // Telegram webhook is validated by the `x-telegram-bot-api-secret-token`
+      // header inside the route handler — admin endpoints (set/remove webhook)
+      // must remain behind Bearer auth, so narrow the bypass to the single
+      // webhook path only. `/api/token` used to be bypassed (relying on Caddy
+      // basic-auth) but AUTH-16 found it exposed the Bearer secret to anyone
+      // with port access, so it now requires Bearer like every other route.
+      if (path === "/telegram/webhook") return;
 
       const auth = request.headers.get("authorization");
       if (!auth) {

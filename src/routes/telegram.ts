@@ -3,15 +3,17 @@ import type { TelegramBot } from "../telegram";
 import { logger } from "../lib/logger";
 
 /**
- * Telegram webhook route.
- * POST /telegram/webhook — receives updates from Telegram Bot API.
- * Excluded from Bearer auth (validated via webhook secret_token header).
+ * Public Telegram webhook route — mounted BEFORE authMiddleware.
+ * POST /telegram/webhook — receives updates from Telegram Bot API;
+ * authenticated via the `x-telegram-bot-api-secret-token` header.
+ *
+ * Admin endpoints (set/remove webhook) live in `telegramAdminRoute`
+ * and MUST be mounted AFTER authMiddleware.
  */
-export function telegramRoute(bot: TelegramBot | null) {
+export function telegramPublicRoute(bot: TelegramBot | null) {
   const route = new Elysia();
 
   if (!bot) {
-    // Bot not configured — return 404 on webhook
     route.post(
       "/telegram/webhook",
       () => new Response("Bot not configured", { status: 404 }),
@@ -21,14 +23,12 @@ export function telegramRoute(bot: TelegramBot | null) {
 
   route.post("/telegram/webhook", async ({ body, request }) => {
     try {
-      // Verify secret token from Telegram
       const secret = request.headers.get("x-telegram-bot-api-secret-token");
       if (bot.webhookSecret && secret !== bot.webhookSecret) {
         logger.warn("telegram", "Webhook: invalid secret token");
         return new Response("Unauthorized", { status: 401 });
       }
 
-      // Process update directly through Grammy bot
       await bot.bot.handleUpdate(body as any);
       return new Response("OK", { status: 200 });
     } catch (err) {
@@ -40,7 +40,17 @@ export function telegramRoute(bot: TelegramBot | null) {
     }
   });
 
-  // Admin: set/remove webhook
+  return route;
+}
+
+/**
+ * Protected admin surface — mount AFTER authMiddleware. Anyone able to call
+ * these can repoint the bot, so bearer auth is mandatory.
+ */
+export function telegramAdminRoute(bot: TelegramBot | null) {
+  const route = new Elysia();
+  if (!bot) return route;
+
   route.post("/telegram/set-webhook", async ({ body }) => {
     const { url } = body as { url: string };
     await bot.setWebhook(url);
