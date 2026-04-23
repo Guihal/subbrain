@@ -1,6 +1,7 @@
 /**
  * Agentic hippocampus loop — searches memory iteratively and emits an
- * Executive Summary. Capped by step count and wall-clock budget.
+ * Executive Summary. Capped by assistant-response count (MAX_HIPPO_STEPS).
+ * One step == one LLM call, regardless of how many tool_calls that call emits.
  */
 import type { MemoryDB } from "../../../db";
 import type { ModelRouter } from "../../../lib/model-router";
@@ -13,8 +14,8 @@ import { HIPPO_TOOLS, executeHippoTool } from "./rag-inject";
 
 const log = logger.child("pre");
 
-const MAX_HIPPO_STEPS = 6;
-const HIPPO_TIMEOUT_MS = 25_000;
+const MAX_HIPPO_STEPS = 100;
+const HIPPO_TIMEOUT_MS = 200_000;
 
 function getHippocampusPrompt(): string {
   const today = getMoscowNow();
@@ -75,11 +76,17 @@ export async function buildExecutiveSummary(args: {
   let steps = 0;
   let summary = "";
   const start = Date.now();
+  let timedOut = false;
+  let errored = false;
 
   while (steps < MAX_HIPPO_STEPS) {
-    if (Date.now() - start > HIPPO_TIMEOUT_MS) {
-      log.warn(`Hippocampus time budget exhausted (${HIPPO_TIMEOUT_MS}ms)`);
+    const remaining = HIPPO_TIMEOUT_MS - (Date.now() - start);
+    if (remaining <= 0) {
+      log.warn(
+        `Hippocampus time budget exhausted (${HIPPO_TIMEOUT_MS}ms) at step ${steps}/${MAX_HIPPO_STEPS}`,
+      );
       onProgress?.("⏱️ Лимит времени гиппокампа — финализация...\n");
+      timedOut = true;
       break;
     }
 
@@ -87,13 +94,29 @@ export async function buildExecutiveSummary(args: {
     try {
       response = await router.chat(
         "coder",
-        { messages, tools: HIPPO_TOOLS, max_tokens: 2048, temperature: 0.3 },
+        {
+          messages,
+          tools: HIPPO_TOOLS,
+          max_tokens: 2048,
+          temperature: 0.3,
+          signal: AbortSignal.timeout(remaining),
+        },
         "normal",
       );
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err);
-      log.warn(`Hippocampus router.chat failed at step ${steps}: ${errMsg}`);
-      onProgress?.(`⚠️ Ошибка гиппокампа: ${errMsg.slice(0, 100)}\n`);
+      const isAbort =
+        err instanceof Error &&
+        (err.name === "AbortError" || err.name === "TimeoutError");
+      if (isAbort) {
+        log.warn(`Hippocampus aborted by time budget at step ${steps}: ${errMsg}`);
+        onProgress?.("⏱️ Гиппокамп отменён таймаутом — финализация...\n");
+        timedOut = true;
+      } else {
+        log.warn(`Hippocampus router.chat failed at step ${steps}: ${errMsg}`);
+        onProgress?.(`⚠️ Ошибка гиппокампа: ${errMsg.slice(0, 100)}\n`);
+        errored = true;
+      }
       break;
     }
 
@@ -112,8 +135,11 @@ export async function buildExecutiveSummary(args: {
       tool_calls: msg.tool_calls,
     });
 
+    // 1 step = 1 LLM call, not 1 tool_call. Counting per-tool-call caused the
+    // step budget to overshoot (20 tool_calls in one response → +20 at once).
+    steps++;
+
     for (const tc of msg.tool_calls) {
-      steps++;
       let toolArgs: Record<string, unknown>;
       try {
         toolArgs = JSON.parse(tc.function.arguments);
@@ -147,22 +173,62 @@ export async function buildExecutiveSummary(args: {
     log.debug(`Hippocampus step ${steps}/${MAX_HIPPO_STEPS}`);
   }
 
-  if (!summary && steps >= MAX_HIPPO_STEPS) {
+  if (!summary && !errored && !timedOut) {
     onProgress?.("⏱️ Лимит шагов — финализация...\n");
     messages.push({
       role: "user",
       content:
         "You've reached the search limit. Now produce the Executive Summary based on everything you've gathered.",
     });
-    const final = await router.chat(
-      "coder",
-      { messages, max_tokens: 2048, temperature: 0.3 },
-      "normal",
+    try {
+      const finalizeBudget = Math.max(
+        5_000,
+        HIPPO_TIMEOUT_MS - (Date.now() - start),
+      );
+      const final = await router.chat(
+        "coder",
+        {
+          messages,
+          max_tokens: 2048,
+          temperature: 0.3,
+          signal: AbortSignal.timeout(finalizeBudget),
+        },
+        "normal",
+      );
+      summary =
+        final.choices[0]?.message?.content ||
+        final.choices[0]?.message?.reasoning_content ||
+        "";
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      log.warn(`Hippocampus finalisation chat failed: ${errMsg}`);
+      onProgress?.(`⚠️ Финализация не удалась: ${errMsg.slice(0, 100)}\n`);
+      summary = "";
+    }
+  }
+
+  if (!summary) {
+    const lines: string[] = [];
+    if (timedOut)
+      lines.push(
+        `_[Гиппокамп: таймаут ${HIPPO_TIMEOUT_MS / 1000}s после ${steps} шагов]_`,
+      );
+    else if (errored)
+      lines.push(`_[Гиппокамп: ошибка после ${steps} шагов]_`);
+    else lines.push(`_[Гиппокамп: пустой ответ после ${steps} шагов]_`);
+
+    if (allRagResults.length > 0) {
+      lines.push("", "**Собранные фрагменты памяти:**");
+      for (const r of allRagResults.slice(0, 10)) {
+        const title = (r as { title?: string }).title ?? "";
+        const snippet = (r as { snippet?: string }).snippet ?? "";
+        lines.push(`- ${title}: ${snippet.slice(0, 200)}`);
+      }
+    }
+    summary = lines.join("\n");
+    log.warn(
+      `Hippocampus salvage summary (${summary.length} chars, ${allRagResults.length} rag results)`,
     );
-    summary =
-      final.choices[0]?.message?.content ||
-      final.choices[0]?.message?.reasoning_content ||
-      "";
   }
 
   return { summary, ragResults: allRagResults, steps };

@@ -166,6 +166,27 @@ export class MemoryTools {
     if (target === "all" || target === "shared") {
       results.shared = this.memory.searchShared(query, n);
     }
+    if (target === "all" || target === "focus") {
+      // Focus is a KV store without FTS — linear scan. Layer is small by
+      // design (< ~100 entries), so O(n) match is fine.
+      const q = query.toLowerCase();
+      const focus = this.memory.getAllFocus();
+      results.focus = Object.entries(focus)
+        .filter(
+          ([k, v]) =>
+            k.toLowerCase().includes(q) || v.toLowerCase().includes(q),
+        )
+        .slice(0, n)
+        .map(([k, v]) => ({
+          id: k,
+          title: k,
+          tags: "",
+          snippet: v,
+          rank: 0,
+          created_at: 0,
+          updated_at: 0,
+        }));
+    }
 
     return { success: true, data: results };
   }

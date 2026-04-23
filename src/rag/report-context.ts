@@ -7,6 +7,9 @@
  */
 import type { MemoryDB, LogRow, SharedRow } from "../db";
 import type { RAGPipeline } from "./pipeline";
+import { logger } from "../lib/logger";
+
+const log = logger.child("report-context");
 
 export interface BuildReportContextOptions {
   memory: MemoryDB;
@@ -139,11 +142,23 @@ export async function buildReportContext(
     logLimit = DEFAULT_LOG_LIMIT,
   } = opts;
 
-  const [facts, logs, ragHits] = await Promise.all([
+  const [factsRes, logsRes, ragRes] = await Promise.allSettled([
     collectFacts(memory, topic, factsLimit),
     Promise.resolve(collectLogs(memory, sinceHours, logLimit, nowMs)),
     collectRag(rag, topic, ragTopN),
   ]);
+  const unwrap = <T>(
+    r: PromiseSettledResult<T>,
+    name: string,
+    fallback: T,
+  ): T => {
+    if (r.status === "fulfilled") return r.value;
+    log.warn(`${name} rejected: ${String(r.reason)}`);
+    return fallback;
+  };
+  const facts = unwrap(factsRes, "facts", [] as SharedRow[]);
+  const logs = unwrap(logsRes, "logs", [] as LogRow[]);
+  const ragHits = unwrap(ragRes, "rag", [] as RagHit[]);
 
   const sections: string[] = [];
 

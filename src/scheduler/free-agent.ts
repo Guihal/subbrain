@@ -85,7 +85,7 @@ export function installFreeAgentScheduler(deps: AppDeps): { stop: () => void } {
             sessionId: result.sessionId,
           },
         });
-        if (telegramBot && result.finalAnswer) {
+        if (telegramBot && result.finalAnswer?.trim()) {
           const digest = formatDigest(result.finalAnswer, result);
           try {
             await telegramBot.notify(digest);

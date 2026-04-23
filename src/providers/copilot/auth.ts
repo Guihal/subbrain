@@ -18,8 +18,19 @@ interface CopilotToken {
   expires_at: number;
 }
 
+let chmodWarnedWindows = false;
+
 function writeTokenFile(path: string, token: string): Promise<number> {
   return Bun.write(path, token).then((n) => {
+    if (process.platform === "win32") {
+      if (!chmodWarnedWindows) {
+        chmodWarnedWindows = true;
+        log.warn(
+          `chmod 0600 is a no-op on Windows — OAuth token file ${path} is readable by other OS users. Prod target is Linux Docker; this only matters for Windows dev.`,
+        );
+      }
+      return n;
+    }
     try {
       chmodSync(path, 0o600);
     } catch {

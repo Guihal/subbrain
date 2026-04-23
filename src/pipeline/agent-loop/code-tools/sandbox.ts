@@ -1,13 +1,24 @@
 /**
- * Sandbox — Isolated code execution via Bun Worker.
+ * Sandbox — best-effort isolation for LLM-generated code via Bun Worker.
  *
- * Each code tool is executed in a temporary Worker with:
- * - Access to: fetch, JSON, Date, Math, URL, URLSearchParams, TextEncoder/Decoder
- * - NO access to: file system, process, Bun.file, require, import
- * - Timeout: 30 seconds
- * - Output capped at 10KB
+ * Access (whitelisted via Function params): fetch, JSON, Date, Math,
+ * URL, URLSearchParams, TextEncoder/Decoder, console.
+ * Blocked pre-execution (regex on transpiled JS): eval(), new Function, dynamic import().
+ * Blocked at runtime (globals nulled before user code runs): Function, Bun, process, require.
+ * Timeout 30s, output capped at 10KB.
+ *
+ * Not a hard security boundary. Hostile code can still escape via regex-bypass
+ * obfuscation (globalThis['pr'+'ocess']), data exfiltration through fetch(), or
+ * any Bun Worker global we haven't nuked. Real isolation needs a subprocess
+ * sandbox — tracked as TODO, out of scope of this pass.
  */
 import { CODE_TOOL_LIMITS, type CodeToolExecResult } from "./types";
+
+const UNSAFE_PATTERNS: { re: RegExp; name: string }[] = [
+  { re: /\beval\s*\(/, name: "eval()" },
+  { re: /\bnew\s+Function\b/, name: "new Function" },
+  { re: /\bimport\s*\(/, name: "dynamic import()" },
+];
 
 /**
  * Execute a code tool in an isolated Bun Worker.
@@ -39,25 +50,44 @@ export async function executeSandboxed(
     };
   }
 
+  // Reject unambiguous dangerous call patterns before handing to Worker.
+  // Narrow regexes only — identifier-only matches (\bprocess\b etc.) would
+  // break legitimate user code like `const process = "transform"`.
+  for (const { re, name } of UNSAFE_PATTERNS) {
+    if (re.test(jsCode)) {
+      return {
+        success: false,
+        error: `sandbox: unsafe construct "${name}" detected; blocked pre-execution`,
+        durationMs: Date.now() - start,
+      };
+    }
+  }
+
   // Wrap user code in a worker script that:
   // 1. Blocks dangerous globals
   // 2. Defines the tool function
   // 3. Runs it with the input
   // 4. Posts the result back
   const workerScript = `
-// Globals Bun/process/require are non-configurable in a Bun Worker, so we cannot
-// redefine them on globalThis. Instead we shadow them lexically inside the
-// user-code scope (see __factory body below) via \`let Bun, process, require;\`.
+// Defense in depth: (1) lexical shadow via \`let Bun, process, require, globalThis, self, global;\`
+// inside __factory body; (2) nullification of globals after __factory is created
+// but BEFORE it runs, so user code cannot re-obtain Function/Bun/process/require via
+// the Worker global. Non-configurable bindings may silently ignore the assignment —
+// hence try/catch around each.
 
-// User code (as async function body)
 const __userModule = {};
 (async () => {
-  // Wrap in a function factory to capture export default
+  // Create __factory FIRST (uses Worker's own new Function, which we are about to nuke).
   const __factory = new Function("exports", "fetch", "URL", "URLSearchParams", "TextEncoder", "TextDecoder", "JSON", "Date", "Math", "console", \`
     "use strict";
     let Bun, process, require, globalThis, self, global;
     ${jsCode.replace(/export\s+default/g, "exports.default =")}
   \`);
+  // Now nuke the globals — user code runs next, so it cannot recreate via new Function.
+  try { globalThis.Function = undefined; } catch {}
+  try { globalThis.Bun = undefined; } catch {}
+  try { globalThis.process = undefined; } catch {}
+  try { globalThis.require = undefined; } catch {}
   __factory(__userModule, fetch, URL, URLSearchParams, TextEncoder, TextDecoder, JSON, Date, Math, console);
 })().then(async () => {
   if (typeof __userModule.default !== "function") {

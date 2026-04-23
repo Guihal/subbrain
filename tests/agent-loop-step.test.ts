@@ -32,6 +32,10 @@ function mockToolDeps(registry: Record<string, (args: any) => unknown>): ToolRun
       success: true,
       data: registry[name]!(args),
     }),
+    callAsAgent: async (name: string, args: unknown) => ({
+      success: true,
+      data: registry[name]!(args as any),
+    }),
   } as unknown as ToolRegistry;
   return {
     registry: stubRegistry,
@@ -41,6 +45,7 @@ function mockToolDeps(registry: Record<string, (args: any) => unknown>): ToolRun
     dynamicTools: { get: () => undefined } as any,
     persistDynamicTools: () => {},
     codeTools: null,
+    session: {} as any,
   };
 }
 
@@ -96,6 +101,7 @@ describe("executeStep", () => {
     expect(result).toEqual({ kind: "tools" });
     expect(onToolCallStart).toEqual(["ping"]);
     expect(onToolCallResult.length).toBe(1);
+    expect(onToolCallResult[0]).toContain("pong");
 
     // messages now: system, user, assistant(tool_calls), tool(result)
     expect(messages.length).toBe(4);
