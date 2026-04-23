@@ -80,6 +80,13 @@ const filteredChats = computed(() => {
           🧠 Память
         </NuxtLink>
         <NuxtLink
+          to="/tasks"
+          class="nav-link"
+          active-class="nav-link-active"
+        >
+          📋 Задачи
+        </NuxtLink>
+        <NuxtLink
           to="/freelance"
           class="nav-link"
           active-class="nav-link-active"

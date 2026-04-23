@@ -1,11 +1,14 @@
 /**
- * HTTP surface for the tasks lifecycle store (Phase 1).
+ * HTTP surface for the tasks lifecycle store (Phase 1 + Phase 5).
  *
  * Registered after authMiddleware in src/app/bootstrap.ts. 404 envelope
  * shape matches chats.ts / memory.ts: { error: { message } }.
  *
- * /history returns live done|cancelled within window; archive-side digests
- * (tasks,digest,YYYY-wNN tag) will be merged in Phase 5.
+ * /history is a strict-phase union: live completed tasks first (DESC
+ * completed_at, honoring `scope` filter), then weekly digests (DESC
+ * created_at, cross-scope — digests aggregate multiple scopes per week).
+ * Pagination exhausts all live rows before any digest is returned; the
+ * `total` field is `live.total + digestTotal`.
  */
 import { Elysia, t } from "elysia";
 import { randomUUID } from "node:crypto";
@@ -68,6 +71,56 @@ const HistoryQuery = t.Composite([
   t.Object({ since: t.Optional(t.Union([t.String(), t.Number()])) }),
 ]);
 
+interface DigestRow {
+  id: string;
+  title: string;
+  content: string;
+  tags: string;
+  created_at: number;
+}
+
+export function buildHistoryLoader(
+  memory: MemoryDB,
+  scope: TaskScope | undefined,
+  sinceUnix: number,
+) {
+  return (limit: number, offset: number) => {
+    const live = memory.listCompletedTasksSince({
+      scope,
+      sinceUnix,
+      limit,
+      offset,
+    });
+    const remaining = limit - live.items.length;
+    const digestOffset = Math.max(0, offset - live.total);
+    const digests =
+      remaining > 0
+        ? (memory.db
+            .query(
+              `SELECT id, title, content, tags, created_at FROM layer3_archive
+               WHERE tags LIKE 'tasks,digest,%' AND created_at >= ?
+               ORDER BY created_at DESC LIMIT ? OFFSET ?`,
+            )
+            .all(sinceUnix, remaining, digestOffset) as DigestRow[])
+        : [];
+    const digestTotal = (
+      memory.db
+        .query(
+          `SELECT COUNT(*) AS c FROM layer3_archive
+           WHERE tags LIKE 'tasks,digest,%' AND created_at >= ?`,
+        )
+        .get(sinceUnix) as { c: number }
+    ).c;
+    return {
+      items: [
+        ...live.items.map((t) => ({ kind: "task" as const, ...t })),
+        ...digests.map((d) => ({ kind: "digest" as const, ...d })),
+      ],
+      total: live.total + digestTotal,
+    };
+  };
+}
+
 function notFound(): Response {
   return new Response(
     JSON.stringify({ error: { message: "Task not found" } }),
@@ -129,16 +182,7 @@ export function tasksRoute(memory: MemoryDB) {
           query.since === undefined
             ? Math.floor(Date.now() / 1000) - 7 * 86400
             : Number(query.since);
-        return paginate(
-          (limit, offset) =>
-            memory.listCompletedTasksSince({
-              scope: query.scope,
-              sinceUnix: since,
-              limit,
-              offset,
-            }),
-          query,
-        );
+        return paginate(buildHistoryLoader(memory, query.scope, since), query);
       },
       { query: HistoryQuery },
     )

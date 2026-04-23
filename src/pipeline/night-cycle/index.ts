@@ -21,7 +21,13 @@ import {
   extractAntiPatterns,
   resolveContradictions,
 } from "./steps";
-import { pruneShared, pruneContext, pruneFocus } from "./prune";
+import {
+  pruneShared,
+  pruneContext,
+  pruneFocus,
+  pruneCompletedTasks,
+  collectStrayTasks,
+} from "./prune";
 
 export type { NightCycleResult } from "./types";
 
@@ -107,6 +113,8 @@ export class NightCycle {
       sharedPruned: 0,
       contextPruned: 0,
       focusPruned: 0,
+      tasksPruned: 0,
+      straysCollected: 0,
       errors: [],
       lastProcessedId: 0,
     };
@@ -264,6 +272,30 @@ export class NightCycle {
       result.errors.push(`Prune focus: ${msg}`);
     }
 
+    // Step 11: Weekly digest of completed tasks + cancelled cleanup
+    log.info("Pruning completed tasks…");
+    try {
+      const n = await pruneCompletedTasks(this.memory, this.rag);
+      log.info(`tasks pruned=${n}`);
+      result.tasksPruned = n;
+    } catch (err) {
+      const msg = (err as Error).message;
+      log.error(`Prune tasks failed: ${msg}`);
+      result.errors.push(`Prune tasks: ${msg}`);
+    }
+
+    // Step 12: Collect stray task-like rows from shared/context into tasks
+    log.info("Collecting stray tasks…");
+    try {
+      const n = await collectStrayTasks(this.memory, this.router);
+      log.info(`strays migrated=${n}`);
+      result.straysCollected = n;
+    } catch (err) {
+      const msg = (err as Error).message;
+      log.error(`Collect strays failed: ${msg}`);
+      result.errors.push(`Collect strays: ${msg}`);
+    }
+
     // Save progress
     this.memory.setFocus(
       FOCUS_KEY_LAST_PROCESSED,
@@ -271,7 +303,7 @@ export class NightCycle {
     );
 
     const elapsedSec = Math.round((Date.now() - startedAt) / 1000);
-    log.info(`Cycle finished in ${elapsedSec}s — archived=${result.archiveEntriesCreated} antiPatterns=${result.antiPatternsFound} contradictions=${result.contradictionsResolved} sharedPruned=${result.sharedPruned} contextPruned=${result.contextPruned} focusPruned=${result.focusPruned} errors=${result.errors.length}`,
+    log.info(`Cycle finished in ${elapsedSec}s — archived=${result.archiveEntriesCreated} antiPatterns=${result.antiPatternsFound} contradictions=${result.contradictionsResolved} sharedPruned=${result.sharedPruned} contextPruned=${result.contextPruned} focusPruned=${result.focusPruned} tasksPruned=${result.tasksPruned} strays=${result.straysCollected} errors=${result.errors.length}`,
       { meta: { ...result } },
     );
 

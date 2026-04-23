@@ -11,6 +11,8 @@ export interface NightCycleResult {
   sharedPruned: number;
   contextPruned: number;
   focusPruned: number;
+  tasksPruned: number;
+  straysCollected: number;
   errors: string[];
   lastProcessedId: number;
 }

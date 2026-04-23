@@ -20,6 +20,7 @@ const PROTECTED_FOCUS_KEYS = new Set<string>([
   "night_cycle_last_processed_id",
   "tasks.state",
   "tg.poller.last_id",
+  "night.stray_tasks.last_run_at",
 ]);
 
 export async function pruneFocus(
