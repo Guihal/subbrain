@@ -32,6 +32,12 @@ const LEVEL_ICON: Record<LogLevel, string> = {
   error: "❌",
 };
 
+// OBS-1: track which roles have already tripped the layer4_log CHECK so we
+// surface silent drops on first occurrence without spamming logs. Module-level
+// Set is fine: process-lifetime memory, never serialized, never persisted.
+// Export for test access only — do not mutate from other modules.
+export const _warnedRejectedRoles = new Set<string>();
+
 // ─── Logger ──────────────────────────────────────────────
 
 export class Logger {
@@ -66,17 +72,32 @@ export class Logger {
 
     // DB logging — write to Layer 4 for detailed entries
     if (this.memory && entry.level !== "debug") {
+      const role = `_log_${entry.level}`;
       try {
         const content = this.formatForDb(entry);
         this.memory.appendLog(
           entry.requestId || "system",
           entry.sessionId || "system",
           entry.stage,
-          `_log_${entry.level}`,
+          role,
           content,
         );
-      } catch {
-        // Never let logging break the app
+      } catch (err) {
+        // Never let logging break the app. But: a CHECK-constraint drop used to
+        // be completely silent — every logger write on an un-migrated DB
+        // vanished without trace (OBS-1). Surface the first violation per
+        // unique role via console.error so future role drift is visible; stay
+        // silent on repeats to avoid log spam.
+        const msg = err instanceof Error ? err.message : String(err);
+        if (
+          msg.includes("CHECK constraint failed") &&
+          !_warnedRejectedRoles.has(role)
+        ) {
+          _warnedRejectedRoles.add(role);
+          console.error(
+            `[logger] Layer4 role rejected by CHECK constraint: ${role} — entry dropped. Missing schema migration?`,
+          );
+        }
       }
     }
   }

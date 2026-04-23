@@ -218,3 +218,58 @@ RAG ищет в трёх слоях, включая `shared`. Но `grep "upsert
 `deleteMemory` tool (handler для `memory_delete`) сначала `delete*(id)` из основной таблицы, потом `deleteEmbedding(id)` — но не в одной транзакции. Если процесс умер между → orphan embedding (как MEM-1) или наоборот — мёртвая ссылка в главной таблице при живом vec.
 **Fix:** обернуть пару в `db.transaction(() => {...})()`.
 **Scope:** тривиальный PR.
+
+---
+
+## Addendum 2026-04-24 — мини-аудит безопасности/корректности (глава 16)
+
+Все пункты подтверждены чтением кода. Плановые PR — в [docs/tasks/refactor/16-layer-separation.md](tasks/refactor/16-layer-separation.md) и соответствующих `17-*.md`..`27-*.md`.
+
+### AUTH-16 🔴 `src/app/bootstrap.ts:93-103` + `src/lib/auth.ts:28` — auth-hole на 5 endpoint-ах
+`/api/token`, `/night-cycle`, `/night-cycle/status` объявлены ДО `authMiddleware` → доступны без токена. `/api/token` утекает Bearer-секрет кому угодно. Плюс `auth.ts:28` глобально пропускает `/telegram/*` по префиксу — админ-ручки `/telegram/set-webhook`, `/telegram/remove-webhook` полностью голые.
+**Fix:** PR 17 — переставить endpoint-ы за middleware, split `telegramRoute` на public-webhook + admin, сузить bypass до `/telegram/webhook`.
+**Scope:** PR 17.
+
+### TG-1 🔴 `src/telegram/bot.ts:238` + `src/mcp/executor.ts:76` — `tg_send_message` лжёт агенту
+`notify()` глотает exception и резолвится `void`; `tgSendMessage()` await-ит → `{success:true}` всегда. Автономный агент думает «уведомил», хотя Telegram 500.
+**Fix:** PR 18 — `notifyOrThrow`, executor catches, registry handler конвертит throw → ToolError.
+**Scope:** PR 18.
+
+### OBS-1 ✅ `src/db/schema.ts:305` + `src/lib/logger.ts:75,78` — Layer 4 silent drop — DONE (PR #19)
+CHECK разрешает `user/assistant/system/tool/reasoning`, logger пишет `_log_${level}` → CHECK violation, `catch {}` глотает. Ни одна запись logger-а не доходит. Observability иллюзорна. Плюс `userbot.ts:319` пишет `channel_message` — та же история.
+**Fix applied:** migration 7 расширила CHECK (`_log_debug/_log_info/_log_warn/_log_error` + `channel_message`); logger catch теперь один раз per unique role логирует `console.error` при `CHECK constraint failed`, чтобы будущий role-drift был виден. Архитектурный долг `channel_message` как тип — см. OBS-2.
+**Scope:** PR 19.
+
+### OBS-2 🟢 архитектурный долг — `channel_message` это тип, не role
+`userbot.ts:319` пишет message type в колонку `role`. PR 19 — костыльный фикс (расширение CHECK), правильный фикс: колонка `msg_type` либо `role='tool'` + content prefix. Пост-PR-19 follow-up. Не блокирует главу 16.
+**Fix:** отдельная задача после главы 2.
+
+### CANCEL-1 🟡 `src/pipeline/agent-loop/tool-runner.ts:45` + `src/pipeline/arbitration-room.ts:85,225` — timeout без abort
+`Promise.race([exec, timeout])` без `controller.abort()` → underlying fetch/browser/stream продолжает работать до естественного конца, слив RPM и ресурсов на работу с выброшенным результатом.
+**Fix:** PR 20 — handler signature принимает optional signal, long-running handlers (web/consult/critic) прокидывают в downstream; arbitration setTimeout вызывает `controllers[i].abort()`.
+**Scope:** PR 20.
+
+### SCHED-1 🔴 `src/pipeline/agent-loop/system-prompt.ts:167` + `src/scheduler/*` — scheduled-агент без approval может писать код
+Промпт поощряет `create_code_tool`. Sandbox сам признаёт (`sandbox.ts:10`): не security boundary. Scheduled entrypoints (autonomous, free-agent, возможно night-cycle) стартуют без человека в цикле.
+**Fix:** PR 21 — `agentMode: "scheduled" | "interactive"`, scheduled скрывает `create_tool`/`create_code_tool`/`edit_code_tool`; existing code_* остаются; env opt-in.
+**Scope:** PR 21.
+
+### MEM-5 🟡 `src/pipeline/agent-pipeline/post/extractors.ts` — memory write без confidence
+Post-hippocampus пишет в `shared_memory` / `memory` мгновенно, без оценки уверенности. Модельные догадки попадают в «глобальные факты» и потом цитируются как истина.
+**Fix:** PR 22a + 22b — миграция 7 добавляет `confidence REAL` + `status TEXT CHECK('pending'|'active'|'rejected')`; post-hippocampus эмитит confidence; ≥0.8 → active, <0.8 → pending; RAG injection фильтрует только active; UI approve/reject.
+**Scope:** PR 22a (schema), 22b (UI).
+
+### ROUTE-1 🟡 `src/routes/chat.ts:31` + `src/lib/model-router.ts:61` — directMode триггерится не тем провайдером
+`router.isOverloaded` смотрит только на NVIDIA limiter, но все роли primary=MiniMax. Когда NVIDIA перегружена (RAG/embed), чат через MiniMax внезапно переключается в direct mode → обходит pipeline + память. Плюс `providers/index.ts:23` требует Copilot+OpenRouter даже если они не primary/fallback нигде.
+**Fix:** PR 23 — `isOverloadedFor(provider)`, `directMode` смотрит на provider запрошенной модели; optional loading Copilot/OpenRouter когда не используются.
+**Scope:** PR 23.
+
+### RAG-1 🟡 `src/pipeline/agent-pipeline/post/extractors.ts:29` + `src/rag/pipeline.ts:156` — shared RAG semantic broken
+`writeShared` не эмбеддит → vec-поиск не находит. Плюс `rag/pipeline.ts:156` vec-путь для shared не подтягивает row → snippet пустой даже если вектор нашёлся.
+**Fix:** PR 24 — `writeShared` async, embed + index (паттерн `writeContext`); `getSharedMany` + hydration в vec-path.
+**Scope:** PR 24.
+
+### LAYER-1..LAYER-4 🟢 смешение ответственности в routes
+Routes делают DB-доступ + бизнес-логику + HTTP-shaping одновременно. Introduce controller/service/repository слои поэтапно.
+**Fix:** LAYER-1 (PR 25a — AuthService), LAYER-2 (PR 25b — MemoryService), LAYER-3 (PR 26a — ChatService), LAYER-4 (PR 26b — AgentService), затем PR 27 — Repository слой над `db/tables/*`.
+**Scope:** PR 25a, 25b, 26a, 26b, 27.

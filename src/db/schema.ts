@@ -419,6 +419,43 @@ export function migrate(db: Database): void {
       for (const sql of mig6Stmts) db.query(sql).run();
     })();
   }
+
+  // Migration 7 (OBS-1): expand layer4_log role CHECK to include logger levels
+  // (_log_debug/_log_info/_log_warn/_log_error) and telegram channel_message.
+  // Before this, logger writes silently failed CHECK and were swallowed by the
+  // logger's catch, so Layer 4 missed 100% of logger traffic + TG monitor rows.
+  // Note: channel_message is semantically a msg_type, not a role. Widening the
+  // CHECK is the minimal fix for OBS-1; proper column split is OBS-2 follow-up.
+  // Same rebuild pattern as migration 3 (SQLite cannot ALTER CHECK in place).
+  if (version < 7) {
+    const mig7Stmts = [
+      `CREATE TABLE IF NOT EXISTS layer4_log_new (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        request_id  TEXT NOT NULL,
+        session_id  TEXT NOT NULL,
+        agent_id    TEXT NOT NULL,
+        role        TEXT NOT NULL CHECK(role IN (
+          'user', 'assistant', 'system', 'tool', 'reasoning',
+          '_log_debug', '_log_info', '_log_warn', '_log_error',
+          'channel_message'
+        )),
+        content     TEXT NOT NULL,
+        token_count INTEGER,
+        created_at  INTEGER NOT NULL DEFAULT (unixepoch())
+      )`,
+      `INSERT INTO layer4_log_new SELECT * FROM layer4_log`,
+      `DROP TABLE layer4_log`,
+      `ALTER TABLE layer4_log_new RENAME TO layer4_log`,
+      `CREATE INDEX IF NOT EXISTS idx_log_request ON layer4_log(request_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_log_session ON layer4_log(session_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_log_agent   ON layer4_log(agent_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_log_created ON layer4_log(created_at)`,
+      `PRAGMA user_version = 7`,
+    ];
+    db.transaction(() => {
+      for (const sql of mig7Stmts) db.query(sql).run();
+    })();
+  }
 }
 
 export { EMBEDDING_DIM };

@@ -24,19 +24,53 @@
 | [14](14-sse-parser-providers.md) | Вынос `providers/sse-parser.ts` (copilot + nvidia reuse) | 0.5 дня | — |
 | [15](15-tests-docs-acceptance.md) | Тесты (smoke MCP registry, memory admin, compressor, …) + обновление доков | 1 день | после всех |
 
-Суммарно ~10–11 дней в одну руку. Большинство PR независимы — распараллеливается.
+**Глава 1 (01–15) DONE.**
+
+## Глава 2 — security + layer separation (PLANNED)
+
+Мастер-док: [16-layer-separation.md](16-layer-separation.md). Audit fallout + поэтапное введение слоёв (controller / service / repository).
+
+| # | Задача | Оценка | Зависимости |
+|---|---|---|---|
+| [17](17-auth-hardening.md) | AUTH-16: закрыть auth на `/api/token`, `/night-cycle*`, `/telegram/set-webhook`, `/telegram/remove-webhook`; сузить `/telegram/*` bypass | 2 часа | — |
+| [18](18-tg-honest-errors.md) | TG-1: `notifyOrThrow()` + честный `tgSendMessage` | 2 часа | — |
+| ~~[19](19-log-roles-migration.md)~~ | ~~OBS-1: migration 7 CHECK + fix logger swallow~~ ✅ DONE | 2 часа | — |
+| [20](20-abort-propagation.md) | CANCEL-1: AbortSignal в tool-runner + arbitration | 4–6 часов | — |
+| [21](21-scheduled-mode-guard.md) | SCHED-1: scheduled mode прячет create_tool/create_code_tool/edit_code_tool | 3–4 часа | — |
+| [22a](22a-memory-confidence-schema.md) | MEM-5 schema: migration 8 + confidence/status в writers + RAG filter | 1 день | 19 |
+| [22b](22b-memory-approval-ui.md) | MEM-5 UI: /v1/memory/pending + Vue approve/reject | 0.5 дня | 22a |
+| [23](23-directmode-and-provider-startup.md) | ROUTE-1: `isOverloadedFor(provider)` + optional Copilot/OpenRouter | 3–4 часа | — |
+| [24](24-shared-rag-fix.md) | RAG-1: writeShared embed + vec-путь подтягивает shared row | 2 часа | — |
+| [25a](25a-service-auth.md) | LAYER-1: AuthService | 3 часа | 17 |
+| [25b](25b-service-memory.md) | LAYER-2: MemoryService | 4 часа | 17, 22a |
+| [26a](26a-service-chat.md) | LAYER-3: ChatService | 0.5 дня | 25a |
+| [26b](26b-service-agent.md) | LAYER-4: AgentService | 1 день | 21, 26a |
+| [27](27-repository-db.md) | Repository слой над `db/tables/*` | 1 день | 10, 25b, 26a, 26b |
+
+Суммарно глава 2: ~10 дней.
 
 ## Граф зависимостей
 
 ```
-01 ──┬─► 02 ──► 08
-     └───────────┘
-10 ──► 13
-все ──► 15
-06, 03, 04, 05, 07, 09, 11, 12, 14 — независимы
+Глава 1 (done):
+  01 ──┬─► 02 ──► 08
+       └───────────┘
+  10 ──► 13
+  все ──► 15
+  06, 03, 04, 05, 07, 09, 11, 12, 14 — независимы
+
+Глава 2:
+  17 ──► 25a ──► 26a ──► 26b ──► 27
+  19 ──► 22a ──► 22b
+                 └────► 25b ──► 27
+  21 ──► 26b
+  10(done) ──► 27
+  18, 20, 23, 24 — независимы
 ```
 
 ## Порядок для одного исполнителя
+
+**Глава 1 (done):**
 
 1. **День 1:** PR 01 (pipeline robustness).
 2. **День 2:** PR 02 + PR 04 (0.5ч) — ловят высокие риски.
@@ -49,6 +83,21 @@
 9. **День 9:** PR 14 (sse-parser) + PR 06 day1 (browser A).
 10. **День 10:** PR 06 day2 (browser B + leak-smoke).
 11. **День 11:** PR 15 (tests + docs).
+
+**Глава 2 (планируется):**
+
+1. **День 1 (security P0):** PR 17, 18, 19.
+2. **День 2 (correctness P0):** PR 20, 21.
+3. **День 3:** PR 22a (memory schema + pipeline).
+4. **День 4:** PR 22b (memory UI).
+5. **День 5:** PR 23, 24 (provider + shared RAG).
+6. **День 6:** PR 25a (AuthService).
+7. **День 7:** PR 25b (MemoryService).
+8. **День 8:** PR 26a (ChatService).
+9. **День 9:** PR 26b (AgentService).
+10. **День 10:** PR 27 (Repository слой).
+
+17, 18, 20, 23, 24 параллелизуются — можно сжать до ~7 дней при 2-х исполнителях.
 
 ## Правила закрытия таска
 
