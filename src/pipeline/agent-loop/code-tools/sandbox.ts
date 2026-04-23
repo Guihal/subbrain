@@ -63,26 +63,25 @@ export async function executeSandboxed(
     }
   }
 
+  // Build the Function body as a plain string, then embed via JSON.stringify.
+  // Using a nested template literal here breaks on any user code containing ` or ${…}
+  // — the outer worker-script backticks terminate, and ${…} evaluates in worker scope.
+  const factoryBody =
+    `"use strict";\n` +
+    `let Bun, process, require, globalThis, self, global;\n` +
+    jsCode.replace(/export\s+default/g, "exports.default =");
+
   // Wrap user code in a worker script that:
   // 1. Blocks dangerous globals
   // 2. Defines the tool function
   // 3. Runs it with the input
   // 4. Posts the result back
   const workerScript = `
-// Defense in depth: (1) lexical shadow via \`let Bun, process, require, globalThis, self, global;\`
-// inside __factory body; (2) nullification of globals after __factory is created
-// but BEFORE it runs, so user code cannot re-obtain Function/Bun/process/require via
-// the Worker global. Non-configurable bindings may silently ignore the assignment —
-// hence try/catch around each.
-
 const __userModule = {};
 (async () => {
   // Create __factory FIRST (uses Worker's own new Function, which we are about to nuke).
-  const __factory = new Function("exports", "fetch", "URL", "URLSearchParams", "TextEncoder", "TextDecoder", "JSON", "Date", "Math", "console", \`
-    "use strict";
-    let Bun, process, require, globalThis, self, global;
-    ${jsCode.replace(/export\s+default/g, "exports.default =")}
-  \`);
+  // Body is JSON-encoded so user backticks/\${} survive intact.
+  const __factory = new Function("exports", "fetch", "URL", "URLSearchParams", "TextEncoder", "TextDecoder", "JSON", "Date", "Math", "console", ${JSON.stringify(factoryBody)});
   // Now nuke the globals — user code runs next, so it cannot recreate via new Function.
   try { globalThis.Function = undefined; } catch {}
   try { globalThis.Bun = undefined; } catch {}

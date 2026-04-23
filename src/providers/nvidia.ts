@@ -105,9 +105,18 @@ export class NvidiaProvider implements LLMProvider {
   }
 
   async rerank(params: RerankParams): Promise<RerankResponse> {
+    // Reranker is NOT on integrate.api.nvidia.com/v1 — that host 404s for /ranking
+    // and lists no rerank models in /v1/models. The NeMo Retriever rerank endpoint
+    // is a separate host + path. Wire response shape differs too: {rankings:[{index,logit}]}
+    // instead of our provider-neutral {results:[{index,relevance_score}]}.
+    const url =
+      process.env.NVIDIA_RERANK_URL ||
+      "https://ai.api.nvidia.com/v1/retrieval/nvidia/reranking";
     try {
-      return await fetchJson<RerankResponse>(
-        `${this.baseUrl}/ranking`,
+      const raw = await fetchJson<{
+        rankings: { index: number; logit: number }[];
+      }>(
+        url,
         {
           method: "POST",
           headers: this.headers(),
@@ -115,11 +124,17 @@ export class NvidiaProvider implements LLMProvider {
             model: params.model,
             query: { text: params.query },
             passages: params.passages,
-            top_n: params.top_n,
+            ...(params.top_n !== undefined && { top_n: params.top_n }),
           }),
         },
         { timeoutMs: 30_000 },
       );
+      return {
+        results: raw.rankings.map((r) => ({
+          index: r.index,
+          relevance_score: r.logit,
+        })),
+      };
     } catch (e) {
       if (e instanceof HttpError) throw new ProviderError(e.status, e.body);
       throw e;
