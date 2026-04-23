@@ -257,9 +257,9 @@ Post-hippocampus пишет в `shared_memory` / `memory` мгновенно, б
 **Fix:** PR 22a + 22b — миграция 7 добавляет `confidence REAL` + `status TEXT CHECK('pending'|'active'|'rejected')`; post-hippocampus эмитит confidence; ≥0.8 → active, <0.8 → pending; RAG injection фильтрует только active; UI approve/reject.
 **Scope:** PR 22a (schema), 22b (UI).
 
-### ROUTE-1 🟡 `src/routes/chat.ts:31` + `src/lib/model-router.ts:61` — directMode триггерится не тем провайдером
-`router.isOverloaded` смотрит только на NVIDIA limiter, но все роли primary=MiniMax. Когда NVIDIA перегружена (RAG/embed), чат через MiniMax внезапно переключается в direct mode → обходит pipeline + память. Плюс `providers/index.ts:23` требует Copilot+OpenRouter даже если они не primary/fallback нигде.
-**Fix:** PR 23 — `isOverloadedFor(provider)`, `directMode` смотрит на provider запрошенной модели; optional loading Copilot/OpenRouter когда не используются.
+### ✅ ROUTE-1 `src/routes/chat.ts:31` + `src/lib/model-router.ts:61` — directMode триггерится не тем провайдером (PR #23)
+~~`router.isOverloaded` смотрит только на NVIDIA limiter, но все роли primary=MiniMax. Когда NVIDIA перегружена (RAG/embed), чат через MiniMax внезапно переключается в direct mode → обходит pipeline + память. Плюс `providers/index.ts:23` требует Copilot+OpenRouter даже если они не primary/fallback нигде.~~
+**Fix:** PR 23 — `isOverloadedFor(provider)` с NVIDIA-alias `isOverloaded @deprecated`; `routes/chat.ts` компьютит directMode через `resolveModel(requested).provider`; `providers/index.ts:createProviders` читает MODEL_MAP и грузит только референснутые провайдеры (NVIDIA всегда, Copilot/OpenRouter — только если в map), unreferenced slots получают stub который кидает на вызове.
 **Scope:** PR 23.
 
 ### RAG-1 🟡 `src/pipeline/agent-pipeline/post/extractors.ts:29` + `src/rag/pipeline.ts:156` — shared RAG semantic broken

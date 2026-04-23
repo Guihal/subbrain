@@ -11,6 +11,9 @@ import { PROVIDER_RPM, type Backend } from "./model-router/constants";
 import { runChatDispatch } from "./model-router/dispatch";
 import { createFallbackStream } from "./model-router/stream";
 
+/** Per-provider reserved slot count; drops into direct-mode below this. */
+const RESERVED_SLOTS = 8;
+
 /**
  * ModelRouter wraps multiple LLMProviders with:
  * - Virtual model → real model resolution (with provider selection)
@@ -57,9 +60,25 @@ export class ModelRouter {
     };
   }
 
-  /** True when NVIDIA RPM usage > 80% */
+  /**
+   * Per-provider overload check. True when the provider's rate-limiter has
+   * fewer than RESERVED_SLOTS free. Returns false when the provider isn't
+   * loaded — unreferenced providers can't be overloaded; a chat() call will
+   * fail separately via the absent-provider stub.
+   */
+  isOverloadedFor(provider: ProviderName): boolean {
+    const backend = this.backends[provider];
+    if (!backend) return false;
+    return backend.limiter.availableSlots < RESERVED_SLOTS;
+  }
+
+  /**
+   * @deprecated Use {@link isOverloadedFor} with a specific provider.
+   * Alias preserved for back-compat; only queries the NVIDIA backend,
+   * which misleads callers when the actual target is MiniMax/Copilot.
+   */
   get isOverloaded(): boolean {
-    return this.backends.nvidia.limiter.availableSlots < 8;
+    return this.isOverloadedFor("nvidia");
   }
 
   /** Direct access to NVIDIA provider for embed/rerank operations */

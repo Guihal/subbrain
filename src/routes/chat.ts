@@ -1,7 +1,7 @@
 import { Elysia, t } from "elysia";
 import { ProviderError } from "../providers";
 import { sseResponse } from "../lib/sse";
-import { MODEL_MAP } from "../lib/model-map";
+import { MODEL_MAP, resolveModel } from "../lib/model-map";
 import { normalizeMessages } from "../lib/messages";
 import { shouldCompress, compressContext } from "../pipeline/context-compressor";
 import type { ModelRouter } from "../lib/model-router";
@@ -28,9 +28,15 @@ export function chatRoute(
       const chatId = headers["x-chat-id"] as string | undefined;
       const source = (headers["x-chat-source"] as string) || "api";
 
-      // Direct mode: explicit header OR auto-degrade when RPM overloaded
+      // Direct mode: explicit header OR auto-degrade when the *target*
+      // provider's RPM is saturated. Earlier code hard-coded NVIDIA here, so
+      // MiniMax-primary roles were silently bumped to direct-mode when
+      // NVIDIA (embed/rerank) choked — bypassing the full pipeline even
+      // though MiniMax had capacity.
+      const { provider: targetProvider } = resolveModel(requestedModel);
       const directMode =
-        headers["x-direct-mode"] === "true" || router.isOverloaded;
+        headers["x-direct-mode"] === "true" ||
+        router.isOverloadedFor(targetProvider);
 
       // Flash persona is pipeline-only. In direct-mode (RPM overload or explicit
       // debug header) upgrade to generalist so the user gets a coherent reply

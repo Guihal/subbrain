@@ -10,6 +10,7 @@ const TEST_DB = "data/test-chat-continuity.db";
 function mkRouter(onChat: (messages: any[]) => void) {
   return {
     isOverloaded: false,
+    isOverloadedFor: () => false,
     chat: async (_model: string, params: any): Promise<ChatResponse> => {
       onChat(params.messages);
       return {
