@@ -15,9 +15,24 @@
 import { randomUUID } from "crypto";
 import type { Message } from "../providers/types";
 import type { ModelRouter } from "../lib/model-router";
-import type { MemoryDB } from "../db";
 import { logger } from "../lib/logger";
 import { estimateTokens } from "./agent-loop/types";
+
+/**
+ * PR 27: compressor only needs `insertShared` to persist extracted facts.
+ * Accepts either the `MemoryDB` facade (legacy agent-loop callers) or a
+ * `MemoryRepository` (new ChatService caller) — both satisfy this shape.
+ */
+export interface CompressorMemory {
+  insertShared: (
+    id: string,
+    category: string,
+    content: string,
+    tags?: string,
+    source?: string,
+    opts?: { confidence?: number | null; status?: import("../db").MemoryStatus },
+  ) => void;
+}
 
 export const SOFT_LIMIT = 80_000;
 const KEEP_RECENT_MESSAGES = 10;
@@ -70,7 +85,7 @@ export function shouldCompress(
 export async function compressContext(
   messages: Message[],
   router: ModelRouter,
-  memory: MemoryDB | null,
+  memory: CompressorMemory | null,
   opts?: { keepRecent?: number; limit?: number },
 ): Promise<boolean> {
   const keepRecent = opts?.keepRecent ?? KEEP_RECENT_MESSAGES;

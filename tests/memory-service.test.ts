@@ -63,7 +63,7 @@ beforeAll(() => {
   cleanup();
   memory = new MemoryDB(TEST_DB);
   rag = new RAGPipeline(memory, mkRouter());
-  svc = new MemoryService(memory, rag);
+  svc = new MemoryService(memory.memoryRepo, rag, memory.logRepo);
 });
 
 afterAll(() => {
@@ -119,7 +119,7 @@ describe("MemoryService — insertShared (embed-first + transaction)", () => {
         throw new Error("upstream_down");
       },
     } as any;
-    const badSvc = new MemoryService(memory, badRag);
+    const badSvc = new MemoryService(memory.memoryRepo, badRag, memory.logRepo);
     await expect(
       badSvc.insertShared({ category: "c", content: "x", confidence: 0.9 }),
     ).rejects.toThrow();

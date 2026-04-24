@@ -206,7 +206,9 @@ export async function initDeps(config: AppConfig = loadConfig()): Promise<AppDep
   const tools = new ToolExecutor(memory, router);
   const rag = new RAGPipeline(memory, router);
   tools.setRAG(rag);
-  const memoryService = new MemoryService(memory, rag);
+  // PR 27: services consume repos; `MemoryDB` facade still hosts the
+  // repos so scripts/seed.ts etc. keep working.
+  const memoryService = new MemoryService(memory.memoryRepo, rag, memory.logRepo);
   const playwright = new PlaywrightClient();
   tools.setPlaywright(playwright);
 
@@ -228,13 +230,13 @@ export async function initDeps(config: AppConfig = loadConfig()): Promise<AppDep
   room.setMetrics(metrics);
   pipeline.setArbitrationRoom(room);
   tools.setRoom(room);
-  const chatService = new ChatService(router, pipeline, memory);
+  const chatService = new ChatService(router, pipeline, memory.chatRepo, memory.memoryRepo);
 
   const nightCycle = new NightCycle(memory, router, rag);
   const agentLoop = new AgentLoop(memory, router, rag, tools, registry);
   agentLoop.setMetrics(metrics);
   agentLoop.setRoom(room);
-  const agentService = new AgentService(agentLoop, memory);
+  const agentService = new AgentService(agentLoop, memory.chatRepo);
 
   const userbot = initUserbot(memory, tools);
   const telegramBot = initTelegramBot({

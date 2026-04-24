@@ -163,6 +163,7 @@ Off by default (`FREELANCE_SCOUT=false`). Env: `FREELANCE_POLL_MIN`, `FREELANCE_
 - **No TS errors are tolerated** — `bunx tsc --noEmit` must stay at exit 0. The repo just got typecheck-clean (round 1 of `docs/02-audit.md`).
 - **Tests are `bun:test`** with `describe/test/expect`. Older script-style tests with top-level code + `process.exit()` get picked up by `bun test` and kill the whole runner — never reintroduce that pattern. Live tests go in `*.live.ts` so `bun test` ignores them.
 - **`.env` is required** for the server to start (auth token + provider keys). Tests that need a DB use `data/test.db` and clean it themselves; never point them at `data/subbrain.db`.
+- **Repository layer (PR 27).** Raw SQL lives only in `src/db/tables/*` and `src/repositories/*`. Services consume repos (`MemoryRepository`, `ChatRepository`, `LogRepository`, `TelegramRepository`, `FreelanceRepository`); `MemoryDB` is a thin facade kept for back-compat with `scripts/` + legacy tests. `tests/layer-boundary.test.ts` greps for leaks in `src/services/`, `src/routes/`, `src/pipeline/`.
 
 ## Active refactor
 

@@ -27,7 +27,12 @@ export function chatRoute(
   pipeline?: AgentPipeline,
   memory?: MemoryDB,
 ) {
-  const service = new ChatService(router, pipeline, memory);
+  const service = new ChatService(
+    router,
+    pipeline,
+    memory?.chatRepo,
+    memory?.memoryRepo,
+  );
   return new Elysia().post(
     "/v1/chat/completions",
     ({ body, headers }) =>

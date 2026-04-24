@@ -1,11 +1,14 @@
 /**
- * ChatService — PR 26a (LAYER-3). Owns `/v1/chat/completions` orchestration:
- * normalize → direct-mode decide (per-provider via `isOverloadedFor`, PR 23)
- * → persist+hydrate+compress → pipeline vs raw router → SSE wrap. Route
- * (`src/routes/chat.ts`) is just TypeBox + header extract + `handle()`.
+ * ChatService — PR 26a (LAYER-3) + PR 27 (Repository swap).
  *
- * `wrapStreamForChat` honors `isClosed` (§5): client cancel aborts the inner
- * reader and skips the DB write so a partial reply never lands whole.
+ * Owns `/v1/chat/completions`: normalize → direct-mode decide (per-provider
+ * via `isOverloadedFor`, PR 23) → persist+hydrate+compress → pipeline vs
+ * router → SSE wrap. Route (`src/routes/chat.ts`) is just TypeBox + headers
+ * + `handle()`.
+ *
+ * PR 27: ctor takes `ChatRepository` (+ `MemoryRepository` for compressor
+ * fact-persist) instead of the `MemoryDB` god-object. `wrapStreamForChat`
+ * honors `isClosed` (§5) — no DB write after client cancel.
  */
 import { ProviderError } from "../providers";
 import { sseResponse } from "../lib/sse";
@@ -14,7 +17,7 @@ import { normalizeMessages } from "../lib/messages";
 import { shouldCompress, compressContext } from "../pipeline/context-compressor";
 import type { ModelRouter } from "../lib/model-router";
 import type { AgentPipeline } from "../pipeline";
-import type { MemoryDB } from "../db";
+import type { ChatRepository, MemoryRepository } from "../repositories";
 import type { Message } from "../providers/types";
 import { logger } from "../lib/logger";
 import { maskSecrets } from "../lib/redact";
@@ -52,7 +55,8 @@ export class ChatService {
   constructor(
     private readonly router: ModelRouter,
     private readonly pipeline: AgentPipeline | undefined,
-    private readonly memory: MemoryDB | undefined,
+    private readonly chatRepo: ChatRepository | undefined,
+    private readonly memoryRepo: MemoryRepository | undefined,
   ) {}
 
   async handle(body: ChatCompletionRequest, meta: ChatMeta): Promise<Response> {
@@ -77,7 +81,7 @@ export class ChatService {
     this.persistUser(meta, model, messages);
     messages = this.maybeHydrate(meta, messages);
     if (shouldCompress(messages)) {
-      await compressContext(messages, this.router, this.memory ?? null);
+      await compressContext(messages, this.router, this.memoryRepo ?? null);
     }
     const params = { ...rest, messages } as Record<string, unknown>;
 
@@ -120,16 +124,16 @@ export class ChatService {
     });
     if (result.stream) {
       const out =
-        this.memory && meta.chatId
-          ? wrapStreamForChat(result.stream, this.memory, meta.chatId, model, result.requestId)
+        this.chatRepo && meta.chatId
+          ? wrapStreamForChat(result.stream, this.chatRepo, meta.chatId, model, result.requestId)
           : result.stream;
       return sseResponse(out);
     }
     if (result.response) {
       const msg = result.response.choices?.[0]?.message;
       const assistantContent = msg?.content ?? "";
-      if (this.memory && meta.chatId && assistantContent) {
-        this.memory.appendChatMessage(meta.chatId, "assistant", assistantContent, {
+      if (this.chatRepo && meta.chatId && assistantContent) {
+        this.chatRepo.appendChatMessage(meta.chatId, "assistant", assistantContent, {
           reasoning: msg?.reasoning_content || undefined,
           model,
           requestId: result.requestId,
@@ -152,13 +156,13 @@ export class ChatService {
     if (stream) {
       const s = await this.router.chatStream(model, params as never);
       const wrapped =
-        this.memory && meta.chatId ? wrapStreamForChat(s, this.memory, meta.chatId, model) : s;
+        this.chatRepo && meta.chatId ? wrapStreamForChat(s, this.chatRepo, meta.chatId, model) : s;
       return sseResponse(wrapped);
     }
     const response = await this.router.chat(model, params as never);
     const assistantMsg = response.choices?.[0]?.message?.content ?? "";
-    if (this.memory && meta.chatId && assistantMsg) {
-      this.memory.appendChatMessage(meta.chatId, "assistant", assistantMsg, { model });
+    if (this.chatRepo && meta.chatId && assistantMsg) {
+      this.chatRepo.appendChatMessage(meta.chatId, "assistant", assistantMsg, { model });
     }
     return new Response(JSON.stringify(response), {
       headers: { "Content-Type": "application/json" },
@@ -166,37 +170,33 @@ export class ChatService {
   }
 
   private persistUser(meta: ChatMeta, model: string, messages: Message[]): void {
-    if (!this.memory || !meta.chatId) return;
+    if (!this.chatRepo || !meta.chatId) return;
     const lastUserMsg = messages.filter((m) => m.role === "user").pop();
     if (!lastUserMsg?.content) return;
-    const existing = this.memory.getChat(meta.chatId);
+    const existing = this.chatRepo.getChat(meta.chatId);
     if (!existing) {
-      this.memory.createChat(meta.chatId, lastUserMsg.content.slice(0, 80), model, meta.source);
+      this.chatRepo.createChat(meta.chatId, lastUserMsg.content.slice(0, 80), model, meta.source);
     } else if (existing.model !== model) {
-      this.memory.updateChatModel(meta.chatId, model);
+      this.chatRepo.updateChatModel(meta.chatId, model);
     }
-    this.memory.appendChatMessage(meta.chatId, "user", lastUserMsg.content);
+    this.chatRepo.appendChatMessage(meta.chatId, "user", lastUserMsg.content);
   }
 
   private maybeHydrate(meta: ChatMeta, messages: Message[]): Message[] {
-    if (!this.memory || !meta.chatId) return messages;
+    if (!this.chatRepo || !meta.chatId) return messages;
     if (messages.some((m) => m.role === "assistant")) return messages;
-    const stored = this.memory.getChatMessages(meta.chatId);
+    const stored = this.chatRepo.getChatMessages(meta.chatId);
     if (stored.length <= messages.filter((m) => m.role !== "system").length) return messages;
     const systems = messages.filter((m) => m.role === "system");
-    const history: Message[] = stored.map((r) => ({
-      role: r.role as Message["role"], content: r.content,
-    }));
-    logger.info("chat-service", `hydrated history from chats: ${history.length} msgs`, {
-      meta: { chatId: meta.chatId },
-    });
+    const history: Message[] = stored.map((r) => ({ role: r.role as Message["role"], content: r.content }));
+    logger.info("chat-service", `hydrated history from chats: ${history.length} msgs`, { meta: { chatId: meta.chatId } });
     return [...systems, ...history];
   }
 }
 
 export function wrapStreamForChat(
   stream: ReadableStream<Uint8Array>,
-  memory: MemoryDB,
+  chatRepo: ChatRepository,
   chatId: string,
   model: string,
   requestId?: string,
@@ -232,7 +232,7 @@ export function wrapStreamForChat(
       }
       if (isClosed) return; // client disconnected mid-stream
       if (fullContent) {
-        memory.appendChatMessage(chatId, "assistant", fullContent, {
+        chatRepo.appendChatMessage(chatId, "assistant", fullContent, {
           reasoning: fullReasoning || undefined,
           model,
           requestId,

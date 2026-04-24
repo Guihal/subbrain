@@ -8,7 +8,7 @@
 import { describe, test, expect } from "bun:test";
 import { AgentService } from "../src/services/agent.service";
 import type { AgentLoop, AgentLoopRequest, AgentLoopResult } from "../src/pipeline/agent-loop";
-import type { MemoryDB } from "../src/db";
+import type { ChatRepository } from "../src/repositories";
 
 function makeMockLoop() {
   const runCalls: AgentLoopRequest[] = [];
@@ -38,7 +38,7 @@ function makeMockLoop() {
   return { loop, runCalls, streamCalls };
 }
 
-const memoryStub = {} as MemoryDB;
+const memoryStub = {} as ChatRepository;
 
 describe("AgentService.run", () => {
   test("forwards agentMode='scheduled' + fills defaults (model=teamlead, priority=low)", async () => {
