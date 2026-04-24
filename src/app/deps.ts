@@ -18,6 +18,7 @@ import { Metrics } from "../lib/metrics";
 import { AuthService } from "../services/auth.service";
 import { MemoryService } from "../services/memory.service";
 import { ChatService } from "../services/chat.service";
+import { AgentService } from "../services/agent.service";
 import { logger } from "../lib/logger";
 
 export interface AppConfig {
@@ -63,6 +64,7 @@ export interface AppDeps {
   authService: AuthService;
   memoryService: MemoryService;
   chatService: ChatService;
+  agentService: AgentService;
   memory: MemoryDB;
   router: ModelRouter;
   rag: RAGPipeline;
@@ -232,6 +234,7 @@ export async function initDeps(config: AppConfig = loadConfig()): Promise<AppDep
   const agentLoop = new AgentLoop(memory, router, rag, tools, registry);
   agentLoop.setMetrics(metrics);
   agentLoop.setRoom(room);
+  const agentService = new AgentService(agentLoop, memory);
 
   const userbot = initUserbot(memory, tools);
   const telegramBot = initTelegramBot({
@@ -262,6 +265,7 @@ export async function initDeps(config: AppConfig = loadConfig()): Promise<AppDep
     authService,
     memoryService,
     chatService,
+    agentService,
     memory,
     router,
     rag,

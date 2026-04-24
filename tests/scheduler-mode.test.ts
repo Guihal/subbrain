@@ -1,22 +1,23 @@
 /**
  * SCHED-1: scheduler entrypoints (AUTONOMOUS loop + free-agent) propagate
- * `agentMode: "scheduled"` to AgentLoop.run. Verified with a mock AgentLoop
- * that records the options of every call.
+ * `agentMode: "scheduled"` through AgentService.run (PR 26b LAYER-4). Verified
+ * with a mock AgentService that records the options of every call.
  */
 import { describe, test, expect } from "bun:test";
 import { installAutonomousScheduler } from "../src/app/schedulers";
 import { installFreeAgentScheduler } from "../src/scheduler/free-agent";
 import type { AppDeps } from "../src/app/deps";
-import type { AgentLoopRequest, AgentLoopResult } from "../src/pipeline/agent-loop";
+import type { AgentRunOpts } from "../src/services/agent.service";
+import type { AgentLoopResult } from "../src/pipeline/agent-loop";
 
-function makeMockAgentLoop() {
-  const calls: AgentLoopRequest[] = [];
+function makeMockAgentService() {
+  const calls: AgentRunOpts[] = [];
   const mock = {
-    run: (req: AgentLoopRequest): Promise<AgentLoopResult> => {
-      calls.push(req);
+    run: (opts: AgentRunOpts): Promise<AgentLoopResult> => {
+      calls.push(opts);
       return Promise.resolve({
         requestId: "req-mock",
-        sessionId: req.sessionId ?? "sess-mock",
+        sessionId: opts.sessionId ?? "sess-mock",
         steps: [],
         finalAnswer: "ok",
         totalSteps: 0,
@@ -24,8 +25,6 @@ function makeMockAgentLoop() {
       });
     },
     createStream: () => new ReadableStream<Uint8Array>(),
-    setMetrics: () => {},
-    setRoom: () => {},
   };
   return { mock, calls };
 }
@@ -46,7 +45,7 @@ function waitForCall(calls: unknown[], timeoutMs = 500): Promise<void> {
 
 describe("scheduler agentMode propagation (SCHED-1)", () => {
   test("installAutonomousScheduler passes agentMode:'scheduled'", async () => {
-    const { mock, calls } = makeMockAgentLoop();
+    const { mock, calls } = makeMockAgentService();
     const deps = {
       config: {
         autonomous: {
@@ -57,7 +56,7 @@ describe("scheduler agentMode propagation (SCHED-1)", () => {
           task: "test-task",
         },
       },
-      agentLoop: mock,
+      agentService: mock,
     } as unknown as AppDeps;
 
     const handle = installAutonomousScheduler(deps);
@@ -73,7 +72,7 @@ describe("scheduler agentMode propagation (SCHED-1)", () => {
   });
 
   test("installFreeAgentScheduler passes agentMode:'scheduled'", async () => {
-    const { mock, calls } = makeMockAgentLoop();
+    const { mock, calls } = makeMockAgentService();
     const deps = {
       config: {
         freeAgent: {
@@ -84,7 +83,7 @@ describe("scheduler agentMode propagation (SCHED-1)", () => {
           task: "free-test-task",
         },
       },
-      agentLoop: mock,
+      agentService: mock,
       telegramBot: null,
     } as unknown as AppDeps;
 
@@ -100,8 +99,8 @@ describe("scheduler agentMode propagation (SCHED-1)", () => {
     }
   });
 
-  test("disabled scheduler never calls agentLoop.run", async () => {
-    const { mock, calls } = makeMockAgentLoop();
+  test("disabled scheduler never calls agentService.run", async () => {
+    const { mock, calls } = makeMockAgentService();
     const deps = {
       config: {
         autonomous: {
@@ -112,7 +111,7 @@ describe("scheduler agentMode propagation (SCHED-1)", () => {
           task: "noop",
         },
       },
-      agentLoop: mock,
+      agentService: mock,
     } as unknown as AppDeps;
 
     const handle = installAutonomousScheduler(deps);

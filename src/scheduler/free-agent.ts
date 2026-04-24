@@ -43,7 +43,7 @@ export const FREE_AGENT_TASK = `Ты — автономный любопытны
 Завершай через done с резюме: что пробовал, что нашёл, какие code_tools написал, какие идеи сохранил. Резюме уйдёт в TG-дайджест пользователю.`;
 
 export function installFreeAgentScheduler(deps: AppDeps): { stop: () => void } {
-  const { config, agentLoop, telegramBot } = deps;
+  const { config, agentService, telegramBot } = deps;
   const cfg = config.freeAgent;
   if (!cfg.enabled) {
     log.info("scheduler disabled");
@@ -65,7 +65,7 @@ export function installFreeAgentScheduler(deps: AppDeps): { stop: () => void } {
     log.info(`run started (${reason})`, {
       meta: { sessionId, maxSteps: cfg.maxSteps },
     });
-    agentLoop
+    agentService
       .run({
         task: cfg.task,
         model: "teamlead",
