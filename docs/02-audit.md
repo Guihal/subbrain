@@ -225,17 +225,19 @@ RAG ищет в трёх слоях, включая `shared`. Но `grep "upsert
 
 Все пункты подтверждены чтением кода. Плановые PR — в [docs/tasks/refactor/16-layer-separation.md](tasks/refactor/16-layer-separation.md) и соответствующих `17-*.md`..`27-*.md`.
 
-### AUTH-16 ✅ `src/app/bootstrap.ts:93-103` + `src/lib/auth.ts:28` — auth-hole на 5 endpoint-ах (закрыто PR 17)
+### AUTH-16 🔴 `src/app/bootstrap.ts:93-103` + `src/lib/auth.ts:28` — auth-hole на 5 endpoint-ах
 `/api/token`, `/night-cycle`, `/night-cycle/status` объявлены ДО `authMiddleware` → доступны без токена. `/api/token` утекает Bearer-секрет кому угодно. Плюс `auth.ts:28` глобально пропускает `/telegram/*` по префиксу — админ-ручки `/telegram/set-webhook`, `/telegram/remove-webhook` полностью голые.
-**Fix:** PR 17 — `/api/token`, `/night-cycle`, `/night-cycle/status`, `telegramAdminRoute` перенесены ПОСЛЕ `authMiddleware`; `telegramRoute` разделён на `telegramPublicRoute` (webhook, secret-header auth) + `telegramAdminRoute` (bearer); `auth.ts` bypass сужен с `startsWith("/telegram/")` до строго `path === "/telegram/webhook"`. Дополнительно убран ранее существовавший bypass `/api/token` в `auth.ts` — endpoint теперь требует Bearer. Регрессия покрыта `tests/auth-coverage.test.ts` (10 сценариев).
+**Fix:** PR 17 — переставить endpoint-ы за middleware, split `telegramRoute` на public-webhook + admin, сузить bypass до `/telegram/webhook`.
+**Scope:** PR 17.
 
-### TG-1 ✅ `src/telegram/bot.ts:238` + `src/mcp/executor.ts:76` — `tg_send_message` лжёт агенту
+### TG-1 🔴 `src/telegram/bot.ts:238` + `src/mcp/executor.ts:76` — `tg_send_message` лжёт агенту
 `notify()` глотает exception и резолвится `void`; `tgSendMessage()` await-ит → `{success:true}` всегда. Автономный агент думает «уведомил», хотя Telegram 500.
-**Fix:** PR 18 — добавлен `TelegramBot.notifyOrThrow` (строгий), `notify` оставлен fire-and-forget для дайджестов; `deps.ts` привязал `setBotNotify` к `notifyOrThrow`; executor `tgSendMessage` возвращает `{success:false,error}` на throw; registry-handler `tg_send_message` префиксит `tg_delivery_failed:` чтобы агент видел честный error. Tests: `tests/telegram-notify.test.ts`, `tests/tg-send-tool.test.ts`. *(закрыто PR 18).*
+**Fix:** PR 18 — `notifyOrThrow`, executor catches, registry handler конвертит throw → ToolError.
+**Scope:** PR 18.
 
-### OBS-1 🟡 `src/db/schema.ts:305` + `src/lib/logger.ts:75,78` — Layer 4 silent drop
+### OBS-1 ✅ `src/db/schema.ts:305` + `src/lib/logger.ts:75,78` — Layer 4 silent drop — DONE (PR #19)
 CHECK разрешает `user/assistant/system/tool/reasoning`, logger пишет `_log_${level}` → CHECK violation, `catch {}` глотает. Ни одна запись logger-а не доходит. Observability иллюзорна. Плюс `userbot.ts:319` пишет `channel_message` — та же история.
-**Fix:** PR 19 — migration 6 расширить CHECK; в logger catch вывести `console.error` один раз per unique role.
+**Fix applied:** migration 7 расширила CHECK (`_log_debug/_log_info/_log_warn/_log_error` + `channel_message`); logger catch теперь один раз per unique role логирует `console.error` при `CHECK constraint failed`, чтобы будущий role-drift был виден. Архитектурный долг `channel_message` как тип — см. OBS-2.
 **Scope:** PR 19.
 
 ### OBS-2 🟢 архитектурный долг — `channel_message` это тип, не role
@@ -257,9 +259,9 @@ Post-hippocampus пишет в `shared_memory` / `memory` мгновенно, б
 **Fix:** PR 22a + 22b — миграция 7 добавляет `confidence REAL` + `status TEXT CHECK('pending'|'active'|'rejected')`; post-hippocampus эмитит confidence; ≥0.8 → active, <0.8 → pending; RAG injection фильтрует только active; UI approve/reject.
 **Scope:** PR 22a (schema), 22b (UI).
 
-### ✅ ROUTE-1 `src/routes/chat.ts:31` + `src/lib/model-router.ts:61` — directMode триггерится не тем провайдером (PR #23)
-~~`router.isOverloaded` смотрит только на NVIDIA limiter, но все роли primary=MiniMax. Когда NVIDIA перегружена (RAG/embed), чат через MiniMax внезапно переключается в direct mode → обходит pipeline + память. Плюс `providers/index.ts:23` требует Copilot+OpenRouter даже если они не primary/fallback нигде.~~
-**Fix:** PR 23 — `isOverloadedFor(provider)` с NVIDIA-alias `isOverloaded @deprecated`; `routes/chat.ts` компьютит directMode через `resolveModel(requested).provider`; `providers/index.ts:createProviders` читает MODEL_MAP и грузит только референснутые провайдеры (NVIDIA всегда, Copilot/OpenRouter — только если в map), unreferenced slots получают stub который кидает на вызове.
+### ROUTE-1 🟡 `src/routes/chat.ts:31` + `src/lib/model-router.ts:61` — directMode триггерится не тем провайдером
+`router.isOverloaded` смотрит только на NVIDIA limiter, но все роли primary=MiniMax. Когда NVIDIA перегружена (RAG/embed), чат через MiniMax внезапно переключается в direct mode → обходит pipeline + память. Плюс `providers/index.ts:23` требует Copilot+OpenRouter даже если они не primary/fallback нигде.
+**Fix:** PR 23 — `isOverloadedFor(provider)`, `directMode` смотрит на provider запрошенной модели; optional loading Copilot/OpenRouter когда не используются.
 **Scope:** PR 23.
 
 ### RAG-1 🟡 `src/pipeline/agent-pipeline/post/extractors.ts:29` + `src/rag/pipeline.ts:156` — shared RAG semantic broken

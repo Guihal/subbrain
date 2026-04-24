@@ -32,14 +32,14 @@
 
 | # | Задача | Оценка | Зависимости |
 |---|---|---|---|
-| ~~[17](17-auth-hardening.md)~~ | ~~AUTH-16: закрыть auth на `/api/token`, `/night-cycle*`, `/telegram/set-webhook`, `/telegram/remove-webhook`; сузить `/telegram/*` bypass~~ ✅ | 2 часа | — |
-| ~~[18](18-tg-honest-errors.md)~~ | ~~TG-1: `notifyOrThrow()` + честный `tgSendMessage`~~ ✅ | 2 часа | — |
-| [19](19-log-roles-migration.md) | OBS-1: migration 6 CHECK + fix logger swallow | 2 часа | — |
+| [17](17-auth-hardening.md) | AUTH-16: закрыть auth на `/api/token`, `/night-cycle*`, `/telegram/set-webhook`, `/telegram/remove-webhook`; сузить `/telegram/*` bypass | 2 часа | — |
+| [18](18-tg-honest-errors.md) | TG-1: `notifyOrThrow()` + честный `tgSendMessage` | 2 часа | — |
+| ~~[19](19-log-roles-migration.md)~~ | ~~OBS-1: migration 7 CHECK + fix logger swallow~~ ✅ DONE | 2 часа | — |
 | [20](20-abort-propagation.md) | CANCEL-1: AbortSignal в tool-runner + arbitration | 4–6 часов | — |
 | [21](21-scheduled-mode-guard.md) | SCHED-1: scheduled mode прячет create_tool/create_code_tool/edit_code_tool | 3–4 часа | — |
-| [22a](22a-memory-confidence-schema.md) | MEM-5 schema: migration 7 + confidence/status в writers + RAG filter | 1 день | 19 |
+| [22a](22a-memory-confidence-schema.md) | MEM-5 schema: migration 8 + confidence/status в writers + RAG filter | 1 день | 19 |
 | [22b](22b-memory-approval-ui.md) | MEM-5 UI: /v1/memory/pending + Vue approve/reject | 0.5 дня | 22a |
-| ~~[23](23-directmode-and-provider-startup.md)~~ | ~~ROUTE-1: `isOverloadedFor(provider)` + optional Copilot/OpenRouter~~ ✅ | 3–4 часа | — |
+| [23](23-directmode-and-provider-startup.md) | ROUTE-1: `isOverloadedFor(provider)` + optional Copilot/OpenRouter | 3–4 часа | — |
 | [24](24-shared-rag-fix.md) | RAG-1: writeShared embed + vec-путь подтягивает shared row | 2 часа | — |
 | [25a](25a-service-auth.md) | LAYER-1: AuthService | 3 часа | 17 |
 | [25b](25b-service-memory.md) | LAYER-2: MemoryService | 4 часа | 17, 22a |
