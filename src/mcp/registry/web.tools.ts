@@ -11,8 +11,32 @@ async function proxy(
   exec: (name: string, args: Record<string, unknown>) => Promise<string>,
   name: string,
   args: Record<string, unknown>,
+  signal?: AbortSignal,
 ): Promise<ToolResult> {
-  const raw = await exec(name, args);
+  // Early-exit if the tool-runner already aborted before we even start.
+  if (signal?.aborted) {
+    return { success: false, error: "aborted" };
+  }
+  // Playwright's callTool doesn't accept an AbortSignal today, so we race
+  // the raw call against an abort promise. The in-flight browser op will
+  // keep running until its own idle-timeout fires, but *we* stop awaiting
+  // it — callers (agent-loop) won't block past the tool-timeout window.
+  const abortP = signal
+    ? new Promise<string>((_, reject) => {
+        if (signal.aborted) {
+          reject(new Error("aborted"));
+          return;
+        }
+        signal.addEventListener(
+          "abort",
+          () => reject(new Error("aborted")),
+          { once: true },
+        );
+      })
+    : null;
+  const raw = await (abortP
+    ? Promise.race([exec(name, args), abortP])
+    : exec(name, args));
   // Playwright-клиент при несконфигурированном браузере отдаёт JSON-строку
   // вида {"error":"..."} — прокинем как неуспех, чтобы сохранить семантику.
   try {
@@ -35,7 +59,7 @@ export function registerWebTools(registry: ToolRegistry): void {
     input: t.Object({
       url: t.String({ description: "URL to navigate to" }),
     }),
-    handler: async (args, ctx) => {
+    handler: async (args, ctx, signal) => {
       if (!/^https?:\/\//i.test(args.url)) {
         return {
           success: false,
@@ -46,6 +70,7 @@ export function registerWebTools(registry: ToolRegistry): void {
         (n, a) => ctx.executor.webCallTool(n, a),
         "browser_navigate",
         { url: args.url },
+        signal,
       );
     },
   });
@@ -56,11 +81,12 @@ export function registerWebTools(registry: ToolRegistry): void {
       "Get the current page content as an accessibility tree. Use after clicking or interacting to read updated state.",
     scope: "public",
     input: t.Object({}),
-    handler: (_args, ctx) =>
+    handler: (_args, ctx, signal) =>
       proxy(
         (n, a) => ctx.executor.webCallTool(n, a),
         "browser_snapshot",
         {},
+        signal,
       ),
   });
 
@@ -73,11 +99,12 @@ export function registerWebTools(registry: ToolRegistry): void {
       element: t.String({ description: "Human-readable element description" }),
       ref: t.String({ description: "Exact ref number from the page snapshot" }),
     }),
-    handler: (args, ctx) =>
+    handler: (args, ctx, signal) =>
       proxy(
         (n, a) => ctx.executor.webCallTool(n, a),
         "browser_click",
         { element: args.element, ref: args.ref },
+        signal,
       ),
   });
 
@@ -93,7 +120,7 @@ export function registerWebTools(registry: ToolRegistry): void {
         t.Boolean({ description: "Press Enter after typing (default: false)" }),
       ),
     }),
-    handler: (args, ctx) => {
+    handler: (args, ctx, signal) => {
       const payload: Record<string, unknown> = {
         element: args.element,
         ref: args.ref,
@@ -104,6 +131,7 @@ export function registerWebTools(registry: ToolRegistry): void {
         (n, a) => ctx.executor.webCallTool(n, a),
         "browser_type",
         payload,
+        signal,
       );
     },
   });
@@ -113,11 +141,12 @@ export function registerWebTools(registry: ToolRegistry): void {
     description: "Go back to the previous page in browser history.",
     scope: "public",
     input: t.Object({}),
-    handler: (_args, ctx) =>
+    handler: (_args, ctx, signal) =>
       proxy(
         (n, a) => ctx.executor.webCallTool(n, a),
         "browser_go_back",
         {},
+        signal,
       ),
   });
 
@@ -129,11 +158,12 @@ export function registerWebTools(registry: ToolRegistry): void {
     input: t.Object({
       key: t.String({ description: "Key to press" }),
     }),
-    handler: (args, ctx) =>
+    handler: (args, ctx, signal) =>
       proxy(
         (n, a) => ctx.executor.webCallTool(n, a),
         "browser_press_key",
         { key: args.key },
+        signal,
       ),
   });
 
@@ -150,11 +180,12 @@ export function registerWebTools(registry: ToolRegistry): void {
         t.Number({ description: "Horizontal scroll in px (default 0)" }),
       ),
     }),
-    handler: (args, ctx) =>
+    handler: (args, ctx, signal) =>
       proxy(
         (n, a) => ctx.executor.webCallTool(n, a),
         "browser_scroll",
         { dy: args.dy ?? 800, dx: args.dx ?? 0 },
+        signal,
       ),
   });
 
@@ -170,11 +201,12 @@ export function registerWebTools(registry: ToolRegistry): void {
         }),
       ),
     }),
-    handler: (args, ctx) =>
+    handler: (args, ctx, signal) =>
       proxy(
         (n, a) => ctx.executor.webCallTool(n, a),
         "browser_screenshot",
         { full_page: args.full_page ?? false },
+        signal,
       ),
   });
 }

@@ -70,9 +70,17 @@ export interface ToolDef<
   scope: Scope;
   /** TypeBox схема. Работает и как JSON Schema для OpenAI, и как валидатор. */
   input: Schema;
+  /**
+   * Handler gets optional `signal` — fired when the tool-runner's timeout elapses
+   * or when the caller aborts externally. Short-running handlers (memory_*, embed_*,
+   * task_*) may ignore it; long-running ones (web_*, consult_*, critic_*) must
+   * forward it to downstream fetch / router.chat / PlaywrightClient so stragglers
+   * don't keep eating RPM after the result is discarded (CANCEL-1 / PR 20).
+   */
   handler: (
     args: Static<Schema>,
     ctx: ToolContextFor<Scope>,
+    signal?: AbortSignal,
   ) => ToolResult | Promise<ToolResult>;
 }
 
@@ -140,6 +148,7 @@ export class ToolRegistry {
     name: string,
     args: unknown,
     ctx: PublicToolContext,
+    signal?: AbortSignal,
   ): Promise<ToolResult> {
     const tool = this.tools.get(name);
     if (!tool) return { success: false, error: `Unknown tool: ${name}` };
@@ -150,7 +159,7 @@ export class ToolRegistry {
       };
     }
     try {
-      return await tool.handler(args as Static<typeof tool.input>, ctx);
+      return await tool.handler(args as Static<typeof tool.input>, ctx, signal);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       return { success: false, error: msg };
@@ -162,11 +171,12 @@ export class ToolRegistry {
     name: string,
     args: unknown,
     ctx: AgentToolContext,
+    signal?: AbortSignal,
   ): Promise<ToolResult> {
     const tool = this.tools.get(name);
     if (!tool) return { success: false, error: `Unknown tool: ${name}` };
     try {
-      return await tool.handler(args as Static<typeof tool.input>, ctx);
+      return await tool.handler(args as Static<typeof tool.input>, ctx, signal);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       return { success: false, error: msg };

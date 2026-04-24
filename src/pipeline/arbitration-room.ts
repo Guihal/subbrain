@@ -74,15 +74,32 @@ export class ArbitrationRoom {
     userMessage: string,
     executiveSummary: string,
     config: RoomConfig,
+    externalSignal?: AbortSignal,
   ): Promise<ArbitrationResult> {
     const timeout = config.timeout || SPECIALIST_TIMEOUT;
 
     // ─── 1. Dispatch to specialists in parallel ────────
     // Per-specialist AbortControllers — used to cancel stragglers when the
-    // per-specialist timeout fires. `callSpecialist` already wraps errors, so
-    // this loop will never reject; `allSettled` guards against any future
-    // change where one specialist's rejection shouldn't kill the whole room.
+    // per-specialist timeout fires. The timer inside `callSpecialist` fires
+    // `controllers[i].abort()` before rejecting so the underlying
+    // `router.chat → fetch` bails out instead of running to completion while
+    // everyone else has already moved on (CANCEL-1 / PR 20).
+    // `callSpecialist` wraps errors, so this loop never rejects; `allSettled`
+    // guards against any future change where one specialist's rejection
+    // shouldn't kill the whole room.
     const controllers = config.agents.map(() => new AbortController());
+    // External abort (tool-runner timeout, parent request cancel, ...) must
+    // propagate to every in-flight specialist call.
+    const externalAbortHandler = () => {
+      for (const c of controllers) c.abort();
+    };
+    if (externalSignal) {
+      if (externalSignal.aborted) externalAbortHandler();
+      else
+        externalSignal.addEventListener("abort", externalAbortHandler, {
+          once: true,
+        });
+    }
     const settled = await Promise.allSettled(
       config.agents.map((role, i) =>
         this.callSpecialist(
@@ -91,10 +108,11 @@ export class ArbitrationRoom {
           executiveSummary,
           timeout,
           config.category,
-          controllers[i].signal,
+          controllers[i],
         ),
       ),
     );
+    externalSignal?.removeEventListener("abort", externalAbortHandler);
     const agentResponses: AgentResponse[] = settled.map((s, i) =>
       s.status === "fulfilled"
         ? s.value
@@ -124,6 +142,7 @@ export class ArbitrationRoom {
       userMessage,
       validResponses,
       config.category,
+      externalSignal,
     );
     this.metrics?.record({
       model: "teamlead",
@@ -210,7 +229,7 @@ export class ArbitrationRoom {
     executiveSummary: string,
     timeout: number,
     category: TaskCategory,
-    signal?: AbortSignal,
+    controller?: AbortController,
   ): Promise<AgentResponse> {
     const systemPrompt = [
       ROLE_PROMPTS[role] || `Ты — ${role}.`,
@@ -232,16 +251,19 @@ export class ArbitrationRoom {
             ],
             max_tokens: 2048,
             temperature: 0.7,
-            signal,
+            signal: controller?.signal,
           },
           "critical",
         ),
         timeout > 0
           ? new Promise<never>((_, reject) => {
-              timer = setTimeout(
-                () => reject(new Error("timeout")),
-                timeout,
-              );
+              timer = setTimeout(() => {
+                // Abort BEFORE rejecting — otherwise the underlying
+                // router.chat → provider.fetch keeps running to completion
+                // after we've already given up on the result.
+                controller?.abort();
+                reject(new Error("timeout"));
+              }, timeout);
             })
           : new Promise<never>(() => {}),
       ]).finally(() => {
@@ -285,6 +307,7 @@ export class ArbitrationRoom {
     userMessage: string,
     responses: AgentResponse[],
     category: TaskCategory,
+    signal?: AbortSignal,
   ): Promise<string> {
     const agentSections = responses
       .map((r) => {
@@ -336,6 +359,7 @@ ${agentSections}
         ],
         max_tokens: 4096,
         temperature: 0.5,
+        signal,
       },
       "critical",
     );

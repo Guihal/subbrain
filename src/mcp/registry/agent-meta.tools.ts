@@ -61,7 +61,7 @@ export function registerAgentMetaTools(registry: ToolRegistry): void {
         ]),
       ),
     }),
-    handler: async (args, ctx) => {
+    handler: async (args, ctx, signal) => {
       if (!ctx.room) {
         return { success: false, error: "ArbitrationRoom not configured" };
       }
@@ -86,10 +86,15 @@ export function registerAgentMetaTools(registry: ToolRegistry): void {
         ? `${args.question}\n\nКонтекст: ${args.context}`
         : args.question;
 
-      const result = await ctx.room.run(fullQuestion, "", {
-        agents: specialists,
-        category,
-      });
+      const result = await ctx.room.run(
+        fullQuestion,
+        "",
+        {
+          agents: specialists,
+          category,
+        },
+        signal,
+      );
       return {
         success: true,
         data: {
@@ -118,7 +123,7 @@ export function registerAgentMetaTools(registry: ToolRegistry): void {
         t.String({ description: "Specific question (default: 'What to do next?')" }),
       ),
     }),
-    handler: async (args, ctx) => {
+    handler: async (args, ctx, signal) => {
       if (ctx.session) {
         if (ctx.session.consultChaosCount >= ctx.session.consultChaosMax) {
           return {
@@ -171,6 +176,7 @@ ${profile}
             ],
             max_tokens: 1024,
             temperature: 0.9,
+            signal,
           },
           "low",
         );

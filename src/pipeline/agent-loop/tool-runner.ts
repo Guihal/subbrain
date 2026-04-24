@@ -42,17 +42,35 @@ export function toolTimeoutMs(name: string): number {
 
 const TIMEOUT_SENTINEL: unique symbol = Symbol("tool_timeout");
 
-async function withToolTimeout<T>(
+/**
+ * Race `exec` against the per-scope timeout. On timeout the internal
+ * `AbortController` is fired so the handler (and any downstream fetch /
+ * router.chat / PlaywrightClient call that honors AbortSignal) can abandon
+ * the in-flight work instead of continuing in the background eating RPM.
+ *
+ * If `externalSignal` is provided, an `AbortSignal.any([external, internal])`
+ * is passed to `exec` — external abort cancels the handler too.
+ */
+export async function withToolTimeout<T>(
   name: string,
-  exec: () => Promise<T>,
+  exec: (signal: AbortSignal) => Promise<T>,
+  externalSignal?: AbortSignal,
+  overrideMs?: number,
 ): Promise<T | string> {
-  const ms = toolTimeoutMs(name);
+  const ms = overrideMs ?? toolTimeoutMs(name);
+  const controller = new AbortController();
+  const effective = externalSignal
+    ? AbortSignal.any([externalSignal, controller.signal])
+    : controller.signal;
   let timer: ReturnType<typeof setTimeout> | undefined;
   const timeoutP = new Promise<typeof TIMEOUT_SENTINEL>((resolve) => {
-    timer = setTimeout(() => resolve(TIMEOUT_SENTINEL), ms);
+    timer = setTimeout(() => {
+      controller.abort();
+      resolve(TIMEOUT_SENTINEL);
+    }, ms);
   });
   try {
-    const res = await Promise.race([exec(), timeoutP]);
+    const res = await Promise.race([exec(effective), timeoutP]);
     if (res === TIMEOUT_SENTINEL) {
       return JSON.stringify({
         error: { code: "timeout", name, timeout_ms: ms },
@@ -97,20 +115,25 @@ export async function executeAgentTool(
   );
 
   try {
-    const result = await withToolTimeout(name, async () => {
+    const result = await withToolTimeout(name, async (signal) => {
       // 1) Статический реестр — покрывает все public + agent-only тулы.
       if (deps.registry.has(name)) {
-        const r = await deps.registry.callAsAgent(name, args, {
-          executor: deps.tools,
-          router: deps.router,
-          room: deps.room,
-          dynamicTools: deps.dynamicTools,
-          persistDynamicTools: deps.persistDynamicTools,
-          codeTools: deps.codeTools,
-          log,
-          registry: deps.registry,
-          session: deps.session,
-        });
+        const r = await deps.registry.callAsAgent(
+          name,
+          args,
+          {
+            executor: deps.tools,
+            router: deps.router,
+            room: deps.room,
+            dynamicTools: deps.dynamicTools,
+            persistDynamicTools: deps.persistDynamicTools,
+            codeTools: deps.codeTools,
+            log,
+            registry: deps.registry,
+            session: deps.session,
+          },
+          signal,
+        );
 
         // `done` — управляющий сигнал агента, возвращаем сырую строку summary,
         // чтобы не ломать существующий fallback в agent-loop/index.ts.
@@ -124,7 +147,13 @@ export async function executeAgentTool(
       // 2) Dynamic tools (созданы агентом через create_tool)
       const dynTool = deps.dynamicTools.get(name);
       if (dynTool) {
-        return await executeDynamicTool(dynTool, args, deps.router, log);
+        return await executeDynamicTool(
+          dynTool,
+          args,
+          deps.router,
+          log,
+          signal,
+        );
       }
 
       // 3) Code tools — исполняемые через префикс `code_`
@@ -164,6 +193,7 @@ async function executeDynamicTool(
   args: Record<string, unknown>,
   router: ModelRouter,
   log: ReturnType<typeof logger.forRequest>,
+  signal?: AbortSignal,
 ): Promise<string> {
   const input = (args.input as string) || "";
   const systemPrompt = def.promptTemplate.replace(/\{\{input\}\}/g, input);
@@ -181,6 +211,7 @@ async function executeDynamicTool(
       ],
       max_tokens: 4096,
       temperature: 0.5,
+      signal,
     });
 
     const content = response.choices[0]?.message?.content || "";
