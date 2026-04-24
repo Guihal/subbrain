@@ -37,10 +37,20 @@ import type {
 import { useMemoryLayer, type LayerDeps } from "./useMemory/layer";
 import { useMemoryFocus } from "./useMemory/focus";
 
+// PR 22b: extended tab adds "pending" — pending rows from shared + context
+// with status='pending' awaiting human approve/reject. The underlying
+// MemoryTab union lives in useMemory/types.ts (not in PR 22b allow-list),
+// so we widen here and cast at subcomponent boundaries.
+export type ExtendedMemoryTab = MemoryTab | "pending";
+export type PendingLayer = "shared" | "context";
+export type PendingRow = (SharedRow | ContextRow) & {
+  status?: "pending" | "active" | "rejected";
+};
+
 export function useMemory() {
   const { api } = useApi();
 
-  const activeTab = useState<MemoryTab>("memory-tab", () => "shared");
+  const activeTab = useState<ExtendedMemoryTab>("memory-tab", () => "shared");
   const search = useState<string>("memory-search", () => "");
   const page = useState<number>("memory-page", () => 1);
   const pageSize = useState<number>("memory-page-size", () => 50);
@@ -91,6 +101,61 @@ export function useMemory() {
     },
   });
 
+  // ─── PR 22b: pending approval state ───────────────────────
+  const pendingLayer = useState<PendingLayer>("memory-pending-layer", () => "shared");
+  const pending = useState<{ items: PendingRow[]; total: number }>(
+    "memory-pending",
+    () => ({ items: [], total: 0 }),
+  );
+  const pendingCount = useState<number>("memory-pending-count", () => 0);
+
+  async function loadPending() {
+    loading.value = true;
+    error.value = null;
+    try {
+      const limit = pageSize.value;
+      const offset = (page.value - 1) * pageSize.value;
+      const data = await api<{ items: PendingRow[]; total: number }>(
+        `/v1/memory/pending?layer=${pendingLayer.value}&limit=${limit}&offset=${offset}`,
+      );
+      pending.value = data;
+    } catch (e) {
+      error.value = (e as Error).message;
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  async function refreshPendingCount() {
+    try {
+      const [s, c] = await Promise.all([
+        api<{ total: number }>("/v1/memory/pending?layer=shared&limit=1"),
+        api<{ total: number }>("/v1/memory/pending?layer=context&limit=1"),
+      ]);
+      pendingCount.value = (s?.total ?? 0) + (c?.total ?? 0);
+    } catch {
+      /* silent: counter is decorative */
+    }
+  }
+
+  async function setPendingStatus(
+    layer: PendingLayer,
+    id: string,
+    status: "active" | "rejected",
+  ) {
+    await api(`/v1/memory/${layer}/${id}/status`, {
+      method: "PATCH",
+      body: JSON.stringify({ status }),
+    });
+    await loadPending();
+    await refreshPendingCount();
+  }
+
+  const approveMemory = (layer: PendingLayer, id: string) =>
+    setPendingStatus(layer, id, "active");
+  const rejectMemory = (layer: PendingLayer, id: string) =>
+    setPendingStatus(layer, id, "rejected");
+
   const totalForActive = computed(() => {
     switch (activeTab.value) {
       case "focus": return focus.value.length;
@@ -99,6 +164,7 @@ export function useMemory() {
       case "archive": return archiveL.state.value.total;
       case "agent": return agentL.state.value.total;
       case "log": return logL.state.value.total;
+      case "pending": return pending.value.total;
     }
   });
 
@@ -110,10 +176,11 @@ export function useMemory() {
       case "archive": return archiveL.load();
       case "agent": return agentL.load();
       case "log": return logL.load();
+      case "pending": return loadPending();
     }
   }
 
-  function switchTab(tab: MemoryTab) {
+  function switchTab(tab: ExtendedMemoryTab) {
     activeTab.value = tab;
     selected.value = null;
     search.value = "";
@@ -136,6 +203,8 @@ export function useMemory() {
     log: logL.state,
     agentIds, agentFilter, logSessions, logSessionFilter,
     selected, loading, error, totalForActive,
+    // PR 22b pending state
+    pending, pendingLayer, pendingCount,
     // loaders
     loadFocus,
     loadShared: sharedL.load,
@@ -143,6 +212,7 @@ export function useMemory() {
     loadArchive: archiveL.load,
     loadAgent: agentL.load,
     loadLog: logL.load,
+    loadPending, refreshPendingCount,
     loadActive, switchTab, select,
     // mutations
     saveFocus, deleteFocus,
@@ -154,5 +224,6 @@ export function useMemory() {
     deleteArchive: archiveL.remove,
     saveAgent: agentL.save,
     deleteAgent: agentL.remove,
+    approveMemory, rejectMemory,
   };
 }

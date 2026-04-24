@@ -83,7 +83,13 @@ export class MemoryTable {
 
   updateContext(
     id: string,
-    fields: { title?: string; content?: string; tags?: string },
+    fields: {
+      title?: string;
+      content?: string;
+      tags?: string;
+      status?: MemoryStatus;
+      confidence?: number | null;
+    },
   ): void {
     updateRow(this.db, "layer2_context", CONTEXT_UPDATABLE, id, fields);
   }
