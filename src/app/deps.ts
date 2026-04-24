@@ -17,6 +17,7 @@ import { FREE_AGENT_TASK } from "../scheduler/free-agent";
 import { Metrics } from "../lib/metrics";
 import { AuthService } from "../services/auth.service";
 import { MemoryService } from "../services/memory.service";
+import { ChatService } from "../services/chat.service";
 import { logger } from "../lib/logger";
 
 export interface AppConfig {
@@ -61,6 +62,7 @@ export interface AppDeps {
   config: AppConfig;
   authService: AuthService;
   memoryService: MemoryService;
+  chatService: ChatService;
   memory: MemoryDB;
   router: ModelRouter;
   rag: RAGPipeline;
@@ -224,6 +226,7 @@ export async function initDeps(config: AppConfig = loadConfig()): Promise<AppDep
   room.setMetrics(metrics);
   pipeline.setArbitrationRoom(room);
   tools.setRoom(room);
+  const chatService = new ChatService(router, pipeline, memory);
 
   const nightCycle = new NightCycle(memory, router, rag);
   const agentLoop = new AgentLoop(memory, router, rag, tools, registry);
@@ -258,6 +261,7 @@ export async function initDeps(config: AppConfig = loadConfig()): Promise<AppDep
     config,
     authService,
     memoryService,
+    chatService,
     memory,
     router,
     rag,
