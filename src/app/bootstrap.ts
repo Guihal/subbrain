@@ -27,7 +27,7 @@ export function createApp(deps: AppDeps) {
     nightCycle,
     registry,
     pipeline,
-    agentLoop,
+    agentService,
     telegramBot,
     authService,
     config,
@@ -120,7 +120,7 @@ export function createApp(deps: AppDeps) {
     .use(embeddingsRoute(router))
     .use(logsRoute(memory))
     .use(mcpRoute(registry, tools))
-    .use(autonomousRoute(agentLoop, memory))
+    .use(autonomousRoute(agentService, memory))
     .use(chatsRoute(memory))
     .use(memoryRoute(memoryService))
     .use(freelanceRoute(memory, deps.freelanceScout))

@@ -5,7 +5,7 @@ import type { NightCycleController } from "./night-cycle-controller";
 export function installAutonomousScheduler(
   deps: AppDeps,
 ): { stop: () => void } {
-  const { config, agentLoop } = deps;
+  const { config, agentService } = deps;
   const { autonomous } = config;
   if (!autonomous.enabled) {
     logger.info("autonomous", "Scheduler disabled");
@@ -33,7 +33,7 @@ export function installAutonomousScheduler(
     });
 
     const sessionId = `auto-${Date.now()}`;
-    agentLoop
+    agentService
       .run({
         task: autonomous.task,
         model: "teamlead",
