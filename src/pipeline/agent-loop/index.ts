@@ -9,7 +9,7 @@ import type { ToolExecutor, ToolRegistry } from "../../mcp";
 import type { Tool } from "../../providers/types";
 import type { Metrics } from "../../lib/metrics";
 import type { ArbitrationRoom } from "../arbitration-room";
-import type { AgentLoopRequest, AgentLoopResult } from "./types";
+import type { AgentLoopRequest, AgentLoopResult, AgentMode } from "./types";
 import { DynamicToolRegistry } from "./dynamic-tools";
 import { CodeToolRegistry } from "./code-tools";
 import { loadPersistedDynamicTools, persistDynamicTools } from "./persist";
@@ -20,7 +20,12 @@ import type { AgentLoopDeps } from "./shared";
 export { DynamicToolRegistry } from "./dynamic-tools";
 export type { DynamicToolDef } from "./dynamic-tools";
 export { CodeToolRegistry } from "./code-tools";
-export type { AgentLoopRequest, AgentLoopStep, AgentLoopResult } from "./types";
+export type {
+  AgentLoopRequest,
+  AgentLoopStep,
+  AgentLoopResult,
+  AgentMode,
+} from "./types";
 
 export class AgentLoop {
   private room: ArbitrationRoom | null = null;
@@ -48,9 +53,12 @@ export class AgentLoop {
     return runStreamLoop(this.deps(), req);
   }
 
-  private getAllTools(): Tool[] {
+  private getAllTools(mode: AgentMode): Tool[] {
+    // SCHED-1: `registry.toOpenAIToolsForAgent(mode)` drops
+    // create_tool / create_code_tool / edit_code_tool in `scheduled` mode.
+    // Dynamic + code_* tools stay callable — only creation primitives go.
     return [
-      ...this.registry.toOpenAITools(),
+      ...this.registry.toOpenAIToolsForAgent(mode),
       ...this.dynamicTools.toToolDefs(),
       ...this.codeTools.toToolDefs(),
     ];
@@ -67,7 +75,7 @@ export class AgentLoop {
       codeTools: this.codeTools,
       room: this.room,
       persistDynamicTools: () => persistDynamicTools(this.memory, this.dynamicTools),
-      getAllTools: () => this.getAllTools(),
+      getAllTools: (mode) => this.getAllTools(mode),
     };
   }
 }

@@ -40,6 +40,8 @@ export function installAutonomousScheduler(
         maxSteps: autonomous.maxSteps,
         sessionId,
         priority: "low",
+        // SCHED-1: scheduler has no human in the loop — hide code-tool authoring.
+        agentMode: "scheduled",
         schedule: {
           intervalMinutes: autonomous.intervalMinutes,
           source: "autonomous",

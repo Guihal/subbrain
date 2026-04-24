@@ -14,7 +14,7 @@ import { registerCodeMgmtTools } from "./code-mgmt.tools";
 import { registerReportTools } from "./report.tools";
 import { registerTasksTools } from "./tasks.tools";
 
-export { ToolRegistry } from "./tool-registry";
+export { ToolRegistry, SCHEDULED_HIDDEN_TOOLS } from "./tool-registry";
 export type {
   ToolContext,
   PublicToolContext,
@@ -24,6 +24,7 @@ export type {
   ToolScope,
   ToolLog,
   TaskMutationBudget,
+  AgentMode,
 } from "./tool-registry";
 
 /**

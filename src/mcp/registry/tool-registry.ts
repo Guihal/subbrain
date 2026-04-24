@@ -56,6 +56,28 @@ export interface TaskMutationBudget {
  */
 export type ToolScope = "public" | "agent-only";
 
+/**
+ * Agent execution mode surfaced to the registry (SCHED-1).
+ * Mirrors `AgentMode` in `pipeline/agent-loop/types.ts`; kept local to avoid a
+ * cross-layer import from registry → pipeline.
+ */
+export type AgentMode = "scheduled" | "interactive";
+
+/**
+ * Tools hidden from the model when running in `scheduled` mode. Existing
+ * `code_*` tools + dynamic tools stay callable — only creation/editing
+ * primitives are removed (no fresh executable code without a human).
+ */
+export const SCHEDULED_HIDDEN_TOOLS: ReadonlySet<string> = new Set([
+  "create_tool",
+  "create_code_tool",
+  "edit_code_tool",
+]);
+
+function scheduledGuardDisabled(): boolean {
+  return process.env.SCHEDULED_ALLOW_CODE_TOOL_CREATE === "1";
+}
+
 /** Map scope → ctx type. */
 export type ToolContextFor<Scope extends ToolScope> = Scope extends "agent-only"
   ? AgentToolContext
@@ -101,6 +123,24 @@ export class ToolRegistry {
     return scope ? all.filter((tool) => tool.scope === scope) : all;
   }
 
+  /**
+   * Agent-loop tool listing filtered by execution mode (SCHED-1).
+   *
+   * - `interactive` → all tools (same as `list()`).
+   * - `scheduled`   → drop `SCHEDULED_HIDDEN_TOOLS` (create_tool /
+   *   create_code_tool / edit_code_tool) so the model cannot spawn fresh
+   *   executable code without a human approver. `code_*` + dynamic tools
+   *   remain callable — only the creation/edit primitives disappear.
+   *
+   * `SCHEDULED_ALLOW_CODE_TOOL_CREATE=1` opts in to the interactive set for
+   * manual operator runs on a scheduler endpoint.
+   */
+  listForAgent(mode: AgentMode): ToolDef[] {
+    const all = Array.from(this.tools.values());
+    if (mode === "interactive" || scheduledGuardDisabled()) return all;
+    return all.filter((tool) => !SCHEDULED_HIDDEN_TOOLS.has(tool.name));
+  }
+
   /** Короткий список для REST /mcp/tools/list (только публичные). */
   listPublic(): { name: string; description: string }[] {
     return this.list("public").map((tool) => ({
@@ -130,6 +170,22 @@ export class ToolRegistry {
         name: tool.name,
         description: tool.description,
         // TypeBox-схема = JSON Schema; symbols отпадают при сериализации.
+        parameters: tool.input as unknown as Record<string, unknown>,
+      },
+    }));
+  }
+
+  /**
+   * Same shape as `toOpenAITools()` but filtered by `AgentMode` via
+   * `listForAgent(mode)` — used by the agent-loop to expose a mode-aware tool
+   * list to the specialist model.
+   */
+  toOpenAIToolsForAgent(mode: AgentMode) {
+    return this.listForAgent(mode).map((tool) => ({
+      type: "function" as const,
+      function: {
+        name: tool.name,
+        description: tool.description,
         parameters: tool.input as unknown as Record<string, unknown>,
       },
     }));
