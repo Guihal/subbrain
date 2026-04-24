@@ -69,8 +69,23 @@ export async function runHippocampus(args: {
     .filter(Boolean)
     .join("\n\n");
 
+  // MEM-5 (PR 22a): append a confidence-emission rule to the extractor prompt
+  // without editing prompt.ts (which is shared with other callers). The suffix
+  // makes `confidence` mandatory for every memory_write call and explains the
+  // MEMORY_AUTOACCEPT_CONFIDENCE threshold so the model does not over-claim.
+  const confidenceRule = [
+    "",
+    "## Confidence (обязательно для memory_write)",
+    "При каждом `memory_write` указывай `confidence` (число 0..1):",
+    "- 0.9+ = пользователь явно подтвердил факт.",
+    "- 0.7–0.9 = сильное следствие из exchange.",
+    "- <0.7 = догадка / слабая эвристика.",
+    "Факты с confidence < 0.8 автоматически попадают в pending-очередь и не",
+    "используются RAG до approval'а (default threshold: MEMORY_AUTOACCEPT_CONFIDENCE=0.8).",
+  ].join("\n");
+
   const messages: Message[] = [
-    { role: "system", content: getExtractorPrompt(MAX_HIPPO_STEPS) },
+    { role: "system", content: getExtractorPrompt(MAX_HIPPO_STEPS) + confidenceRule },
     { role: "user", content: exchangeBlock },
   ];
 
@@ -145,14 +160,26 @@ export async function runHippocampus(args: {
           const category = String(toolArgs.category || "fact").slice(0, 64);
           const content = String(toolArgs.content || "").trim();
           const tags = String(toolArgs.tags || "");
+          // MEM-5 (PR 22a): confidence is mandatory. A missing / non-numeric
+          // value is reported back so the model can retry with a proper score
+          // instead of silently landing as 'active'.
+          const rawConfidence = toolArgs.confidence;
+          if (typeof rawConfidence !== "number" || !Number.isFinite(rawConfidence)) {
+            result = JSON.stringify({
+              ok: false,
+              error: "confidence required (number 0..1)",
+            });
+            break;
+          }
+          const confidence = Math.min(1, Math.max(0, rawConfidence));
           if (!content) {
             result = JSON.stringify({ ok: false, error: "empty content" });
             break;
           }
           const wr =
             layer === "shared"
-              ? await writeShared(memory, rag, { category, content, tags }, log)
-              : await writeContext(memory, rag, { category, content, tags }, requestId, log);
+              ? await writeShared(memory, rag, { category, content, tags, confidence }, log)
+              : await writeContext(memory, rag, { category, content, tags, confidence }, requestId, log);
           if (wr.ok) factsWritten++;
           result = JSON.stringify(wr);
           break;

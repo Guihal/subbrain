@@ -36,7 +36,7 @@ export const POST_TOOLS: Tool[] = [
     function: {
       name: "memory_write",
       description:
-        "Persist one fact. Use `shared` for long-lived facts about the user / their life / persistent preferences. Use `context` for project decisions, code findings, transient domain knowledge. For TODO/reminder/deadline use `task_add` instead.",
+        "Persist one fact. Use `shared` for long-lived facts about the user / their life / persistent preferences. Use `context` for project decisions, code findings, transient domain knowledge. For TODO/reminder/deadline use `task_add` instead. `confidence` (0..1) is required: ≥ 0.8 is stored as status='active' and reaches RAG injection; below → 'pending' (needs human approval).",
       parameters: {
         type: "object",
         properties: {
@@ -54,8 +54,15 @@ export const POST_TOOLS: Tool[] = [
             type: "string",
             description: "Comma-separated, optional",
           },
+          confidence: {
+            type: "number",
+            minimum: 0,
+            maximum: 1,
+            description:
+              "0..1 score. 0.9+ = user-confirmed fact. 0.7–0.9 = strong inference. <0.7 = guess. Facts <0.8 auto-enter the pending queue and are hidden from RAG until approved.",
+          },
         },
-        required: ["layer", "category", "content"],
+        required: ["layer", "category", "content", "confidence"],
       },
     },
   },

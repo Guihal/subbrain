@@ -1,21 +1,39 @@
 import { Database } from "bun:sqlite";
 import { sanitizeFtsQuery } from "../../lib/fts-utils";
-import type { SharedRow, AgentMemRow, FtsResult, VecResult } from "../types";
+import type { SharedRow, AgentMemRow, FtsResult, VecResult, MemoryStatus } from "../types";
 import { updateRow } from "./update-row";
 
 // columns updatable from REST/UI
-const SHARED_UPDATABLE = new Set(["content", "tags", "category"]);
+// MEM-5 (PR 22a): status joins the allow-list so the upcoming approval UI
+// (PR 22b) can transition pending → active/rejected via updateShared.
+const SHARED_UPDATABLE = new Set(["content", "tags", "category", "status", "confidence"]);
 const AGENT_MEM_UPDATABLE = new Set(["content", "tags"]);
+
+export interface InsertSharedOpts {
+  confidence?: number | null;
+  status?: MemoryStatus;
+}
 
 export class SharedTable {
   constructor(public readonly db: Database) {}
 
   // ─── Shared Memory ─────────────────────────────────────────
 
-  insertShared(id: string, category: string, content: string, tags: string = "", source?: string): void {
+  insertShared(
+    id: string,
+    category: string,
+    content: string,
+    tags: string = "",
+    source?: string,
+    opts?: InsertSharedOpts,
+  ): void {
+    const conf = opts?.confidence ?? null;
+    const status = opts?.status ?? "active";
     this.db
-      .query("INSERT INTO shared_memory (id, category, content, tags, source) VALUES (?, ?, ?, ?, ?)")
-      .run(id, category, content, tags, source ?? null);
+      .query(
+        "INSERT INTO shared_memory (id, category, content, tags, source, confidence, status) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      )
+      .run(id, category, content, tags, source ?? null, conf, status);
   }
 
   getAllShared(): SharedRow[] {
@@ -50,11 +68,17 @@ export class SharedTable {
     return this.db.query("SELECT * FROM shared_memory WHERE id = ?").get(id) as SharedRow | null;
   }
 
-  getSharedMany(ids: string[]): SharedRow[] {
+  /**
+   * Batch-lookup shared rows by id. `activeOnly` (PR 22a / MEM-5) filters out
+   * pending/rejected rows at SQL level — used by RAG injection so unapproved
+   * facts never reach model context.
+   */
+  getSharedMany(ids: string[], opts?: { activeOnly?: boolean }): SharedRow[] {
     if (ids.length === 0) return [];
     const placeholders = ids.map(() => "?").join(",");
+    const statusFilter = opts?.activeOnly ? " AND status = 'active'" : "";
     return this.db
-      .query(`SELECT * FROM shared_memory WHERE id IN (${placeholders})`)
+      .query(`SELECT * FROM shared_memory WHERE id IN (${placeholders})${statusFilter}`)
       .all(...ids) as SharedRow[];
   }
 
@@ -129,12 +153,18 @@ export class SharedTable {
 
   // ─── FTS5 Search (shared) ──────────────────────────────────
 
-  searchShared(query: string, limit = 10): FtsResult[] {
+  /**
+   * FTS5 search on shared_memory. `activeOnly` (PR 22a / MEM-5) filters by
+   * status = 'active' via JOIN — FTS mirror itself is not rebuilt (no status
+   * column in the virtual table). Used by RAG injection path.
+   */
+  searchShared(query: string, limit = 10, opts?: { activeOnly?: boolean }): FtsResult[] {
     const ftsQuery = sanitizeFtsQuery(query);
     if (!ftsQuery) return [];
+    const statusFilter = opts?.activeOnly ? " AND s.status = 'active'" : "";
     return this.db
       .query(
-        "SELECT s.id, s.category AS title, s.tags, snippet(fts_shared, 1, '<b>', '</b>', '...', 32) AS snippet, rank, s.created_at, s.updated_at FROM fts_shared f JOIN shared_memory s ON s.rowid = f.rowid WHERE fts_shared MATCH ? ORDER BY rank LIMIT ?",
+        `SELECT s.id, s.category AS title, s.tags, snippet(fts_shared, 1, '<b>', '</b>', '...', 32) AS snippet, rank, s.created_at, s.updated_at FROM fts_shared f JOIN shared_memory s ON s.rowid = f.rowid WHERE fts_shared MATCH ?${statusFilter} ORDER BY rank LIMIT ?`,
       )
       .all(ftsQuery, limit) as FtsResult[];
   }

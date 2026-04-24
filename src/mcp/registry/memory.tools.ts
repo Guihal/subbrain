@@ -32,7 +32,7 @@ export function registerMemoryTools(registry: ToolRegistry): void {
   registry.register({
     name: "memory_write",
     description:
-      "Create or update a memory entry. Use to save decisions, facts, plans.",
+      "Create or update a memory entry. Use to save decisions, facts, plans. `confidence` (0..1) is required: values below MEMORY_AUTOACCEPT_CONFIDENCE (default 0.8) land as status='pending' and require human approval before RAG injection.",
     scope: "public",
     input: t.Object({
       layer: t.Union([
@@ -43,6 +43,12 @@ export function registerMemoryTools(registry: ToolRegistry): void {
         t.Literal("agent"),
       ]),
       content: t.String({ description: "Content to store" }),
+      confidence: t.Number({
+        minimum: 0,
+        maximum: 1,
+        description:
+          "Confidence 0..1. >= MEMORY_AUTOACCEPT_CONFIDENCE (default 0.8) → status='active'; below → status='pending'. For archive layer this maps to HIGH (>= 0.8) or LOW (< 0.8).",
+      }),
       id: t.Optional(t.String()),
       title: t.Optional(t.String({ description: "Title (context/archive)" })),
       tags: t.Optional(t.String({ description: "Comma-separated tags" })),
@@ -50,11 +56,6 @@ export function registerMemoryTools(registry: ToolRegistry): void {
         t.String({ description: "Category (shared layer)" }),
       ),
       agent_id: t.Optional(t.String({ description: "Agent ID (agent layer)" })),
-      confidence: t.Optional(
-        t.Union([t.Literal("HIGH"), t.Literal("LOW")], {
-          description: "Confidence (archive layer)",
-        }),
-      ),
       key: t.Optional(t.String({ description: "Key (focus layer)" })),
     }),
     handler: (args, ctx) => ctx.executor.memoryTools.write(args),

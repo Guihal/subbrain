@@ -83,8 +83,11 @@ export class RAGPipeline {
 
     const results: RAGResult[] = [];
 
+    // MEM-5 (PR 22a): RAG injection must see only approved ('active') facts;
+    // pending / rejected rows are filtered at SQL level inside searchContext /
+    // searchShared. Archive has no status column — unchanged.
     if (layers.includes("context")) {
-      for (const r of this.memory.searchContext(ftsQuery, limit)) {
+      for (const r of this.memory.searchContext(ftsQuery, limit, { activeOnly: true })) {
         results.push({
           id: r.id,
           layer: "context",
@@ -110,7 +113,7 @@ export class RAGPipeline {
       }
     }
     if (layers.includes("shared")) {
-      for (const r of this.memory.searchShared(ftsQuery, limit)) {
+      for (const r of this.memory.searchShared(ftsQuery, limit, { activeOnly: true })) {
         results.push({
           id: r.id,
           layer: "shared",
@@ -148,12 +151,15 @@ export class RAGPipeline {
         string,
         { title: string; content: string; created_at?: number; updated_at?: number }
       >();
+      // MEM-5 (PR 22a): vec search can return ids whose rows are pending /
+      // rejected (the vec_embeddings table has no status column). activeOnly
+      // drops them at hydrate time so they never enter RAG injection.
       if (layer === "context") {
-        for (const r of this.memory.getContextMany(ids)) byId.set(r.id, r);
+        for (const r of this.memory.getContextMany(ids, { activeOnly: true })) byId.set(r.id, r);
       } else if (layer === "archive") {
         for (const r of this.memory.getArchiveMany(ids)) byId.set(r.id, r);
       } else if (layer === "shared") {
-        for (const r of this.memory.getSharedMany(ids)) {
+        for (const r of this.memory.getSharedMany(ids, { activeOnly: true })) {
           byId.set(r.id, {
             title: r.category,
             content: r.content,
@@ -165,6 +171,10 @@ export class RAGPipeline {
 
       for (const vr of vecResults) {
         const row = byId.get(vr.id);
+        // MEM-5 (PR 22a): context/shared hydrate with activeOnly — a missing
+        // row means status != 'active'. Skip so pending rows never reach RAG.
+        // Archive (no status col) always hydrates, so row presence is fine.
+        if (!row && (vr.layer === "context" || vr.layer === "shared")) continue;
         results.push({
           id: vr.id,
           layer: vr.layer,

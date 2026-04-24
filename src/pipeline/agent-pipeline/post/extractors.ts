@@ -14,7 +14,7 @@
  * a later PR will thread AbortSignal through ModelRouter.scheduleRaw.
  */
 import { randomUUID } from "crypto";
-import type { MemoryDB } from "../../../db";
+import type { MemoryDB, MemoryStatus } from "../../../db";
 import type { RAGPipeline } from "../../../rag";
 import type { RequestLogger } from "../../../lib/logger";
 
@@ -24,6 +24,18 @@ export interface WriteResult {
   ok: boolean;
   id?: string;
   error?: string;
+  status?: MemoryStatus;
+}
+
+/**
+ * MEM-5 (PR 22a): compute memory status from a 0..1 confidence score and the
+ * MEMORY_AUTOACCEPT_CONFIDENCE threshold (default 0.8). Below threshold →
+ * 'pending', requires human approval before RAG injection picks it up.
+ */
+function computeStatus(confidence: number): "active" | "pending" {
+  const threshold = Number(process.env.MEMORY_AUTOACCEPT_CONFIDENCE ?? 0.8);
+  const clamped = Math.min(1, Math.max(0, confidence));
+  return clamped >= threshold ? "active" : "pending";
 }
 
 async function embedWithTimeout(
@@ -49,10 +61,12 @@ async function embedWithTimeout(
 export async function writeShared(
   memory: MemoryDB,
   rag: RAGPipeline,
-  args: { category: string; content: string; tags: string },
+  args: { category: string; content: string; tags: string; confidence: number },
   log: RequestLogger,
 ): Promise<WriteResult> {
   const id = randomUUID();
+  const status = computeStatus(args.confidence);
+  const clamped = Math.min(1, Math.max(0, args.confidence));
 
   let vec: Float32Array;
   try {
@@ -70,7 +84,14 @@ export async function writeShared(
 
   try {
     memory.db.transaction(() => {
-      memory.insertShared(id, args.category, args.content, args.tags, "post-processing");
+      memory.insertShared(
+        id,
+        args.category,
+        args.content,
+        args.tags,
+        "post-processing",
+        { confidence: clamped, status },
+      );
       memory.upsertEmbedding(id, "shared", vec);
     })();
   } catch (err) {
@@ -81,20 +102,22 @@ export async function writeShared(
 
   log.info(
     "post",
-    `→ shared/${args.category}: ${args.content.slice(0, 100)}`,
-    { meta: { factId: id, layer: "shared", category: args.category } },
+    `→ shared/${args.category} [${status} ${clamped.toFixed(2)}]: ${args.content.slice(0, 100)}`,
+    { meta: { factId: id, layer: "shared", category: args.category, status, confidence: clamped } },
   );
-  return { ok: true, id };
+  return { ok: true, id, status };
 }
 
 export async function writeContext(
   memory: MemoryDB,
   rag: RAGPipeline,
-  args: { category: string; content: string; tags: string },
+  args: { category: string; content: string; tags: string; confidence: number },
   requestId: string,
   log: RequestLogger,
 ): Promise<WriteResult> {
   const id = randomUUID();
+  const status = computeStatus(args.confidence);
+  const clamped = Math.min(1, Math.max(0, args.confidence));
 
   let vec: Float32Array;
   let timer: ReturnType<typeof setTimeout> | null = null;
@@ -123,7 +146,15 @@ export async function writeContext(
 
   try {
     memory.db.transaction(() => {
-      memory.insertContext(id, args.category, args.content, args.tags, [requestId]);
+      memory.insertContext(
+        id,
+        args.category,
+        args.content,
+        args.tags,
+        [requestId],
+        undefined,
+        { confidence: clamped, status },
+      );
       memory.upsertEmbedding(id, "context", vec);
     })();
   } catch (err) {
@@ -134,8 +165,8 @@ export async function writeContext(
 
   log.info(
     "post",
-    `→ context/${args.category}: ${args.content.slice(0, 100)}`,
-    { meta: { factId: id, layer: "context", category: args.category } },
+    `→ context/${args.category} [${status} ${clamped.toFixed(2)}]: ${args.content.slice(0, 100)}`,
+    { meta: { factId: id, layer: "context", category: args.category, status, confidence: clamped } },
   );
-  return { ok: true, id };
+  return { ok: true, id, status };
 }

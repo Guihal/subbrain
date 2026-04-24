@@ -36,15 +36,43 @@ export class MemoryTools {
   write(params: {
     layer: string;
     content: string;
+    /**
+     * Confidence 0..1 (MEM-5 / PR 22a). Enforced as required by the registry
+     * TypeBox schema (`memory_write`). Direct callers of `MemoryTools.write`
+     * (internal tests, legacy code paths) may omit it, in which case a
+     * conservative `HIGH`/'active' baseline is used — public tool callers
+     * cannot reach this branch because registry validation rejects the
+     * request upstream.
+     */
+    confidence?: number | "HIGH" | "LOW";
     id?: string;
     title?: string;
     tags?: string;
     category?: string;
     agent_id?: string;
-    confidence?: "HIGH" | "LOW";
     key?: string;
   }): ToolResult {
     const id = params.id || randomUUID();
+    // MEM-5 (PR 22a): numeric confidence 0..1 classifies the row via the
+    // MEMORY_AUTOACCEPT_CONFIDENCE threshold (default 0.8):
+    //   ≥ threshold → 'active', below → 'pending'.
+    // Archive layer retains its legacy HIGH/LOW label — mapped from the same
+    // numeric score (≥ 0.8 → HIGH) so the registry surface stays uniform.
+    // Legacy string form ("HIGH"/"LOW") from direct-test callers is preserved
+    // as a fallback — they never reach the registry validator.
+    const THRESHOLD = Number(process.env.MEMORY_AUTOACCEPT_CONFIDENCE ?? 0.8);
+    let numericConfidence: number;
+    if (typeof params.confidence === "number") {
+      numericConfidence = params.confidence;
+    } else if (params.confidence === "LOW") {
+      numericConfidence = 0.5;
+    } else {
+      numericConfidence = 1.0; // "HIGH" or undefined → confirmed/auto-accept
+    }
+    const confidence = Math.min(1, Math.max(0, numericConfidence));
+    const status: "active" | "pending" =
+      confidence >= THRESHOLD ? "active" : "pending";
+    const archiveLabel: "HIGH" | "LOW" = confidence >= 0.8 ? "HIGH" : "LOW";
 
     switch (params.layer) {
       case "focus":
@@ -59,6 +87,8 @@ export class MemoryTools {
             title: params.title,
             content: params.content,
             tags: params.tags,
+            status,
+            confidence,
           });
         } else {
           this.memory.insertContext(
@@ -68,6 +98,7 @@ export class MemoryTools {
             params.tags || "",
             [],
             params.agent_id,
+            { confidence, status },
           );
         }
         break;
@@ -78,7 +109,7 @@ export class MemoryTools {
             title: params.title,
             content: params.content,
             tags: params.tags,
-            confidence: params.confidence,
+            confidence: archiveLabel,
           });
         } else {
           this.memory.insertArchive(
@@ -87,7 +118,7 @@ export class MemoryTools {
             params.content,
             params.tags || "",
             [],
-            params.confidence || "HIGH",
+            archiveLabel,
             params.agent_id,
           );
         }
@@ -99,6 +130,8 @@ export class MemoryTools {
           params.category || "general",
           params.content,
           params.tags || "",
+          undefined,
+          { confidence, status },
         );
         break;
 

@@ -456,6 +456,45 @@ export function migrate(db: Database): void {
       for (const sql of mig7Stmts) db.query(sql).run();
     })();
   }
+
+  // Migration 8 (MEM-5): confidence + status columns on shared_memory and
+  // layer2_context. Post-hippocampus now emits a confidence score (0..1);
+  // rows below MEMORY_AUTOACCEPT_CONFIDENCE (default 0.8) are inserted with
+  // status='pending' and filtered out of RAG injection until approved.
+  // CHECK on status via triggers because SQLite ALTER cannot ADD CHECK.
+  // Existing rows default to status='active' via the column DEFAULT — back-compat.
+  // Archive layer (layer3_archive) is NOT touched here: it already has its own
+  // HIGH/LOW confidence column used by the night-cycle, different semantics.
+  if (version < 8) {
+    const mig8Stmts = [
+      `ALTER TABLE shared_memory ADD COLUMN confidence REAL DEFAULT NULL`,
+      `ALTER TABLE shared_memory ADD COLUMN status TEXT NOT NULL DEFAULT 'active'`,
+      `CREATE TRIGGER IF NOT EXISTS shared_status_check_ins
+         BEFORE INSERT ON shared_memory
+         WHEN NEW.status NOT IN ('pending','active','rejected')
+         BEGIN SELECT RAISE(ABORT, 'invalid status'); END`,
+      `CREATE TRIGGER IF NOT EXISTS shared_status_check_upd
+         BEFORE UPDATE OF status ON shared_memory
+         WHEN NEW.status NOT IN ('pending','active','rejected')
+         BEGIN SELECT RAISE(ABORT, 'invalid status'); END`,
+      `ALTER TABLE layer2_context ADD COLUMN confidence REAL DEFAULT NULL`,
+      `ALTER TABLE layer2_context ADD COLUMN status TEXT NOT NULL DEFAULT 'active'`,
+      `CREATE TRIGGER IF NOT EXISTS context_status_check_ins
+         BEFORE INSERT ON layer2_context
+         WHEN NEW.status NOT IN ('pending','active','rejected')
+         BEGIN SELECT RAISE(ABORT, 'invalid status'); END`,
+      `CREATE TRIGGER IF NOT EXISTS context_status_check_upd
+         BEFORE UPDATE OF status ON layer2_context
+         WHEN NEW.status NOT IN ('pending','active','rejected')
+         BEGIN SELECT RAISE(ABORT, 'invalid status'); END`,
+      `CREATE INDEX IF NOT EXISTS idx_shared_status ON shared_memory(status)`,
+      `CREATE INDEX IF NOT EXISTS idx_memory_status ON layer2_context(status)`,
+      `PRAGMA user_version = 8`,
+    ];
+    db.transaction(() => {
+      for (const sql of mig8Stmts) db.query(sql).run();
+    })();
+  }
 }
 
 export { EMBEDDING_DIM };

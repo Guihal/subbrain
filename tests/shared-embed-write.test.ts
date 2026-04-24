@@ -53,7 +53,7 @@ describe("writeShared — embed + transactional persistence (PR 24)", () => {
     const wr = await writeShared(
       memory,
       rag,
-      { category: "tech", content: "fact X: SNMP uses UDP 161", tags: "snmp" },
+      { category: "tech", content: "fact X: SNMP uses UDP 161", tags: "snmp", confidence: 0.95 },
       log,
     );
     expect(wr.ok).toBe(true);
@@ -63,6 +63,7 @@ describe("writeShared — embed + transactional persistence (PR 24)", () => {
     const row = memory.getShared(wr.id!);
     expect(row).not.toBeNull();
     expect(row!.content).toContain("fact X");
+    expect(row!.status).toBe("active");
 
     // vec_embedding row present for layer=shared
     const vecRow = memory.db
@@ -77,7 +78,7 @@ describe("writeShared — embed + transactional persistence (PR 24)", () => {
     const wr = await writeShared(
       memory,
       rag,
-      { category: "tech", content: "fact X extra content about SNMP discovery", tags: "" },
+      { category: "tech", content: "fact X extra content about SNMP discovery", tags: "", confidence: 0.9 },
       log,
     );
     expect(wr.ok).toBe(true);
@@ -115,7 +116,7 @@ describe("writeShared — embed + transactional persistence (PR 24)", () => {
     const wr = await writeShared(
       memory,
       ragHang,
-      { category: "tech", content: "should never persist", tags: "" },
+      { category: "tech", content: "should never persist", tags: "", confidence: 0.9 },
       log,
     );
     expect(wr.ok).toBe(false);

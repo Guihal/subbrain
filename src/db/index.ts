@@ -35,6 +35,7 @@ export type {
   TaskScope,
   TaskStatus,
   SchedulerStateRow,
+  MemoryStatus,
 } from "./types";
 
 export { InvalidTransitionError } from "./tables/task-transitions";
@@ -77,12 +78,28 @@ export class MemoryDB {
   deleteFocus = (key: string) => this._mem.deleteFocus(key);
 
   // ─── Layer 2: Context ──────────────────────────────────────
-  insertContext = (id: string, title: string, content: string, tags?: string, derivedFrom?: string[], agentId?: string) =>
-    this._mem.insertContext(id, title, content, tags, derivedFrom, agentId);
-  updateContext = (id: string, fields: { title?: string; content?: string; tags?: string }) =>
-    this._mem.updateContext(id, fields);
+  insertContext = (
+    id: string,
+    title: string,
+    content: string,
+    tags?: string,
+    derivedFrom?: string[],
+    agentId?: string,
+    opts?: import("./tables/memory").InsertContextOpts,
+  ) => this._mem.insertContext(id, title, content, tags, derivedFrom, agentId, opts);
+  updateContext = (
+    id: string,
+    fields: {
+      title?: string;
+      content?: string;
+      tags?: string;
+      status?: import("./types").MemoryStatus;
+      confidence?: number | null;
+    },
+  ) => this._mem.updateContext(id, fields);
   getContext = (id: string) => this._mem.getContext(id);
-  getContextMany = (ids: string[]) => this._mem.getContextMany(ids);
+  getContextMany = (ids: string[], opts?: { activeOnly?: boolean }) =>
+    this._mem.getContextMany(ids, opts);
   listContext = (limit?: number, offset?: number) => this._mem.listContext(limit, offset);
   countContext = () => this._mem.countContext();
   deleteContext = (id: string) => this._mem.deleteContext(id);
@@ -99,21 +116,37 @@ export class MemoryDB {
   deleteArchive = (id: string) => this._mem.deleteArchive(id);
 
   // ─── FTS5 Search (context + archive) ──────────────────────
-  searchContext = (query: string, limit?: number) => this._mem.searchContext(query, limit);
+  searchContext = (query: string, limit?: number, opts?: { activeOnly?: boolean }) =>
+    this._mem.searchContext(query, limit, opts);
   searchArchive = (query: string, limit?: number) => this._mem.searchArchive(query, limit);
 
   // ─── Shared Memory ─────────────────────────────────────────
-  insertShared = (id: string, category: string, content: string, tags?: string, source?: string) =>
-    this._shared.insertShared(id, category, content, tags, source);
+  insertShared = (
+    id: string,
+    category: string,
+    content: string,
+    tags?: string,
+    source?: string,
+    opts?: import("./tables/shared").InsertSharedOpts,
+  ) => this._shared.insertShared(id, category, content, tags, source, opts);
   getAllShared = () => this._shared.getAllShared();
   listShared = (limit?: number, offset?: number, category?: string) =>
     this._shared.listShared(limit, offset, category);
   countShared = (category?: string) => this._shared.countShared(category);
   getShared = (id: string) => this._shared.getShared(id);
-  getSharedMany = (ids: string[]) => this._shared.getSharedMany(ids);
+  getSharedMany = (ids: string[], opts?: { activeOnly?: boolean }) =>
+    this._shared.getSharedMany(ids, opts);
   getSharedByCategory = (category: string) => this._shared.getSharedByCategory(category);
-  updateShared = (id: string, fields: { content?: string; tags?: string; category?: string }) =>
-    this._shared.updateShared(id, fields);
+  updateShared = (
+    id: string,
+    fields: {
+      content?: string;
+      tags?: string;
+      category?: string;
+      status?: import("./types").MemoryStatus;
+      confidence?: number | null;
+    },
+  ) => this._shared.updateShared(id, fields);
   deleteShared = (id: string) => this._shared.deleteShared(id);
 
   // ─── Agent Memory ──────────────────────────────────────────
@@ -130,7 +163,8 @@ export class MemoryDB {
   deleteAgentMemory = (id: string) => this._shared.deleteAgentMemory(id);
 
   // ─── FTS5 + Vector Search (shared) ─────────────────────────
-  searchShared = (query: string, limit?: number) => this._shared.searchShared(query, limit);
+  searchShared = (query: string, limit?: number, opts?: { activeOnly?: boolean }) =>
+    this._shared.searchShared(query, limit, opts);
   upsertEmbedding = (id: string, layer: string, embedding: Float32Array) =>
     this._shared.upsertEmbedding(id, layer, embedding);
   searchEmbeddings = (embedding: Float32Array, limit?: number, layer?: string) =>

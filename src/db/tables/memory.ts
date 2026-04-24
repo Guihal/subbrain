@@ -1,11 +1,24 @@
 import { Database } from "bun:sqlite";
 import { sanitizeFtsQuery } from "../../lib/fts-utils";
-import type { ContextRow, ArchiveRow, FtsResult } from "../types";
+import type { ContextRow, ArchiveRow, FtsResult, MemoryStatus } from "../types";
 import { updateRow } from "./update-row";
 
 // columns updatable from REST/UI
-const CONTEXT_UPDATABLE = new Set(["title", "content", "tags"]);
+// MEM-5 (PR 22a): status joins the allow-list so the approval UI (PR 22b)
+// can transition pending → active/rejected via updateContext.
+const CONTEXT_UPDATABLE = new Set([
+  "title",
+  "content",
+  "tags",
+  "status",
+  "confidence",
+]);
 const ARCHIVE_UPDATABLE = new Set(["title", "content", "tags", "confidence"]);
+
+export interface InsertContextOpts {
+  confidence?: number | null;
+  status?: MemoryStatus;
+}
 
 export class MemoryTable {
   constructor(public readonly db: Database) {}
@@ -48,12 +61,24 @@ export class MemoryTable {
     tags: string = "",
     derivedFrom: string[] = [],
     agentId?: string,
+    opts?: InsertContextOpts,
   ): void {
+    const conf = opts?.confidence ?? null;
+    const status = opts?.status ?? "active";
     this.db
       .query(
-        "INSERT INTO layer2_context (id, title, content, tags, derived_from, agent_id) VALUES (?, ?, ?, ?, ?, ?)",
+        "INSERT INTO layer2_context (id, title, content, tags, derived_from, agent_id, confidence, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
       )
-      .run(id, title, content, tags, JSON.stringify(derivedFrom), agentId ?? null);
+      .run(
+        id,
+        title,
+        content,
+        tags,
+        JSON.stringify(derivedFrom),
+        agentId ?? null,
+        conf,
+        status,
+      );
   }
 
   updateContext(
@@ -69,11 +94,17 @@ export class MemoryTable {
       .get(id) as ContextRow | null;
   }
 
-  getContextMany(ids: string[]): ContextRow[] {
+  /**
+   * Batch-lookup context rows by id. `activeOnly` (PR 22a / MEM-5) filters out
+   * pending/rejected rows at SQL level — used by RAG injection so unapproved
+   * facts never reach model context.
+   */
+  getContextMany(ids: string[], opts?: { activeOnly?: boolean }): ContextRow[] {
     if (ids.length === 0) return [];
     const placeholders = ids.map(() => "?").join(",");
+    const statusFilter = opts?.activeOnly ? " AND status = 'active'" : "";
     return this.db
-      .query(`SELECT * FROM layer2_context WHERE id IN (${placeholders})`)
+      .query(`SELECT * FROM layer2_context WHERE id IN (${placeholders})${statusFilter}`)
       .all(...ids) as ContextRow[];
   }
 
@@ -148,12 +179,17 @@ export class MemoryTable {
 
   // ─── FTS5 Search (context + archive) ──────────────────────
 
-  searchContext(query: string, limit = 10): FtsResult[] {
+  /**
+   * FTS5 search on layer2_context. `activeOnly` (PR 22a / MEM-5) filters by
+   * status = 'active' via JOIN — used by RAG injection path.
+   */
+  searchContext(query: string, limit = 10, opts?: { activeOnly?: boolean }): FtsResult[] {
     const ftsQuery = sanitizeFtsQuery(query);
     if (!ftsQuery) return [];
+    const statusFilter = opts?.activeOnly ? " AND c.status = 'active'" : "";
     return this.db
       .query(
-        "SELECT c.id, c.title, c.tags, snippet(fts_context, 1, '<b>', '</b>', '...', 32) AS snippet, rank, c.created_at, c.updated_at FROM fts_context f JOIN layer2_context c ON c.rowid = f.rowid WHERE fts_context MATCH ? ORDER BY rank LIMIT ?",
+        `SELECT c.id, c.title, c.tags, snippet(fts_context, 1, '<b>', '</b>', '...', 32) AS snippet, rank, c.created_at, c.updated_at FROM fts_context f JOIN layer2_context c ON c.rowid = f.rowid WHERE fts_context MATCH ?${statusFilter} ORDER BY rank LIMIT ?`,
       )
       .all(ftsQuery, limit) as FtsResult[];
   }

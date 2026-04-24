@@ -47,6 +47,7 @@ describe("post/hippocampus.runHippocampus", () => {
                 arguments: JSON.stringify({
                   layer: "shared", category: "user",
                   content: "User likes Bun runtime", tags: "bun,pref",
+                  confidence: 0.95,
                 }),
               },
             }],

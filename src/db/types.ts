@@ -1,5 +1,7 @@
 // ─── Row Types for SQLite tables ──────────────────────────
 
+export type MemoryStatus = "pending" | "active" | "rejected";
+
 export interface ContextRow {
   id: string;
   title: string;
@@ -9,6 +11,8 @@ export interface ContextRow {
   agent_id: string | null;
   created_at: number;
   updated_at: number;
+  confidence: number | null;
+  status: MemoryStatus;
 }
 
 export interface ArchiveRow {
@@ -42,6 +46,8 @@ export interface SharedRow {
   source: string | null;
   created_at: number;
   updated_at: number;
+  confidence: number | null;
+  status: MemoryStatus;
 }
 
 export interface AgentMemRow {
