@@ -20,6 +20,7 @@ import { NightCycleController } from "./night-cycle-controller";
 export function createApp(deps: AppDeps) {
   const {
     memory,
+    memoryService,
     router,
     tools,
     metrics,
@@ -121,7 +122,7 @@ export function createApp(deps: AppDeps) {
     .use(mcpRoute(registry, tools))
     .use(autonomousRoute(agentLoop, memory))
     .use(chatsRoute(memory))
-    .use(memoryRoute(memory))
+    .use(memoryRoute(memoryService))
     .use(freelanceRoute(memory, deps.freelanceScout))
     .use(tasksRoute(memory));
 

@@ -1,225 +1,101 @@
 /**
- * Memory admin routes — HTTP surface for the web UI /memory page.
- *
- * Covers all memory layers: layer1_focus (KV), shared_memory, layer2_context,
- * layer3_archive, agent_memory, layer4_log (read-only). All endpoints are
- * registered after authMiddleware in src/app/bootstrap.ts.
- *
- * List endpoints return a `PaginatedResponse<T>`-compatible `{items, total,
- * page, page_size}` envelope (see `src/lib/api-envelope.ts`). `?q=`
- * delegates to the FTS5 helpers on MemoryDB (which internally call
- * sanitizeFtsQuery); FTS hits are rehydrated to full rows before returning.
+ * Memory admin routes — thin HTTP surface over `MemoryService` (PR 25b,
+ * LAYER-2). No SQL here; enforced by grep gate on this file.
  */
 import { Elysia, t } from "elysia";
-import type { MemoryDB } from "../db";
 import { paginate } from "../lib/api-envelope";
 import { NotFoundError } from "../lib/errors";
+import type { MemoryService } from "../services/memory.service";
+import type { MemoryStatus } from "../db";
 
-export function memoryRoute(memory: MemoryDB) {
-  return (
-    new Elysia({ prefix: "/v1/memory" })
-      // ─── Layer 1: Focus (KV) ────────────────────────────────
-      .get("/focus", () => memory.getAllFocus())
-      .put(
-        "/focus/:key",
-        ({ params, body }) => {
-          memory.setFocus(params.key, body.value);
-          return { key: params.key, value: body.value };
-        },
-        { body: t.Object({ value: t.String() }) },
-      )
-      .delete("/focus/:key", ({ params }) => {
-        memory.deleteFocus(params.key);
-        return { ok: true };
-      })
+const str = (v: unknown): string | undefined =>
+  typeof v === "string" && v.length > 0 ? v : undefined;
+const toStatus = (v: unknown): MemoryStatus | undefined =>
+  v === "pending" || v === "active" || v === "rejected" ? v : undefined;
 
-      // ─── Shared Memory ─────────────────────────────────────
-      .get("/shared", ({ query }) => {
-        const category =
-          typeof query.category === "string" && query.category.length > 0
-            ? query.category
-            : undefined;
-        return paginate(
-          (limit, offset, q) => {
-            if (q) {
-              const hits = memory.searchShared(q, limit);
-              const items = hits
-                .map((h) => memory.getShared(h.id))
-                .filter((r): r is NonNullable<typeof r> => r !== null);
-              return { items, total: items.length };
-            }
-            return {
-              items: memory.listShared(limit, offset, category),
-              total: memory.countShared(category),
-            };
-          },
-          query,
-        );
-      })
-      .patch(
-        "/shared/:id",
-        ({ params, body }) => {
-          const row = memory.getShared(params.id);
-          if (!row) throw new NotFoundError("Shared entry");
-          memory.updateShared(params.id, body);
-          return memory.getShared(params.id);
-        },
-        {
-          body: t.Object({
-            category: t.Optional(t.String()),
-            content: t.Optional(t.String()),
-            tags: t.Optional(t.String()),
-          }),
-        },
-      )
-      .delete("/shared/:id", ({ params }) => {
-        const row = memory.getShared(params.id);
-        if (!row) throw new NotFoundError("Shared entry");
-        memory.deleteShared(params.id);
-        return { ok: true };
-      })
+const bodies = {
+  shared: t.Object({
+    category: t.Optional(t.String()),
+    content: t.Optional(t.String()),
+    tags: t.Optional(t.String()),
+  }),
+  context: t.Object({
+    title: t.Optional(t.String()),
+    content: t.Optional(t.String()),
+    tags: t.Optional(t.String()),
+  }),
+  archive: t.Object({
+    title: t.Optional(t.String()),
+    content: t.Optional(t.String()),
+    tags: t.Optional(t.String()),
+    confidence: t.Optional(t.Union([t.Literal("HIGH"), t.Literal("LOW")])),
+  }),
+  agent: t.Object({
+    content: t.Optional(t.String()),
+    tags: t.Optional(t.String()),
+  }),
+};
 
-      // ─── Layer 2: Context ──────────────────────────────────
-      .get("/context", ({ query }) =>
-        paginate(
-          (limit, offset, q) => {
-            if (q) {
-              const hits = memory.searchContext(q, limit);
-              const items = hits
-                .map((h) => memory.getContext(h.id))
-                .filter((r): r is NonNullable<typeof r> => r !== null);
-              return { items, total: items.length };
-            }
-            return {
-              items: memory.listContext(limit, offset),
-              total: memory.countContext(),
-            };
-          },
-          query,
-        ),
-      )
-      .patch(
-        "/context/:id",
-        ({ params, body }) => {
-          const row = memory.getContext(params.id);
-          if (!row) throw new NotFoundError("Context entry");
-          memory.updateContext(params.id, body);
-          return memory.getContext(params.id);
-        },
-        {
-          body: t.Object({
-            title: t.Optional(t.String()),
-            content: t.Optional(t.String()),
-            tags: t.Optional(t.String()),
-          }),
-        },
-      )
-      .delete("/context/:id", ({ params }) => {
-        const row = memory.getContext(params.id);
-        if (!row) throw new NotFoundError("Context entry");
-        memory.deleteContext(params.id);
-        return { ok: true };
-      })
-
-      // ─── Layer 3: Archive ──────────────────────────────────
-      .get("/archive", ({ query }) =>
-        paginate(
-          (limit, offset, q) => {
-            if (q) {
-              const hits = memory.searchArchive(q, limit);
-              const items = hits
-                .map((h) => memory.getArchive(h.id))
-                .filter((r): r is NonNullable<typeof r> => r !== null);
-              return { items, total: items.length };
-            }
-            return {
-              items: memory.listArchive(limit, offset),
-              total: memory.countArchive(),
-            };
-          },
-          query,
-        ),
-      )
-      .patch(
-        "/archive/:id",
-        ({ params, body }) => {
-          const row = memory.getArchive(params.id);
-          if (!row) throw new NotFoundError("Archive entry");
-          memory.updateArchive(params.id, body);
-          return memory.getArchive(params.id);
-        },
-        {
-          body: t.Object({
-            title: t.Optional(t.String()),
-            content: t.Optional(t.String()),
-            tags: t.Optional(t.String()),
-            confidence: t.Optional(
-              t.Union([t.Literal("HIGH"), t.Literal("LOW")]),
-            ),
-          }),
-        },
-      )
-      .delete("/archive/:id", ({ params }) => {
-        const row = memory.getArchive(params.id);
-        if (!row) throw new NotFoundError("Archive entry");
-        memory.deleteArchive(params.id);
-        return { ok: true };
-      })
-
-      // ─── Agent Memory ──────────────────────────────────────
-      .get("/agent/agents", () => memory.listAgentIds())
-      .get("/agent", ({ query }) => {
-        const agentId =
-          typeof query.agent_id === "string" && query.agent_id.length > 0
-            ? query.agent_id
-            : undefined;
-        return paginate(
-          (limit, offset) => ({
-            items: memory.listAllAgentMemories(limit, offset, agentId),
-            total: memory.countAgentMemories(agentId),
-          }),
-          query,
-        );
-      })
-      .patch(
-        "/agent/:id",
-        ({ params, body }) => {
-          const row = memory.getAgentMemory(params.id);
-          if (!row) throw new NotFoundError("Agent memory entry");
-          memory.updateAgentMemory(params.id, body);
-          return memory.getAgentMemory(params.id);
-        },
-        {
-          body: t.Object({
-            content: t.Optional(t.String()),
-            tags: t.Optional(t.String()),
-          }),
-        },
-      )
-      .delete("/agent/:id", ({ params }) => {
-        const row = memory.getAgentMemory(params.id);
-        if (!row) throw new NotFoundError("Agent memory entry");
-        memory.deleteAgentMemory(params.id);
-        return { ok: true };
-      })
-
-      // ─── Layer 4: Log (read-only) ──────────────────────────
-      .get("/log/sessions", ({ query }) => {
-        const limit = Number(query.limit) || 50;
-        return memory.listLogSessions(limit);
-      })
-      .get("/log", ({ query }) => {
-        const sessionId =
-          typeof query.session_id === "string" && query.session_id.length > 0
-            ? query.session_id
-            : undefined;
-        return paginate(
-          (limit, offset) => ({
-            items: memory.listLog(limit, offset, sessionId),
-            total: memory.countLog(sessionId),
-          }),
-          query,
-        );
-      })
-  );
+export function memoryRoute(svc: MemoryService) {
+  return new Elysia({ prefix: "/v1/memory" })
+    .get("/focus", () => svc.listFocus())
+    .put("/focus/:key", ({ params, body }) => {
+      svc.upsertFocus(params.key, body.value);
+      return { key: params.key, value: body.value };
+    }, { body: t.Object({ value: t.String() }) })
+    .delete("/focus/:key", ({ params }) => (svc.deleteFocus(params.key), { ok: true }))
+    .get("/shared", ({ query }) =>
+      paginate((limit, offset, q) => svc.listShared({
+        limit, offset, q,
+        category: str(query.category), status: toStatus(query.status),
+      }), query))
+    .patch("/shared/:id", ({ params, body }) => {
+      if (!svc.getShared(params.id)) throw new NotFoundError("Shared entry");
+      return svc.patchShared(params.id, body);
+    }, { body: bodies.shared })
+    .delete("/shared/:id", ({ params }) => {
+      if (!svc.getShared(params.id)) throw new NotFoundError("Shared entry");
+      svc.deleteShared(params.id);
+      return { ok: true };
+    })
+    .get("/context", ({ query }) =>
+      paginate((limit, offset, q) =>
+        svc.listContext({ limit, offset, q, status: toStatus(query.status) }), query))
+    .patch("/context/:id", ({ params, body }) => {
+      if (!svc.getContext(params.id)) throw new NotFoundError("Context entry");
+      return svc.patchContext(params.id, body);
+    }, { body: bodies.context })
+    .delete("/context/:id", ({ params }) => {
+      if (!svc.getContext(params.id)) throw new NotFoundError("Context entry");
+      svc.deleteContext(params.id);
+      return { ok: true };
+    })
+    .get("/archive", ({ query }) =>
+      paginate((limit, offset, q) => svc.listArchive({ limit, offset, q }), query))
+    .patch("/archive/:id", ({ params, body }) => {
+      if (!svc.getArchive(params.id)) throw new NotFoundError("Archive entry");
+      return svc.patchArchive(params.id, body);
+    }, { body: bodies.archive })
+    .delete("/archive/:id", ({ params }) => {
+      if (!svc.getArchive(params.id)) throw new NotFoundError("Archive entry");
+      svc.deleteArchive(params.id);
+      return { ok: true };
+    })
+    .get("/agent/agents", () => svc.listAgentIds())
+    .get("/agent", ({ query }) =>
+      paginate((limit, offset) =>
+        svc.listAgent({ limit, offset, agentId: str(query.agent_id) }), query))
+    .patch("/agent/:id", ({ params, body }) => {
+      if (!svc.getAgent(params.id)) throw new NotFoundError("Agent memory entry");
+      return svc.patchAgent(params.id, body);
+    }, { body: bodies.agent })
+    .delete("/agent/:id", ({ params }) => {
+      if (!svc.getAgent(params.id)) throw new NotFoundError("Agent memory entry");
+      svc.deleteAgent(params.id);
+      return { ok: true };
+    })
+    .get("/log/sessions", ({ query }) => svc.listLogSessions(Number(query.limit) || 50))
+    .get("/log", ({ query }) =>
+      paginate((limit, offset) =>
+        svc.listLog({ limit, offset, sessionId: str(query.session_id) }), query));
 }

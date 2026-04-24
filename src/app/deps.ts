@@ -16,6 +16,7 @@ import { FreelanceScout, type FreelanceScoutConfig } from "../scheduler/freelanc
 import { FREE_AGENT_TASK } from "../scheduler/free-agent";
 import { Metrics } from "../lib/metrics";
 import { AuthService } from "../services/auth.service";
+import { MemoryService } from "../services/memory.service";
 import { logger } from "../lib/logger";
 
 export interface AppConfig {
@@ -59,6 +60,7 @@ export interface AppConfig {
 export interface AppDeps {
   config: AppConfig;
   authService: AuthService;
+  memoryService: MemoryService;
   memory: MemoryDB;
   router: ModelRouter;
   rag: RAGPipeline;
@@ -200,6 +202,7 @@ export async function initDeps(config: AppConfig = loadConfig()): Promise<AppDep
   const tools = new ToolExecutor(memory, router);
   const rag = new RAGPipeline(memory, router);
   tools.setRAG(rag);
+  const memoryService = new MemoryService(memory, rag);
   const playwright = new PlaywrightClient();
   tools.setPlaywright(playwright);
 
@@ -254,6 +257,7 @@ export async function initDeps(config: AppConfig = loadConfig()): Promise<AppDep
   return {
     config,
     authService,
+    memoryService,
     memory,
     router,
     rag,
