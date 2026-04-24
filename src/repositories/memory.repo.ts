@@ -175,4 +175,25 @@ export class MemoryRepository {
       .get(status) as { c: number };
     return { items, total: row.c };
   }
+
+  // Single source of truth for pending-approval status flips (PR 22b).
+  // 404-semantics live here: `null` → caller throws NotFoundError.
+  // `bun:sqlite` single-conn serializes the BEGIN..COMMIT so mid-tx delete is
+  // physically impossible under the default runtime config.
+  setStatusSafe(
+    layer: PendingLayer,
+    id: string,
+    status: MemoryStatus,
+  ): SharedRow | ContextRow | null {
+    return this.transaction(() => {
+      if (layer === "shared") {
+        if (!this.getShared(id)) return null;
+        this.updateShared(id, { status });
+        return this.getShared(id);
+      }
+      if (!this.getContext(id)) return null;
+      this.updateContext(id, { status });
+      return this.getContext(id);
+    });
+  }
 }

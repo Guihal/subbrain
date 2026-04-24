@@ -36,6 +36,23 @@ const bodies = {
   }),
 };
 
+// PR 22b contracts (restored after reconcile-коммит 196c0d9 dropped them).
+// layer is required + constrained; missing/invalid → 422 via Elysia VALIDATION.
+const PENDING_QUERY = t.Object({
+  layer: t.Union([t.Literal("shared"), t.Literal("context")]),
+  page: t.Optional(t.String()),
+  page_size: t.Optional(t.String()),
+  limit: t.Optional(t.String()),
+  offset: t.Optional(t.String()),
+});
+const STATUS_PARAMS = t.Object({
+  layer: t.Union([t.Literal("shared"), t.Literal("context")]),
+  id: t.String(),
+});
+const STATUS_BODY = t.Object({
+  status: t.Union([t.Literal("active"), t.Literal("rejected")]),
+});
+
 export function memoryRoute(svc: MemoryService) {
   return new Elysia({ prefix: "/v1/memory" })
     .get("/focus", () => svc.listFocus())
@@ -99,17 +116,27 @@ export function memoryRoute(svc: MemoryService) {
       paginate((limit, offset) =>
         svc.listLog({ limit, offset, sessionId: str(query.session_id) }), query))
     // ─── PR 22b: pending approval ─────────────────────────────
-    .get("/pending", ({ query }) => {
-      const layer = query.layer === "context" ? "context" : "shared";
-      return paginate((limit, offset) =>
-        svc.listPending(layer, { limit, offset }), query);
-    })
+    .get(
+      "/pending",
+      ({ query }) =>
+        paginate(
+          (limit, offset) =>
+            svc.listPending(query.layer, { limit, offset }),
+          query,
+        ),
+      { query: PENDING_QUERY },
+    )
     .patch(
       "/:layer/:id/status",
       ({ params, body }) => {
-        const layer = params.layer === "context" ? "context" : "shared";
-        return svc.setStatus(layer, params.id, body.status);
+        const row = svc.setStatus(params.layer, params.id, body.status);
+        if (!row) {
+          throw new NotFoundError(
+            params.layer === "shared" ? "Shared entry" : "Context entry",
+          );
+        }
+        return row;
       },
-      { body: t.Object({ status: t.Union([t.Literal("active"), t.Literal("rejected")]) }) },
+      { params: STATUS_PARAMS, body: STATUS_BODY },
     );
 }

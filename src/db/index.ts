@@ -195,6 +195,17 @@ export class MemoryDB {
     this.memoryRepo.searchEmbeddings(embedding, limit, layer);
   deleteEmbedding = (id: string) => this.memoryRepo.deleteEmbedding(id);
 
+  // ─── Pending approval (PR 22b) — back-compat facade ───────
+  listPending = (
+    layer: "shared" | "context",
+    opts: { limit: number; offset: number },
+  ) => this.memoryRepo.listByStatus(layer, "pending", opts.limit, opts.offset);
+  setStatus = (
+    layer: "shared" | "context",
+    id: string,
+    status: import("./types").MemoryStatus,
+  ) => this.memoryRepo.setStatusSafe(layer, id, status);
+
   // ─── Chats ─────────────────────────────────────────────────
   createChat = (id: string, title: string, model: string, source?: string) =>
     this.chatRepo.createChat(id, title, model, source);

@@ -231,9 +231,12 @@ export class MemoryService {
   listPending(layer: PendingLayer, opts: { limit: number; offset: number }): PaginatedResult<SharedRow | ContextRow> {
     return this.listByStatus(layer, "pending", opts.limit, opts.offset);
   }
-  setStatus(layer: PendingLayer, id: string, status: MemoryStatus): void {
-    if (layer === "shared") this.repo.updateShared(id, { status });
-    else this.repo.updateContext(id, { status });
+  setStatus(
+    layer: PendingLayer,
+    id: string,
+    status: MemoryStatus,
+  ): SharedRow | ContextRow | null {
+    return this.repo.setStatusSafe(layer, id, status);
   }
 
   /** Delegates to repo (moved in PR 27, used to be raw SQL in this file). */
