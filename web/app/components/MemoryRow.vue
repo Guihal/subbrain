@@ -10,11 +10,14 @@ defineProps<{
   preview?: string;
   selected?: boolean;
   deletable?: boolean;
+  pending?: boolean;
 }>();
 
 const emit = defineEmits<{
   select: [];
   delete: [];
+  approve: [];
+  reject: [];
 }>();
 
 function fmt(ts: number): string {
@@ -59,8 +62,24 @@ function fmt(ts: number): string {
     >
       {{ fmt(ts) }}
     </span>
+    <template v-if="pending">
+      <button
+        class="shrink-0 px-1.5 py-0.5 text-[11px] rounded border border-green-500/40 text-green-400 hover:bg-green-500/10"
+        title="Approve"
+        @click.stop="emit('approve')"
+      >
+        ✓ Approve
+      </button>
+      <button
+        class="shrink-0 px-1.5 py-0.5 text-[11px] rounded border border-red-500/40 text-red-400 hover:bg-red-500/10"
+        title="Reject"
+        @click.stop="emit('reject')"
+      >
+        ✗ Reject
+      </button>
+    </template>
     <button
-      v-if="deletable !== false"
+      v-if="deletable !== false && !pending"
       class="opacity-0 group-hover:opacity-100 text-(--ui-text-muted) hover:text-red-400 shrink-0 mt-0.5"
       title="Удалить"
       @click.stop="emit('delete')"

@@ -88,7 +88,16 @@ export class SharedTable {
       .all(category) as SharedRow[];
   }
 
-  updateShared(id: string, fields: { content?: string; tags?: string; category?: string }): void {
+  updateShared(
+    id: string,
+    fields: {
+      content?: string;
+      tags?: string;
+      category?: string;
+      status?: MemoryStatus;
+      confidence?: number | null;
+    },
+  ): void {
     updateRow(this.db, "shared_memory", SHARED_UPDATABLE, id, fields);
   }
 

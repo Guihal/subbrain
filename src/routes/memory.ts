@@ -1,19 +1,62 @@
 /**
- * Memory admin routes — HTTP surface for the web UI /memory page.
- *
- * Covers all memory layers: layer1_focus (KV), shared_memory, layer2_context,
- * layer3_archive, agent_memory, layer4_log (read-only). All endpoints are
- * registered after authMiddleware in src/app/bootstrap.ts.
- *
- * List endpoints return a `PaginatedResponse<T>`-compatible `{items, total,
- * page, page_size}` envelope (see `src/lib/api-envelope.ts`). `?q=`
- * delegates to the FTS5 helpers on MemoryDB (which internally call
- * sanitizeFtsQuery); FTS hits are rehydrated to full rows before returning.
+ * Memory admin routes — HTTP surface for /memory UI. Covers focus, shared,
+ * layer2_context, layer3_archive, agent, layer4_log (ro), plus PR 22b pending
+ * approval. List endpoints return {items,total,page,page_size} via paginate().
+ * FTS hits are rehydrated to full rows via getShared/getContext/getArchive.
+ * Mounted after authMiddleware in src/app/bootstrap.ts.
  */
 import { Elysia, t } from "elysia";
-import type { MemoryDB } from "../db";
+import type { MemoryDB, SharedRow, ContextRow } from "../db";
 import { paginate } from "../lib/api-envelope";
 import { NotFoundError } from "../lib/errors";
+
+// ─── PR 22b helpers: pending approval ────────────────────────
+type AppLayer = "shared" | "context";
+const TABLE: Record<AppLayer, string> = {
+  shared: "shared_memory",
+  context: "layer2_context",
+};
+
+function loadPending(
+  memory: MemoryDB,
+  layer: AppLayer,
+  limit: number,
+  offset: number,
+): { items: (SharedRow | ContextRow)[]; total: number } {
+  const t = TABLE[layer];
+  const items = memory.db
+    .query(`SELECT * FROM ${t} WHERE status = 'pending' ORDER BY updated_at DESC LIMIT ? OFFSET ?`)
+    .all(limit, offset) as (SharedRow | ContextRow)[];
+  const total = (
+    memory.db.query(`SELECT COUNT(*) AS c FROM ${t} WHERE status = 'pending'`).get() as { c: number }
+  ).c;
+  return { items, total };
+}
+
+function patchStatus(memory: MemoryDB, layer: AppLayer, id: string, status: "active" | "rejected") {
+  if (layer === "shared") {
+    if (!memory.getShared(id)) throw new NotFoundError("Shared entry");
+    memory.updateShared(id, { status });
+    return memory.getShared(id)!;
+  }
+  if (!memory.getContext(id)) throw new NotFoundError("Context entry");
+  memory.updateContext(id, { status });
+  return memory.getContext(id)!;
+}
+
+const LAYER_LIT = t.Union([t.Literal("shared"), t.Literal("context")]);
+const INT_LIKE = t.Optional(t.Union([t.String(), t.Number()]));
+const PENDING_QUERY = t.Object({
+  layer: LAYER_LIT,
+  page: INT_LIKE,
+  page_size: INT_LIKE,
+  limit: INT_LIKE,
+  offset: INT_LIKE,
+});
+const STATUS_PARAMS = t.Object({ layer: LAYER_LIT, id: t.String() });
+const STATUS_BODY = t.Object({
+  status: t.Union([t.Literal("active"), t.Literal("rejected")]),
+});
 
 export function memoryRoute(memory: MemoryDB) {
   return (
@@ -202,6 +245,22 @@ export function memoryRoute(memory: MemoryDB) {
         memory.deleteAgentMemory(params.id);
         return { ok: true };
       })
+
+      // ─── PR 22b: Pending approval (shared + context only) ──
+      // Route to facade update* → updateRow() with status whitelisted via
+      // SHARED_UPDATABLE / CONTEXT_UPDATABLE (PR 22a). 404 missing / 422 bad layer.
+      .get(
+        "/pending",
+        ({ query }) =>
+          paginate((l, o) => loadPending(memory, query.layer, l, o), query),
+        { query: PENDING_QUERY },
+      )
+      .patch(
+        "/:layer/:id/status",
+        ({ params, body }) =>
+          patchStatus(memory, params.layer, params.id, body.status),
+        { params: STATUS_PARAMS, body: STATUS_BODY },
+      )
 
       // ─── Layer 4: Log (read-only) ──────────────────────────
       .get("/log/sessions", ({ query }) => {
