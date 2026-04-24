@@ -1,13 +1,16 @@
 import { Database } from "bun:sqlite";
 import { openDatabase, migrate } from "./schema";
-import { MemoryTable } from "./tables/memory";
-import { SharedTable } from "./tables/shared";
-import { ChatsTable } from "./tables/chats";
-import { LogsTable } from "./tables/logs";
-import { TgMessagesTable, type TgMessageInsert, type TgSearchOpts } from "./tables/tg-messages";
-import { FreelanceLeadsTable } from "./tables/freelance-leads";
 import { TasksTable, type UpsertResult } from "./tables/tasks";
 import { SchedulerStateTable } from "./tables/scheduler-state";
+import { MemoryRepository } from "../repositories/memory.repo";
+import { ChatRepository } from "../repositories/chat.repo";
+import { LogRepository } from "../repositories/log.repo";
+import { TelegramRepository } from "../repositories/telegram.repo";
+import { FreelanceRepository } from "../repositories/freelance.repo";
+import type {
+  TgMessageInsert,
+  TgSearchOpts,
+} from "./tables/tg-messages";
 import type {
   FreelanceSource,
   FreelanceStatus,
@@ -43,26 +46,38 @@ export type { UpsertResult } from "./tables/tasks";
 
 export type { TgMessageInsert, TgSearchOpts } from "./tables/tg-messages";
 
+/**
+ * MemoryDB — PR 27 (LAYER-5). Kept as a thin facade: all memory/chat/log/
+ * tg/freelance work delegates to the repository layer. `scripts/seed.ts`,
+ * `scripts/audit-db.ts`, a few routes, and legacy tests still hold a
+ * `MemoryDB` handle, so the method surface is preserved 1:1.
+ *
+ * New code inside `src/services/` consumes repositories directly — see
+ * `src/app/deps.ts` for the wiring and the PR 27 task file for rationale.
+ * Grep-gate `tests/layer-boundary.test.ts` blocks raw SQL leaking back into
+ * services/routes/pipeline.
+ *
+ * `tasks` and `scheduler_state` stay on the facade pending a PR 27+ split
+ * (no service/route owner needs a narrower view yet).
+ */
 export class MemoryDB {
   db: Database;
-  private _mem: MemoryTable;
-  private _shared: SharedTable;
-  private _chats: ChatsTable;
-  private _logs: LogsTable;
-  private _tgmsg: TgMessagesTable;
-  private _freelance: FreelanceLeadsTable;
+  readonly memoryRepo: MemoryRepository;
+  readonly chatRepo: ChatRepository;
+  readonly logRepo: LogRepository;
+  readonly telegramRepo: TelegramRepository;
+  readonly freelanceRepo: FreelanceRepository;
   private _tasks: TasksTable;
   private _scheduler: SchedulerStateTable;
 
   constructor(path: string) {
     this.db = openDatabase(path);
     migrate(this.db);
-    this._mem = new MemoryTable(this.db);
-    this._shared = new SharedTable(this.db);
-    this._chats = new ChatsTable(this.db);
-    this._logs = new LogsTable(this.db);
-    this._tgmsg = new TgMessagesTable(this.db);
-    this._freelance = new FreelanceLeadsTable(this.db);
+    this.memoryRepo = new MemoryRepository(this.db);
+    this.chatRepo = new ChatRepository(this.db);
+    this.logRepo = new LogRepository(this.db);
+    this.telegramRepo = new TelegramRepository(this.db);
+    this.freelanceRepo = new FreelanceRepository(this.db);
     this._tasks = new TasksTable(this.db);
     this._scheduler = new SchedulerStateTable(this.db);
   }
@@ -72,10 +87,10 @@ export class MemoryDB {
   }
 
   // ─── Layer 1: Focus ────────────────────────────────────────
-  getFocus = (key: string) => this._mem.getFocus(key);
-  setFocus = (key: string, value: string) => this._mem.setFocus(key, value);
-  getAllFocus = () => this._mem.getAllFocus();
-  deleteFocus = (key: string) => this._mem.deleteFocus(key);
+  getFocus = (key: string) => this.memoryRepo.getFocus(key);
+  setFocus = (key: string, value: string) => this.memoryRepo.setFocus(key, value);
+  getAllFocus = () => this.memoryRepo.getAllFocus();
+  deleteFocus = (key: string) => this.memoryRepo.deleteFocus(key);
 
   // ─── Layer 2: Context ──────────────────────────────────────
   insertContext = (
@@ -86,7 +101,7 @@ export class MemoryDB {
     derivedFrom?: string[],
     agentId?: string,
     opts?: import("./tables/memory").InsertContextOpts,
-  ) => this._mem.insertContext(id, title, content, tags, derivedFrom, agentId, opts);
+  ) => this.memoryRepo.insertContext(id, title, content, tags, derivedFrom, agentId, opts);
   updateContext = (
     id: string,
     fields: {
@@ -96,29 +111,38 @@ export class MemoryDB {
       status?: import("./types").MemoryStatus;
       confidence?: number | null;
     },
-  ) => this._mem.updateContext(id, fields);
-  getContext = (id: string) => this._mem.getContext(id);
+  ) => this.memoryRepo.updateContext(id, fields);
+  getContext = (id: string) => this.memoryRepo.getContext(id);
   getContextMany = (ids: string[], opts?: { activeOnly?: boolean }) =>
-    this._mem.getContextMany(ids, opts);
-  listContext = (limit?: number, offset?: number) => this._mem.listContext(limit, offset);
-  countContext = () => this._mem.countContext();
-  deleteContext = (id: string) => this._mem.deleteContext(id);
+    this.memoryRepo.getContextMany(ids, opts);
+  listContext = (limit?: number, offset?: number) => this.memoryRepo.listContext(limit, offset);
+  countContext = () => this.memoryRepo.countContext();
+  deleteContext = (id: string) => this.memoryRepo.deleteContext(id);
 
   // ─── Layer 3: Archive ──────────────────────────────────────
-  insertArchive = (id: string, title: string, content: string, tags?: string, sourceRequestIds?: string[], confidence?: "HIGH" | "LOW", agentId?: string) =>
-    this._mem.insertArchive(id, title, content, tags, sourceRequestIds, confidence, agentId);
-  getArchive = (id: string) => this._mem.getArchive(id);
-  getArchiveMany = (ids: string[]) => this._mem.getArchiveMany(ids);
-  listArchive = (limit?: number, offset?: number) => this._mem.listArchive(limit, offset);
-  countArchive = () => this._mem.countArchive();
-  updateArchive = (id: string, fields: { title?: string; content?: string; tags?: string; confidence?: "HIGH" | "LOW" }) =>
-    this._mem.updateArchive(id, fields);
-  deleteArchive = (id: string) => this._mem.deleteArchive(id);
+  insertArchive = (
+    id: string,
+    title: string,
+    content: string,
+    tags?: string,
+    sourceRequestIds?: string[],
+    confidence?: "HIGH" | "LOW",
+    agentId?: string,
+  ) => this.memoryRepo.insertArchive(id, title, content, tags, sourceRequestIds, confidence, agentId);
+  getArchive = (id: string) => this.memoryRepo.getArchive(id);
+  getArchiveMany = (ids: string[]) => this.memoryRepo.getArchiveMany(ids);
+  listArchive = (limit?: number, offset?: number) => this.memoryRepo.listArchive(limit, offset);
+  countArchive = () => this.memoryRepo.countArchive();
+  updateArchive = (
+    id: string,
+    fields: { title?: string; content?: string; tags?: string; confidence?: "HIGH" | "LOW" },
+  ) => this.memoryRepo.updateArchive(id, fields);
+  deleteArchive = (id: string) => this.memoryRepo.deleteArchive(id);
 
   // ─── FTS5 Search (context + archive) ──────────────────────
   searchContext = (query: string, limit?: number, opts?: { activeOnly?: boolean }) =>
-    this._mem.searchContext(query, limit, opts);
-  searchArchive = (query: string, limit?: number) => this._mem.searchArchive(query, limit);
+    this.memoryRepo.searchContext(query, limit, opts);
+  searchArchive = (query: string, limit?: number) => this.memoryRepo.searchArchive(query, limit);
 
   // ─── Shared Memory ─────────────────────────────────────────
   insertShared = (
@@ -128,15 +152,15 @@ export class MemoryDB {
     tags?: string,
     source?: string,
     opts?: import("./tables/shared").InsertSharedOpts,
-  ) => this._shared.insertShared(id, category, content, tags, source, opts);
-  getAllShared = () => this._shared.getAllShared();
+  ) => this.memoryRepo.insertShared(id, category, content, tags, source, opts);
+  getAllShared = () => this.memoryRepo.getAllShared();
   listShared = (limit?: number, offset?: number, category?: string) =>
-    this._shared.listShared(limit, offset, category);
-  countShared = (category?: string) => this._shared.countShared(category);
-  getShared = (id: string) => this._shared.getShared(id);
+    this.memoryRepo.listShared(limit, offset, category);
+  countShared = (category?: string) => this.memoryRepo.countShared(category);
+  getShared = (id: string) => this.memoryRepo.getShared(id);
   getSharedMany = (ids: string[], opts?: { activeOnly?: boolean }) =>
-    this._shared.getSharedMany(ids, opts);
-  getSharedByCategory = (category: string) => this._shared.getSharedByCategory(category);
+    this.memoryRepo.getSharedMany(ids, opts);
+  getSharedByCategory = (category: string) => this.memoryRepo.getSharedByCategory(category);
   updateShared = (
     id: string,
     fields: {
@@ -146,74 +170,87 @@ export class MemoryDB {
       status?: import("./types").MemoryStatus;
       confidence?: number | null;
     },
-  ) => this._shared.updateShared(id, fields);
-  deleteShared = (id: string) => this._shared.deleteShared(id);
+  ) => this.memoryRepo.updateShared(id, fields);
+  deleteShared = (id: string) => this.memoryRepo.deleteShared(id);
 
   // ─── Agent Memory ──────────────────────────────────────────
   insertAgentMemory = (id: string, agentId: string, content: string, tags?: string) =>
-    this._shared.insertAgentMemory(id, agentId, content, tags);
-  getAgentMemories = (agentId: string) => this._shared.getAgentMemories(agentId);
+    this.memoryRepo.insertAgentMemory(id, agentId, content, tags);
+  getAgentMemories = (agentId: string) => this.memoryRepo.getAgentMemories(agentId);
   listAllAgentMemories = (limit?: number, offset?: number, agentId?: string) =>
-    this._shared.listAllAgentMemories(limit, offset, agentId);
-  countAgentMemories = (agentId?: string) => this._shared.countAgentMemories(agentId);
-  listAgentIds = () => this._shared.listAgentIds();
-  getAgentMemory = (id: string) => this._shared.getAgentMemory(id);
+    this.memoryRepo.listAllAgentMemories(limit, offset, agentId);
+  countAgentMemories = (agentId?: string) => this.memoryRepo.countAgentMemories(agentId);
+  listAgentIds = () => this.memoryRepo.listAgentIds();
+  getAgentMemory = (id: string) => this.memoryRepo.getAgentMemory(id);
   updateAgentMemory = (id: string, fields: { content?: string; tags?: string }) =>
-    this._shared.updateAgentMemory(id, fields);
-  deleteAgentMemory = (id: string) => this._shared.deleteAgentMemory(id);
+    this.memoryRepo.updateAgentMemory(id, fields);
+  deleteAgentMemory = (id: string) => this.memoryRepo.deleteAgentMemory(id);
 
   // ─── FTS5 + Vector Search (shared) ─────────────────────────
   searchShared = (query: string, limit?: number, opts?: { activeOnly?: boolean }) =>
-    this._shared.searchShared(query, limit, opts);
+    this.memoryRepo.searchShared(query, limit, opts);
   upsertEmbedding = (id: string, layer: string, embedding: Float32Array) =>
-    this._shared.upsertEmbedding(id, layer, embedding);
+    this.memoryRepo.upsertEmbedding(id, layer, embedding);
   searchEmbeddings = (embedding: Float32Array, limit?: number, layer?: string) =>
-    this._shared.searchEmbeddings(embedding, limit, layer);
-  deleteEmbedding = (id: string) => this._shared.deleteEmbedding(id);
+    this.memoryRepo.searchEmbeddings(embedding, limit, layer);
+  deleteEmbedding = (id: string) => this.memoryRepo.deleteEmbedding(id);
 
   // ─── Chats ─────────────────────────────────────────────────
   createChat = (id: string, title: string, model: string, source?: string) =>
-    this._chats.createChat(id, title, model, source);
-  getChat = (id: string) => this._chats.getChat(id);
-  listChats = (limit?: number, source?: string) => this._chats.listChats(limit, source);
-  updateChatTitle = (id: string, title: string) => this._chats.updateChatTitle(id, title);
-  updateChatModel = (id: string, model: string) => this._chats.updateChatModel(id, model);
-  updateChatTimestamp = (id: string) => this._chats.updateChatTimestamp(id);
-  deleteChat = (id: string) => this._chats.deleteChat(id);
+    this.chatRepo.createChat(id, title, model, source);
+  getChat = (id: string) => this.chatRepo.getChat(id);
+  listChats = (limit?: number, source?: string) => this.chatRepo.listChats(limit, source);
+  updateChatTitle = (id: string, title: string) => this.chatRepo.updateChatTitle(id, title);
+  updateChatModel = (id: string, model: string) => this.chatRepo.updateChatModel(id, model);
+  updateChatTimestamp = (id: string) => this.chatRepo.updateChatTimestamp(id);
+  deleteChat = (id: string) => this.chatRepo.deleteChat(id);
 
   // ─── Chat Messages ─────────────────────────────────────────
-  appendChatMessage = (chatId: string, role: string, content: string, opts?: { reasoning?: string; model?: string; requestId?: string }) =>
-    this._chats.appendChatMessage(chatId, role, content, opts);
-  getChatMessages = (chatId: string) => this._chats.getChatMessages(chatId);
+  appendChatMessage = (
+    chatId: string,
+    role: string,
+    content: string,
+    opts?: { reasoning?: string; model?: string; requestId?: string },
+  ) => this.chatRepo.appendChatMessage(chatId, role, content, opts);
+  getChatMessages = (chatId: string) => this.chatRepo.getChatMessages(chatId);
 
   // ─── Telegram Chat Exclusions ──────────────────────────────
-  getExcludedTgChats = () => this._chats.getExcludedTgChats();
-  getExcludedTgChatIds = () => this._chats.getExcludedTgChatIds();
+  getExcludedTgChats = () => this.chatRepo.getExcludedTgChats();
+  getExcludedTgChatIds = () => this.chatRepo.getExcludedTgChatIds();
   excludeTgChat = (chatId: string, chatTitle: string, reason?: string) =>
-    this._chats.excludeTgChat(chatId, chatTitle, reason);
-  includeTgChat = (chatId: string) => this._chats.includeTgChat(chatId);
+    this.chatRepo.excludeTgChat(chatId, chatTitle, reason);
+  includeTgChat = (chatId: string) => this.chatRepo.includeTgChat(chatId);
 
   // ─── Layer 4: Raw Log ─────────────────────────────────────
-  appendLog = (requestId: string, sessionId: string, agentId: string, role: string, content: string, tokenCount?: number) =>
-    this._logs.appendLog(requestId, sessionId, agentId, role, content, tokenCount);
-  getLogsByRequest = (requestId: string) => this._logs.getLogsByRequest(requestId);
-  getLogsBySession = (sessionId: string, limit?: number) => this._logs.getLogsBySession(sessionId, limit);
-  getLogsSince = (afterId: number, limit?: number) => this._logs.getLogsSince(afterId, limit);
+  appendLog = (
+    requestId: string,
+    sessionId: string,
+    agentId: string,
+    role: string,
+    content: string,
+    tokenCount?: number,
+  ) => this.logRepo.appendLog(requestId, sessionId, agentId, role, content, tokenCount);
+  getLogsByRequest = (requestId: string) => this.logRepo.getLogsByRequest(requestId);
+  getLogsBySession = (sessionId: string, limit?: number) =>
+    this.logRepo.getLogsBySession(sessionId, limit);
+  getLogsSince = (afterId: number, limit?: number) =>
+    this.logRepo.getLogsSince(afterId, limit);
   getLogsSinceTime = (sinceUnix: number, limit?: number) =>
-    this._logs.getLogsSinceTime(sinceUnix, limit);
+    this.logRepo.getLogsSinceTime(sinceUnix, limit);
   listLog = (limit?: number, offset?: number, sessionId?: string) =>
-    this._logs.listLog(limit, offset, sessionId);
-  countLog = (sessionId?: string) => this._logs.countLog(sessionId);
-  listLogSessions = (limit?: number) => this._logs.listLogSessions(limit);
-  groupLogsBySession = (rows: import("./types").LogRow[]) => this._logs.groupLogsBySession(rows);
+    this.logRepo.listLog(limit, offset, sessionId);
+  countLog = (sessionId?: string) => this.logRepo.countLog(sessionId);
+  listLogSessions = (limit?: number) => this.logRepo.listLogSessions(limit);
+  groupLogsBySession = (rows: import("./types").LogRow[]) =>
+    this.logRepo.groupLogsBySession(rows);
 
   // ─── Telegram Messages (FTS index) ─────────────────────────
-  insertTgMessage = (msg: TgMessageInsert) => this._tgmsg.insert(msg);
-  insertTgMessages = (rows: TgMessageInsert[]) => this._tgmsg.insertMany(rows);
-  searchTgMessages = (opts: TgSearchOpts) => this._tgmsg.search(opts);
+  insertTgMessage = (msg: TgMessageInsert) => this.telegramRepo.insertTgMessage(msg);
+  insertTgMessages = (rows: TgMessageInsert[]) => this.telegramRepo.insertTgMessages(rows);
+  searchTgMessages = (opts: TgSearchOpts) => this.telegramRepo.searchTgMessages(opts);
   recentTgMessages = (chatId: string, limit?: number) =>
-    this._tgmsg.recentByChat(chatId, limit);
-  countTgMessages = () => this._tgmsg.count();
+    this.telegramRepo.recentTgMessages(chatId, limit);
+  countTgMessages = () => this.telegramRepo.countTgMessages();
 
   // ─── Freelance Leads ───────────────────────────────────────
   insertFreelanceLead = (lead: {
@@ -224,18 +261,18 @@ export class MemoryDB {
     budget: number | null;
     score: number | null;
     reason: string | null;
-  }) => this._freelance.insert(lead);
-  getFreelanceLead = (id: string) => this._freelance.getById(id);
-  existsFreelanceByUrl = (url: string) => this._freelance.existsByUrl(url);
+  }) => this.freelanceRepo.insertFreelanceLead(lead);
+  getFreelanceLead = (id: string) => this.freelanceRepo.getFreelanceLead(id);
+  existsFreelanceByUrl = (url: string) => this.freelanceRepo.existsFreelanceByUrl(url);
   listFreelanceLeads = (opts: {
     status?: FreelanceStatus;
     limit: number;
     offset: number;
-  }) => this._freelance.list(opts);
+  }) => this.freelanceRepo.listFreelanceLeads(opts);
   updateFreelanceStatus = (id: string, status: FreelanceStatus) =>
-    this._freelance.updateStatus(id, status);
-  countFreelanceLeadsSince = (ts: number) => this._freelance.countLeadsSince(ts);
-  lastFreelanceLeadAt = () => this._freelance.lastCreatedAt();
+    this.freelanceRepo.updateFreelanceStatus(id, status);
+  countFreelanceLeadsSince = (ts: number) => this.freelanceRepo.countFreelanceLeadsSince(ts);
+  lastFreelanceLeadAt = () => this.freelanceRepo.lastFreelanceLeadAt();
 
   // ─── Tasks (lifecycle state) ───────────────────────────────
   insertTask = (task: {

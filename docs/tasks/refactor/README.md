@@ -45,7 +45,7 @@
 | ~~[25b](25b-service-memory.md)~~ ✅ | ~~LAYER-2: MemoryService~~ | 4 часа | 17, 22a |
 | ~~[26a](26a-service-chat.md)~~ ✅ | ~~LAYER-3: ChatService~~ | 0.5 дня | 25a |
 | ~~[26b](26b-service-agent.md)~~ ✅ | ~~LAYER-4: AgentService~~ | 1 день | 21, 26a |
-| [27](27-repository-db.md) | Repository слой над `db/tables/*` | 1 день | 10, 25b, 26a, 26b |
+| ~~[27](27-repository-db.md)~~ ✅ | ~~Repository слой над `db/tables/*`~~ | 1 день | 10, 25b, 26a, 26b |
 
 Суммарно глава 2: ~10 дней.
 

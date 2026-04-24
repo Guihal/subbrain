@@ -1,21 +1,28 @@
 /**
- * MemoryService — PR 25b (LAYER-2). Single home for every `MemoryDB` call
- * the HTTP memory surface used to do inline. Route now thin (TypeBox +
- * `paginate()` envelope); this service owns embed+transaction atomicity,
- * status filters, pending queries.
+ * MemoryService — PR 25b (LAYER-2) + PR 27 (Repository swap).
+ *
+ * Owns every memory DB call the HTTP memory surface used to do inline. The
+ * route (`src/routes/memory.ts`) stays thin (TypeBox + `paginate()`
+ * envelope); this service owns embed+transaction atomicity, status filters,
+ * pending queries.
+ *
+ * PR 27 change: ctor now takes `MemoryRepository` instead of the `MemoryDB`
+ * god-object. The repo exposes exactly the per-table methods we need and
+ * owns the previously-leaked `listByStatus` raw SQL. No other observable
+ * behaviour change — tests pass `memory.memoryRepo` or construct the repo
+ * directly.
  *
  * Conventions (.claude/skills/subbrain-guardrails/SKILL.md):
  *   - List methods return `{items,total}` → route wraps in `paginate` (§8).
  *   - Mutations through table-class helpers backed by `updateRow` (§4).
- *   - Inserts: embed-first then one `db.transaction()`, mirroring
+ *   - Inserts: embed-first then one `repo.transaction()`, mirroring
  *     `post/extractors.ts:writeShared` so a failed embed never orphans a row
  *     without a vector (§4).
- *   - FTS via `MemoryDB.search*` (which calls `sanitizeFtsQuery` internally,
- *     §4); service does not re-sanitize.
+ *   - FTS via `MemoryRepository.search*` (which calls `sanitizeFtsQuery`
+ *     internally, §4); service does not re-sanitize.
  */
 import { randomUUID } from "crypto";
 import type {
-  MemoryDB,
   SharedRow,
   ContextRow,
   ArchiveRow,
@@ -23,6 +30,7 @@ import type {
   LogRow,
   MemoryStatus,
 } from "../db";
+import type { MemoryRepository, LogRepository } from "../repositories";
 import type { RAGPipeline } from "../rag";
 
 const EMBED_TIMEOUT_MS = 5000;
@@ -100,119 +108,123 @@ async function embedWithTimeout(rag: RAGPipeline, content: string): Promise<Floa
 }
 
 export class MemoryService {
-  constructor(private readonly mem: MemoryDB, private readonly rag: RAGPipeline) {}
+  constructor(
+    private readonly repo: MemoryRepository,
+    private readonly rag: RAGPipeline,
+    private readonly logRepo: LogRepository,
+  ) {}
 
   // ─── Focus (L1, KV) ───────────────────────────────────────
-  listFocus(): Record<string, string> { return this.mem.getAllFocus(); }
-  upsertFocus(key: string, value: string): void { this.mem.setFocus(key, value); }
-  deleteFocus(key: string): void { this.mem.deleteFocus(key); }
+  listFocus(): Record<string, string> { return this.repo.getAllFocus(); }
+  upsertFocus(key: string, value: string): void { this.repo.setFocus(key, value); }
+  deleteFocus(key: string): void { this.repo.deleteFocus(key); }
 
   // ─── Shared ───────────────────────────────────────────────
   listShared(opts: ListOpts): PaginatedResult<SharedRow> {
     if (opts.q) {
-      const hits = this.mem.searchShared(opts.q, opts.limit);
-      const items = hits.map((h) => this.mem.getShared(h.id)).filter((r): r is SharedRow => r !== null);
+      const hits = this.repo.searchShared(opts.q, opts.limit);
+      const items = hits.map((h) => this.repo.getShared(h.id)).filter((r): r is SharedRow => r !== null);
       return { items, total: items.length };
     }
     if (opts.status) return this.listByStatus("shared", opts.status, opts.limit, opts.offset) as PaginatedResult<SharedRow>;
     return {
-      items: this.mem.listShared(opts.limit, opts.offset, opts.category),
-      total: this.mem.countShared(opts.category),
+      items: this.repo.listShared(opts.limit, opts.offset, opts.category),
+      total: this.repo.countShared(opts.category),
     };
   }
-  getShared(id: string): SharedRow | null { return this.mem.getShared(id); }
+  getShared(id: string): SharedRow | null { return this.repo.getShared(id); }
 
   /** Embed-first then transactional insert+upsertEmbedding (§4). */
   async insertShared(input: InsertSharedInput): Promise<string> {
     const id = randomUUID();
     const vec = await embedWithTimeout(this.rag, input.content);
     if (!vec || vec.length === 0) throw new Error("embed_empty");
-    this.mem.db.transaction(() => {
-      this.mem.insertShared(
+    this.repo.transaction(() => {
+      this.repo.insertShared(
         id, input.category, input.content, input.tags ?? "", input.source,
         { confidence: input.confidence ?? null, status: input.status },
       );
-      this.mem.upsertEmbedding(id, "shared", vec);
-    })();
+      this.repo.upsertEmbedding(id, "shared", vec);
+    });
     return id;
   }
   patchShared(id: string, patch: UpdateSharedPatch): SharedRow | null {
-    this.mem.updateShared(id, patch);
-    return this.mem.getShared(id);
+    this.repo.updateShared(id, patch);
+    return this.repo.getShared(id);
   }
-  deleteShared(id: string): void { this.mem.deleteShared(id); }
+  deleteShared(id: string): void { this.repo.deleteShared(id); }
 
   // ─── Context (L2) ─────────────────────────────────────────
   listContext(opts: ListOpts): PaginatedResult<ContextRow> {
     if (opts.q) {
-      const hits = this.mem.searchContext(opts.q, opts.limit);
-      const items = hits.map((h) => this.mem.getContext(h.id)).filter((r): r is ContextRow => r !== null);
+      const hits = this.repo.searchContext(opts.q, opts.limit);
+      const items = hits.map((h) => this.repo.getContext(h.id)).filter((r): r is ContextRow => r !== null);
       return { items, total: items.length };
     }
     if (opts.status) return this.listByStatus("context", opts.status, opts.limit, opts.offset) as PaginatedResult<ContextRow>;
-    return { items: this.mem.listContext(opts.limit, opts.offset), total: this.mem.countContext() };
+    return { items: this.repo.listContext(opts.limit, opts.offset), total: this.repo.countContext() };
   }
-  getContext(id: string): ContextRow | null { return this.mem.getContext(id); }
+  getContext(id: string): ContextRow | null { return this.repo.getContext(id); }
 
   async insertContext(input: InsertContextInput): Promise<string> {
     const id = randomUUID();
     const vec = await embedWithTimeout(this.rag, input.content);
     if (!vec || vec.length === 0) throw new Error("embed_empty");
-    this.mem.db.transaction(() => {
-      this.mem.insertContext(
+    this.repo.transaction(() => {
+      this.repo.insertContext(
         id, input.title, input.content, input.tags ?? "", input.derivedFrom ?? [], input.agentId,
         { confidence: input.confidence ?? null, status: input.status },
       );
-      this.mem.upsertEmbedding(id, "context", vec);
-    })();
+      this.repo.upsertEmbedding(id, "context", vec);
+    });
     return id;
   }
   patchContext(id: string, patch: UpdateContextPatch): ContextRow | null {
-    this.mem.updateContext(id, patch);
-    return this.mem.getContext(id);
+    this.repo.updateContext(id, patch);
+    return this.repo.getContext(id);
   }
-  deleteContext(id: string): void { this.mem.deleteContext(id); }
+  deleteContext(id: string): void { this.repo.deleteContext(id); }
 
   // ─── Archive (L3) ─────────────────────────────────────────
   listArchive(opts: ListOpts): PaginatedResult<ArchiveRow> {
     if (opts.q) {
-      const hits = this.mem.searchArchive(opts.q, opts.limit);
-      const items = hits.map((h) => this.mem.getArchive(h.id)).filter((r): r is ArchiveRow => r !== null);
+      const hits = this.repo.searchArchive(opts.q, opts.limit);
+      const items = hits.map((h) => this.repo.getArchive(h.id)).filter((r): r is ArchiveRow => r !== null);
       return { items, total: items.length };
     }
-    return { items: this.mem.listArchive(opts.limit, opts.offset), total: this.mem.countArchive() };
+    return { items: this.repo.listArchive(opts.limit, opts.offset), total: this.repo.countArchive() };
   }
-  getArchive(id: string): ArchiveRow | null { return this.mem.getArchive(id); }
+  getArchive(id: string): ArchiveRow | null { return this.repo.getArchive(id); }
   patchArchive(id: string, patch: UpdateArchivePatch): ArchiveRow | null {
-    this.mem.updateArchive(id, patch);
-    return this.mem.getArchive(id);
+    this.repo.updateArchive(id, patch);
+    return this.repo.getArchive(id);
   }
-  deleteArchive(id: string): void { this.mem.deleteArchive(id); }
+  deleteArchive(id: string): void { this.repo.deleteArchive(id); }
 
   // ─── Agent memory ─────────────────────────────────────────
-  listAgentIds(): string[] { return this.mem.listAgentIds(); }
+  listAgentIds(): string[] { return this.repo.listAgentIds(); }
   listAgent(opts: ListOpts): PaginatedResult<AgentMemRow> {
     return {
-      items: this.mem.listAllAgentMemories(opts.limit, opts.offset, opts.agentId),
-      total: this.mem.countAgentMemories(opts.agentId),
+      items: this.repo.listAllAgentMemories(opts.limit, opts.offset, opts.agentId),
+      total: this.repo.countAgentMemories(opts.agentId),
     };
   }
-  getAgent(id: string): AgentMemRow | null { return this.mem.getAgentMemory(id); }
+  getAgent(id: string): AgentMemRow | null { return this.repo.getAgentMemory(id); }
   patchAgent(id: string, patch: UpdateAgentPatch): AgentMemRow | null {
-    this.mem.updateAgentMemory(id, patch);
-    return this.mem.getAgentMemory(id);
+    this.repo.updateAgentMemory(id, patch);
+    return this.repo.getAgentMemory(id);
   }
-  deleteAgent(id: string): void { this.mem.deleteAgentMemory(id); }
+  deleteAgent(id: string): void { this.repo.deleteAgentMemory(id); }
 
   // ─── Log (L4, read-only) ──────────────────────────────────
   listLog(opts: ListOpts): PaginatedResult<LogRow> {
     return {
-      items: this.mem.listLog(opts.limit, opts.offset, opts.sessionId),
-      total: this.mem.countLog(opts.sessionId),
+      items: this.logRepo.listLog(opts.limit, opts.offset, opts.sessionId),
+      total: this.logRepo.countLog(opts.sessionId),
     };
   }
-  listLogSessions(limit = 50): ReturnType<MemoryDB["listLogSessions"]> {
-    return this.mem.listLogSessions(limit);
+  listLogSessions(limit = 50): string[] {
+    return this.logRepo.listLogSessions(limit);
   }
 
   // ─── Pending / status (22b compat) ────────────────────────
@@ -220,29 +232,17 @@ export class MemoryService {
     return this.listByStatus(layer, "pending", opts.limit, opts.offset);
   }
   setStatus(layer: PendingLayer, id: string, status: MemoryStatus): void {
-    if (layer === "shared") this.mem.updateShared(id, { status });
-    else this.mem.updateContext(id, { status });
+    if (layer === "shared") this.repo.updateShared(id, { status });
+    else this.repo.updateContext(id, { status });
   }
 
-  /**
-   * Sole place talking to `MemoryDB.db` directly. Tables don't expose
-   * listByStatus, and 25b scope forbids growing them. Parameterized SQL,
-   * table from a 2-value union → no injection surface. PR 27 (Repository)
-   * will fold this back into a table helper.
-   */
+  /** Delegates to repo (moved in PR 27, used to be raw SQL in this file). */
   private listByStatus(
     layer: PendingLayer,
     status: MemoryStatus,
     limit: number,
     offset: number,
   ): PaginatedResult<SharedRow | ContextRow> {
-    const table = layer === "shared" ? "shared_memory" : "layer2_context";
-    const items = this.mem.db
-      .query(`SELECT * FROM ${table} WHERE status = ? ORDER BY updated_at DESC LIMIT ? OFFSET ?`)
-      .all(status, limit, offset) as (SharedRow | ContextRow)[];
-    const row = this.mem.db
-      .query(`SELECT COUNT(*) AS c FROM ${table} WHERE status = ?`)
-      .get(status) as { c: number };
-    return { items, total: row.c };
+    return this.repo.listByStatus(layer, status, limit, offset);
   }
 }

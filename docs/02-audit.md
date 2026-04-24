@@ -268,5 +268,5 @@ Post-hippocampus пишет в `shared_memory` / `memory` мгновенно, б
 
 ### LAYER-1..LAYER-4 🟢 смешение ответственности в routes
 Routes делают DB-доступ + бизнес-логику + HTTP-shaping одновременно. Introduce controller/service/repository слои поэтапно.
-**Fix:** ~~LAYER-1 (PR 25a — AuthService)~~ ✅, ~~LAYER-2 (PR 25b — MemoryService)~~ ✅, ~~LAYER-3 (PR 26a — ChatService)~~ ✅, ~~LAYER-4 (PR 26b — AgentService)~~ ✅, затем PR 27 — Repository слой над `db/tables/*`.
-**Scope:** PR 25a ✅, 25b ✅, 26a ✅, 26b ✅, 27.
+**Fix:** ~~LAYER-1 (PR 25a — AuthService)~~ ✅, ~~LAYER-2 (PR 25b — MemoryService)~~ ✅, ~~LAYER-3 (PR 26a — ChatService)~~ ✅, ~~LAYER-4 (PR 26b — AgentService)~~ ✅, ~~LAYER-5 (PR 27 — Repository слой над `db/tables/*`)~~ ✅.
+**Scope:** PR 25a ✅, 25b ✅, 26a ✅, 26b ✅, 27 ✅.

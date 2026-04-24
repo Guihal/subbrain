@@ -59,7 +59,7 @@ function buildApp() {
     scheduleRaw: async (_p: string, fn: () => Promise<any>) => fn(),
   } as any;
   const rag = new RAGPipeline(memory, router);
-  const svc = new MemoryService(memory, rag);
+  const svc = new MemoryService(memory.memoryRepo, rag, memory.logRepo);
   const auth = new AuthService(TOKEN);
 
   // Same 404 shape as the real onError: AppError → {error:{message,code}}.
