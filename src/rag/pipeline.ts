@@ -152,8 +152,16 @@ export class RAGPipeline {
         for (const r of this.memory.getContextMany(ids)) byId.set(r.id, r);
       } else if (layer === "archive") {
         for (const r of this.memory.getArchiveMany(ids)) byId.set(r.id, r);
+      } else if (layer === "shared") {
+        for (const r of this.memory.getSharedMany(ids)) {
+          byId.set(r.id, {
+            title: r.category,
+            content: r.content,
+            created_at: r.created_at,
+            updated_at: r.updated_at,
+          });
+        }
       }
-      // shared layer: vec-only snippet, no batch table (intentional — no regression).
 
       for (const vr of vecResults) {
         const row = byId.get(vr.id);

@@ -1,7 +1,7 @@
 /**
  * Atomic memory writers used by the post-processing hippocampus.
  *
- * writeContext uses an embed-first strategy:
+ * writeShared and writeContext use an embed-first strategy:
  *   1. Await rag.embedContent(content) (with 5s timeout) BEFORE any DB call.
  *   2. Inside a sync bun:sqlite transaction, insert the row + upsert the
  *      vec_embedding. The network call never enters the transaction, and a
@@ -26,25 +26,65 @@ export interface WriteResult {
   error?: string;
 }
 
-export function writeShared(
+async function embedWithTimeout(
+  rag: RAGPipeline,
+  content: string,
+): Promise<Float32Array> {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  try {
+    return await Promise.race([
+      rag.embedContent(content),
+      new Promise<never>((_, rej) => {
+        timer = setTimeout(
+          () => rej(new Error("embed_timeout")),
+          EMBED_TIMEOUT_MS,
+        );
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+export async function writeShared(
   memory: MemoryDB,
+  rag: RAGPipeline,
   args: { category: string; content: string; tags: string },
   log: RequestLogger,
-): WriteResult {
+): Promise<WriteResult> {
   const id = randomUUID();
+
+  let vec: Float32Array;
   try {
-    memory.insertShared(id, args.category, args.content, args.tags, "post-processing");
-    log.info(
-      "post",
-      `→ shared/${args.category}: ${args.content.slice(0, 100)}`,
-      { meta: { factId: id, layer: "shared", category: args.category } },
-    );
-    return { ok: true, id };
+    vec = await embedWithTimeout(rag, args.content);
   } catch (err) {
     const em = err instanceof Error ? err.message : String(err);
-    log.warn("post", `memory_write shared failed: ${em}`);
+    log.warn("post", `writeShared embed failed: ${em}`);
     return { ok: false, error: em };
   }
+
+  if (!vec || vec.length === 0) {
+    log.warn("post", "writeShared embed returned empty vector");
+    return { ok: false, error: "embed_empty" };
+  }
+
+  try {
+    memory.db.transaction(() => {
+      memory.insertShared(id, args.category, args.content, args.tags, "post-processing");
+      memory.upsertEmbedding(id, "shared", vec);
+    })();
+  } catch (err) {
+    const em = err instanceof Error ? err.message : String(err);
+    log.error("post", `writeShared transaction failed: ${em}`);
+    return { ok: false, error: em };
+  }
+
+  log.info(
+    "post",
+    `→ shared/${args.category}: ${args.content.slice(0, 100)}`,
+    { meta: { factId: id, layer: "shared", category: args.category } },
+  );
+  return { ok: true, id };
 }
 
 export async function writeContext(

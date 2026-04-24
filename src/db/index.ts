@@ -110,6 +110,7 @@ export class MemoryDB {
     this._shared.listShared(limit, offset, category);
   countShared = (category?: string) => this._shared.countShared(category);
   getShared = (id: string) => this._shared.getShared(id);
+  getSharedMany = (ids: string[]) => this._shared.getSharedMany(ids);
   getSharedByCategory = (category: string) => this._shared.getSharedByCategory(category);
   updateShared = (id: string, fields: { content?: string; tags?: string; category?: string }) =>
     this._shared.updateShared(id, fields);
