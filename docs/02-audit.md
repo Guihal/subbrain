@@ -251,7 +251,7 @@ CHECK разрешает `user/assistant/system/tool/reasoning`, logger пише
 **Fix:** PR 21 — `agentMode: "scheduled" | "interactive"`, scheduled скрывает `create_tool`/`create_code_tool`/`edit_code_tool`; existing code_* остаются; env opt-in.
 **Scope:** PR 21.
 
-### MEM-5 🟡 `src/pipeline/agent-pipeline/post/extractors.ts` — memory write без confidence
+### MEM-5 ✅ `src/pipeline/agent-pipeline/post/extractors.ts` — memory write без confidence
 Post-hippocampus пишет в `shared_memory` / `memory` мгновенно, без оценки уверенности. Модельные догадки попадают в «глобальные факты» и потом цитируются как истина.
 **Fix:** PR 22a + 22b — миграция 7 добавляет `confidence REAL` + `status TEXT CHECK('pending'|'active'|'rejected')`; post-hippocampus эмитит confidence; ≥0.8 → active, <0.8 → pending; RAG injection фильтрует только active; UI approve/reject.
 **Scope:** PR 22a (schema), 22b (UI).
@@ -266,7 +266,7 @@ Post-hippocampus пишет в `shared_memory` / `memory` мгновенно, б
 **Fix:** PR 24 — `writeShared` async, embed + index (паттерн `writeContext`); `getSharedMany` + hydration в vec-path.
 **Scope:** PR 24.
 
-### LAYER-1..LAYER-4 🟢 смешение ответственности в routes
+### LAYER-1..LAYER-4 ✅ смешение ответственности в routes
 Routes делают DB-доступ + бизнес-логику + HTTP-shaping одновременно. Introduce controller/service/repository слои поэтапно.
 **Fix:** ~~LAYER-1 (PR 25a — AuthService)~~ ✅, ~~LAYER-2 (PR 25b — MemoryService)~~ ✅, ~~LAYER-3 (PR 26a — ChatService)~~ ✅, ~~LAYER-4 (PR 26b — AgentService)~~ ✅, ~~LAYER-5 (PR 27 — Repository слой над `db/tables/*`)~~ ✅.
 **Scope:** PR 25a ✅, 25b ✅, 26a ✅, 26b ✅, 27 ✅.

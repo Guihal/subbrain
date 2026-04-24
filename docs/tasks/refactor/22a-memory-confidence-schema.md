@@ -2,7 +2,7 @@
 
 **Оценка:** 1 день
 **Зависимости:** 19 (migrations baseline)
-**Status:** PLANNED
+**Status:** DONE (PR 22a)
 
 ## Цель
 
