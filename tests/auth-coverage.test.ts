@@ -33,6 +33,7 @@ import {
 } from "fs";
 import { MemoryDB } from "../src/db";
 import { Metrics } from "../src/lib/metrics";
+import { AuthService } from "../src/services/auth.service";
 import { createApp } from "../src/app/bootstrap";
 import type { AppDeps, AppConfig } from "../src/app/deps";
 import type { TelegramBot } from "../src/telegram";
@@ -156,6 +157,7 @@ function buildDeps(): AppDeps {
   };
   return {
     config,
+    authService: new AuthService(TOKEN),
     memory,
     router,
     rag: {} as any,

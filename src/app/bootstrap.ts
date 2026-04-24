@@ -28,6 +28,7 @@ export function createApp(deps: AppDeps) {
     pipeline,
     agentLoop,
     telegramBot,
+    authService,
     config,
   } = deps;
 
@@ -100,8 +101,8 @@ export function createApp(deps: AppDeps) {
     //   Everything below requires Bearer auth. `/api/token`, `/night-cycle`
     //   and telegramAdminRoute (set/remove webhook) were previously mounted
     //   before the middleware — AUTH-16. Do not move them back.
-    .use(authMiddleware(config.authToken))
-    .get("/api/token", () => ({ token: config.authToken }))
+    .use(authMiddleware(authService))
+    .get("/api/token", () => ({ token: authService.getToken() }))
     .post("/night-cycle", ({ set }) => {
       const r = nightCycleController.trigger("http");
       if (!r.started) set.status = 409;

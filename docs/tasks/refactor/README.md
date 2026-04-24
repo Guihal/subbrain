@@ -41,7 +41,7 @@
 | [22b](22b-memory-approval-ui.md) | MEM-5 UI: /v1/memory/pending + Vue approve/reject | 0.5 дня | 22a |
 | [23](23-directmode-and-provider-startup.md) | ROUTE-1: `isOverloadedFor(provider)` + optional Copilot/OpenRouter | 3–4 часа | — |
 | [24](24-shared-rag-fix.md) | RAG-1: writeShared embed + vec-путь подтягивает shared row | 2 часа | — |
-| [25a](25a-service-auth.md) | LAYER-1: AuthService | 3 часа | 17 |
+| ~~[25a](25a-service-auth.md)~~ ✅ | ~~LAYER-1: AuthService~~ | 3 часа | 17 |
 | [25b](25b-service-memory.md) | LAYER-2: MemoryService | 4 часа | 17, 22a |
 | [26a](26a-service-chat.md) | LAYER-3: ChatService | 0.5 дня | 25a |
 | [26b](26b-service-agent.md) | LAYER-4: AgentService | 1 день | 21, 26a |

@@ -15,6 +15,7 @@ import { TelegramPoller } from "../scheduler/telegram-poller";
 import { FreelanceScout, type FreelanceScoutConfig } from "../scheduler/freelance";
 import { FREE_AGENT_TASK } from "../scheduler/free-agent";
 import { Metrics } from "../lib/metrics";
+import { AuthService } from "../services/auth.service";
 import { logger } from "../lib/logger";
 
 export interface AppConfig {
@@ -57,6 +58,7 @@ export interface AppConfig {
 
 export interface AppDeps {
   config: AppConfig;
+  authService: AuthService;
   memory: MemoryDB;
   router: ModelRouter;
   rag: RAGPipeline;
@@ -188,6 +190,7 @@ export function loadConfig(): AppConfig {
 }
 
 export async function initDeps(config: AppConfig = loadConfig()): Promise<AppDeps> {
+  const authService = new AuthService(config.authToken);
   const providers = await createProviders();
   const router = new ModelRouter(providers);
   const memory = new MemoryDB(config.dbPath);
@@ -250,6 +253,7 @@ export async function initDeps(config: AppConfig = loadConfig()): Promise<AppDep
 
   return {
     config,
+    authService,
     memory,
     router,
     rag,
