@@ -1,11 +1,12 @@
 import { describe, test, expect, afterAll } from "bun:test";
 import { Elysia } from "elysia";
 import { authMiddleware } from "../src/lib/auth";
+import { AuthService } from "../src/services/auth.service";
 
 const TOKEN = "test-secret-token";
 const app = new Elysia()
   .get("/health", () => ({ status: "ok" }))
-  .use(authMiddleware(TOKEN))
+  .use(authMiddleware(new AuthService(TOKEN)))
   .get("/protected", () => ({ data: "secret" }))
   .listen(0);
 const base = `http://localhost:${app.server!.port}`;
@@ -20,7 +21,7 @@ describe("authMiddleware", () => {
   test("missing auth header → 401", async () => {
     const r = await fetch(`${base}/protected`);
     expect(r.status).toBe(401);
-    expect((await r.json()).error?.message).toBe("Missing authorization header");
+    expect((await r.json()).error?.message).toBe("Unauthorized");
   });
 
   test("wrong token same length → 401", async () => {

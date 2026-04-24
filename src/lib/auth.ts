@@ -1,49 +1,35 @@
 import { Elysia } from "elysia";
-import { timingSafeEqual, createHash } from "crypto";
+import type { AuthService } from "../services/auth.service";
 
 const JSON_401 = { "Content-Type": "application/json" };
 
 /**
- * Constant-time string comparison to prevent timing attacks.
- * Hashes both inputs to fixed-length before comparing,
- * so differing lengths don't leak information.
+ * Bearer auth middleware. Delegates all hash/compare work to `AuthService`
+ * — this file only owns the HTTP framing (path allow-list + 401 shape).
+ *
+ * Public bypasses:
+ *   - `/health`, `/`, `/index.html`, `/public/*` — static + liveness.
+ *   - `/telegram/webhook` — validated by `x-telegram-bot-api-secret-token`
+ *     inside the route handler. Admin endpoints (set/remove webhook) stay
+ *     behind Bearer auth — AUTH-16 narrowed the bypass from `/telegram/*`
+ *     to the single webhook path; do not widen it again.
+ *   - `/api/token` used to be bypassed (relying on Caddy basic-auth) but
+ *     AUTH-16 found it exposed the Bearer secret to anyone with port
+ *     access, so it now requires Bearer like every other route.
  */
-function safeEqual(a: string, b: string): boolean {
-  const hashA = createHash("sha256").update(a).digest();
-  const hashB = createHash("sha256").update(b).digest();
-  return timingSafeEqual(hashA, hashB);
-}
-
-export function authMiddleware(token: string) {
+export function authMiddleware(authService: AuthService) {
   return new Elysia({ name: "auth" }).onBeforeHandle(
     { as: "global" },
     ({ request, path }) => {
-      // Health check and static assets are public
       if (path === "/health") return;
       if (path === "/" || path === "/index.html" || path.startsWith("/public/"))
         return;
-      // Telegram webhook is validated by the `x-telegram-bot-api-secret-token`
-      // header inside the route handler — admin endpoints (set/remove webhook)
-      // must remain behind Bearer auth, so narrow the bypass to the single
-      // webhook path only. `/api/token` used to be bypassed (relying on Caddy
-      // basic-auth) but AUTH-16 found it exposed the Bearer secret to anyone
-      // with port access, so it now requires Bearer like every other route.
       if (path === "/telegram/webhook") return;
 
-      const auth = request.headers.get("authorization");
-      if (!auth) {
+      const header = request.headers.get("authorization");
+      if (!authService.validateBearer(header)) {
         return new Response(
-          JSON.stringify({
-            error: { message: "Missing authorization header" },
-          }),
-          { status: 401, headers: JSON_401 },
-        );
-      }
-
-      const bearer = auth.replace(/^Bearer\s+/i, "");
-      if (!safeEqual(bearer, token)) {
-        return new Response(
-          JSON.stringify({ error: { message: "Invalid token" } }),
+          JSON.stringify({ error: { message: "Unauthorized" } }),
           { status: 401, headers: JSON_401 },
         );
       }

@@ -14,6 +14,7 @@ import { Metrics } from "../src/lib/metrics";
 import { unlinkSync } from "fs";
 import { createApp } from "../src/app/bootstrap";
 import type { AppDeps } from "../src/app/deps";
+import { AuthService } from "../src/services/auth.service";
 
 const TEST_DB = "data/test-bootstrap.db";
 try {
@@ -54,7 +55,8 @@ function buildFakeDeps(): AppDeps {
       },
       nightCycle: { schedulerEnabled: false, hourUtc: 3, backlogTrigger: 100 },
       telegram: { webhookUrl: undefined, polling: false },
-    },
+    } as any,
+    authService: new AuthService("test-token"),
     memory,
     router,
     rag: {} as any,
