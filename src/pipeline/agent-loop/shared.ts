@@ -16,7 +16,7 @@ import type { DynamicToolRegistry } from "./dynamic-tools";
 import type { CodeToolRegistry } from "./code-tools";
 import type { ToolRunnerDeps } from "./tool-runner";
 import type { StepDeps } from "./step";
-import type { AgentLoopSession } from "./types";
+import type { AgentLoopSession, AgentMode } from "./types";
 import type { Priority } from "../../lib/model-map";
 import { MAX_STEPS, AGENT_MODEL, type AgentLoopRequest } from "./types";
 import { buildAgentSystemPrompt } from "./system-prompt";
@@ -32,7 +32,12 @@ export interface AgentLoopDeps {
   codeTools: CodeToolRegistry;
   room: ArbitrationRoom | null;
   persistDynamicTools: () => void;
-  getAllTools: () => Tool[];
+  /**
+   * Mode-aware tool list for the model. SCHED-1: scheduled mode drops
+   * `create_tool` / `create_code_tool` / `edit_code_tool` from the returned
+   * array via `registry.listForAgent(mode)`.
+   */
+  getAllTools: (mode: AgentMode) => Tool[];
 }
 
 export function toolRunnerDeps(
@@ -68,6 +73,7 @@ export interface AgentLoopContext {
   model: string;
   maxSteps: number;
   priority: Priority;
+  agentMode: AgentMode;
   log: ReturnType<typeof logger.forRequest>;
   session: AgentLoopSession;
   messages: Message[];
@@ -87,6 +93,7 @@ export async function initAgentLoopContext(
   const model = req.model || AGENT_MODEL;
   const maxSteps = Math.min(req.maxSteps || MAX_STEPS, MAX_STEPS);
   const priority: Priority = req.priority || "critical";
+  const agentMode: AgentMode = req.agentMode ?? "interactive";
   const log = logger.forRequest(requestId, sessionId);
 
   const session: AgentLoopSession = {
@@ -109,13 +116,24 @@ export async function initAgentLoopContext(
     model,
     deps.router,
     req.schedule,
+    agentMode,
   );
   const messages: Message[] = [
     { role: "system", content: systemPrompt },
     { role: "user", content: req.task },
   ];
 
-  return { requestId, sessionId, model, maxSteps, priority, log, session, messages };
+  return {
+    requestId,
+    sessionId,
+    model,
+    maxSteps,
+    priority,
+    agentMode,
+    log,
+    session,
+    messages,
+  };
 }
 
 /**

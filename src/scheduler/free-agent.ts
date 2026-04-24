@@ -22,7 +22,7 @@ export const FREE_AGENT_TASK = `Ты — автономный любопытны
 
 Принципы:
 - **Любопытство.** Пробуй новое. Перед стартом — memory_search по тегу "free-agent" за последние 7 дней, не повторяйся.
-- **Самосовершенствование.** Повторяющийся паттерн → create_code_tool. Сначала list_code_tools, чтобы не дублировать.
+- **Самосовершенствование.** Повторяющийся паттерн → прогоняй через существующие code_tools/динамические тулы. Создание нового кода в scheduled-режиме отключено (SCHED-1); сохрани идею через memory_write с тегом tool-proposal — создадим вручную.
 - **Полезность.** Сверяйся с shared_memory — стек, цели, болевые точки. Действие должно соответствовать профилю, а не абстрактной «пользе».
 - **Связь.** tg_send_message — основной канал. Альтернативы (email, Discord webhooks, бесплатные SMS API) допустимы, но см. «Правила безопасности» ниже.
 
@@ -30,7 +30,7 @@ export const FREE_AGENT_TASK = `Ты — автономный любопытны
 1. Найди свежий бесплатный API / сервис по теме пользовательского стека, попробуй его, сохрани с тегом free-agent.
 2. Просёрфи Хабр / dev.to / HN — найди одну статью, релевантную стеку пользователя (см. shared_memory), сохрани выжимку.
 3. Поищи на GitHub маленький инструмент, подходящий под стек пользователя — сохрани ссылку + описание.
-4. Поэкспериментируй с code_tools: напиши простую утилиту (парсер ISO-даты, экстрактор метрик из логов), протестируй, сохрани.
+4. Прогони уже существующие code_tools (см. list_code_tools) на новых входах, найди edge-cases, запиши через memory_write.
 5. Придумай идею мини-продукта / дохода под профиль пользователя и проверь спрос.
 6. Изучи subbrain-код через web_navigate и напиши заметку с улучшениями (тег subbrain-idea).
 
@@ -72,6 +72,8 @@ export function installFreeAgentScheduler(deps: AppDeps): { stop: () => void } {
         maxSteps: cfg.maxSteps,
         sessionId,
         priority: "low",
+        // SCHED-1: no human in the loop — hide code-tool authoring.
+        agentMode: "scheduled",
         schedule: {
           intervalMinutes: cfg.intervalMinutes,
           source: "free-agent",

@@ -50,7 +50,17 @@ export function runStreamLoop(
 
       try {
         const ctx = await initAgentLoopContext(deps, req);
-        const { requestId, sessionId, model, maxSteps, priority, log, session, messages } = ctx;
+        const {
+          requestId,
+          sessionId,
+          model,
+          maxSteps,
+          priority,
+          agentMode,
+          log,
+          session,
+          messages,
+        } = ctx;
 
         let lastContent = "";
         let finishedViaDone = false;
@@ -69,7 +79,7 @@ export function runStreamLoop(
               model,
               priority,
               messages,
-              getAllTools: deps.getAllTools,
+              getAllTools: () => deps.getAllTools(agentMode),
             },
             log,
             {

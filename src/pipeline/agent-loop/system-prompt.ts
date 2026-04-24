@@ -12,7 +12,7 @@ import {
   MAX_CONTEXT_TOKENS,
   MAX_DYNAMIC_TOOLS,
 } from "./types";
-import type { ScheduleContext } from "./types";
+import type { ScheduleContext, AgentMode } from "./types";
 import { runPre } from "../agent-pipeline/phases/pre";
 import { renderActiveTasks, renderTgStatus } from "./prompt-blocks/tasks";
 
@@ -29,7 +29,15 @@ export async function buildAgentSystemPrompt(
   model: string,
   router?: ModelRouter,
   schedule?: ScheduleContext,
+  agentMode: AgentMode = "interactive",
 ): Promise<string> {
+  // SCHED-1: hide Code Tools authoring from the model in scheduled mode.
+  // Existing code_* tools remain callable (see registry.listForAgent);
+  // only the authoring section in the prompt + creation primitives disappear.
+  // `SCHEDULED_ALLOW_CODE_TOOL_CREATE=1` opts back in for manual ops runs.
+  const allowCodeToolAuthoring =
+    agentMode === "interactive" ||
+    process.env.SCHEDULED_ALLOW_CODE_TOOL_CREATE === "1";
   const parts: string[] = [];
 
   // Persona
@@ -98,7 +106,7 @@ ${routingBullets}
 
 **Free-agent — требуется ВСЕ три:**
 1. ≥1 находка записана через \`memory_write\` с \`tags: "free-agent"\`. Находка = URL/артефакт + 2-3 фразы «как это поможет пользователю» (релевантно профилю, не просто резюме статьи). Не-находки: «посмотрел Хабр», «есть интересные статьи».
-2. ≥1 **внешнее** действие из: \`web_navigate\`, \`create_code_tool\`, \`tg_send_message\`. \`memory_write\` сам по себе не считается — он фиксирует результат действия.
+2. ≥1 **внешнее** действие из: \`web_navigate\`, ${allowCodeToolAuthoring ? "`create_code_tool`, " : ""}\`tg_send_message\`. \`memory_write\` сам по себе не считается — он фиксирует результат действия.
 3. \`done\`-summary шаблон «Пробовал: [список 2-4]. Нашёл: [артефакты]. Идея на следующий цикл: [одна фраза]». Если за сессию ничего не нашёл — «Пробовал X/Y/Z, без находок».
 
 **Interactive (/v1/autonomous) — требуется:**
@@ -138,8 +146,7 @@ ${routingBullets}
 - \`rag_search\` — гибридный RAG поиск (точнее, но дороже: 1-2 RPM)
 - \`memory_write\` — записать факт/решение в память
 - \`consult_specialists\` — совещание с командой (кодер, критик, генералист, хаос). Дорого: 3-5 RPM
-- \`create_tool\` — создать новый динамический инструмент (промт-шаблон → специалист). Макс. ${MAX_DYNAMIC_TOOLS} за сессию
-- \`list_tools\` — показать все доступные инструменты (статические + динамические)
+${allowCodeToolAuthoring ? `- \`create_tool\` — создать новый динамический инструмент (промт-шаблон → специалист). Макс. ${MAX_DYNAMIC_TOOLS} за сессию\n` : ""}- \`list_tools\` — показать все доступные инструменты (статические + динамические)
 - \`done\` — завершить задачу с резюме для пользователя
 
 ### Telegram:
@@ -159,8 +166,15 @@ ${routingBullets}
 - \`web_click\` — кликнуть на элемент по ref-номеру из снэпшота
 - \`web_type\` — ввести текст в поле ввода (submit=true чтобы нажать Enter)
 - \`web_back\` — вернуться на предыдущую страницу
-- \`web_press_key\` — нажать клавишу (Enter, Escape, Tab, ArrowDown...)
+- \`web_press_key\` — нажать клавишу (Enter, Escape, Tab, ArrowDown...)`);
 
+  // ─── Tool authoring (SCHED-1 gate) ───────────────────────────
+  // Interactive runs (human in the loop) can create & edit tools.
+  // Scheduled runs (autonomous / free-agent / cron) skip this section — the
+  // corresponding tools (`create_tool`, `create_code_tool`, `edit_code_tool`)
+  // are also removed from the tool list via `registry.listForAgent`.
+  if (allowCodeToolAuthoring) {
+    parts.push(`
 ### Создание инструментов:
 Ты можешь расширять свои возможности через \`create_tool\`. Каждый кастомный инструмент — это промт-шаблон, который при вызове отправляется выбранному специалисту (coder/critic/generalist/flash). Используй \`{{input}}\` в шаблоне как плейсхолдер. Кастомные инструменты сохраняются между сессиями.
 
@@ -194,6 +208,11 @@ export default async (input: string) => {
 - Если tool падает 3 раза — он автоматически отключится
 - Имя tool'а будет доступно как \`code_<name>\`
 - Code tools сохраняются навсегда между сессиями`);
+  } else {
+    parts.push(`
+### Создание инструментов: отключено
+Code tools creation disabled in scheduled mode. Use existing tools only (\`list_code_tools\`, \`test_code_tool\`, \`delete_code_tool\` + any already-registered \`code_*\`/dynamic tools).`);
+  }
 
   // ─── Memory context: prefer hippocampus summary when router available ───
   if (router) {

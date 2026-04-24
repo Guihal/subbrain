@@ -27,12 +27,15 @@ export function autonomousRoute(agentLoop: AgentLoop, memory?: MemoryDB) {
 
       // interactive-only endpoint: do NOT populate req.schedule here.
       // Scheduler-initiated runs go through src/app/schedulers.ts and
-      // src/scheduler/free-agent.ts, which set schedule explicitly.
+      // src/scheduler/free-agent.ts, which set schedule + agentMode:"scheduled".
+      // SCHED-1: explicit `interactive` so a future default change doesn't
+      // silently strip code-tool authoring from this human-triggered route.
       const req = {
         task: body.task,
         model,
         maxSteps: body.max_steps,
         sessionId,
+        agentMode: "interactive" as const,
       };
 
       if (stream) {

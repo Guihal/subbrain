@@ -8,6 +8,22 @@ export interface ScheduleContext {
   intervalMinutes: number;
   source: ScheduleSource;
 }
+
+/**
+ * Agent execution mode (SCHED-1).
+ *
+ * - `interactive` — human triggered, in the loop. Full agent-only tool set
+ *   including code-tool creation/edit primitives.
+ * - `scheduled`   — autonomous scheduler / free-agent / cron-like entry.
+ *   `create_tool` / `create_code_tool` / `edit_code_tool` hidden by default so
+ *   a rogue model cannot write fresh executable code with no human gate.
+ *   Existing dynamic + code_* tools remain callable.
+ *
+ * Opt-in: env `SCHEDULED_ALLOW_CODE_TOOL_CREATE=1` makes `scheduled` behave
+ * like `interactive` (for manual operator runs on a scheduler endpoint).
+ */
+export type AgentMode = "scheduled" | "interactive";
+
 import type { Message } from "../../providers/types";
 
 // ─── Constants ───────────────────────────────────────────
@@ -32,6 +48,12 @@ export interface AgentLoopRequest {
    * Only scheduler entry points populate it; /v1/autonomous leaves it undefined.
    */
   schedule?: ScheduleContext;
+  /**
+   * Execution mode (SCHED-1). Default `"interactive"`.
+   * Scheduler entrypoints MUST pass `"scheduled"`; HTTP routes triggered by a
+   * human pass `"interactive"` (the default).
+   */
+  agentMode?: AgentMode;
 }
 
 export interface AgentLoopStep {
