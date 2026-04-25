@@ -1,23 +1,23 @@
 services:
   cliproxy:
-    image: ghcr.io/router-for-me/cliproxyapi:v6
+    # Official Docker Hub mirror for router-for-me/CLIProxyAPI.
+    # Pin a SHA digest after first `docker compose pull` if you want stability.
+    image: eceasy/cli-proxy-api:latest
+    pull_policy: always
     container_name: subbrain-cliproxy
     restart: unless-stopped
-    expose: ["8080"]
+    expose: ["8317"]
     volumes:
+      # config.yaml = api-keys, host/port, etc. See cliproxy/config.example.yaml.
       - type: bind
-        source: /root/.codex/auth.json
-        target: /app/auth.json
+        source: ./cliproxy/config.yaml
+        target: /CLIProxyAPI/config.yaml
         read_only: true
-    environment:
-      - CLIPROXY_AUTH_TOKEN=${OPENAI_COMPAT_API_KEY:-cliproxy-local}
-      - CLIPROXY_CODEX_AUTH_PATH=/app/auth.json
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://localhost:8080/v1/models || exit 1"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
+      # Auth dir = where `--codex-login` writes oauth tokens. Persistent so
+      # restarts don't require re-login. ChatGPT Pro auth lives here.
+      - type: bind
+        source: ./cliproxy/auths
+        target: /root/.cli-proxy-api
 
   subbrain:
     build: .

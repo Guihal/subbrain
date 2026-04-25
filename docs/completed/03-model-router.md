@@ -78,20 +78,45 @@ Routed through a local `cliproxy` container (`docker-compose.yml`).
 
 ### Setup (one-time, on VPS)
 
-1. Install Codex CLI on the VPS, run `codex login` → populates `/root/.codex/auth.json`.
-2. `chmod 600 /root/.codex/auth.json`.
-3. Verify with `scripts/preflight-openai-compat.sh`.
+CLIProxyAPI uses its OWN OAuth flow (`--codex-login`), separate from OpenAI's
+standalone `@openai/codex` CLI. Auth lives in `/root/.cli-proxy-api/`, NOT
+`/root/.codex/`.
+
+1. On VPS, in `/opt/subbrain/`:
+   ```bash
+   mkdir -p cliproxy/auths
+   cp cliproxy/config.example.yaml cliproxy/config.yaml
+   ```
+2. Generate an API key for subbrain ↔ cliproxy mutual auth:
+   ```bash
+   KEY=$(head -c 24 /dev/urandom | base64 | tr -d '/+=' | head -c 32)
+   sed -i "s|REPLACE_ME_WITH_OPENAI_COMPAT_API_KEY|$KEY|" cliproxy/config.yaml
+   echo "OPENAI_COMPAT_API_KEY=$KEY" >> .env
+   ```
+3. Start cliproxy alone (subbrain depends on it but doesn't need it healthy):
+   ```bash
+   docker compose up -d cliproxy
+   ```
+4. Run the Codex device-flow login inside the container:
+   ```bash
+   docker compose exec cliproxy ./cli-proxy-api --codex-login --no-browser
+   ```
+   Copy the URL + code, sign in via your ChatGPT Pro account in any browser.
+   Token is written to `/root/.cli-proxy-api/codex-<email>.json` inside the
+   container, persisted to `cliproxy/auths/` on the host via bind mount.
+5. Restart cliproxy to pick up the new credentials:
+   ```bash
+   docker compose restart cliproxy
+   ```
+6. Verify with `scripts/preflight-openai-compat.sh`.
 
 ### Activation
 
 1. Set `OPENAI_COMPAT_ENABLED=true` in `.env`.
-2. Optionally override `OPENAI_COMPAT_BASE_URL` / `OPENAI_COMPAT_API_KEY`.
-3. `docker compose up -d` — pulls `ghcr.io/router-for-me/cliproxyapi:v6` and
-   exposes `:8080` only inside the compose network (no host port).
-4. Bootstrap order: `applyOpenAICompatOverrides()` runs **before**
-   `createProviders()` in `src/app/deps.ts`, so `collectRequiredProviders()`
-   sees the `openai-compat` slot and instantiates the real provider rather
-   than the absent stub.
+2. `docker compose restart subbrain` — picks up env, calls
+   `applyOpenAICompatOverrides()` BEFORE `createProviders()` in
+   `src/app/deps.ts`, so `collectRequiredProviders()` sees the
+   `openai-compat` slot and instantiates the real provider.
 
 ### Routing semantics
 
@@ -110,14 +135,15 @@ Routed through a local `cliproxy` container (`docker-compose.yml`).
 
 ### Token refresh
 
-`auth.json` carries a refresh token. CLIProxyAPI refreshes the access token
-in-place; the volume is mounted `read_only: true` by default. For long-lived
-runs, mount read-write so refresh can persist.
+The OAuth file in `cliproxy/auths/` carries a refresh token; CLIProxyAPI
+refreshes the access token in-place. Volume is mounted read-write so the
+refreshed token persists across container restarts.
 
 ### Image pinning
 
-The compose file pins `ghcr.io/router-for-me/cliproxyapi:v6`. After the
-first successful pull on the VPS, replace the tag with the SHA256 digest
+The compose file uses `eceasy/cli-proxy-api:latest` (Docker Hub mirror of
+the official upstream `router-for-me/CLIProxyAPI`). After the first
+successful pull, replace `:latest` with the SHA256 digest
 (`docker image inspect ... | grep RepoDigests`) for reproducibility.
 
 ### Rate limiting

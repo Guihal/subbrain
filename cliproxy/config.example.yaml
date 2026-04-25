@@ -1,0 +1,31 @@
+# CLIProxyAPI config — copy to ./cliproxy/config.yaml on the deploy target.
+# Bound into the container at /CLIProxyAPI/config.yaml (see docker-compose.yml).
+#
+# Auth: after first start, run
+#   docker compose exec cliproxy ./cli-proxy-api --codex-login --no-browser
+# It prints a device-flow URL + code; sign in via your ChatGPT Pro account.
+# Token is written to /root/.cli-proxy-api/ (mounted from ./cliproxy/auths/).
+
+# Bind 0.0.0.0 inside the container; subbrain reaches it via docker network.
+host: ""
+port: 8317
+
+# Required: api-keys[0] must match OPENAI_COMPAT_API_KEY in subbrain's .env.
+# Generate with: head -c 24 /dev/urandom | base64
+api-keys:
+  - "REPLACE_ME_WITH_OPENAI_COMPAT_API_KEY"
+
+# Auth directory — Codex/Claude/Gemini OAuth tokens live here.
+# Path is INSIDE the container; bind-mounted from ./cliproxy/auths on host.
+auth-dir: "/root/.cli-proxy-api"
+
+# Disable management API entirely (no /v0/management routes). Subbrain only
+# uses /v1/chat/completions + /v1/models.
+remote-management:
+  allow-remote: false
+  secret-key: ""
+  disable-control-panel: true
+
+debug: false
+logging-to-file: false
+usage-statistics-enabled: false
