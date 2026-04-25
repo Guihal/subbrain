@@ -182,6 +182,11 @@ export class MemoryDB {
   insertAgentMemory = (id: string, agentId: string, content: string, tags?: string) =>
     this.memoryRepo.insertAgentMemory(id, agentId, content, tags);
   getAgentMemories = (agentId: string) => this.memoryRepo.getAgentMemories(agentId);
+  // PR B-2: agent-loop/persist.ts uses these to round-trip the dynamic-tools blob.
+  getLatestAgentMemoryByAgentId = (agentId: string) =>
+    this.memoryRepo.getLatestAgentMemoryByAgentId(agentId);
+  updateAgentMemoryContent = (id: string, content: string) =>
+    this.memoryRepo.updateAgentMemoryContent(id, content);
   listAllAgentMemories = (limit?: number, offset?: number, agentId?: string) =>
     this.memoryRepo.listAllAgentMemories(limit, offset, agentId);
   countAgentMemories = (agentId?: string) => this.memoryRepo.countAgentMemories(agentId);

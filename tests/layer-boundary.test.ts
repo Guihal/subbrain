@@ -39,8 +39,9 @@ const FORBIDDEN = [
 const KNOWN_LEGACY = new Set<string>([
   "src/routes/logs.ts",
   "src/routes/tasks.ts",
-  "src/pipeline/agent-loop/persist.ts",
-  "src/pipeline/agent-loop/code-tools/index.ts",
+  // PR B-2 (2026-04-25) — pruned: agent-loop/persist.ts + agent-loop/code-tools/index.ts
+  // migrated to src/db/tables/code-tools.ts + src/repositories/code-tools.repo.ts
+  // and the agent_memory blob round-trip via SharedTable methods.
   "src/pipeline/night-cycle/prune/tasks.ts",
   "src/pipeline/night-cycle/prune/stray-tasks.ts",
   "src/pipeline/night-cycle/steps/contradictions.ts",

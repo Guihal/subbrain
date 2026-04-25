@@ -1,13 +1,23 @@
 /**
- * CodeToolRegistry — CRUD operations for code tools stored in SQLite.
+ * CodeToolRegistry — business façade over `CodeToolsRepository`.
+ *
+ * Owns size-cap validation (`CODE_TOOL_LIMITS`), boolean cast for `enabled`,
+ * and the auto-disable threshold logic. Raw SQL lives in
+ * `src/db/tables/code-tools.ts` (guardrail #6 / PR B-2).
  */
 import { randomUUID } from "crypto";
-import type { Database } from "bun:sqlite";
+import type { CodeToolsRepository } from "../../../repositories/code-tools.repo";
 import type { CodeTool } from "./types";
 import { CODE_TOOL_LIMITS } from "./types";
 
+function hydrate(row: CodeTool | null): CodeTool | null {
+  if (!row) return null;
+  // sqlite stores bool as 0/1 — surface a real boolean to callers.
+  return { ...row, enabled: !!row.enabled };
+}
+
 export class CodeToolRegistry {
-  constructor(private db: Database) {}
+  constructor(private repo: CodeToolsRepository) {}
 
   create(name: string, description: string, code: string): CodeTool {
     if (code.length > CODE_TOOL_LIMITS.MAX_CODE_SIZE) {
@@ -15,38 +25,23 @@ export class CodeToolRegistry {
         `Code exceeds max size: ${code.length} > ${CODE_TOOL_LIMITS.MAX_CODE_SIZE}`,
       );
     }
-
     const id = randomUUID();
-    this.db.run(
-      `INSERT INTO code_tools (id, name, description, code) VALUES (?, ?, ?, ?)`,
-      [id, name, description, code],
-    );
-
-    return this.get(id)!;
+    this.repo.insert(id, name, description, code);
+    return hydrate(this.repo.get(id))!;
   }
 
   get(id: string): CodeTool | null {
-    const row = this.db
-      .query(`SELECT * FROM code_tools WHERE id = ?`)
-      .get(id) as CodeTool | null;
-    if (row) row.enabled = !!row.enabled;
-    return row;
+    return hydrate(this.repo.get(id));
   }
 
   getByName(name: string): CodeTool | null {
-    const row = this.db
-      .query(`SELECT * FROM code_tools WHERE name = ?`)
-      .get(name) as CodeTool | null;
-    if (row) row.enabled = !!row.enabled;
-    return row;
+    return hydrate(this.repo.getByName(name));
   }
 
   list(includeDisabled = false): CodeTool[] {
-    const sql = includeDisabled
-      ? `SELECT * FROM code_tools ORDER BY updated_at DESC`
-      : `SELECT * FROM code_tools WHERE enabled = 1 ORDER BY updated_at DESC`;
-    const rows = this.db.query(sql).all() as CodeTool[];
-    return rows.map((r) => ({ ...r, enabled: !!r.enabled }));
+    return this.repo
+      .list(includeDisabled)
+      .map((r) => ({ ...r, enabled: !!r.enabled }));
   }
 
   update(
@@ -55,47 +50,30 @@ export class CodeToolRegistry {
   ): CodeTool {
     const tool = this.getByName(name);
     if (!tool) throw new Error(`Code tool not found: ${name}`);
-
     if (updates.code && updates.code.length > CODE_TOOL_LIMITS.MAX_CODE_SIZE) {
       throw new Error(`Code exceeds max size`);
     }
-
     const desc = updates.description ?? tool.description;
     const code = updates.code ?? tool.code;
-
-    this.db.run(
-      `UPDATE code_tools SET description = ?, code = ?, error_count = 0, enabled = 1, updated_at = unixepoch() WHERE id = ?`,
-      [desc, code, tool.id],
-    );
-
-    return this.get(tool.id)!;
+    this.repo.update(tool.id, desc, code);
+    return hydrate(this.repo.get(tool.id))!;
   }
 
   delete(name: string): boolean {
-    const result = this.db.run(`DELETE FROM code_tools WHERE name = ?`, [name]);
-    return result.changes > 0;
+    return this.repo.delete(name);
   }
 
   recordRun(name: string, success: boolean, error?: string): void {
     if (success) {
-      this.db.run(
-        `UPDATE code_tools SET run_count = run_count + 1, last_run_at = unixepoch(), updated_at = unixepoch() WHERE name = ?`,
-        [name],
-      );
-    } else {
-      this.db.run(
-        `UPDATE code_tools SET run_count = run_count + 1, error_count = error_count + 1, last_run_at = unixepoch(), last_error = ?, updated_at = unixepoch() WHERE name = ?`,
-        [error || "Unknown error", name],
-      );
-
-      // Auto-disable if too many errors
-      const tool = this.getByName(name);
-      if (tool && tool.error_count >= CODE_TOOL_LIMITS.MAX_ERROR_COUNT) {
-        this.db.run(
-          `UPDATE code_tools SET enabled = 0, updated_at = unixepoch() WHERE name = ?`,
-          [name],
-        );
-      }
+      this.repo.recordSuccess(name);
+      return;
+    }
+    this.repo.recordError(name, error || "Unknown error");
+    // Auto-disable if too many errors. Re-fetch so the just-incremented
+    // error_count is observed (otherwise the threshold check sees stale data).
+    const tool = this.getByName(name);
+    if (tool && tool.error_count >= CODE_TOOL_LIMITS.MAX_ERROR_COUNT) {
+      this.repo.disable(name);
     }
   }
 

@@ -141,6 +141,11 @@ export class MemoryRepository {
   insertAgentMemory = (id: string, agentId: string, content: string, tags?: string) =>
     this.shared.insertAgentMemory(id, agentId, content, tags);
   getAgentMemories = (agentId: string): AgentMemRow[] => this.shared.getAgentMemories(agentId);
+  /** PR B-2: lift `agent-loop/persist.ts` raw SQL out of the pipeline. */
+  getLatestAgentMemoryByAgentId = (agentId: string): AgentMemRow | null =>
+    this.shared.getLatestAgentMemoryByAgentId(agentId);
+  updateAgentMemoryContent = (id: string, content: string) =>
+    this.shared.updateAgentMemoryContent(id, content);
   listAllAgentMemories = (limit?: number, offset?: number, agentId?: string) =>
     this.shared.listAllAgentMemories(limit, offset, agentId);
   countAgentMemories = (agentId?: string) => this.shared.countAgentMemories(agentId);

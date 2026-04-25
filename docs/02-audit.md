@@ -221,6 +221,18 @@ RAG ищет в трёх слоях, включая `shared`. Но `grep "upsert
 **Header validation:** `x-agent-id` через `sanitizeAgentId(raw)` (`chat.service.ts`) — regex `^[a-z0-9][a-z0-9_-]{0,63}$/i` + lowercase-normalize после match (предотвращает split buckets `Alice` ↔ `alice`). Невалидное → `null` (silently dropped). Trust model: single shared bearer = admin-grade; header — admin-controlled scoping primitive (не privilege escalation).
 **Tests:** `tests/cross-agent-isolation.test.ts` — 17 кейсов (reader-side searchContext+getContextMany; activeOnly+agentId combine; writer-spoof reject context+agent layers; ownership UPDATE check + NULL legacy back-compat + delete cross-agent reject + admin bypass; sanitizeAgentId charset/length/lowercase-normalize/leading-char). `bun test` 576 pass / 0 fail.
 
+### B-2 ✅ `src/pipeline/agent-loop/code-tools/index.ts` + `agent-loop/persist.ts` — raw SQL вне repo-слоя (закрыто PR B-2, 2026-04-25)
+`CodeToolRegistry` держал 7 raw SQL ops над `code_tools`; `agent-loop/persist.ts` — 3 raw SQL для round-trip dynamic-tools blob через `agent_memory`. Layer-boundary test уже сканировал `pipeline/`, но эти файлы были в `KNOWN_LEGACY` allowlist (silent free pass).
+**Fix (PR B-2):**
+- `src/db/tables/code-tools.ts` (NEW) — `CodeToolsTable` с insert/get/getByName/list/update/delete/recordSuccess/recordError/disable.
+- `src/repositories/code-tools.repo.ts` (NEW) — thin facade.
+- `CodeToolRegistry` → конструктор принимает `CodeToolsRepository`; boolean-cast `enabled` + size cap + auto-disable threshold остаются как business logic.
+- `SharedTable` + `MemoryRepository` + `MemoryDB` facade extended: `getLatestAgentMemoryByAgentId(agentId)` + `updateAgentMemoryContent(id, content)`.
+- `agent-loop/persist.ts` использует новые методы; 3 raw SQL → 0.
+- `agent-loop/index.ts:42` wires `new CodeToolRegistry(new CodeToolsRepository(memory.db))`.
+- `tests/layer-boundary.test.ts` KNOWN_LEGACY: `agent-loop/persist.ts` + `agent-loop/code-tools/index.ts` удалены.
+**Verify:** `bunx tsc --noEmit` 0; `bun test` 576/0; `grep '\bdb\.(run|query|prepare)\(' src/pipeline/agent-loop/` → 0 hits.
+
 ### MEM-4 🟡 `src/mcp/tools/memory-tools.ts:148` — `deleteEmbedding` дёргается ВНЕ `db.transaction()`
 `deleteMemory` tool (handler для `memory_delete`) сначала `delete*(id)` из основной таблицы, потом `deleteEmbedding(id)` — но не в одной транзакции. Если процесс умер между → orphan embedding (как MEM-1) или наоборот — мёртвая ссылка в главной таблице при живом vec.
 **Fix:** обернуть пару в `db.transaction(() => {...})()`.

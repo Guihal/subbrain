@@ -107,6 +107,31 @@ export class SharedTable {
 
   // ─── Agent Memory ──────────────────────────────────────────
 
+  /**
+   * Latest `agent_memory` row for an agentId (PR B-2). Used by
+   * `agent-loop/persist.ts` to load the most recent dynamic-tool blob —
+   * keeps SQL out of the pipeline.
+   */
+  getLatestAgentMemoryByAgentId(agentId: string): AgentMemRow | null {
+    return this.db
+      .query(
+        "SELECT * FROM agent_memory WHERE agent_id = ? ORDER BY updated_at DESC LIMIT 1",
+      )
+      .get(agentId) as AgentMemRow | null;
+  }
+
+  /**
+   * Update only `content` (and bump `updated_at`) on an existing
+   * `agent_memory` row. Identity / tags untouched.
+   */
+  updateAgentMemoryContent(id: string, content: string): void {
+    this.db
+      .query(
+        "UPDATE agent_memory SET content = ?, updated_at = unixepoch() WHERE id = ?",
+      )
+      .run(content, id);
+  }
+
   insertAgentMemory(id: string, agentId: string, content: string, tags: string = ""): void {
     this.db
       .query("INSERT INTO agent_memory (id, agent_id, content, tags) VALUES (?, ?, ?, ?)")

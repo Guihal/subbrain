@@ -17,11 +17,7 @@ export function loadPersistedDynamicTools(
   registry: DynamicToolRegistry,
 ): void {
   try {
-    const row = memory.db
-      .query(
-        "SELECT content FROM agent_memory WHERE agent_id = ? ORDER BY updated_at DESC LIMIT 1",
-      )
-      .get(DYNAMIC_TOOLS_AGENT_ID) as { content: string } | null;
+    const row = memory.getLatestAgentMemoryByAgentId(DYNAMIC_TOOLS_AGENT_ID);
     if (row?.content) {
       const defs: DynamicToolDef[] = JSON.parse(row.content);
       registry.load(defs);
@@ -37,14 +33,9 @@ export function persistDynamicTools(
   registry: DynamicToolRegistry,
 ): void {
   const serialized = JSON.stringify(registry.serialize());
-  const existing = memory.db
-    .query("SELECT id FROM agent_memory WHERE agent_id = ? LIMIT 1")
-    .get(DYNAMIC_TOOLS_AGENT_ID) as { id: string } | null;
+  const existing = memory.getLatestAgentMemoryByAgentId(DYNAMIC_TOOLS_AGENT_ID);
   if (existing) {
-    memory.db.run(
-      "UPDATE agent_memory SET content = ?, updated_at = unixepoch() WHERE id = ?",
-      [serialized, existing.id],
-    );
+    memory.updateAgentMemoryContent(existing.id, serialized);
   } else {
     memory.insertAgentMemory(
       randomUUID(),

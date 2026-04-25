@@ -12,6 +12,7 @@ import type { ArbitrationRoom } from "../arbitration-room";
 import type { AgentLoopRequest, AgentLoopResult, AgentMode } from "./types";
 import { DynamicToolRegistry } from "./dynamic-tools";
 import { CodeToolRegistry } from "./code-tools";
+import { CodeToolsRepository } from "../../repositories/code-tools.repo";
 import { loadPersistedDynamicTools, persistDynamicTools } from "./persist";
 import { runLoop } from "./run";
 import { runStreamLoop } from "./stream";
@@ -39,7 +40,7 @@ export class AgentLoop {
     private tools: ToolExecutor,
     private registry: ToolRegistry,
   ) {
-    this.codeTools = new CodeToolRegistry(memory.db);
+    this.codeTools = new CodeToolRegistry(new CodeToolsRepository(memory.db));
     loadPersistedDynamicTools(memory, this.dynamicTools);
   }
 
