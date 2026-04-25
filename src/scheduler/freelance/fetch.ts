@@ -6,7 +6,7 @@ import { parseFor } from "./parsers";
 const FEED_URLS: Record<FreelanceSource, string> = {
   "fl.ru": "https://www.fl.ru/projects/",
   "kwork.ru": "https://kwork.ru/projects",
-  "freelance.ru": "https://freelance.ru/project",
+  "freelance.ru": "https://freelance.ru/projects",
 };
 
 const ANTI_BOT_MARKERS = [

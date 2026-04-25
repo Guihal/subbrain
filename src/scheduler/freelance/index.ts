@@ -1,6 +1,7 @@
 import type { MemoryDB } from "../../db";
 import type { ModelRouter } from "../../lib/model-router";
 import type { PlaywrightClient } from "../../mcp/playwright-client";
+import { pageSnapshot } from "../../mcp/snapshot";
 import type { TelegramBot } from "../../telegram/bot";
 import type { FreelanceSource } from "../../db/types";
 import { logger } from "../../lib/logger";
@@ -10,10 +11,10 @@ import { saveAndAlert, isSeen } from "./persist";
 import type { FeedItem, ScoutStatus } from "./types";
 
 const SOURCES: FreelanceSource[] = ["fl.ru", "kwork.ru", "freelance.ru"];
-const SCOPE_NAME = "freelance";
+const SCOPE_PREFIX = "freelance:";
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 const PAUSE_MS = 6 * 60 * 60 * 1000;
-const EVALUATE_TIMEOUT_MS = 10_000;
+const EVALUATE_TIMEOUT_MS = 30_000;
 
 const log = logger.child("freelance");
 
@@ -48,12 +49,7 @@ export class FreelanceScout {
   ) => Promise<string>;
 
   constructor(private deps: FreelanceScoutDeps) {
-    this.snapshot =
-      deps.snapshot ??
-      (async (page) => {
-        const content = await page.content();
-        return content;
-      });
+    this.snapshot = deps.snapshot ?? pageSnapshot;
   }
 
   start(): void {
@@ -72,11 +68,9 @@ export class FreelanceScout {
     if (this.timer) clearInterval(this.timer);
     this.timer = null;
     this.abort.abort("shutdown");
-    try {
-      await this.deps.playwright.closeScope(SCOPE_NAME);
-    } catch {
-      /* ignore */
-    }
+    await Promise.allSettled(
+      SOURCES.map((s) => this.deps.playwright.closeScope(SCOPE_PREFIX + s)),
+    );
     log.info("freelance scout stopped");
   }
 
@@ -114,7 +108,7 @@ export class FreelanceScout {
       log.info("skip paused", { meta: { source, until: pausedTs } });
       return;
     }
-    const page = await this.deps.playwright.getScopePage(SCOPE_NAME);
+    const page = await this.deps.playwright.getScopePage(SCOPE_PREFIX + source);
     const { items, blocked } = await fetchFeed(source, page, {
       snapshot: this.snapshot,
     });

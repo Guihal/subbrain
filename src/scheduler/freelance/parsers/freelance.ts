@@ -5,8 +5,8 @@ export function parseFreelance(snapshot: string): FeedItem[] {
   return parseSnapshot(snapshot, {
     source: "freelance.ru",
     projectLinkRe:
-      /→\s+(https?:\/\/(?:www\.)?freelance\.ru\/project\/\d+[^\s]*)/,
+      /→\s+(https?:\/\/(?:www\.)?freelance\.ru\/projects\/[^\s]+\.html)/,
     titleLinkRe:
-      /"([^"]+)"\s+→\s+(https?:\/\/(?:www\.)?freelance\.ru\/project\/\d+[^\s]*)/,
+      /"([^"]+)"\s+→\s+(https?:\/\/(?:www\.)?freelance\.ru\/projects\/[^\s]+\.html)/,
   });
 }

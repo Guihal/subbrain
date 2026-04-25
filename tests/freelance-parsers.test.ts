@@ -49,4 +49,53 @@ describe("freelance parsers", () => {
     expect(parseKwork("")).toEqual([]);
     expect(parseFreelance("")).toEqual([]);
   });
+
+  // Regression: real-prod snapshots saved by scripts/freelance-probe.ts.
+  // Asserts the parsers still extract items from the live page shape.
+  // Refresh fixtures with `bun run scripts/freelance-probe.ts --save`.
+  describe("real fixtures", () => {
+    const cases: Array<{
+      name: string;
+      file: string;
+      parse: (s: string) => ReturnType<typeof parseFl>;
+      urlRe: RegExp;
+    }> = [
+      {
+        name: "fl.ru",
+        file: "tests/fixtures/freelance/fl.ru-real.txt",
+        parse: parseFl,
+        urlRe: /^https:\/\/www\.fl\.ru\/projects\/\d+/,
+      },
+      {
+        name: "kwork.ru",
+        file: "tests/fixtures/freelance/kwork.ru-real.txt",
+        parse: parseKwork,
+        urlRe: /^https:\/\/kwork\.ru\/projects\/\d+/,
+      },
+      {
+        name: "freelance.ru",
+        file: "tests/fixtures/freelance/freelance.ru-real.txt",
+        parse: parseFreelance,
+        urlRe: /^https:\/\/freelance\.ru\/projects\/.+\.html$/,
+      },
+    ];
+    for (const c of cases) {
+      test(`${c.name}: real snapshot yields parseable items`, () => {
+        const snap = (() => {
+          try {
+            return readFileSync(c.file, "utf8");
+          } catch {
+            return "";
+          }
+        })();
+        if (!snap) return; // fixture not captured yet — skip silently
+        const items = c.parse(snap);
+        expect(items.length).toBeGreaterThan(5);
+        for (const item of items) {
+          expect(item.url).toMatch(c.urlRe);
+          expect(item.title.length).toBeGreaterThan(0);
+        }
+      });
+    }
+  });
 });

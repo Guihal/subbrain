@@ -1,0 +1,168 @@
+URL: https://freelance.ru/project/search
+Title: Поиск заданий - Проекты - Удаленная работа - Есть работа для фрилансеров
+
+Interactive elements (103):
+[1] a → https://freelance.ru/project/search/pro
+[2] input(search) "введите строку для поиска"
+[3] input(checkbox) "1"
+[4] input(checkbox) "1"
+[5] input(checkbox) "577"
+[6] input(checkbox) "590"
+[7] input(checkbox) "133"
+[8] input(checkbox) "116"
+[9] input(checkbox) "40"
+[10] input(checkbox) "716"
+[11] input(checkbox) "186"
+[12] input(checkbox) "673"
+[13] input(checkbox) "724"
+[14] input(checkbox) "4"
+[15] input(checkbox) "117"
+[16] input(checkbox) "565"
+[17] input(checkbox) "89"
+[18] input(checkbox) "663"
+[19] input(checkbox) "29"
+[20] input(checkbox) "124"
+[21] input(checkbox) "98"
+[22] button "Найти"
+[23] a "Конкурсы" → https://freelance.ru/battle
+[24] a "Что это такое?" → https://freelance.ru/faq/index/view_category/id/27
+[25] a "Провести конкурс" → https://freelance.ru/tender/contest
+[26] a "Название для торговой марки бутилированного вина премиального качества производства фермерских микровиноделен" → https://freelance.boutique/contest/view/3519
+[27] a "Логотип для автосервиса" → https://freelance.boutique/contest/view/3520
+[28] a "Разработка дизайна главной страницы сайта" → https://freelance.ru/tender/view/1284
+[29] a "Безопасная сделка
+
+Позволяет осуществить возврат средств заказчику в случае невыполнения задания" → https://freelance.ru/pages/safe-transfer.html
+[30] a "Разместить задание" → https://freelance.ru/project/create
+[31] a "Требуется отрисовать чертежи трансформатора - сумматора с аттенюаторами" → https://freelance.ru/projects/trebuetsya-otrisovat-chertezhi-transformatora-summatora-s-attenyuatorami-1667000.html
+[32] a "Требуется отрисовать чертежи трансформатора - сумматора с аттенюаторами, предварительно сделав проверочные расчёты его у" → https://freelance.ru/projects/trebuetsya-otrisovat-chertezhi-transformatora-summatora-s-attenyuatorami-1667000.html
+[33] a "Написать отзыв на Яндекс Картах" → https://freelance.ru/projects/napisat-otziv-na-yandeks-kartah-1652687.html
+[34] a "Нужно размещать отзывы на разных площадках, картах и сайтах. Оплата после подтверждённой публикации. За каждый опубликов" → https://freelance.ru/projects/napisat-otziv-na-yandeks-kartah-1652687.html
+[35] a "Написать мнение о сайте" → https://freelance.ru/projects/napisat-mnenie-o-sajte-1665447.html
+[36] a "Нужно оставить мнение о работе сайта. Работаем через тг, писать@andrewwnes. Оплата после публикации, заданий много, став" → https://freelance.ru/projects/napisat-mnenie-o-sajte-1665447.html
+[37] a "Лендинг (корпусная мебель)" → https://freelance.ru/projects/lending-korpusnaya-mebel-1666981.html
+[38] a "Галерея работ; Условия заказа (замеры, доставка, монтаж); Цены ориентиры; Отзывы клиентов; Форма оставить заявку / обрат" → https://freelance.ru/projects/lending-korpusnaya-mebel-1666981.html
+[39] a "Написать отзыв для валбериса" → https://freelance.ru/projects/napisat-otziv-dlya-valberisa-1666896.html
+[40] a "Написать отзыв для валбериса с моментальной оплатой https://formdesigner.ru/form/view/244515" → https://freelance.ru/projects/napisat-otziv-dlya-valberisa-1666896.html
+[41] a "редактор объявлений и карточек товаров" → https://freelance.ru/projects/redaktor-obyavlenij-i-kartochek-tovarov-1666976.html
+[42] a "Ищем редактора для оформления карточек товаров и публикации объявлений. Требуется грамотность, внимательность и умение с" → https://freelance.ru/projects/redaktor-obyavlenij-i-kartochek-tovarov-1666976.html
+[43] a "UI/UX редизайн с адаптивной HTML/CSS-вёрсткой" → https://freelance.ru/projects/ui-ux-redizajn-s-adaptivnoj-html-css-vyorstkoj-1666951.html
+[44] a "Необходимо обновить интерфейс действующего веб-сервиса для испытательных лабораторий TesLab. Продукт большой, рабочий, с" → https://freelance.ru/projects/ui-ux-redizajn-s-adaptivnoj-html-css-vyorstkoj-1666951.html
+[45] a "WordPress-разработчика под проект психологического центра." → https://freelance.ru/projects/wordpress-razrabotchika-pod-proekt-psihologicheskogo-centra-1666947.html
+[46] a "Сайт для доработки https://psiholog-aleksandra.ru/ Что нужно: • пересобрать несколько существующих страниц; • добавить н" → https://freelance.ru/projects/wordpress-razrabotchika-pod-proekt-psihologicheskogo-centra-1666947.html
+[47] a "Писать по ТЗ и в итоге написать программный код САПР "Автоматизированное Конструирование и Моделирование" для получения " → https://freelance.ru/projects/pisat-itoge-napisat-programmny-kod-sapr-avtomatizirovannoe-konstruirovanie-1666936.html
+[48] a "Существует с десяток САПР аналогичного назначения, ещё больше уже в прошлом. Но среди нет такой, которая бы гарантировал" → https://freelance.ru/projects/pisat-itoge-napisat-programmny-kod-sapr-avtomatizirovannoe-konstruirovanie-1666936.html
+[49] a "Специалист по карточкам товаров (Wildberries)" → https://freelance.ru/projects/specialist-po-kartochkam-tovarov-wildberries-1666606.html
+[50] a "Ищем внимательного и грамотного специалиста для работы над карточками товаров на Wildberries. Работа удаленная, без звон" → https://freelance.ru/projects/specialist-po-kartochkam-tovarov-wildberries-1666606.html
+[51] a "Написание отзывов на маркетплейсах" → https://freelance.ru/projects/napisanie-otzivov-na-marketplejsah-1665959.html
+[52] a "Написание отзывов на маркетплейсах (Озон, WB, другие...) От вас не требуется никаких затрат, только ваше время и желание" → https://freelance.ru/projects/napisanie-otzivov-na-marketplejsah-1665959.html
+[53] a "Интерактивные 3D-туры под web-движок (НЕ туры 360)" → https://freelance.ru/projects/interaktivnie-turi-pod-web-dvizhok-ne-turi-360-1666878.html
+[54] a "На регулярные проекты по созданию интерактивных 3D туров различных направлений (квартиры, места общественного пользовани" → https://freelance.ru/projects/interaktivnie-turi-pod-web-dvizhok-ne-turi-360-1666878.html
+[55] a "Монтаж видео" → https://freelance.ru/projects/montazh-video-1667008.html
+[56] a "Монтажер включает разнообразные проекты: рекламные ролики, клипы, фильмы и корпоративные видео. Опыт работы с различными" → https://freelance.ru/projects/montazh-video-1667008.html
+[57] a "Настройка браузера Chrome" → https://freelance.ru/projects/nastrojka-brauzera-chrome-1667007.html
+[58] a "Задание: Нужно вернуть браузер в первоначальный вид. Проснулись сегодня запустили, а там всё изменилось при запуске. Нап" → https://freelance.ru/projects/nastrojka-brauzera-chrome-1667007.html
+[59] a "Создание плашек для постов в телеграмм" → https://freelance.ru/projects/sozdanie-plashek-dlya-postov-v-telegramm-1667006.html
+[60] a "Нужен дизайнер, который будет из уже готовых графических материалов собирать плашки для постов в Telegram: есть персонаж" → https://freelance.ru/projects/sozdanie-plashek-dlya-postov-v-telegramm-1667006.html
+[61] a "Поднять производительность сайта(Битрикс)" → https://freelance.ru/projects/podnyat-proizvoditelnost-sajta-bitriks-1667004.html
+[62] a "Здравствуйте необходимо поднять производительность, желательно до 100%. https://pagespeed.web.dev/ проверка через этот с" → https://freelance.ru/projects/podnyat-proizvoditelnost-sajta-bitriks-1667004.html
+[63] a "нарисовать карандашем персонажа в другом ракурсе" → https://freelance.ru/projects/narisovat-karandashem-personazha-v-drugom-rakurse-1667003.html
+[64] a "Нужно нарисовать персонажа в другом ракурсе, есть авторский рисунок карандашом." → https://freelance.ru/projects/narisovat-karandashem-personazha-v-drugom-rakurse-1667003.html
+[65] a "Карточки для вендинга" → https://freelance.ru/projects/kartochki-dlya-vendinga-1667002.html
+[66] a "Необходимо сделать 13 карточек напитков для вендинга. Размер карточки 60х37мм. Расстояния от линии реза до информационно" → https://freelance.ru/projects/kartochki-dlya-vendinga-1667002.html
+[67] a "монтаж роликов" → https://freelance.ru/projects/montazh-rolikov-1666999.html
+[68] a "Добрый день! Я продаю недвижимость на пхукет и мне нужен рилсмейкер - монтаж роликов по заготовленным мной сценариям. Сц" → https://freelance.ru/projects/montazh-rolikov-1666999.html
+[69] a "Инициализация Frontend проекта" → https://freelance.ru/projects/inicializaciya-frontend-proekta-1666998.html
+[70] a "О проекте Есть существующий backend на .NET (ASP.NET Core Web API). Необходимо разработать новый frontend как отдельное " → https://freelance.ru/projects/inicializaciya-frontend-proekta-1666998.html
+[71] a "Создание Обложки к книге для площадки https://author.today/" → https://freelance.ru/projects/sozdanie-oblozhki-knige-dlya-ploshadki-https-author-today-1666997.html
+[72] a "Требуется создать обложку к 2м произведениям. Возможно применение ии при работе. Размер обложки А5 ФИО Автора Формат пер" → https://freelance.ru/projects/sozdanie-oblozhki-knige-dlya-ploshadki-https-author-today-1666997.html
+[73] a "Сортировка и индексация видеоархива" → https://freelance.ru/projects/sortirovka-i-indeksaciya-videoarhiva-1666996.html
+[74] a "Ищем исполнителя для систематизации видеоархива строительной компании. Есть ~1700 коротких видео (большинство 30 сек - 3" → https://freelance.ru/projects/sortirovka-i-indeksaciya-videoarhiva-1666996.html
+[75] a "Обучить меня работе в Битрикс на уровне РОПа" → https://freelance.ru/projects/obuchit-menya-rabote-v-bitriks-na-urovne-ropa-1666993.html
+[76] a "Есть необходимость быстро изучить функционал СРМ Битрикс на уровне РОПа" → https://freelance.ru/projects/obuchit-menya-rabote-v-bitriks-na-urovne-ropa-1666993.html
+[77] a "Отзыв на Авито, через самовыкуп" → https://freelance.ru/projects/otziv-na-avito-cherez-samovikup-1666992.html
+[78] a "По всем вопросам пишите в тг @D_11_17_19 1. Заходим на аккаунт по ссылке https://www.avito.ru/user/438a99a9926b8a0b20951" → https://freelance.ru/projects/otziv-na-avito-cherez-samovikup-1666992.html
+[79] a "сделать MVP вайб кодингом" → https://freelance.ru/projects/sdelat-mvp-vajb-kodingom-1666991.html
+[80] a "Цифровая система регистрации клиентов (Ориентировано на соблюдение требований) Технологический процесс Общая логика проц" → https://freelance.ru/projects/sdelat-mvp-vajb-kodingom-1666991.html
+[81] a "1" → https://freelance.ru/project/search?page=1
+[82] a "2" → https://freelance.ru/project/search?page=2
+[83] a "3" → https://freelance.ru/project/search?page=3
+[84] a "4" → https://freelance.ru/project/search?page=4
+[85] a "5" → https://freelance.ru/project/search?page=5
+[86] a "»" → https://freelance.ru/project/search?page=2
+[87] a "Сервисы" → https://freelance.ru/shop/index
+[88] a "Помощь" → https://freelance.ru/faq/index/view_category/id/10
+[89] a "Поиск" → https://freelance.ru/freelancers/search/simple
+[90] a "Правила" → https://freelance.ru/rules.html
+[91] a "Оферта" → https://freelance.ru/offer.html
+[92] a "Политика конфиденциальности" → https://freelance.ru/privacy.html
+[93] a "Дисклеймер о ЗоЗПП" → https://freelance.ru/page/consumer-rights.html
+[94] a "Отказ от ответственности" → https://freelance.ru/page/disclaimer.html
+[95] a "Сертификат Гильдии Фрилансеров - сигнал доверия для заказчика. Действует 1 год. Подтвердите уровень" → https://zen.freelance.ru/delivery/ck.php?oaparams=2__bannerid=583__zoneid=24__source=guest__cb=eddb590665__oadest=https%3A%2F%2F%D0%B3%D0%B8%D0%BB%D1%8C%D0%B4%D0%B8%D1%8F-%D1%84%D1%80%D0%B8%D0%BB%D0%B0%D0%BD%D1%81%D0%B5%D1%80%D0%BE%D0%B2.%D1%80%D1%84%2Fqualify
+[96] a → https://freelance.ru/
+[97] a "Нанять фрилансера" → https://freelance.ru/freelancers/
+[98] a "Найти работу" → https://freelance.ru/project/search
+[99] a "Вход" → https://freelance.ru/auth/login
+[100] a "Разместить задание" → https://freelance.ru/project/create
+[101] a "Виртуальный
+помощник" → https://freelance.ru/asst
+[102] a "использования файлов cookie" → https://freelance.ru/privacy.html
+[103] button "Соглашаюсь с условиями"
+
+Text:
+Поиск заданий - Проекты - Удаленная работа - Есть работа для фрилансеров
+Найти задание/вакансию
+Открыто заданий: 2 164. Общая стоимость: 17 448 490 руб
+ Доступно для всех
+ Только для премиум-аккаунтов
+ 3D графика
+ Арт и Иллюстрации
+ Аутсорсинг и Консалтинг
+ Веб-разработка и Продуктовый дизайн
+ Графический дизайн
+ Дизайн пространства
+ Инженерия
+ Интернет продвижение
+ Искусственный интеллект
+ ИТ и Разработка
+ Маркетинг и Реклама
+ Медиа и Моушен дизайн
+ Музыка и Звук
+ Обучение и Образование
+ Переводы
+ Тексты
+ Фотография
+Найти
+Конкурсы
+
+Что это такое?
+
+Провести конкурс
+898
+через 19 часов
+
+15 000 
+
+Название для торговой марки бутилированного вина премиального качества производства фермерских микровиноделен
+
+Нейминг
+
+Конкурс на Freelance.Boutique
+87
+через 13 дней
+
+20 000 
+
+Логотип для автосервиса
+
+Разработка логотипа, фирменного знака
+
+Конкурс на Freelance.Boutique
+944 3
+через 8 дней
+
+20 000 
+
+Разработка дизайна главной страницы сайта
+
+Нам нужен обновленный дизайн для сайта http://www.3xweb.ru Нужен современный сайт с акцентом на визуал, анимацию и презентацию услуг. Оставить основные цвета 3xweb.ru (серый, зеленый, оранжевый). Нужен дизайн только главной страницы. Примеры сайтов, которые чем-то нравятся (каждый по своему): https://d-element.ru https://daccel.tech/ru/ https://machaon.ru https://ac-u.ru https://naje-s.ru/ https://punksdesign.ru https://vegas-dev.com/ С победителем продолжим сотрудничество для доработки, отрисовки логотипа, всех страниц, анимации, видеоряда и т.д. Больше всего из этого списка нравится https://vegas-dev.com/. Вот краткое ТЗ, если брать за основу этот сайт: За основу берем сайт https://vegas-dev.com/, но использовать цвета старого 3xweb.ru Всплывающее меню в верхнем левом углу. Пункты меню: - Главная - О компании - Портфолио - Услуги - Заполнить бриф - Контакты - Блог Ниже адрес, телефон, почта, ссылки на соц.сети. Логотип - взять за основу старый 3xweb.ru и сделать что-то более современное. Телефон и ссылка "Оставить заявку". Ниже должна быть анимация (видео), типа той что на https://vegas-dev.com/ или https://d-element.ru Так же должен бегать текст, только пункты чуть другие: - Интересует Разработка веб-сайта - Интересует Поддержка сайта - Интересует Продвижение сайта И кнопка "Узнать стоимость". Ниже список услуг, как на https://vegas-dev.com или https://d-element.ru. Тоже должна быть какая-то анимации при наведении на услугу. При прокрутке страницы должно быть какое-то движение. Список услуг только у нас немного другой: - Разработка - Сайт-визитка - Корпоративный сайт - Landing Page - Интернет-магазин - Интернет-портал - Поддержка - Контент-поддержка - Техническая поддержка - Дизайн-поддержка - Дополнительный функционал - Редизайн сайта - Продвижение - Аудит сайта - Интернет реклама - Копирайтинг, рерайтинг, переводы Портфолио Взять несколько наиболее удачных работ и красиво их выложить. И сделать ссылку на полный список работ. Футер - как на https://vegas-dev.com , только сделать что-то свое. Выложить меню, разместит

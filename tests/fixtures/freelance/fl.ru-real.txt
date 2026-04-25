@@ -1,0 +1,319 @@
+URL: https://www.fl.ru/projects/
+Title: Удаленная работа на дому для фрилансеров в интернете на FL.ru
+
+Interactive elements (172):
+[1] a "На главную" → https://www.fl.ru/
+[2] a "Найти работу" → https://www.fl.ru/projects/
+[3] button → https://www.fl.ru/projects/#
+[4] a "Фрилансеры" → https://www.fl.ru/freelancers/
+[5] button → https://www.fl.ru/projects/#
+[6] a "Магазин услуг" → https://www.fl.ru/uslugi-freelancera/
+[7] a "Конкурсы" → https://www.fl.ru/konkurs/
+[8] a "Вакансии" → https://www.fl.ru/vakansii/
+[9] a "Поиск" → https://www.fl.ru/search/
+[10] button "Еще" → https://www.fl.ru/projects/#
+[11] a "Поиск по сайту" → https://www.fl.ru/search/
+[12] a "Разместить заказ" → https://www.fl.ru/projects/create/?ec=project_create_header_noauth
+[13] a "Регистрация" → https://www.fl.ru/account/registration-choice/
+[14] a "Вход" → https://www.fl.ru/account/login/
+[15] combobox "Выберите категорию"
+[16] input(text) "Выберите категорию"
+[17] combobox "Выберите подкатегорию"
+[18] input(text) "Выберите подкатегорию"
+[19] combobox "Search for option"
+[20] input(search) "Все страны"
+[21] combobox "Search for option"
+[22] input(search) "Все города"
+[23] input(number) "От"
+[24] input(number) "До"
+[25] input(text) "Укажите через запятую"
+[26] a → https://www.fl.ru/projects/5497585/privedite-druga-i-poluchite-bonus-ot-flru.html
+[27] a "Разместить заказ" → https://www.fl.ru/projects/create/?ec=project_create_projectslist_noauth
+[28] a "Вся работа
+Все проекты" → https://www.fl.ru/projects/
+[29] a "Заказы" → https://www.fl.ru/projects/?kind=1
+[30] a "Вакансии" → https://www.fl.ru/vakansii/
+[31] a "Конкурсы" → https://www.fl.ru/konkurs/
+[32] a "Сайты" → https://www.fl.ru/projects/category/saity/
+[33] a "Дизайн" → https://www.fl.ru/projects/category/dizajn/
+[34] a "Продвижение сайтов (SEO, GEO)" → https://www.fl.ru/projects/category/prodvizhenie-saitov-seo/
+[35] a "Реклама и Маркетинг" → https://www.fl.ru/projects/category/reklama-marketing/
+[36] a "Программирование" → https://www.fl.ru/projects/category/programmirovanie/
+[37] a "Аутсорсинг и консалтинг" → https://www.fl.ru/projects/category/konsalting/
+[38] a "AI — искусственный интеллект" → https://www.fl.ru/projects/category/ai-iskusstvenniy-intellekt/
+[39] a "Тексты" → https://www.fl.ru/projects/category/teksty/
+[40] a "3D Графика" → https://www.fl.ru/projects/category/3d-grafika/
+[41] a "Mobile" → https://www.fl.ru/projects/category/mobile/
+[42] a "Автоматизация бизнеса" → https://www.fl.ru/projects/category/avtomatizaciya-biznesa/
+[43] a "Аудио/Видео/Фото" → https://www.fl.ru/projects/category/audio-video-photo/
+[44] a "Инжиниринг" → https://www.fl.ru/projects/category/inzhiniring/
+[45] a "Рисунки и иллюстрации" → https://www.fl.ru/projects/category/risunki-i-illustracii/
+[46] a "Анимация" → https://www.fl.ru/projects/category/animaciya/
+[47] a "Мессенджеры" → https://www.fl.ru/projects/category/messengers/
+[48] a "Фирменный стиль" → https://www.fl.ru/projects/category/firmennyi-stil/
+[49] a "Крипто и блокчейн" → https://www.fl.ru/projects/category/crypto-i-blockchain/
+[50] a "Игры" → https://www.fl.ru/projects/category/games/
+[51] a "Социальные сети" → https://www.fl.ru/projects/category/socialnye-seti/
+[52] a "Браузеры" → https://www.fl.ru/projects/category/brauzery/
+[53] a "Интернет-магазины" → https://www.fl.ru/projects/category/internet-magaziny/
+[54] a "Маркетплейс менеджмент" → https://www.fl.ru/projects/category/marketplace-management/
+[55] a "Скрыть все" → https://www.fl.ru/projects/#
+[56] a "Создать прототип (учебный проект) компьютерного зрения" → https://www.fl.ru/projects/5502083/sozdat-prototip-uchebnyiy-proekt-kompyuternogo-zreniya.html
+[57] a "Исполнитель определён" → https://www.fl.ru/projects/5502083/sozdat-prototip-uchebnyiy-proekt-kompyuternogo-zreniya.html
+[58] a "Устранить баг бота питон" → https://www.fl.ru/projects/5502131/ustranit-bag-bota-piton.html
+[59] a "Откликнуться" → https://www.fl.ru/projects/5502131/ustranit-bag-bota-piton.html
+[60] a "Помощник руководителя маркетплейсов" → https://www.fl.ru/projects/5502122/pomoschnik-rukovoditelya-marketpleysov.html
+[61] a "Откликнуться" → https://www.fl.ru/projects/5502122/pomoschnik-rukovoditelya-marketpleysov.html
+[62] a "11 ответов" → https://www.fl.ru/projects/5502122/pomoschnik-rukovoditelya-marketpleysov.html
+[63] a "Флаер" → https://www.fl.ru/projects/5502121/flaer.html
+[64] a "Откликнуться" → https://www.fl.ru/projects/5502121/flaer.html
+[65] a "5 участников" → https://www.fl.ru/projects/5502121/flaer.html
+[66] a "Надо создать ии Агентов" → https://www.fl.ru/projects/5502120/nado-sozdat-ii-agentov-.html
+[67] a "Откликнуться" → https://www.fl.ru/projects/5502120/nado-sozdat-ii-agentov-.html
+[68] a "Помощник для оформления постов в ВК (проект "Цифровой диабет")" → https://www.fl.ru/projects/5502114/pomoschnik-dlya-oformleniya-postov-v-vk-proekt-tsifrovoy-diabet.html
+[69] a "Откликнуться" → https://www.fl.ru/projects/5502114/pomoschnik-dlya-oformleniya-postov-v-vk-proekt-tsifrovoy-diabet.html
+[70] a "Монтажер реакций. Gacha Club. Аниме" → https://www.fl.ru/projects/5499498/montajer-reaktsiy-gacha-club-anime.html
+[71] a "Откликнуться" → https://www.fl.ru/projects/5499498/montajer-reaktsiy-gacha-club-anime.html
+[72] a "40 ответов" → https://www.fl.ru/projects/5499498/montajer-reaktsiy-gacha-club-anime.html
+[73] a "Ищем дизайнера интерьера на удалёнку" → https://www.fl.ru/projects/5502107/ischem-dizaynera-interera-na-udalnku.html
+[74] a "Откликнуться" → https://www.fl.ru/projects/5502107/ischem-dizaynera-interera-na-udalnku.html
+[75] a "6 ответов" → https://www.fl.ru/projects/5502107/ischem-dizaynera-interera-na-udalnku.html
+[76] a "Создание группы вконтакте" → https://www.fl.ru/projects/5502106/sozdanie-gruppyi-vkontakte.html
+[77] a "Откликнуться" → https://www.fl.ru/projects/5502106/sozdanie-gruppyi-vkontakte.html
+[78] a "Помогите, пожалуйста, составить обращение" → https://www.fl.ru/projects/5502104/pomogite-pojaluysta-sostavit-obraschenie.html
+[79] a "Откликнуться" → https://www.fl.ru/projects/5502104/pomogite-pojaluysta-sostavit-obraschenie.html
+[80] a "Отрисовать дизайн информационного сайта" → https://www.fl.ru/projects/5502099/otrisovat-dizayn-informatsionnogo-sayta-.html
+[81] a "Откликнуться" → https://www.fl.ru/projects/5502099/otrisovat-dizayn-informatsionnogo-sayta-.html
+[82] a "8-ми битовая анимация костра" → https://www.fl.ru/projects/5502105/8-mi-bitovaya-animatsiya-kostra.html
+[83] a "Откликнуться" → https://www.fl.ru/projects/5502105/8-mi-bitovaya-animatsiya-kostra.html
+[84] a "🎬 Ищем контент-мейкера под немецкий проект (удалённо)" → https://www.fl.ru/projects/5502100/-ischem-kontent-meykera-pod-nemetskiy-proekt-udalnno-.html
+[85] a "Откликнуться" → https://www.fl.ru/projects/5502100/-ischem-kontent-meykera-pod-nemetskiy-proekt-udalnno-.html
+[86] a "2 ответа" → https://www.fl.ru/projects/5502100/-ischem-kontent-meykera-pod-nemetskiy-proekt-udalnno-.html
+[87] a "Дизайнер интерьера – перепланировки / экспресс-формат" → https://www.fl.ru/projects/5502095/dizayner-interera--pereplanirovki---ekspress-format.html
+[88] a "Откликнуться" → https://www.fl.ru/projects/5502095/dizayner-interera--pereplanirovki---ekspress-format.html
+[89] a "8 ответов" → https://www.fl.ru/projects/5502095/dizayner-interera--pereplanirovki---ekspress-format.html
+[90] a "1с кд2 ошибка открытия присоединенных файлов после переноса" → https://www.fl.ru/projects/5501969/1s-kd2-oshibka-otkryitiya-prisoedinennyih-faylov-posle-perenosa-.html
+[91] a "Откликнуться" → https://www.fl.ru/projects/5501969/1s-kd2-oshibka-otkryitiya-prisoedinennyih-faylov-posle-perenosa-.html
+[92] a "Требуется отрисовать чертежи трансформатора – сумматора с аттенюаторами" → https://www.fl.ru/projects/5501968/trebuetsya-otrisovat-cherteji-transformatora---summatora-s-attenyuatorami.html
+[93] a "Откликнуться" → https://www.fl.ru/projects/5501968/trebuetsya-otrisovat-cherteji-transformatora---summatora-s-attenyuatorami.html
+[94] a "Удаление с сайта вредоносных скриптов" → https://www.fl.ru/projects/5502094/udalenie-s-sayta-vredonosnyih-skriptov.html
+[95] a "Откликнуться" → https://www.fl.ru/projects/5502094/udalenie-s-sayta-vredonosnyih-skriptov.html
+[96] a "Контент-менеджер в финансовую тематику" → https://www.fl.ru/projects/5500604/kontent-menedjer-v-finansovuyu-tematiku.html
+[97] a "Откликнуться" → https://www.fl.ru/projects/5500604/kontent-menedjer-v-finansovuyu-tematiku.html
+[98] a "73 ответа" → https://www.fl.ru/projects/5500604/kontent-menedjer-v-finansovuyu-tematiku.html
+[99] a "Ищем аналитика в области международных отношений и экономики." → https://www.fl.ru/projects/5498435/ischem-analitika-v-oblasti-mejdunarodnyih-otnosheniy-i-ekonomiki.html
+[100] a "Откликнуться" → https://www.fl.ru/projects/5498435/ischem-analitika-v-oblasti-mejdunarodnyih-otnosheniy-i-ekonomiki.html
+[101] a "13 ответов" → https://www.fl.ru/projects/5498435/ischem-analitika-v-oblasti-mejdunarodnyih-otnosheniy-i-ekonomiki.html
+[102] a "Контент-продюсер / сценарист для коротких видео про AI" → https://www.fl.ru/projects/5501945/kontent-prodyuser---stsenarist-dlya-korotkih-video-pro-ai.html
+[103] a "Откликнуться" → https://www.fl.ru/projects/5501945/kontent-prodyuser---stsenarist-dlya-korotkih-video-pro-ai.html
+[104] a "Разработка программы Учет аренды машин. Под Windows" → https://www.fl.ru/projects/5502092/razrabotka-programmyi-uchet-arendyi-mashin-pod-windows.html
+[105] a "Откликнуться" → https://www.fl.ru/projects/5502092/razrabotka-programmyi-uchet-arendyi-mashin-pod-windows.html
+[106] a "Продвижение в TikTok" → https://www.fl.ru/projects/5502091/prodvijenie-v-tiktok.html
+[107] a "Откликнуться" → https://www.fl.ru/projects/5502091/prodvijenie-v-tiktok.html
+[108] a "Создание автоворонки ботхэлп" → https://www.fl.ru/projects/5502088/sozdanie-avtovoronki-bothelp.html
+[109] a "Откликнуться" → https://www.fl.ru/projects/5502088/sozdanie-avtovoronki-bothelp.html
+[110] a "Нужен партнер для поиска заказов на разработку отец приложений" → https://www.fl.ru/projects/5502087/nujen--partner-dlya-poiska-zakazov-na-razrabotku-otets-prilojeniy-.html
+[111] a "Откликнуться" → https://www.fl.ru/projects/5502087/nujen--partner-dlya-poiska-zakazov-na-razrabotku-otets-prilojeniy-.html
+[112] a "Ищу художника / AI-артиста для отрисовки UI тайтлов по референсам "рисование или генерация"" → https://www.fl.ru/projects/5502085/ischu-hudojnika---ai-artista-dlya-otrisovki-ui-taytlov-po-referensam-risovanie-ili-generatsiya.html
+[113] a "Откликнуться" → https://www.fl.ru/projects/5502085/ischu-hudojnika---ai-artista-dlya-otrisovki-ui-taytlov-po-referensam-risovanie-ili-generatsiya.html
+[114] a "Запустить трафик на астрологические знакомства (дейтинг, RevShare)" → https://www.fl.ru/projects/5501924/zapustit-trafik-na-astrologicheskie-znakomstva-deyting-revshare.html
+[115] a "Откликнуться" → https://www.fl.ru/projects/5501924/zapustit-trafik-na-astrologicheskie-znakomstva-deyting-revshare.html
+[116] a "Программист 1с" → https://www.fl.ru/projects/5501921/programmist-1s.html
+[117] a "Откликнуться" → https://www.fl.ru/projects/5501921/programmist-1s.html
+[118] a "маркетолог" → https://www.fl.ru/projects/5501547/marketolog.html
+[119] a "Откликнуться" → https://www.fl.ru/projects/5501547/marketolog.html
+[120] a "14 ответов" → https://www.fl.ru/projects/5501547/marketolog.html
+[121] a "Разместить метки на 3D модели" → https://www.fl.ru/projects/5502081/razmestit-metki-na-3d-modeli.html
+[122] a "Откликнуться" → https://www.fl.ru/projects/5502081/razmestit-metki-na-3d-modeli.html
+[123] a "Публиковать статьи на разных площадках" → https://www.fl.ru/projects/5502079/publikovat-stati-na-raznyih-ploschadkah.html
+[124] a "Откликнуться" → https://www.fl.ru/projects/5502079/publikovat-stati-na-raznyih-ploschadkah.html
+[125] a "1" → https://www.fl.ru/projects/
+[126] a "2" → https://www.fl.ru/projects/page-2/
+[127] a "3" → https://www.fl.ru/projects/page-3/
+[128] a "4" → https://www.fl.ru/projects/page-4/
+[129] a "5" → https://www.fl.ru/projects/page-5/
+[130] a "6" → https://www.fl.ru/projects/page-6/
+[131] a "7" → https://www.fl.ru/projects/page-7/
+[132] a "8" → https://www.fl.ru/projects/page-8/
+[133] a "9" → https://www.fl.ru/projects/page-9/
+[134] a "..." → https://www.fl.ru/projects/page-0/
+[135] a "→" → https://www.fl.ru/projects/page-2/
+[136] a "Подписаться через RSS" → https://www.fl.ru/projects/#
+[137] input(text) "popup_profgroup"
+[138] a "Подписаться" → https://www.fl.ru/projects/#
+[139] a "закрыть" → https://www.fl.ru/projects/#
+[140] a "Архив заказов" → https://www.fl.ru/projects/archive/
+[141] a "Сайты" → https://www.fl.ru/freelancers/saity/
+[142] a "Дизайн" → https://www.fl.ru/freelancers/dizajn/
+[143] a "Тексты" → https://www.fl.ru/freelancers/teksty/
+[144] a "Программирование" → https://www.fl.ru/freelancers/programmirovanie/
+[145] a "Аудио/Видео/Фото" → https://www.fl.ru/freelancers/audio-video-photo/
+[146] a "Аутсорсинг и консалтинг" → https://www.fl.ru/freelancers/konsalting/
+[147] a "Игры" → https://www.fl.ru/freelancers/games/
+[148] a "3D Графика" → https://www.fl.ru/freelancers/3d-grafika/
+[149] a "Реклама и Маркетинг" → https://www.fl.ru/freelancers/reklama-marketing/
+[150] a "Инжиниринг" → https://www.fl.ru/freelancers/inzhiniring/
+[151] a "Рисунки и иллюстрации" → https://www.fl.ru/freelancers/risunki-i-illustracii/
+[152] a "Маркетплейс менеджмент" → https://www.fl.ru/freelancers/marketplace-management/
+[153] a "AI — искусственный интеллект" → https://www.fl.ru/freelancers/ai-iskusstvenniy-intellekt/
+[154] a "Автоматизация бизнеса" → https://www.fl.ru/freelancers/avtomatizaciya-biznesa/
+[155] a "Продвижение сайтов (SEO, GEO)" → https://www.fl.ru/freelancers/prodvizhenie-saitov-seo/
+[156] a "Фирменный стиль" → https://www.fl.ru/freelancers/firmennyi-stil/
+[157] a "Мессенджеры" → https://www.fl.ru/freelancers/messengers/
+[158] a "Анимация" → https://www.fl.ru/freelancers/animaciya/
+[159] a "Интернет-магазины" → https://www.fl.ru/freelancers/internet-magaziny/
+[160] a "Социальные сети" → https://www.fl.ru/freelancers/socialnye-seti/
+[161] a "Mobile" → https://www.fl.ru/freelancers/mobile/
+[162] a "Крипто и блокчейн" → https://www.fl.ru/freelancers/crypto-i-blockchain/
+[163] a "Браузеры" → https://www.fl.ru/freelancers/brauzery/
+[164] a → http://vk.com/free_lanceru
+[165] a "О проекте" → https://www.fl.ru/about/
+[166] a "Правила" → https://www.fl.ru/about/appendix_2_regulations.pdf
+[167] a "Безопасность" → https://www.fl.ru/security/
+[168] a "Помощь" → https://knowledge-base.fl.ru/
+[169] a → https://sk.ru/
+[170] a → http://www.dizkon.ru/
+[171] a "условиями использования файлов cookie" → https://st.fl.ru/about/documents/cookie_accept.pdf
+[172] button "Соглашаюсь с условиями"
+
+Text:
+Найти работу
+Фрилансеры
+Магазин услуг
+Конкурсы
+Вакансии
+Поиск
+Еще
+Разместить заказ
+Регистрация
+Вход
+Категория
+Выберите категорию
+Выберите подкатегорию
+Страна и город
+Бюджет
+Ключевые слова
+Дополнительные условия
+Не требуется оплата отклика
+Только срочные
+Меньше 2 откликов в заказе
+Заказы без исполнителя
+Вся удаленная работа
+Разместить заказ
+Вся работа
+Все проекты
+ 
+Заказы
+ 
+Вакансии
+ 
+Конкурсы
+Сайты
+ 
+Дизайн
+ 
+Продвижение сайтов (SEO, GEO)
+ 
+Реклама и Маркетинг
+ 
+Программирование
+ 
+Аутсорсинг и консалтинг
+ 
+AI — искусственный интеллект
+ 
+Тексты
+ 
+3D Графика
+ 
+Mobile
+ 
+Автоматизация бизнеса
+ 
+Аудио/Видео/Фото
+ 
+Инжиниринг
+ 
+Рисунки и иллюстрации
+ 
+Анимация
+ 
+Мессенджеры
+ 
+Фирменный стиль
+ 
+Крипто и блокчейн
+ 
+Игры
+ 
+Социальные сети
+ 
+Браузеры
+ 
+Интернет-магазины
+ 
+Маркетплейс менеджмент
+1 закрепленный заказ
+Скрыть все
+Создать прототип (учебный проект) компьютерного зрения
+по договоренности
+Привет! Для учебного проекта нужен рабочий прототип системы компьютерного зрения.  Его задачи:  - Сравнение объекта с эталоном и его категоризация - Выявление пустых объектов...
+Исполнитель определён
+Заказ 9 часов 8 минут назад
+больше 300    
+Исполнитель определён
+Устранить баг бота питон
+по договоренности
+Устранить баг бота питон
+Откликнуться
+Заказ 1 час 31 минуту назад
+больше 300    
+ 3 ответа
+Помощник руководителя маркетплейсов
+50 000 ₽ – 80 000 ₽
+Я, руководитель магазинов на маркетплейсах крупных брендов, ищу ответственного, системного, быстро обучаемого человека, который будет помогать со всеми рутинными задачами (бизнес и...
+Откликнуться
+Вакансия (Россия) 3 часа 27 минут назад
+больше 300    
+ 11 ответов
+Флаер
+5 000 
+Нужно сделать флаер для продажи Яндекс Алис в США (все должно быть на русском). Флаер должен быть в стиле яндекса, двух сторонний и на нем должны быть фото 3 основным моделей...
+Откликнуться
+Конкурс завершится через 
+
+
+5 дней 23 часа 52 минуты
+больше 300    
+ 5 участников
+Надо создать ии Агентов
+по договоренности
+Добрый вечер Всем
+Откликнуться
+Заказ 3 часа 38 минут назад
+больше 300    
+ 7 ответов
+Помощник для оформления постов в ВК (проект "Цифровой диабет")
+30 000 
+О проекте: Я веду личный блог о жизни с диабетом, основанный на моём опыте взаимодействия с ИИ-консультантом. Проект быстро растёт, и мне нужен надёжный человек, который...
+Откликнуться
+Заказ 4 часа 42 минуты назад
+больше 300    
+ 15 ответов
+Монтажер реакций. Gacha Club. Аниме
+до 94 000 ₽
+ВАКАНСИЯ НА САЙТЕ - ЗНАЧИТ АКТУАЛЬНА Обучение с нуля, полная удаленка. Возможна частичная занятость. Всем доброго времени суток!  Ищу монтажера видео, если точнее, монтажера реакц...
+Откликнуться
+Вакансия  5 часов 47 минут назад
+больше 300    
+ 40 ответов
+Ищем дизайнера интерьера на удалёнку
+до 2 500 ₽
+Нужно делать перепланировки и экспресс-проекты для квартир. Оплата: 2500₽ за один проект. Загрузка — от 2–3 проектов в неделю. — Суть работы: по фото и замерам заказчика...
+Откликнуться
+Вакансия  6 часов 17 минут назад
+больше 300    
+ 6 ответов
+Создание группы вконтакте
+Более 5 000 ₽/час
+Создание груп

@@ -25,10 +25,14 @@ export async function saveAndAlert(
     });
   });
 
-  if (deps.bot && deps.alertChatId !== null) {
+  if (deps.bot) {
     const msg = formatAlert(item, evaluated);
     try {
-      await sendToChat(deps.bot, deps.alertChatId, msg);
+      if (deps.alertChatId === null) {
+        await deps.bot.notify(msg);
+      } else {
+        await sendToChat(deps.bot, deps.alertChatId, msg);
+      }
     } catch {
       /* TG delivery best-effort */
     }

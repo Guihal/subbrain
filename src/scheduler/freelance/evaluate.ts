@@ -20,10 +20,27 @@ export async function evaluateLead(
     .filter(Boolean)
     .join("\n");
 
-  const first = await tryEvaluate(router, "flash", user, signal);
+  // coder = Copilot (devstral), fast + reliable JSON. flash = reasoning model,
+  // slower, sometimes garbled. Try the cheap one first; fall back on
+  // parse-fail only.
+  const first = await safeEvaluate(router, "coder", user, signal);
   if (first) return first;
-  const second = await tryEvaluate(router, "coder", user, signal);
+  if (signal.aborted) return { score: 0, reason: "evaluate_aborted" };
+  const second = await safeEvaluate(router, "flash", user, signal);
   return second ?? { score: 0, reason: "evaluate_parse_failed" };
+}
+
+async function safeEvaluate(
+  router: ModelRouter,
+  role: string,
+  user: string,
+  signal: AbortSignal,
+): Promise<EvaluatedLead | null> {
+  try {
+    return await tryEvaluate(router, role, user, signal);
+  } catch {
+    return null;
+  }
 }
 
 async function tryEvaluate(
@@ -32,9 +49,7 @@ async function tryEvaluate(
   user: string,
   signal: AbortSignal,
 ): Promise<EvaluatedLead | null> {
-  if (signal.aborted) {
-    throw new DOMException("Aborted", "AbortError");
-  }
+  if (signal.aborted) return null;
   const resp = await router.chat(
     role,
     {

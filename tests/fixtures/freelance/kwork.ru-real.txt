@@ -1,0 +1,200 @@
+URL: https://kwork.ru/projects
+Title: Биржа проектов - Kwork
+
+Interactive elements (73):
+[1] a "ФРИЛАНС МАРКЕТПЛЕЙС" → https://kwork.ru/
+[2] input(text) "Найти услуги"
+[3] a "Регистрация" → https://kwork.ru/signup
+[4] a "Фрилансеру" → https://kwork.ru/for-sellers
+[5] a "Дизайн" → https://kwork.ru/categories/design
+[6] a "Разработка и IT" → https://kwork.ru/categories/programming
+[7] a "Тексты и переводы" → https://kwork.ru/categories/writing-translations
+[8] a "SEO и трафик" → https://kwork.ru/categories/seo
+[9] a "Соцсети и маркетинг" → https://kwork.ru/categories/promotion
+[10] a "Аудио, видео, съемка" → https://kwork.ru/categories/audio-video
+[11] a "Бизнес и жизнь" → https://kwork.ru/categories/business
+[12] input(text) "От руб."
+[13] input(text) "До руб."
+[14] input(text) "От"
+[15] input(text) "keyword"
+[16] a "Оформление карточки товара Иван-чай для WB и Avito" → https://kwork.ru/projects/3161447
+[17] a "rabota-v-profile10" → https://kwork.ru/user/rabota-v-profile10
+[18] a "Смотреть открытые (6)" → https://kwork.ru/projects/list/rabota-v-profile10
+[19] a "Написать статью на тему бизнеса" → https://kwork.ru/projects/3161449
+[20] a "rabota-v-profile10" → https://kwork.ru/user/rabota-v-profile10
+[21] a "Смотреть открытые (6)" → https://kwork.ru/projects/list/rabota-v-profile10
+[22] a "Набор текста" → https://kwork.ru/projects/3161450
+[23] a "rabota-v-profile10" → https://kwork.ru/user/rabota-v-profile10
+[24] a "Смотреть открытые (6)" → https://kwork.ru/projects/list/rabota-v-profile10
+[25] a "Заполнить 100 карточек товара" → https://kwork.ru/projects/3161452
+[26] a "rabota-v-profile10" → https://kwork.ru/user/rabota-v-profile10
+[27] a "Смотреть открытые (6)" → https://kwork.ru/projects/list/rabota-v-profile10
+[28] a "5-6 карточек для одного товара" → https://kwork.ru/projects/3161453
+[29] a "rabota-v-profile10" → https://kwork.ru/user/rabota-v-profile10
+[30] a "Смотреть открытые (6)" → https://kwork.ru/projects/list/rabota-v-profile10
+[31] a "Смонтировать видео по примеру" → https://kwork.ru/projects/3161454
+[32] a "rabota-v-profile10" → https://kwork.ru/user/rabota-v-profile10
+[33] a "Смотреть открытые (6)" → https://kwork.ru/projects/list/rabota-v-profile10
+[34] a "Создание парсера с синхронизацией" → https://kwork.ru/projects/3161517
+[35] a "EvgeniiPo" → https://kwork.ru/user/evgeniipo
+[36] a "Расшифровка текста из видеоролика" → https://kwork.ru/projects/3161492
+[37] a "rabota-v-profile7" → https://kwork.ru/user/rabota-v-profile7
+[38] a "Смотреть открытые (5)" → https://kwork.ru/projects/list/rabota-v-profile7
+[39] a "Дизайн инфографики" → https://kwork.ru/projects/3161490
+[40] a "rabota-v-profile7" → https://kwork.ru/user/rabota-v-profile7
+[41] a "Смотреть открытые (5)" → https://kwork.ru/projects/list/rabota-v-profile7
+[42] a "Перевод текста с английского на русский" → https://kwork.ru/projects/3161484
+[43] a "rabota-v-profile7" → https://kwork.ru/user/rabota-v-profile7
+[44] a "Смотреть открытые (5)" → https://kwork.ru/projects/list/rabota-v-profile7
+[45] a "Создание вертикальных видеороликов" → https://kwork.ru/projects/3161482
+[46] a "rabota-v-profile7" → https://kwork.ru/user/rabota-v-profile7
+[47] a "Смотреть открытые (5)" → https://kwork.ru/projects/list/rabota-v-profile7
+[48] a "Создать макет визитки Создать макет визитки" → https://kwork.ru/projects/3161480
+[49] a "rabota-v-profile7" → https://kwork.ru/user/rabota-v-profile7
+[50] a "Смотреть открытые (5)" → https://kwork.ru/projects/list/rabota-v-profile7
+[51] a "cookie" → https://kwork.ru/jdocs/pd_policy
+[52] button "Окей!"
+[53] a → https://kwork.ru/
+[54] a "О проекте" → https://kwork.ru/about
+[55] a "Пользовательское соглашение" → https://kwork.ru/terms_of_service
+[56] a "Политика обработки ПД" → https://kwork.ru/jdocs/pd_policy
+[57] a "Способы оплаты" → https://kwork.ru/pay
+[58] a "Карьера в Kwork" → https://kwork.ru/team
+[59] a "Блог" → https://blog.kwork.ru/
+[60] a "Партнерская программа" → https://kwork.ru/referral_program
+[61] a "Кейсы" → https://kwork.ru/cases
+[62] a "Покупателям" → https://kwork.ru/for-buyers
+[63] a "Фрилансеру" → https://kwork.ru/for-sellers
+[64] a "Продавайте кворки за $!" → https://kwork.ru/worldwide
+[65] a "Как зарабатывать на Kwork" → https://kwork.ru/kwork_book
+[66] a "Рубрики" → https://kwork.ru/categories
+[67] a "Мобильное приложение" → https://kwork.ru/mobileapp
+[68] a "Вопрос — Ответ" → https://kwork.ru/faq
+[69] a "Служба поддержки" → https://kwork.ru/support
+[70] a → https://vk.com/kwork_kwork
+[71] a → https://t.me/kwork_kwork
+[72] a → https://apps.apple.com/ru/app/kwork/id1456387980
+[73] a → https://play.google.com/store/apps/details?id=ru.kwork.app
+
+Text:
+ФРИЛАНС МАРКЕТПЛЕЙС
+Пользователей онлайн: 1325
+Последний заказ: 1 мин. назад
+Вход
+Регистрация
+Фрилансеру
+Дизайн
+	
+Разработка и IT
+	
+Тексты и переводы
+	
+SEO и трафик
+	
+Соцсети и маркетинг
+	
+Аудио, видео, съемка
+	
+Бизнес и жизнь
+Фриланс биржа проектов
+Рубрики
+Дизайн(111)
+Разработка и IT(180)
+Тексты и переводы(25)
+SEO и трафик(35)
+Соцсети и маркетинг(105)
+Аудио, видео, съемка(60)
+Бизнес и жизнь(125)
+Бюджет
+До 1 000 ₽ (49)
+От 1 000 ₽ до 3 000 ₽ (221)
+От 3 000 ₽ до 10 000 ₽ (191)
+От 10 000 ₽ до 30 000 ₽ (149)
+От 30 000 ₽ (178)
+Нанято, % 
+Ключевые слова 
+Количество предложений
+До 5 (213)
+От 5 до 10 (159)
+От 10 до 15 (95)
+От 15 до 20 (60)
+От 20 (181)
+Статистика биржи
+за месяц 
+Проектов
+12 272
+На сумму,  ₽
+120 950 750
+Заказов
+5 028
+Оформление карточки товара Иван-чай для WB и Avito
+Нужно разработать продающую карточку товара для маркетплейсов (Wildberries и Avito) для бренда... Показать полностью
+Желаемый бюджет: до 5 000 ₽
+Допустимый: до 15 000 ₽
+Покупатель: rabota-v-profile10 
+Размещено проектов на бирже: 6  ·  Смотреть открытые (6)
+
+Нанято: 0%
+Осталось: 1 д. 23 ч.
+Предложений: 1
+ПРОСМОТРЕНО
+Написать статью на тему бизнеса
+Написать вводную часть статьи (~1000-1200 знаков с пробелами) на тему:
+"Я проанализировал... Показать полностью
+Желаемый бюджет: до 3 000 ₽
+Допустимый: до 9 000 ₽
+Покупатель: rabota-v-profile10 
+Размещено проектов на бирже: 6  ·  Смотреть открытые (6)
+
+Нанято: 0%
+Осталось: 1 д. 23 ч.
+Предложений: 1
+ПРОСМОТРЕНО
+Набор текста
+Набор тексат с фотографий рупосиного почерка , будет предоставлены фото тетради с рукописными... Показать полностью
+Желаемый бюджет: до 3 500 ₽
+Допустимый: до 10 500 ₽
+Покупатель: rabota-v-profile10 
+Размещено проектов на бирже: 6  ·  Смотреть открытые (6)
+
+Нанято: 0%
+Осталось: 1 д. 23 ч.
+Предложений: 2
+Заполнить 100 карточек товара
+Заполнить в личном кабинете 100 карточек товара , фото товара , название , описание , хейшетиг... Показать полностью
+Желаемый бюджет: до 2 500 ₽
+Допустимый: до 7 500 ₽
+Покупатель: rabota-v-profile10 
+Размещено проектов на бирже: 6  ·  Смотреть открытые (6)
+
+Нанято: 0%
+Осталось: 1 д. 23 ч.
+Предложений: 1
+5-6 карточек для одного товара
+Надо создать 5-6 карточек для OZON домашнего кактуса, рассказать в чем его преимущество,... Показать полностью
+Желаемый бюджет: до 3 000 ₽
+Допустимый: до 9 000 ₽
+Покупатель: rabota-v-profile10 
+Размещено проектов на бирже: 6  ·  Смотреть открытые (6)
+
+Нанято: 0%
+Осталось: 1 д. 23 ч.
+Предложений: 1
+Смонтировать видео по примеру
+Нужно смонтировать одно видео по предоставленному примеру.
+Что есть:
+исходные видеоматериалы... Показать полностью
+Желаемый бюджет: до 4 000 ₽
+Допустимый: до 12 000 ₽
+Покупатель: rabota-v-profile10 
+Размещено проектов на бирже: 6  ·  Смотреть открытые (6)
+
+Нанято: 0%
+Осталось: 1 д. 23 ч.
+Предложений: 1
+Создание парсера с синхронизацией
+Необходимо создать парсер, который собирает данные с сайта Донора, создаёт карточки товара и... Показать полностью
+Желаемый бюджет: до 10 000 ₽
+Допустимый: до 30 000 ₽
+Покупатель: EvgeniiPo  
+Размещено 
