@@ -215,13 +215,22 @@ export async function runHippocampus(args: {
           break;
         }
         case "task_add": {
-          // Hippocampus provides a minimal agent-like ctx: task_add only uses
-          // ctx.executor + ctx.taskBudget; other AgentToolContext fields
-          // (router/room/log/registry/dynamicTools/codeTools) are not touched.
+          // H-4: full AgentToolContext with nullable capability fields. No
+          // more `as unknown as` cast — task_add only reads executor +
+          // taskBudget; the rest stay null and any handler that tries to
+          // reach for router/room/etc. fails predictably with a null deref
+          // (the agent-only handlers that need them already null-check).
           const out = await registry.callAsAgent("task_add", toolArgs, {
             executor,
+            agentId,
+            log,
+            registry,
+            router: null,
+            room: null,
+            dynamicTools: null,
+            codeTools: null,
             taskBudget,
-          } as unknown as import("../../../mcp/registry/tool-registry").AgentToolContext);
+          });
           if (out.success) {
             tasksAdded++;
             const title = String(toolArgs.title || "").slice(0, 100);

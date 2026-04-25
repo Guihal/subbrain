@@ -124,6 +124,15 @@ export function registerAgentMetaTools(registry: ToolRegistry): void {
       ),
     }),
     handler: async (args, ctx, signal) => {
+      // H-4: router became nullable in AgentToolContext. consult_chaos
+      // requires it — reject early when missing (sub-callers like the
+      // post-hippocampus pass null and never call this tool).
+      if (!ctx.router) {
+        return {
+          success: false,
+          error: "consult_chaos unavailable (no router in this context)",
+        };
+      }
       if (ctx.session) {
         if (ctx.session.consultChaosCount >= ctx.session.consultChaosMax) {
           return {
@@ -217,6 +226,13 @@ ${profile}
       ),
     }),
     handler: (args, ctx) => {
+      // H-4: dynamicTools became nullable. create_tool requires it.
+      if (!ctx.dynamicTools) {
+        return {
+          success: false,
+          error: "create_tool unavailable (no DynamicToolRegistry in this context)",
+        };
+      }
       const def: DynamicToolDef = {
         name: args.name,
         description: args.description,
@@ -255,7 +271,7 @@ ${profile}
     input: t.Object({}),
     handler: (_args, ctx) => {
       const staticTools = ctx.registry.list().map((t) => t.name);
-      const dynamic = ctx.dynamicTools.list();
+      const dynamic = ctx.dynamicTools?.list() ?? [];
       return {
         success: true,
         data: {

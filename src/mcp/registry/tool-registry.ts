@@ -38,11 +38,23 @@ export interface PublicToolContext {
   agentId: string | null;
 }
 
-/** Agent context — agent-loop only. All agent fields strictly present (null where legitimately nullable). */
+/**
+ * Agent context — agent-loop only.
+ *
+ * H-4: capability fields are nullable/optional. Handlers null-check before
+ * use (already the pattern for `room`, `codeTools`, `session`, `taskBudget`).
+ * The previous design forced sub-callers (post-hippocampus, integration tests)
+ * to lie via `as unknown as AgentToolContext` because they did not own a
+ * router or DynamicToolRegistry. With nullable fields the cast goes away.
+ *
+ * Required: `executor`, `agentId`, `log`, `registry` — every handler that
+ * runs inside the agent loop has these. Optional: `router`, `room`,
+ * `dynamicTools`, `codeTools`, `persistDynamicTools`, `session`, `taskBudget`.
+ */
 export interface AgentToolContext extends PublicToolContext {
-  router: ModelRouter;
+  router: ModelRouter | null;
   room: ArbitrationRoom | null; // nullable: single-specialist mode
-  dynamicTools: DynamicToolRegistry;
+  dynamicTools: DynamicToolRegistry | null;
   persistDynamicTools?: () => void;
   codeTools: CodeToolRegistry | null; // nullable: sandbox unavailable
   log: ToolLog;

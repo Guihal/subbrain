@@ -221,6 +221,16 @@ RAG ищет в трёх слоях, включая `shared`. Но `grep "upsert
 **Header validation:** `x-agent-id` через `sanitizeAgentId(raw)` (`chat.service.ts`) — regex `^[a-z0-9][a-z0-9_-]{0,63}$/i` + lowercase-normalize после match (предотвращает split buckets `Alice` ↔ `alice`). Невалидное → `null` (silently dropped). Trust model: single shared bearer = admin-grade; header — admin-controlled scoping primitive (не privilege escalation).
 **Tests:** `tests/cross-agent-isolation.test.ts` — 17 кейсов (reader-side searchContext+getContextMany; activeOnly+agentId combine; writer-spoof reject context+agent layers; ownership UPDATE check + NULL legacy back-compat + delete cross-agent reject + admin bypass; sanitizeAgentId charset/length/lowercase-normalize/leading-char). `bun test` 576 pass / 0 fail.
 
+### H-4 ✅ `AgentToolContext` поля сделаны nullable, hippocampus `as unknown as` cast убран (закрыто PR H-4, 2026-04-26)
+`hippocampus.ts:207-210` использовал `as unknown as AgentToolContext` для вызова `task_add` через `registry.callAsAgent` — тип лгал, что router/room/dynamicTools/codeTools/log/registry присутствуют, хотя hippocampus передавал только `executor + taskBudget`. Любой новый handler читающий `ctx.router` упал бы на runtime.
+**Fix:** `AgentToolContext` поля капабилити переведены в `nullable / optional`:
+- `router: ModelRouter | null`
+- `dynamicTools: DynamicToolRegistry | null`
+- `room`, `codeTools`, `session`, `taskBudget`, `persistDynamicTools` — уже были.
+- Required остаются: `executor`, `agentId`, `log`, `registry`.
+Handlers `consult_chaos` + `create_tool` получили early-return если `ctx.router` / `ctx.dynamicTools` null. `list_tools` использует optional chaining (`ctx.dynamicTools?.list() ?? []`). Hippocampus task_add теперь строит честный AgentToolContext: `{executor, agentId, log, registry, router:null, room:null, dynamicTools:null, codeTools:null, taskBudget}` — без `as unknown`.
+**Verify:** `bunx tsc` 0; `bun test` 576/0.
+
 ### H-5 ✅ `memory.db.transaction` инкапсулирован через `MemoryDB.transaction` (закрыто PR H-5, 2026-04-26)
 ~10 точек в pipeline/routes использовали `memory.db.transaction(() => {...})()` — транзакционная граница протекала наружу repo, паттерн узаконил доступ к `db` из non-repo кода (легко добавить там же `memory.db.run(...)` мимо репо).
 **Fix:** `MemoryDB.transaction<T>(fn): T` (`db/index.ts`) — pass-through к `MemoryRepository.transaction`. Все pipeline/route call sites переведены: `memory.db.transaction(() => {...})()` → `memory.transaction(() => {...})`. `freelance/persist.ts` `deps.db.db.transaction(...)` → `deps.db.transaction(...)`. Тесты/scripts продолжают использовать `memory.db` (escape hatch для DELETE FROM cleanup'ов).
