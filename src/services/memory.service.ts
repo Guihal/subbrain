@@ -152,7 +152,15 @@ export class MemoryService {
     this.repo.updateShared(id, patch);
     return this.repo.getShared(id);
   }
-  deleteShared(id: string): void { this.repo.deleteShared(id); }
+  // M-4 / MEM-4: pair the row delete with vec delete so vec_embeddings
+  // never carries an orphan row. Wrapped in a transaction so a crash
+  // between the two leaves the DB consistent (no half-deleted entry).
+  deleteShared(id: string): void {
+    this.repo.transaction(() => {
+      this.repo.deleteShared(id);
+      this.repo.deleteEmbedding(id);
+    });
+  }
 
   // ─── Context (L2) ─────────────────────────────────────────
   // B-1 note: MemoryService backs the admin /v1/memory/* routes — no
@@ -187,7 +195,13 @@ export class MemoryService {
     this.repo.updateContext(id, patch);
     return this.repo.getContext(id);
   }
-  deleteContext(id: string): void { this.repo.deleteContext(id); }
+  // M-4 / MEM-4: pair row + vec deletion atomically.
+  deleteContext(id: string): void {
+    this.repo.transaction(() => {
+      this.repo.deleteContext(id);
+      this.repo.deleteEmbedding(id);
+    });
+  }
 
   // ─── Archive (L3) ─────────────────────────────────────────
   listArchive(opts: ListOpts): PaginatedResult<ArchiveRow> {
@@ -203,7 +217,13 @@ export class MemoryService {
     this.repo.updateArchive(id, patch);
     return this.repo.getArchive(id);
   }
-  deleteArchive(id: string): void { this.repo.deleteArchive(id); }
+  // M-4 / MEM-4: pair row + vec deletion atomically.
+  deleteArchive(id: string): void {
+    this.repo.transaction(() => {
+      this.repo.deleteArchive(id);
+      this.repo.deleteEmbedding(id);
+    });
+  }
 
   // ─── Agent memory ─────────────────────────────────────────
   listAgentIds(): string[] { return this.repo.listAgentIds(); }

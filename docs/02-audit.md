@@ -221,6 +221,14 @@ RAG ищет в трёх слоях, включая `shared`. Но `grep "upsert
 **Header validation:** `x-agent-id` через `sanitizeAgentId(raw)` (`chat.service.ts`) — regex `^[a-z0-9][a-z0-9_-]{0,63}$/i` + lowercase-normalize после match (предотвращает split buckets `Alice` ↔ `alice`). Невалидное → `null` (silently dropped). Trust model: single shared bearer = admin-grade; header — admin-controlled scoping primitive (не privilege escalation).
 **Tests:** `tests/cross-agent-isolation.test.ts` — 17 кейсов (reader-side searchContext+getContextMany; activeOnly+agentId combine; writer-spoof reject context+agent layers; ownership UPDATE check + NULL legacy back-compat + delete cross-agent reject + admin bypass; sanitizeAgentId charset/length/lowercase-normalize/leading-char). `bun test` 576 pass / 0 fail.
 
+### M-1 ✅ `src/app/bootstrap.ts:53-77` — 7× `(error as any)` в Elysia error-handler (закрыто PR M-1, 2026-04-26)
+Elysia ошибки имеют гетерогенную форму (TypeBox ValueError, native Error, plain `{message}`). Был cluster `(error as any)?.message`/`?.validator`/`?.stack` плюс `} as any` на logger meta — повторял один и тот же cast 7 раз.
+**Fix:** локальный type-guard `interface ErrorLike { message?, validator?, type?, stack? }` + helper `toErrorLike(err): ErrorLike` в начале файла. Cast выполняется один раз при входе; дальше работа с типизированным `e.message?.slice(...)`. Logger meta тоже без `as any`.
+
+### M-4 ✅ vec orphan на dedup/contradictions deleteArchive + admin DELETE (закрыто PR M-4, 2026-04-26)
+`night-cycle/steps/contradictions.ts:71` (`keep_old` resolution) делал `memory.deleteArchive(entry.id)` без `deleteEmbedding` → `vec_embeddings` orphan; vec-rerank жёг ресурсы на «мёртвую» точку до hydrate-фильтра. Аналогично `MemoryService.deleteShared/deleteContext/deleteArchive` (admin REST routes) не парили с vec.
+**Fix:** обе пары обёрнуты в `memory.transaction(() => { delete*; deleteEmbedding; })`. Закрывает M-4 + MEM-4 (orphan на admin path) одной правкой.
+
 ### H-4 ✅ `AgentToolContext` поля сделаны nullable, hippocampus `as unknown as` cast убран (закрыто PR H-4, 2026-04-26)
 `hippocampus.ts:207-210` использовал `as unknown as AgentToolContext` для вызова `task_add` через `registry.callAsAgent` — тип лгал, что router/room/dynamicTools/codeTools/log/registry присутствуют, хотя hippocampus передавал только `executor + taskBudget`. Любой новый handler читающий `ctx.router` упал бы на runtime.
 **Fix:** `AgentToolContext` поля капабилити переведены в `nullable / optional`:
@@ -284,10 +292,9 @@ Handlers `consult_chaos` + `create_tool` получили early-return если 
 `notify()` глотает exception и резолвится `void`; `tgSendMessage()` await-ит → `{success:true}` всегда. Автономный агент думает «уведомил», хотя Telegram 500.
 **Fix:** PR 18 — добавлен `TelegramBot.notifyOrThrow` (строгий), `notify` оставлен fire-and-forget для дайджестов; `deps.ts` привязал `setBotNotify` к `notifyOrThrow`; executor `tgSendMessage` возвращает `{success:false,error}` на throw; registry-handler `tg_send_message` префиксит `tg_delivery_failed:` чтобы агент видел честный error. Tests: `tests/telegram-notify.test.ts`, `tests/tg-send-tool.test.ts`. *(закрыто PR 18).*
 
-### OBS-1 🟡 `src/db/schema.ts:305` + `src/lib/logger.ts:75,78` — Layer 4 silent drop
-CHECK разрешает `user/assistant/system/tool/reasoning`, logger пишет `_log_${level}` → CHECK violation, `catch {}` глотает. Ни одна запись logger-а не доходит. Observability иллюзорна. Плюс `userbot.ts:319` пишет `channel_message` — та же история.
-**Fix:** PR 19 — migration 6 расширить CHECK; в logger catch вывести `console.error` один раз per unique role.
-**Scope:** PR 19.
+### OBS-1 ✅ `src/db/schema.ts:305` + `src/lib/logger.ts:75,78` — Layer 4 silent drop (закрыто migration 7 + logger workaround, статус подтверждён 2026-04-26)
+CHECK разрешал `user/assistant/system/tool/reasoning`, logger писал `_log_${level}` → CHECK violation, `catch {}` глотал. Migration 7 (`schema.ts:432-453`) расширила CHECK до `_log_debug/info/warn/error/channel_message`. Logger catch (`lib/logger.ts:75-110`) surface-ит первое violation per unique role через `console.error`; `_warnedRejectedRoles` set предотвращает spam.
+**M-3 (PR 2026-04-26):** добавлен re-entrancy guard `_inLoggerCatch` — если кто-то добавит `logger.warn(...)` внутрь catch'а, не будет stack overflow.
 
 ### OBS-2 🟢 архитектурный долг — `channel_message` это тип, не role
 `userbot.ts:319` пишет message type в колонку `role`. PR 19 — костыльный фикс (расширение CHECK), правильный фикс: колонка `msg_type` либо `role='tool'` + content prefix. Пост-PR-19 follow-up. Не блокирует главу 16.
@@ -297,10 +304,8 @@ CHECK разрешает `user/assistant/system/tool/reasoning`, logger пише
 `Promise.race([exec, timeout])` без `controller.abort()` → underlying fetch/browser/stream продолжает работать до естественного конца, слив RPM и ресурсов на работу с выброшенным результатом.
 **Fix:** PR 20 — `withToolTimeout` завёл внутренний `AbortController` и композирует `AbortSignal.any([external, internal])` в effective signal для handler-а; `ToolHandler` получил optional `signal` (back-compat — short handlers игнорируют); long-running handlers (web_* через proxy, consult_chaos, consult_specialists через `ArbitrationRoom.run(..., signal)`) форвардят в downstream; `arbitration-room.callSpecialist` теперь принимает полный `AbortController`, таймер перед `reject` вызывает `controller.abort()`, `synthesize()` тоже получает external signal. Tests: `tests/tool-timeout-abort.test.ts` (3 кейса: timeout abort в 700ms, external abort composition, fast-path), `tests/arbitration-abort.test.ts` (per-specialist timeout + external signal). *(закрыто PR 20).*
 
-### SCHED-1 🔴 `src/pipeline/agent-loop/system-prompt.ts:167` + `src/scheduler/*` — scheduled-агент без approval может писать код
-Промпт поощряет `create_code_tool`. Sandbox сам признаёт (`sandbox.ts:10`): не security boundary. Scheduled entrypoints (autonomous, free-agent, возможно night-cycle) стартуют без человека в цикле.
-**Fix:** PR 21 — `agentMode: "scheduled" | "interactive"`, scheduled скрывает `create_tool`/`create_code_tool`/`edit_code_tool`; existing code_* остаются; env opt-in.
-**Scope:** PR 21.
+### SCHED-1 ✅ `src/pipeline/agent-loop/system-prompt.ts:167` + `src/scheduler/*` — scheduled-агент без approval может писать код (закрыто PR 21, статус подтверждён 2026-04-26)
+**Fix (PR 21):** `AgentMode = "scheduled" | "interactive"` (`pipeline/agent-loop/types.ts:25`); `SCHEDULED_HIDDEN_TOOLS = {create_tool, create_code_tool, edit_code_tool}` в `mcp/registry/tool-registry.ts`. `installAutonomousScheduler` + `installFreeAgentScheduler` + `free-agent.ts:76` передают `agentMode: "scheduled"`. `routes/autonomous.ts` оставлен `interactive` (human-triggered). `registry.toOpenAIToolsForAgent(mode)` фильтрует hidden tools. Env opt-in `SCHEDULED_ALLOW_CODE_TOOL_CREATE=1` отключает фильтр для manual operator runs.
 
 ### MEM-5 ✅ `src/pipeline/agent-pipeline/post/extractors.ts` — memory write без confidence
 Post-hippocampus пишет в `shared_memory` / `memory` мгновенно, без оценки уверенности. Модельные догадки попадают в «глобальные факты» и потом цитируются как истина.

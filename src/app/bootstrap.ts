@@ -17,6 +17,24 @@ import { AppError } from "../lib/errors";
 import type { AppDeps } from "./deps";
 import { NightCycleController } from "./night-cycle-controller";
 
+/** M-1: tolerate Elysia's heterogeneous error shapes at one boundary. */
+interface ErrorLike {
+  message?: string;
+  validator?: unknown;
+  type?: string;
+  stack?: string;
+}
+function toErrorLike(err: unknown): ErrorLike {
+  if (!err || typeof err !== "object") return {};
+  const e = err as Record<string, unknown>;
+  return {
+    message: typeof e.message === "string" ? e.message : undefined,
+    validator: e.validator,
+    type: typeof e.type === "string" ? e.type : undefined,
+    stack: typeof e.stack === "string" ? e.stack : undefined,
+  };
+}
+
 export function createApp(deps: AppDeps) {
   const {
     memory,
@@ -47,21 +65,19 @@ export function createApp(deps: AppDeps) {
           },
         };
       }
+      // M-1: single boundary type-guard instead of 7× (error as any). Elysia
+      // throws a few shapes (TypeBox ValueError, native Error, plain {message}).
+      const e = toErrorLike(error);
       if (code === "VALIDATION") {
         logger.warn(
           "validation",
-          `422 on ${path}: ${(error as any)?.message?.slice?.(0, 500) || error}`,
-          {
-            meta: {
-              validator: (error as any)?.validator,
-              type: (error as any)?.type,
-            },
-          } as any,
+          `422 on ${path}: ${e.message?.slice(0, 500) || String(error)}`,
+          { meta: { validator: e.validator, type: e.type } },
         );
         set.status = 422;
         return {
           error: {
-            message: `Validation error: ${(error as any)?.message?.slice?.(0, 300) || "invalid request body"}`,
+            message: `Validation error: ${e.message?.slice(0, 300) || "invalid request body"}`,
             type: "validation_error",
             code: 422,
           },
@@ -69,12 +85,8 @@ export function createApp(deps: AppDeps) {
       }
       set.status = 500;
       logger.error("http", "unhandled", {
-        meta: {
-          path,
-          err: (error as any)?.message,
-          stack: (error as any)?.stack,
-        },
-      } as any);
+        meta: { path, err: e.message, stack: e.stack },
+      });
       return {
         error: { code: "internal_error", message: "internal" },
       };

@@ -68,7 +68,13 @@ Output JSON:
         memory.updateArchive(entry.id, { confidence: "HIGH" });
         resolved++;
       } else if (parsed.resolution === "keep_old") {
-        memory.deleteArchive(entry.id);
+        // M-4: drop vec row in the same transaction so dedup-resolution
+        // doesn't leave an orphan in vec_embeddings (which would still be
+        // returned by vecSearch and then silently filtered at hydrate).
+        memory.transaction(() => {
+          memory.deleteArchive(entry.id);
+          memory.deleteEmbedding(entry.id);
+        });
         resolved++;
       } else if (parsed.resolution === "merge" && parsed.mergedContent) {
         memory.updateArchive(entry.id, {

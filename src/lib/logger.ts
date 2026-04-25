@@ -37,6 +37,7 @@ const LEVEL_ICON: Record<LogLevel, string> = {
 // Set is fine: process-lifetime memory, never serialized, never persisted.
 // Export for test access only — do not mutate from other modules.
 export const _warnedRejectedRoles = new Set<string>();
+let _inLoggerCatch = false;
 
 // ─── Logger ──────────────────────────────────────────────
 
@@ -88,15 +89,27 @@ export class Logger {
         // vanished without trace (OBS-1). Surface the first violation per
         // unique role via console.error so future role drift is visible; stay
         // silent on repeats to avoid log spam.
-        const msg = err instanceof Error ? err.message : String(err);
-        if (
-          msg.includes("CHECK constraint failed") &&
-          !_warnedRejectedRoles.has(role)
-        ) {
-          _warnedRejectedRoles.add(role);
-          console.error(
-            `[logger] Layer4 role rejected by CHECK constraint: ${role} — entry dropped. Missing schema migration?`,
-          );
+        //
+        // M-3: re-entrancy guard. Only console.* is allowed in here — anyone
+        // who edits this catch and reaches for `logger.warn(...)` would be
+        // calling Logger.log → this catch → infinite recursion. The boolean
+        // gate makes the recursion observable (one console line, then stop)
+        // instead of stack-overflowing.
+        if (_inLoggerCatch) return;
+        _inLoggerCatch = true;
+        try {
+          const msg = err instanceof Error ? err.message : String(err);
+          if (
+            msg.includes("CHECK constraint failed") &&
+            !_warnedRejectedRoles.has(role)
+          ) {
+            _warnedRejectedRoles.add(role);
+            console.error(
+              `[logger] Layer4 role rejected by CHECK constraint: ${role} — entry dropped. Missing schema migration?`,
+            );
+          }
+        } finally {
+          _inLoggerCatch = false;
         }
       }
     }
