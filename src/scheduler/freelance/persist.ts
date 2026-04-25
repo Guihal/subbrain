@@ -13,7 +13,7 @@ export async function saveAndAlert(
   evaluated: EvaluatedLead,
 ): Promise<void> {
   const id = `fl-${randomUUID()}`;
-  deps.db.db.transaction(() => {
+  deps.db.transaction(() => {
     deps.db.insertFreelanceLead({
       id,
       url: item.url,
@@ -23,7 +23,7 @@ export async function saveAndAlert(
       score: evaluated.score,
       reason: evaluated.reason,
     });
-  })();
+  });
 
   if (deps.bot && deps.alertChatId !== null) {
     const msg = formatAlert(item, evaluated);

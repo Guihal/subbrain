@@ -78,7 +78,7 @@ export async function writeShared(
   }
 
   try {
-    memory.db.transaction(() => {
+    memory.transaction(() => {
       memory.insertShared(
         id,
         args.category,
@@ -88,7 +88,7 @@ export async function writeShared(
         { confidence: clamped, status },
       );
       memory.upsertEmbedding(id, "shared", vec);
-    })();
+    });
   } catch (err) {
     const em = err instanceof Error ? err.message : String(err);
     log.error("post", `writeShared transaction failed: ${em}`);
@@ -137,7 +137,7 @@ export async function writeContext(
   }
 
   try {
-    memory.db.transaction(() => {
+    memory.transaction(() => {
       memory.insertContext(
         id,
         args.category,
@@ -148,7 +148,7 @@ export async function writeContext(
         { confidence: clamped, status },
       );
       memory.upsertEmbedding(id, "context", vec);
-    })();
+    });
   } catch (err) {
     const em = err instanceof Error ? err.message : String(err);
     log.error("post", `writeContext transaction failed: ${em}`);

@@ -101,7 +101,7 @@ export async function pruneCompletedTasks(
     }
 
     try {
-      memory.db.transaction(() => {
+      memory.transaction(() => {
         if (existing) {
           memory.updateArchive(existing.id, { content: combined });
           // vec0 virtual tables don't honor INSERT OR REPLACE: explicitly
@@ -128,7 +128,7 @@ export async function pruneCompletedTasks(
                AND strftime('%Y-W%W', completed_at, 'unixepoch') = ?`,
           )
           .run(DONE_AGE_SECONDS, week);
-      })();
+      });
       pruned += tasks.length;
       log.info(
         `digest week=${label} ${existing ? "updated" : "created"} items=${tasks.length}`,

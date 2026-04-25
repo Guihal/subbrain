@@ -79,7 +79,7 @@ export async function processSession(
       log.warn(`[${label}] archive_embed_fail_skip id=${entryId} reason=${msg}`);
       return true; // not a scrub failure; do not retry via queue
     }
-    memory.db.transaction(() => {
+    memory.transaction(() => {
       memory.insertArchive(
         entryId,
         verified.title,
@@ -90,7 +90,7 @@ export async function processSession(
         "night-cycle",
       );
       memory.upsertEmbedding(entryId, "archive", vec);
-    })();
+    });
     result.archiveEntriesCreated++;
     log.info(`[${label}] archived "${verified.title.slice(0, 60)}"`);
     return true;

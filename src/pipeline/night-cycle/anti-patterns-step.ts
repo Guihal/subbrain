@@ -27,7 +27,7 @@ export async function runAntiPatternsStep(
     const apId = randomUUID();
     try {
       const vec = await rag.embedContent(antiPatterns);
-      memory.db.transaction(() => {
+      memory.transaction(() => {
         memory.insertArchive(
           apId,
           "Anti-patterns: " + getMoscowDate(),
@@ -38,7 +38,7 @@ export async function runAntiPatternsStep(
           "night-cycle",
         );
         memory.upsertEmbedding(apId, "archive", vec);
-      })();
+      });
       result.antiPatternsFound = 1;
     } catch (err) {
       log.warn(

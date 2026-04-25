@@ -198,14 +198,14 @@ export function tasksRoute(memory: MemoryDB) {
         if (!existing) return notFound();
         const { status, ...patch } = body;
         try {
-          memory.db.transaction(() => {
+          memory.transaction(() => {
             if (Object.keys(patch).length > 0) {
               memory.updateTask(params.id, patch);
             }
             if (status) {
               memory.transitionTask(params.id, status);
             }
-          })();
+          });
         } catch (err) {
           if (err instanceof InvalidTransitionError) return badTransition(err);
           const msg = err instanceof Error ? err.message : String(err);

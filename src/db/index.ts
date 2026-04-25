@@ -86,6 +86,15 @@ export class MemoryDB {
     this.db.close();
   }
 
+  /**
+   * H-5: encapsulated atomic composition. Use this from pipeline / routes
+   * when you need to bundle several repo writes — keeps `memory.db` access
+   * confined to db/* and tests/scripts. Returns the callback's result.
+   */
+  transaction<T>(fn: () => T): T {
+    return this.memoryRepo.transaction(fn);
+  }
+
   // ─── Layer 1: Focus ────────────────────────────────────────
   getFocus = (key: string) => this.memoryRepo.getFocus(key);
   setFocus = (key: string, value: string) => this.memoryRepo.setFocus(key, value);

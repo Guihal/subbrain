@@ -4,7 +4,7 @@ import { logger } from "../../../lib/logger";
 import { parseJson } from "../types";
 
 const log = logger.child("night");
-const NIGHT_MODEL = process.env.NIGHT_CYCLE_MODEL || "coder";
+const NIGHT_MODEL = process.env.NIGHT_CYCLE_MODEL || "memory";
 const MAX_ACTIONS = 30;
 const MAX_DURATION_MS = 5 * 60 * 1000; // soft timeout; remaining rows next cycle
 const MIN_MERGED = 15;
@@ -102,10 +102,10 @@ export async function pruneShared(
         parsed.mergedContent.trim().length >= MIN_MERGED
       ) {
         const merged = parsed.mergedContent.trim();
-        memory.db.transaction(() => {
+        memory.transaction(() => {
           memory.updateShared(target.id, { content: merged });
           memory.deleteShared(row.id);
-        })();
+        });
         seen.add(target.id);
         pruned++;
         log.info(

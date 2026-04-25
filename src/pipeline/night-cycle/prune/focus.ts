@@ -4,7 +4,7 @@ import { logger } from "../../../lib/logger";
 import { parseJson } from "../types";
 
 const log = logger.child("night");
-const NIGHT_MODEL = process.env.NIGHT_CYCLE_MODEL || "coder";
+const NIGHT_MODEL = process.env.NIGHT_CYCLE_MODEL || "memory";
 
 /**
  * Focus keys owned by system subsystems — never pruned. User/agent keys
@@ -100,10 +100,10 @@ export async function pruneFocus(
             !touched.has(dk) &&
             all[dk] !== undefined,
         );
-        memory.db.transaction(() => {
+        memory.transaction(() => {
           memory.setFocus(a.keepKey, merged);
           for (const dk of drops) memory.deleteFocus(dk);
-        })();
+        });
         touched.add(a.keepKey);
         for (const dk of drops) touched.add(dk);
         pruned += drops.length;

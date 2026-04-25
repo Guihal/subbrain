@@ -124,7 +124,7 @@ export async function collectStrayTasks(
     if (!result || result.action !== "migrate") continue;
 
     try {
-      memory.db.transaction(() => {
+      memory.transaction(() => {
         memory.upsertTaskBySource(
           `stray:${row.source_table}:${row.id}`,
           {
@@ -141,7 +141,7 @@ export async function collectStrayTasks(
           memory.deleteContext(row.id);
           memory.deleteEmbedding(row.id);
         }
-      })();
+      });
       migrated += 1;
       log.info(
         `migrated ${row.source_table}:${row.id.slice(0, 8)} scope=${result.scope}`,

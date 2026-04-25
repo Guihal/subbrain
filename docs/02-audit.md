@@ -221,6 +221,12 @@ RAG ищет в трёх слоях, включая `shared`. Но `grep "upsert
 **Header validation:** `x-agent-id` через `sanitizeAgentId(raw)` (`chat.service.ts`) — regex `^[a-z0-9][a-z0-9_-]{0,63}$/i` + lowercase-normalize после match (предотвращает split buckets `Alice` ↔ `alice`). Невалидное → `null` (silently dropped). Trust model: single shared bearer = admin-grade; header — admin-controlled scoping primitive (не privilege escalation).
 **Tests:** `tests/cross-agent-isolation.test.ts` — 17 кейсов (reader-side searchContext+getContextMany; activeOnly+agentId combine; writer-spoof reject context+agent layers; ownership UPDATE check + NULL legacy back-compat + delete cross-agent reject + admin bypass; sanitizeAgentId charset/length/lowercase-normalize/leading-char). `bun test` 576 pass / 0 fail.
 
+### H-5 ✅ `memory.db.transaction` инкапсулирован через `MemoryDB.transaction` (закрыто PR H-5, 2026-04-26)
+~10 точек в pipeline/routes использовали `memory.db.transaction(() => {...})()` — транзакционная граница протекала наружу repo, паттерн узаконил доступ к `db` из non-repo кода (легко добавить там же `memory.db.run(...)` мимо репо).
+**Fix:** `MemoryDB.transaction<T>(fn): T` (`db/index.ts`) — pass-through к `MemoryRepository.transaction`. Все pipeline/route call sites переведены: `memory.db.transaction(() => {...})()` → `memory.transaction(() => {...})`. `freelance/persist.ts` `deps.db.db.transaction(...)` → `deps.db.transaction(...)`. Тесты/scripts продолжают использовать `memory.db` (escape hatch для DELETE FROM cleanup'ов).
+**Не сделано:** privatize `MemoryDB.db` поле — заблокировано тестами (`tests/metrics.test.ts`, `night-cycle.test.ts`, `rag-status-filter.test.ts`, `rag-shared-vec.test.ts`, `memory-service.test.ts`) которые делают `memory.db.query/exec` для cleanup. Privatize требует добавить test-only API (`memory.exec` / `memory.runQuery`) — отдельный PR.
+**Verify:** `bunx tsc` 0; `bun test` 576/0; grep `memory\.db\.transaction\|deps\.db\.db\.transaction` вне tables/repos/schema/scripts → 0 hits.
+
 ### H-2 ✅ `src/pipeline/night-cycle/index.ts` — orchestrator разбит на модули (закрыто PR H-2, 2026-04-25)
 Файл был 397 LOC при cap ≤100 для orchestrators. Содержал retry-queue persistence + per-session pipeline + anti-patterns step + 6× prune-step орчестрация в одном классе.
 **Fix:** разбит на 6 файлов (соответствует guardrail #1: `phases/`/`steps/`/`tables/`/`post/`/`pre/`):

@@ -5,7 +5,7 @@ import { logger } from "../../../lib/logger";
 import { parseJson } from "../types";
 
 const log = logger.child("night");
-const NIGHT_MODEL = process.env.NIGHT_CYCLE_MODEL || "coder";
+const NIGHT_MODEL = process.env.NIGHT_CYCLE_MODEL || "memory";
 const MAX_CONTEXT_ROWS = 500;
 const MAX_ACTIONS = 30;
 const MAX_DURATION_MS = 5 * 60 * 1000; // soft timeout; remaining rows next cycle
@@ -79,10 +79,10 @@ export async function pruneContext(
       if (!parsed) continue;
 
       if (parsed.action === "drop_self") {
-        memory.db.transaction(() => {
+        memory.transaction(() => {
           memory.deleteContext(row.id);
           memory.deleteEmbedding(row.id);
-        })();
+        });
         pruned++;
         log.info(`prune_context:drop_self ${row.id.slice(0, 8)}`);
         continue;
@@ -97,10 +97,10 @@ export async function pruneContext(
         target &&
         target.id !== row.id
       ) {
-        memory.db.transaction(() => {
+        memory.transaction(() => {
           memory.deleteContext(target.id);
           memory.deleteEmbedding(target.id);
-        })();
+        });
         seen.add(target.id);
         pruned++;
         log.info(`prune_context:drop_target ${target.id.slice(0, 8)}`);
@@ -115,11 +115,11 @@ export async function pruneContext(
         parsed.mergedContent.trim().length >= MIN_MERGED
       ) {
         const merged = parsed.mergedContent.trim();
-        memory.db.transaction(() => {
+        memory.transaction(() => {
           memory.updateContext(target.id, { content: merged });
           memory.deleteContext(row.id);
           memory.deleteEmbedding(row.id);
-        })();
+        });
         seen.add(target.id);
         try {
           await rag.indexEntry(target.id, "context", merged);
