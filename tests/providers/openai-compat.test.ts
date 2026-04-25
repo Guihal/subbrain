@@ -223,22 +223,12 @@ describe("bootstrap integration (real createProviders)", () => {
     process.env.NVIDIA_BASE_URL =
       process.env.NVIDIA_BASE_URL || "https://integrate.api.nvidia.com/v1";
     process.env.NVIDIA_API_KEY = process.env.NVIDIA_API_KEY || "nvapi-test";
-    process.env.GITHUB_TOKEN = process.env.GITHUB_TOKEN || "ghp-test";
     const { applyOpenAICompatOverrides } = await import(
       "../../src/lib/model-map"
     );
     applyOpenAICompatOverrides();
     const { createProviders } = await import("../../src/providers");
-    let providers;
-    try {
-      providers = await createProviders();
-    } catch (e) {
-      // Copilot provider .init() requires reachable GitHub — skip gracefully
-      // if dev env can't talk out (the assertion we care about already failed
-      // earlier if the openai-compat slot was wrong).
-      console.warn("createProviders failed:", (e as Error).message);
-      return;
-    }
+    const providers = await createProviders();
     expect(providers["openai-compat"]).toBeInstanceOf(OpenAICompatProvider);
   });
 });
