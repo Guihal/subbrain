@@ -3,7 +3,12 @@ export const EMBED_CODE_MODEL = "nvidia/nv-embedcode-7b-v1";
 export const RERANK_MODEL = "nvidia/rerank-qa-mistral-4b";
 
 export type Priority = "critical" | "normal" | "low";
-export type ProviderName = "nvidia" | "openrouter" | "copilot" | "minimax";
+export type ProviderName =
+  | "nvidia"
+  | "openrouter"
+  | "copilot"
+  | "minimax"
+  | "openai-compat";
 
 export interface ModelTarget {
   model: string;
@@ -51,8 +56,22 @@ export const MODEL_MAP: Record<string, ModelRoute> = {
   },
 };
 
+/**
+ * Allowlist for openai-compat (CLIProxyAPI bridge → ChatGPT Pro). Matches
+ * gpt-5*, gpt-5.5*, o3*, o4*, codex-*. Tighter regex breaks expected
+ * matches; looser breaks `gpt-4o → copilot`. Do NOT widen.
+ */
+const OPENAI_COMPAT_PREFIXES =
+  /^(gpt-5(?:[-.\d]|$)|o3(?:-|$)|o4(?:-|$)|codex-)/;
+
 /** Detect provider from raw model ID. */
 function detectProvider(model: string): ProviderName {
+  if (
+    process.env.OPENAI_COMPAT_ENABLED === "true" &&
+    OPENAI_COMPAT_PREFIXES.test(model)
+  ) {
+    return "openai-compat";
+  }
   if (model.endsWith(":free") || model.startsWith("openrouter/")) {
     return "openrouter";
   }
@@ -72,6 +91,8 @@ function detectProvider(model: string): ProviderName {
   // Default: Copilot API (claude-*, gpt-*, gemini-*, etc.)
   return "copilot";
 }
+
+export { applyOpenAICompatOverrides } from "./model-map/openai-compat-overrides";
 
 /** Resolves a virtual model name to the real model + provider */
 export function resolveModel(model: string): ModelTarget {

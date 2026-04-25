@@ -10,7 +10,7 @@ import type {
 } from "./types";
 import { createProxyStream } from "./stream-utils";
 import { fetchJson, fetchStream } from "../lib/http-client";
-import { HttpError } from "../lib/errors";
+import { HttpError, redactSecrets } from "../lib/errors";
 
 export class NvidiaProvider implements LLMProvider {
   private baseUrl: string;
@@ -160,8 +160,9 @@ export class ProviderError extends Error {
   body: string;
 
   constructor(status: number, body: string) {
-    super(`Provider error ${status}: ${body}`);
+    const safe = redactSecrets(body);
+    super(`Provider error ${status}: ${safe.slice(0, 200)}`);
     this.status = status;
-    this.body = body;
+    this.body = safe;
   }
 }

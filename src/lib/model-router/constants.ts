@@ -15,6 +15,9 @@ export const PROVIDER_RPM: Record<ProviderName, number> = {
   copilot: 10,
   // Token Plan quota = 1500 req / 5h ≈ 5 RPM sustained; cap at 20 to absorb bursts.
   minimax: 20,
+  // CLIProxyAPI is local. Real bottleneck is ChatGPT Pro upstream RPM
+  // (undocumented). 30 = conservative; raise after 1 week without 429.
+  "openai-compat": 30,
 };
 
 export interface Backend {

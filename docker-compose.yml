@@ -1,8 +1,31 @@
 services:
+  cliproxy:
+    image: ghcr.io/router-for-me/cliproxyapi:v6
+    container_name: subbrain-cliproxy
+    restart: unless-stopped
+    expose: ["8080"]
+    volumes:
+      - type: bind
+        source: /root/.codex/auth.json
+        target: /app/auth.json
+        read_only: true
+    environment:
+      - CLIPROXY_AUTH_TOKEN=${OPENAI_COMPAT_API_KEY:-cliproxy-local}
+      - CLIPROXY_CODEX_AUTH_PATH=/app/auth.json
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8080/v1/models || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
   subbrain:
     build: .
     container_name: subbrain
     restart: unless-stopped
+    depends_on:
+      cliproxy:
+        condition: service_started
     # Default /dev/shm is 64MB; Chromium (Playwright MCP) hangs on real pages
     # without room to spill tabs/GPU buffers. 1GB is the conventional fix.
     shm_size: "1gb"

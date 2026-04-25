@@ -42,15 +42,42 @@ export class NotFoundError extends AppError {
   }
 }
 
+const SECRET_PATTERNS: RegExp[] = [
+  /Bearer\s+[A-Za-z0-9._\-]+/gi,
+  /(?:api[_-]?key|authorization|token)\s*[:=]\s*["']?[A-Za-z0-9._\-]+["']?/gi,
+  /\bghu_[A-Za-z0-9]{20,}\b/g,
+  /\bghp_[A-Za-z0-9]{20,}\b/g,
+  /\bsk-(?:ant-)?[A-Za-z0-9._\-]{20,}\b/g,
+  /\bnvapi-[A-Za-z0-9._\-]{10,}\b/g,
+];
+
+/**
+ * Strip common API-key/token shapes from a string before logging or echoing
+ * upstream bodies back to the client. Idempotent — running twice is safe.
+ */
+export function redactSecrets(input: string): string {
+  if (!input) return input;
+  let out = input;
+  for (const re of SECRET_PATTERNS) out = out.replace(re, "[REDACTED]");
+  return out;
+}
+
 /** HTTP-level failure from an upstream fetch: 4xx/5xx or unparseable body. */
 export class HttpError extends Error {
+  readonly status: number;
+  readonly body: string;
+  readonly meta: { url: string; requestId?: string; parseError?: boolean };
   constructor(
-    readonly status: number,
-    readonly body: string,
-    readonly meta: { url: string; requestId?: string; parseError?: boolean },
+    status: number,
+    body: string,
+    meta: { url: string; requestId?: string; parseError?: boolean },
   ) {
-    super(`HTTP ${status} @ ${meta.url}: ${body.slice(0, 200)}`);
+    const safe = redactSecrets(body);
+    super(`HTTP ${status} @ ${meta.url}: ${safe.slice(0, 200)}`);
     this.name = "HttpError";
+    this.status = status;
+    this.body = safe;
+    this.meta = meta;
   }
 }
 

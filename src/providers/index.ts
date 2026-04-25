@@ -9,6 +9,7 @@ import type {
 import { NvidiaProvider } from "./nvidia";
 import { CopilotProvider } from "./copilot";
 import { MiniMaxProvider } from "./minimax";
+import { OpenAICompatProvider } from "./openai-compat";
 import { MODEL_MAP, type ProviderName } from "../lib/model-map";
 
 export type { LLMProvider } from "./types";
@@ -148,5 +149,23 @@ export async function createProviders(): Promise<
     minimax = makeAbsentProvider("minimax");
   }
 
-  return { nvidia, openrouter, copilot, minimax };
+  // OpenAI-compat (CLIProxyAPI bridge) — optional. See
+  // docs/completed/03-model-router.md "OpenAI-compat provider".
+  let openaiCompat: LLMProvider;
+  if (required.has("openai-compat")) {
+    const url =
+      process.env.OPENAI_COMPAT_BASE_URL || "http://cliproxy:8080/v1";
+    const key = process.env.OPENAI_COMPAT_API_KEY || "cliproxy-local";
+    openaiCompat = new OpenAICompatProvider(url, key);
+  } else {
+    openaiCompat = makeAbsentProvider("openai-compat");
+  }
+
+  return {
+    nvidia,
+    openrouter,
+    copilot,
+    minimax,
+    "openai-compat": openaiCompat,
+  };
 }
