@@ -1,6 +1,6 @@
 # PR: openai-compat провайдер (CLIProxyAPI / Codex OAuth → ChatGPT Pro)
 
-Status: PLANNED
+Status: DONE (PR 28, merged c1154b1 on 2026-04-25)
 Owner: AI subagent
 Source: RLM cycle 2026-04-25 (plan 2 iter ok, impl 5 iter ok, see ~/vault/RLM/Daily/2026-04-25.md)
 
