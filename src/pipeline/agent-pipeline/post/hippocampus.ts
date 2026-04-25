@@ -30,8 +30,11 @@ import { getExtractorPrompt } from "./prompt";
 const MAX_HIPPO_STEPS = 5;
 const MAX_SNIPPET_CHARS = 12_000;
 const TASK_BUDGET_PER_EXCHANGE = 3;
+const MAX_NUDGES = 1;
+const NUDGE_NO_TOOL =
+  "[Системная метка] Ответ текстом не сохранится в память. Используй memory_write/task_add для записи или done для завершения.";
 
-const EXTRACTOR_MODEL = process.env.POST_EXTRACTOR_MODEL || "coder";
+const EXTRACTOR_MODEL = process.env.POST_EXTRACTOR_MODEL || "memory";
 
 export interface HippocampusStats {
   factsWritten: number;
@@ -95,6 +98,7 @@ export async function runHippocampus(args: {
   let tasksAdded = 0;
   let searchCalls = 0;
   let steps = 0;
+  let nudgesUsed = 0;
 
   while (steps < MAX_HIPPO_STEPS) {
     const response = await router.chat(
@@ -115,9 +119,21 @@ export async function runHippocampus(args: {
 
     if (!msg.tool_calls || msg.tool_calls.length === 0) {
       const content = msg.content || msg.reasoning_content || "";
+      if (nudgesUsed < MAX_NUDGES) {
+        nudgesUsed++;
+        log.debug(
+          "post",
+          `${EXTRACTOR_MODEL} text-only response at step ${steps}, nudging (${nudgesUsed}/${MAX_NUDGES}). Content: ${content.slice(0, 200)}`,
+        );
+        if (content) {
+          messages.push({ role: "assistant", content });
+        }
+        messages.push({ role: "user", content: NUDGE_NO_TOOL });
+        continue;
+      }
       log.debug(
         "post",
-        `${EXTRACTOR_MODEL} ended without tool calls after ${steps} steps. Content: ${content.slice(0, 200)}`,
+        `${EXTRACTOR_MODEL} ended without tool calls after ${steps} steps (nudge exhausted). Content: ${content.slice(0, 200)}`,
       );
       break;
     }

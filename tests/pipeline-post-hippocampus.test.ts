@@ -86,6 +86,58 @@ describe("post/hippocampus.runHippocampus", () => {
     expect(after.some((s) => s.content.includes("Bun runtime"))).toBe(true);
   });
 
+  test("text-only response → nudge → done on retry (parity with agent-loop)", async () => {
+    const router = mkRouter([
+      {
+        id: "n1", object: "chat.completion", created: 0, model: "memory",
+        choices: [{
+          index: 0, finish_reason: "stop",
+          message: { role: "assistant", content: "Да, вижу. Всё зафиксировано." },
+        }],
+        usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+      },
+      {
+        id: "n2", object: "chat.completion", created: 0, model: "memory",
+        choices: [{
+          index: 0, finish_reason: "tool_calls",
+          message: {
+            role: "assistant", content: null,
+            tool_calls: [{ id: "c", type: "function", function: { name: "done", arguments: "{}" } }],
+          },
+        }],
+        usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+      },
+    ]);
+    const stats = await runHippocampus({
+      memory, router, rag, executor, registry,
+      userMessage: "ok", assistantText: "ack",
+      requestId: "req-nudge-retry", log,
+    });
+    expect(stats.steps).toBeGreaterThanOrEqual(1);
+  });
+
+  test("two consecutive text-only responses → break after nudge exhausted", async () => {
+    const textOnly = {
+      id: "t", object: "chat.completion" as const, created: 0, model: "memory",
+      choices: [{
+        index: 0, finish_reason: "stop",
+        message: { role: "assistant" as const, content: "Готово." },
+      }],
+      usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+    };
+    let calls = 0;
+    const router = {
+      chat: async () => { calls++; return textOnly; },
+    } as any;
+    const stats = await runHippocampus({
+      memory, router, rag, executor, registry,
+      userMessage: "x", assistantText: "y",
+      requestId: "req-nudge-exhaust", log,
+    });
+    expect(calls).toBe(2);
+    expect(stats.factsWritten).toBe(0);
+  });
+
   test("immediate done → no writes", async () => {
     const before = memory.getAllShared().length;
     const router = mkRouter([{
