@@ -85,6 +85,8 @@ Inbound messages from any route go through `normalizeMessages()` in `src/lib/mes
 
 `src/lib/model-map.ts` is the single source of truth: `teamlead`, `coder`, `critic`, `generalist`, `flash`, `chaos` resolve to real model IDs + provider + fallback. `GET /v1/models` is generated from this map. **Never hardcode a model ID elsewhere** — change the map. Most LLM work goes to GitHub Copilot (`copilot` provider); NVIDIA NIM is only for embed + rerank; OpenRouter is the fallback overflow.
 
+**Optional OpenAI-compat bridge.** When `OPENAI_COMPAT_ENABLED=true`, `teamlead`/`coder` re-point to `gpt-5.5` via a sidecar `cliproxy` container. Activation logic in `applyOpenAICompatOverrides` (called once at bootstrap before `createProviders`). Allowlist `gpt-5*/o3*/o4*/codex-*` only. See `docs/completed/03-model-router.md`.
+
 ### Memory: 4 layers, lazy load only on new chat
 
 - `layer1_focus` (KV) and `shared_memory` are injected into **every** system prompt directly.

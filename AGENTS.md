@@ -53,6 +53,14 @@
 
 > Смена модели для роли — только в `src/lib/model-map.ts`. Список виртуальных имён генерируется динамически из `MODEL_MAP` и отдаётся через `GET /v1/models`.
 
+### OpenAI-compat (optional)
+
+When `OPENAI_COMPAT_ENABLED=true`, virtual roles `teamlead` and `coder` route
+to `gpt-5.5` via a local CLIProxyAPI container (`http://cliproxy:8080/v1`),
+which forwards to chatgpt.com using a ChatGPT Pro OAuth token. Fallback
+remains MiniMax / NVIDIA. See `.env.example` and
+`docs/completed/03-model-router.md`.
+
 ---
 
 ## 🗄 Структура памяти (4 слоя)

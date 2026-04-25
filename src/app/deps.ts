@@ -1,4 +1,5 @@
 import { createProviders } from "../providers";
+import { applyOpenAICompatOverrides } from "../lib/model-map";
 import { ModelRouter } from "../lib/model-router";
 import { MemoryDB } from "../db";
 import { ToolExecutor, PlaywrightClient, buildRegistry } from "../mcp";
@@ -197,6 +198,10 @@ export function loadConfig(): AppConfig {
 
 export async function initDeps(config: AppConfig = loadConfig()): Promise<AppDeps> {
   const authService = new AuthService(config.authToken);
+  // Re-point teamlead/coder to gpt-5.5 via cliproxy when OPENAI_COMPAT_ENABLED.
+  // MUST run before createProviders() so collectRequiredProviders() sees the
+  // openai-compat slot and instantiates the real provider.
+  applyOpenAICompatOverrides();
   const providers = await createProviders();
   const router = new ModelRouter(providers);
   const memory = new MemoryDB(config.dbPath);
