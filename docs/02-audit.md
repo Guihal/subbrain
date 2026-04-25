@@ -221,6 +221,17 @@ RAG ищет в трёх слоях, включая `shared`. Но `grep "upsert
 **Header validation:** `x-agent-id` через `sanitizeAgentId(raw)` (`chat.service.ts`) — regex `^[a-z0-9][a-z0-9_-]{0,63}$/i` + lowercase-normalize после match (предотвращает split buckets `Alice` ↔ `alice`). Невалидное → `null` (silently dropped). Trust model: single shared bearer = admin-grade; header — admin-controlled scoping primitive (не privilege escalation).
 **Tests:** `tests/cross-agent-isolation.test.ts` — 17 кейсов (reader-side searchContext+getContextMany; activeOnly+agentId combine; writer-spoof reject context+agent layers; ownership UPDATE check + NULL legacy back-compat + delete cross-agent reject + admin bypass; sanitizeAgentId charset/length/lowercase-normalize/leading-char). `bun test` 576 pass / 0 fail.
 
+### H-2 ✅ `src/pipeline/night-cycle/index.ts` — orchestrator разбит на модули (закрыто PR H-2, 2026-04-25)
+Файл был 397 LOC при cap ≤100 для orchestrators. Содержал retry-queue persistence + per-session pipeline + anti-patterns step + 6× prune-step орчестрация в одном классе.
+**Fix:** разбит на 6 файлов (соответствует guardrail #1: `phases/`/`steps/`/`tables/`/`post/`/`pre/`):
+- `retry-queue.ts` (64 LOC) — pure helpers: `RetryEntry`, `parseRetryQueue`, `upsertRetry`, constants.
+- `batch.ts` (81 LOC) — `runRetryPass` + `runMainBatch` (loops по `processSession`, разделены чтобы избежать import-cycle с `retry-queue`).
+- `process-session.ts` (104 LOC) — `processSession` standalone (был private method).
+- `anti-patterns-step.ts` (53 LOC) — extract + embed + transactional archive.
+- `post-steps.ts` (72 LOC) — `runPostBatchSteps`: contradictions + 4× prune + stray collection через `runStep` helper (try/catch + error push).
+- `index.ts` 89 LOC — тонкий координатор: lastProcessed → fetch logs → group → retry-pass → main-batch → anti-patterns → post-batch → save progress.
+**Verify:** `bunx tsc --noEmit` 0; `bun test` 576/0; `index.ts` 397 → 89 LOC (под cap 100).
+
 ### H-1 ✅ `src/rag/pipeline.ts:344` — `embedContent` принимает `AbortSignal` (закрыто PR H-1, 2026-04-25)
 `async embedContent(content: string)` без signal-параметра → SSE-cancel / tool-timeout / request-abort оставляли upstream embed работать до конца, жгли NVIDIA RPM на discarded result. Подтверждалось комментарием в `extractors.ts:11` ("rag.embedContent does not accept an AbortSignal").
 **Fix:** `embedContent(content, signal?: AbortSignal)` + `indexEntry(id, layer, content, signal?)` + `embedQuery(query, signal?)` — все три прокидывают `signal` в `router.raw.embed({..., signal})`. `EmbedParams.signal?: AbortSignal` (`providers/types.ts`); `nvidia.embed` strips signal из body, threads в `fetchJson(..., {timeoutMs, signal})`. `extractors.ts` `embedWithTimeout` упрощён: `rag.embedContent(content, AbortSignal.timeout(EMBED_TIMEOUT_MS))` вместо Promise.race + setTimeout (orphan promise был побочный эффект race). Header docstring обновлён.
