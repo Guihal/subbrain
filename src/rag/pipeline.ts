@@ -42,15 +42,16 @@ export class RAGPipeline {
       vecLimit = 20,
       rerankTopN = 5,
       skipRerank = false,
+      agentId,
     } = opts;
 
     // 1. FTS5 search (local, no RPM cost)
-    const ftsResults = this.ftsSearch(query, layers, ftsLimit);
+    const ftsResults = this.ftsSearch(query, layers, ftsLimit, agentId);
 
     // 2. Vector search (1 RPM for embed) — graceful degradation
     let vecResults: RAGResult[] = [];
     try {
-      vecResults = await this.vecSearch(query, layers, vecLimit);
+      vecResults = await this.vecSearch(query, layers, vecLimit, agentId);
     } catch {
       // Vector search unavailable — continue with FTS-only
     }
@@ -76,8 +77,18 @@ export class RAGPipeline {
 
   /**
    * FTS5-only search (no RPM cost, fast).
+   *
+   * B-1: `agentId` (when set) restricts context hits to caller's private
+   * rows + global (NULL) rows. Archive + shared ignore the filter (both
+   * are by-design global; see searchShared comment in db/tables/shared.ts
+   * and MEM-3 spec).
    */
-  ftsSearch(query: string, layers: string[], limit: number): RAGResult[] {
+  ftsSearch(
+    query: string,
+    layers: string[],
+    limit: number,
+    agentId?: string,
+  ): RAGResult[] {
     const ftsQuery = sanitizeFtsQuery(query);
     if (!ftsQuery) return [];
 
@@ -87,7 +98,7 @@ export class RAGPipeline {
     // pending / rejected rows are filtered at SQL level inside searchContext /
     // searchShared. Archive has no status column — unchanged.
     if (layers.includes("context")) {
-      for (const r of this.memory.searchContext(ftsQuery, limit, { activeOnly: true })) {
+      for (const r of this.memory.searchContext(ftsQuery, limit, { activeOnly: true, agentId })) {
         results.push({
           id: r.id,
           layer: "context",
@@ -131,11 +142,14 @@ export class RAGPipeline {
 
   /**
    * Vector-only search (1 RPM for embedding, cached).
+   *
+   * B-1: `agentId` filters context-layer hydration; archive + shared ignore.
    */
   async vecSearch(
     query: string,
     layers: string[],
     limit: number,
+    agentId?: string,
   ): Promise<RAGResult[]> {
     // Embed the query (with cache)
     const queryVec = await this.embedQuery(query);
@@ -155,7 +169,7 @@ export class RAGPipeline {
       // rejected (the vec_embeddings table has no status column). activeOnly
       // drops them at hydrate time so they never enter RAG injection.
       if (layer === "context") {
-        for (const r of this.memory.getContextMany(ids, { activeOnly: true })) byId.set(r.id, r);
+        for (const r of this.memory.getContextMany(ids, { activeOnly: true, agentId })) byId.set(r.id, r);
       } else if (layer === "archive") {
         for (const r of this.memory.getArchiveMany(ids)) byId.set(r.id, r);
       } else if (layer === "shared") {

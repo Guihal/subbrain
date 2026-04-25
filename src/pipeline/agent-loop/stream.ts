@@ -57,6 +57,7 @@ export function runStreamLoop(
           maxSteps,
           priority,
           agentMode,
+          agentId,
           log,
           session,
           messages,
@@ -72,7 +73,7 @@ export function runStreamLoop(
           emit("step", { step, maxSteps, status: "thinking" });
 
           const result = await executeStep(
-            stepDeps(deps, session),
+            stepDeps(deps, session, agentId),
             {
               step,
               maxSteps,

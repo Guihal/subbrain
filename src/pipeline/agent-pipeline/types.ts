@@ -15,6 +15,13 @@ export interface PipelineRequest {
   top_p?: number;
   tools?: any[];
   tool_choice?: any;
+  /**
+   * B-1: per-agent identity used to scope context-layer reads/writes (RAG +
+   * hippocampus). Absent / null = no scope (chat-route default — admin /
+   * legacy back-compat). Schedulers and explicit per-agent flows pass a
+   * string.
+   */
+  agentId?: string | null;
 }
 
 export interface PipelineResult {

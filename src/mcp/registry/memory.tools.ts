@@ -58,7 +58,7 @@ export function registerMemoryTools(registry: ToolRegistry): void {
       agent_id: t.Optional(t.String({ description: "Agent ID (agent layer)" })),
       key: t.Optional(t.String({ description: "Key (focus layer)" })),
     }),
-    handler: (args, ctx) => ctx.executor.memoryTools.write(args),
+    handler: (args, ctx) => ctx.executor.memoryTools.write(args, ctx.agentId),
   });
 
   registry.register({
@@ -75,7 +75,7 @@ export function registerMemoryTools(registry: ToolRegistry): void {
       ]),
     }),
     handler: (args, ctx) =>
-      ctx.executor.memoryTools.delete(args.id, args.layer),
+      ctx.executor.memoryTools.delete(args.id, args.layer, ctx.agentId),
   });
 
   registry.register({
@@ -101,7 +101,7 @@ export function registerMemoryTools(registry: ToolRegistry): void {
       ),
     }),
     handler: (args, ctx) =>
-      ctx.executor.memoryTools.search(args.query, args.layer, args.limit),
+      ctx.executor.memoryTools.search(args.query, args.layer, args.limit, ctx.agentId),
   });
 
   registry.register({

@@ -33,25 +33,39 @@ export class MemoryTools {
     return { success: true, data };
   }
 
-  write(params: {
-    layer: string;
-    content: string;
+  write(
+    params: {
+      layer: string;
+      content: string;
+      /**
+       * Confidence 0..1 (MEM-5 / PR 22a). Enforced as required by the registry
+       * TypeBox schema (`memory_write`). Direct callers of `MemoryTools.write`
+       * (internal tests, legacy code paths) may omit it, in which case a
+       * conservative `HIGH`/'active' baseline is used — public tool callers
+       * cannot reach this branch because registry validation rejects the
+       * request upstream.
+       */
+      confidence?: number | "HIGH" | "LOW";
+      id?: string;
+      title?: string;
+      tags?: string;
+      category?: string;
+      /**
+       * B-1 spoofing note: `agent_id` from `params` is ignored for context /
+       * archive / agent layers — those use the server-controlled `agentId`
+       * argument below. An agent must not be able to write into another
+       * agent's private bucket by passing a forged `args.agent_id`.
+       */
+      agent_id?: string;
+      key?: string;
+    },
     /**
-     * Confidence 0..1 (MEM-5 / PR 22a). Enforced as required by the registry
-     * TypeBox schema (`memory_write`). Direct callers of `MemoryTools.write`
-     * (internal tests, legacy code paths) may omit it, in which case a
-     * conservative `HIGH`/'active' baseline is used — public tool callers
-     * cannot reach this branch because registry validation rejects the
-     * request upstream.
+     * B-1: server-controlled per-agent identity. `null` = unscoped (admin /
+     * legacy back-compat). Schedulers and agent-loop entry points populate
+     * this from the request context; REST/MCP routes default to null.
      */
-    confidence?: number | "HIGH" | "LOW";
-    id?: string;
-    title?: string;
-    tags?: string;
-    category?: string;
-    agent_id?: string;
-    key?: string;
-  }): ToolResult {
+    agentId: string | null = null,
+  ): ToolResult {
     const id = params.id || randomUUID();
     // MEM-5 (PR 22a): numeric confidence 0..1 classifies the row via the
     // MEMORY_AUTOACCEPT_CONFIDENCE threshold (default 0.8):
@@ -81,8 +95,22 @@ export class MemoryTools {
         this.memory.setFocus(params.key, params.content);
         return { success: true, data: { key: params.key } };
 
-      case "context":
-        if (this.memory.getContext(id)) {
+      case "context": {
+        const existing = this.memory.getContext(id);
+        if (existing) {
+          // B-1 ownership check: an agent can update its own row OR a legacy
+          // (NULL agent_id) row. Cross-agent overwrite by guessing/leaking
+          // an id is rejected. Admin (agentId === null) bypasses the check.
+          if (
+            agentId !== null &&
+            existing.agent_id !== null &&
+            existing.agent_id !== agentId
+          ) {
+            return {
+              success: false,
+              error: `forbidden: layer2_context row ${id} owned by another agent`,
+            };
+          }
           this.memory.updateContext(id, {
             title: params.title,
             content: params.content,
@@ -91,17 +119,20 @@ export class MemoryTools {
             confidence,
           });
         } else {
+          // B-1: agent_id from server-controlled `agentId`, NOT params.agent_id
+          // (would let an agent spoof another agent's private bucket).
           this.memory.insertContext(
             id,
             params.title || "Untitled",
             params.content,
             params.tags || "",
             [],
-            params.agent_id,
+            agentId ?? undefined,
             { confidence, status },
           );
         }
         break;
+      }
 
       case "archive":
         if (this.memory.getArchive(id)) {
@@ -112,6 +143,9 @@ export class MemoryTools {
             confidence: archiveLabel,
           });
         } else {
+          // Archive is shared-by-design (MEM-3); agentId is recorded for
+          // attribution only, never used as a reader filter. Server-side
+          // `agentId` still preferred over LLM-supplied params.agent_id.
           this.memory.insertArchive(
             id,
             params.title || "Untitled",
@@ -119,7 +153,7 @@ export class MemoryTools {
             params.tags || "",
             [],
             archiveLabel,
-            params.agent_id,
+            agentId ?? undefined,
           );
         }
         break;
@@ -136,11 +170,18 @@ export class MemoryTools {
         break;
 
       case "agent":
-        if (!params.agent_id)
-          return { success: false, error: "agent_id required for agent layer" };
+        // agent_memory is a separate per-agent bucket (private API
+        // `getAgentMemories(agentId)`). Identity must come from the server
+        // (`agentId` arg) — never from LLM-supplied `params.agent_id`. If
+        // server passes null (admin / unscoped), the request is rejected.
+        if (!agentId)
+          return {
+            success: false,
+            error: "agent layer requires server-bound agentId (set by route or scheduler, not by tool args)",
+          };
         this.memory.insertAgentMemory(
           id,
-          params.agent_id,
+          agentId,
           params.content,
           params.tags || "",
         );
@@ -161,11 +202,28 @@ export class MemoryTools {
     return { success: true, data: { id } };
   }
 
-  delete(id: string, layer: string): ToolResult {
+  delete(
+    id: string,
+    layer: string,
+    /**
+     * B-1: server-controlled agentId for ownership check on context layer.
+     * Symmetric to `write`: an agent can delete only its own row OR a
+     * legacy NULL row. Admin (`null`) bypasses the check.
+     */
+    agentId: string | null = null,
+  ): ToolResult {
     switch (layer) {
-      case "context":
+      case "context": {
+        const existing = this.memory.getContext(id);
+        if (existing && agentId !== null && existing.agent_id !== null && existing.agent_id !== agentId) {
+          return {
+            success: false,
+            error: `forbidden: layer2_context row ${id} owned by another agent`,
+          };
+        }
         this.memory.deleteContext(id);
         break;
+      }
       case "archive":
         this.memory.deleteArchive(id);
         break;
@@ -182,16 +240,27 @@ export class MemoryTools {
     return { success: true };
   }
 
-  search(query: string, layer?: string, limit?: number): ToolResult {
+  search(
+    query: string,
+    layer?: string,
+    limit?: number,
+    /**
+     * B-1: per-agent identity for context-layer scoping. `null` = admin
+     * (no filter); set string = filter `(agent_id = ? OR agent_id IS NULL)`.
+     * Archive + shared remain global per MEM-3.
+     */
+    agentId: string | null = null,
+  ): ToolResult {
     // Q-10: hard cap on per-layer result count to avoid unbounded payloads
     // when a caller forwards an LLM-chosen `limit`.
     const MAX_LIMIT = 50;
     const n = Math.min(MAX_LIMIT, Math.max(1, limit || 10));
     const target = layer || "all";
     const results: Record<string, FtsResult[]> = {};
+    const ctxOpts = agentId ? { agentId } : undefined;
 
     if (target === "all" || target === "context") {
-      results.context = this.memory.searchContext(query, n);
+      results.context = this.memory.searchContext(query, n, ctxOpts);
     }
     if (target === "all" || target === "archive") {
       results.archive = this.memory.searchArchive(query, n);

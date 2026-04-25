@@ -43,6 +43,7 @@ export interface AgentLoopDeps {
 export function toolRunnerDeps(
   deps: AgentLoopDeps,
   session: AgentLoopSession,
+  agentId: string | null,
 ): ToolRunnerDeps {
   return {
     registry: deps.registry,
@@ -53,17 +54,19 @@ export function toolRunnerDeps(
     persistDynamicTools: deps.persistDynamicTools,
     codeTools: deps.codeTools,
     session,
+    agentId,
   };
 }
 
 export function stepDeps(
   deps: AgentLoopDeps,
   session: AgentLoopSession,
+  agentId: string | null,
 ): StepDeps {
   return {
     router: deps.router,
     memory: deps.memory,
-    tools: toolRunnerDeps(deps, session),
+    tools: toolRunnerDeps(deps, session, agentId),
   };
 }
 
@@ -74,6 +77,8 @@ export interface AgentLoopContext {
   maxSteps: number;
   priority: Priority;
   agentMode: AgentMode;
+  /** B-1: per-agent identity for context-layer scoping; null = no scope. */
+  agentId: string | null;
   log: ReturnType<typeof logger.forRequest>;
   session: AgentLoopSession;
   messages: Message[];
@@ -94,6 +99,7 @@ export async function initAgentLoopContext(
   const maxSteps = Math.min(req.maxSteps || MAX_STEPS, MAX_STEPS);
   const priority: Priority = req.priority || "critical";
   const agentMode: AgentMode = req.agentMode ?? "interactive";
+  const agentId: string | null = req.agentId ?? null;
   const log = logger.forRequest(requestId, sessionId);
 
   const session: AgentLoopSession = {
@@ -130,6 +136,7 @@ export async function initAgentLoopContext(
     maxSteps,
     priority,
     agentMode,
+    agentId,
     log,
     session,
     messages,
@@ -172,6 +179,7 @@ export function finalizeAgentRun(
       model: ctx.model,
       userMessage: req.task,
       assistantMessage: summary,
+      agentId: ctx.agentId,
     },
     ctx.log,
   );
@@ -185,6 +193,7 @@ export function firePost(
     model: string;
     userMessage: string;
     assistantMessage: string;
+    agentId: string | null;
   },
   log: ReturnType<typeof logger.forRequest>,
 ): void {
@@ -200,6 +209,7 @@ export function firePost(
     requestId: params.requestId,
     sessionId: params.sessionId,
     model: params.model,
+    agentId: params.agentId,
     options: { skipRawLog: true },
   }).catch((e) =>
     log.error(

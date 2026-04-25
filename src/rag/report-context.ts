@@ -4,6 +4,11 @@
  * Перед отправкой отчёта в Telegram собирает фактический контекст
  * из shared_memory (FTS), raw_log (за период) и context/archive (RAG hybrid).
  * Вывод — markdown с тремя секциями.
+ *
+ * B-1 scope note: report-context runs as **admin** — no `agentId` is passed
+ * to `rag.search` or `searchContext`. The TG digest aggregates state across
+ * every agent (autonomous, free-agent, interactive) and must see them all.
+ * Per-agent reports would need to thread an explicit agentId here.
  */
 import type { MemoryDB, LogRow, SharedRow } from "../db";
 import type { RAGPipeline } from "./pipeline";

@@ -59,8 +59,16 @@ export async function buildExecutiveSummary(args: {
   userMessage: string;
   seedContext: string;
   onProgress?: (msg: string) => void;
+  /**
+   * B-1: per-agent identity for context-layer scoping. `null` = unscoped
+   * (admin / chat-route default). Schedulers thread their identity here.
+   */
+  agentId?: string | null;
 }): Promise<ExecutiveSummaryResult> {
-  const { router, memory, rag, userMessage, seedContext, onProgress } = args;
+  const {
+    router, memory, rag, userMessage, seedContext, onProgress,
+    agentId = null,
+  } = args;
 
   onProgress?.("🧠 Гиппокамп (агентный режим) собирает контекст...\n");
 
@@ -159,6 +167,7 @@ export async function buildExecutiveSummary(args: {
         toolArgs,
         memory,
         rag,
+        agentId,
       );
 
       if (ragResults) allRagResults.push(...ragResults);

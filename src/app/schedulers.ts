@@ -42,6 +42,8 @@ export function installAutonomousScheduler(
         priority: "low",
         // SCHED-1: scheduler has no human in the loop — hide code-tool authoring.
         agentMode: "scheduled",
+        // B-1: per-agent identity for context-layer scoping.
+        agentId: "autonomous",
         schedule: {
           intervalMinutes: autonomous.intervalMinutes,
           source: "autonomous",

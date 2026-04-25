@@ -31,6 +31,7 @@ export function registerRagTools(registry: ToolRegistry): void {
         args.layers,
         args.top_n,
         args.skip_rerank,
+        ctx.agentId,
       ),
   });
 }

@@ -74,6 +74,8 @@ export function installFreeAgentScheduler(deps: AppDeps): { stop: () => void } {
         priority: "low",
         // SCHED-1: no human in the loop — hide code-tool authoring.
         agentMode: "scheduled",
+        // B-1: per-agent identity for context-layer scoping.
+        agentId: "free-agent",
         schedule: {
           intervalMinutes: cfg.intervalMinutes,
           source: "free-agent",

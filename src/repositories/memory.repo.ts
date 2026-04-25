@@ -71,8 +71,10 @@ export class MemoryRepository {
     },
   ) => this.mem.updateContext(id, fields);
   getContext = (id: string) => this.mem.getContext(id);
-  getContextMany = (ids: string[], opts?: { activeOnly?: boolean }) =>
-    this.mem.getContextMany(ids, opts);
+  getContextMany = (
+    ids: string[],
+    opts?: { activeOnly?: boolean; agentId?: string },
+  ) => this.mem.getContextMany(ids, opts);
   listContext = (limit?: number, offset?: number) => this.mem.listContext(limit, offset);
   countContext = () => this.mem.countContext();
   deleteContext = (id: string) => this.mem.deleteContext(id);
@@ -98,8 +100,11 @@ export class MemoryRepository {
   deleteArchive = (id: string) => this.mem.deleteArchive(id);
 
   // ─── FTS5 Search (context + archive) ──────────────────────
-  searchContext = (query: string, limit?: number, opts?: { activeOnly?: boolean }): FtsResult[] =>
-    this.mem.searchContext(query, limit, opts);
+  searchContext = (
+    query: string,
+    limit?: number,
+    opts?: { activeOnly?: boolean; agentId?: string },
+  ): FtsResult[] => this.mem.searchContext(query, limit, opts);
   searchArchive = (query: string, limit?: number): FtsResult[] =>
     this.mem.searchArchive(query, limit);
 

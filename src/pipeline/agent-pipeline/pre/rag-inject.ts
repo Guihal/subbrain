@@ -56,6 +56,13 @@ export async function executeHippoTool(
   args: Record<string, unknown>,
   memory: MemoryDB,
   rag: RAGPipeline,
+  /**
+   * B-1: per-agent identity used to scope context-layer reads. `null` =
+   * admin / unscoped (legacy back-compat); typed string = filter
+   * `(agent_id = ? OR agent_id IS NULL)`. Archive + shared are by-design
+   * global, no filter applied.
+   */
+  agentId: string | null = null,
 ): Promise<{ result: string; ragResults?: RAGResult[] }> {
   switch (name) {
     case "memory_search": {
@@ -63,8 +70,9 @@ export async function executeHippoTool(
       const layer = (args.layer as string) || "all";
       const limit = (args.limit as number) || 10;
       const results: Record<string, unknown[]> = {};
+      const ctxOpts = agentId ? { agentId } : undefined;
       if (layer === "all" || layer === "context")
-        results.context = memory.searchContext(query, limit);
+        results.context = memory.searchContext(query, limit, ctxOpts);
       if (layer === "all" || layer === "archive")
         results.archive = memory.searchArchive(query, limit);
       if (layer === "all" || layer === "shared")
@@ -75,7 +83,11 @@ export async function executeHippoTool(
       const query = args.query as string;
       const topN = (args.top_n as number) || 5;
       try {
-        const ragResults = await rag.search({ query, rerankTopN: topN });
+        const ragResults = await rag.search({
+          query,
+          rerankTopN: topN,
+          agentId: agentId ?? undefined,
+        });
         return { result: JSON.stringify(ragResults), ragResults };
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);

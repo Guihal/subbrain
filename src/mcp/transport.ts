@@ -32,6 +32,7 @@ export function mcpRoute(registry: ToolRegistry, executor: ToolExecutor) {
 
       const result = await registry.callAsPublic(name, args ?? {}, {
         executor,
+        agentId: null, // REST = admin scope; B-1 isolation lives in agent-loop ctx
       });
       return result;
     });

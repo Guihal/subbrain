@@ -54,10 +54,12 @@ export async function runHippocampus(args: {
   reasoning?: string;
   requestId: string;
   log: RequestLogger;
+  /** B-1: per-agent identity used to scope context-layer reads/writes. */
+  agentId: string | null;
 }): Promise<HippocampusStats> {
   const {
     memory, router, rag, executor, registry,
-    userMessage, assistantText, reasoning, requestId, log,
+    userMessage, assistantText, reasoning, requestId, log, agentId,
   } = args;
 
   const exchangeBlock = [
@@ -163,7 +165,12 @@ export async function runHippocampus(args: {
           const limit = Number(toolArgs.limit) || 5;
           const hits: Record<string, unknown[]> = {};
           if (layer === "all" || layer === "context") {
-            hits.context = memory.searchContext(q, limit);
+            // B-1: scope context lookup to current agent (NULL rows visible).
+            hits.context = memory.searchContext(
+              q,
+              limit,
+              agentId ? { agentId } : undefined,
+            );
           }
           if (layer === "all" || layer === "shared") {
             hits.shared = memory.searchShared(q, limit);
@@ -195,7 +202,14 @@ export async function runHippocampus(args: {
           const wr =
             layer === "shared"
               ? await writeShared(memory, rag, { category, content, tags, confidence }, log)
-              : await writeContext(memory, rag, { category, content, tags, confidence }, requestId, log);
+              : await writeContext(
+                  memory,
+                  rag,
+                  { category, content, tags, confidence },
+                  requestId,
+                  log,
+                  agentId,
+                );
           if (wr.ok) factsWritten++;
           result = JSON.stringify(wr);
           break;

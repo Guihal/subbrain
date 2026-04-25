@@ -113,8 +113,10 @@ export class MemoryDB {
     },
   ) => this.memoryRepo.updateContext(id, fields);
   getContext = (id: string) => this.memoryRepo.getContext(id);
-  getContextMany = (ids: string[], opts?: { activeOnly?: boolean }) =>
-    this.memoryRepo.getContextMany(ids, opts);
+  getContextMany = (
+    ids: string[],
+    opts?: { activeOnly?: boolean; agentId?: string },
+  ) => this.memoryRepo.getContextMany(ids, opts);
   listContext = (limit?: number, offset?: number) => this.memoryRepo.listContext(limit, offset);
   countContext = () => this.memoryRepo.countContext();
   deleteContext = (id: string) => this.memoryRepo.deleteContext(id);
@@ -140,8 +142,11 @@ export class MemoryDB {
   deleteArchive = (id: string) => this.memoryRepo.deleteArchive(id);
 
   // ─── FTS5 Search (context + archive) ──────────────────────
-  searchContext = (query: string, limit?: number, opts?: { activeOnly?: boolean }) =>
-    this.memoryRepo.searchContext(query, limit, opts);
+  searchContext = (
+    query: string,
+    limit?: number,
+    opts?: { activeOnly?: boolean; agentId?: string },
+  ) => this.memoryRepo.searchContext(query, limit, opts);
   searchArchive = (query: string, limit?: number) => this.memoryRepo.searchArchive(query, limit);
 
   // ─── Shared Memory ─────────────────────────────────────────

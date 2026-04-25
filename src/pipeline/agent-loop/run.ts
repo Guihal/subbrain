@@ -31,6 +31,7 @@ export async function runLoop(
     maxSteps,
     priority,
     agentMode,
+    agentId,
     log,
     session,
     messages,
@@ -51,7 +52,7 @@ export async function runLoop(
     log.info("agent-loop", `Step ${step}/${maxSteps}`, { model });
 
     const result = await executeStep(
-      stepDeps(deps, session),
+      stepDeps(deps, session, agentId),
       {
         step,
         maxSteps,

@@ -58,6 +58,12 @@ async function embedWithTimeout(
   }
 }
 
+/**
+ * B-1 note: writeShared takes no `agentId` because `shared_memory` has no
+ * `agent_id` column (see schema.ts) — the table is by-design global. Agents
+ * that need private writes use `writeContext` (per-agent scoped) or the
+ * separate `agent_memory` table via `insertAgentMemory`.
+ */
 export async function writeShared(
   memory: MemoryDB,
   rag: RAGPipeline,
@@ -114,6 +120,13 @@ export async function writeContext(
   args: { category: string; content: string; tags: string; confidence: number },
   requestId: string,
   log: RequestLogger,
+  /**
+   * B-1: per-agent identity tagged onto the new layer2_context row. `null`
+   * means "shared / no scope" — row goes in with `agent_id IS NULL` (legacy
+   * back-compat). Schedulers + agent-loop interactive routes must thread this
+   * through so writers and readers stay symmetric.
+   */
+  agentId: string | null = null,
 ): Promise<WriteResult> {
   const id = randomUUID();
   const status = computeStatus(args.confidence);
@@ -152,7 +165,7 @@ export async function writeContext(
         args.content,
         args.tags,
         [requestId],
-        undefined,
+        agentId ?? undefined,
         { confidence: clamped, status },
       );
       memory.upsertEmbedding(id, "context", vec);

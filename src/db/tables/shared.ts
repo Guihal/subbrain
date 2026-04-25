@@ -166,6 +166,13 @@ export class SharedTable {
    * FTS5 search on shared_memory. `activeOnly` (PR 22a / MEM-5) filters by
    * status = 'active' via JOIN — FTS mirror itself is not rebuilt (no status
    * column in the virtual table). Used by RAG injection path.
+   *
+   * B-1 note: shared_memory has no `agent_id` column (see schema.ts). The
+   * table is by-design global — accepted writers (post-hippocampus
+   * `writeShared`, context-compressor) intentionally publish facts visible
+   * to every agent. Per-agent privacy lives in the separate `agent_memory`
+   * table (`getAgentMemories` filter). Adding agent isolation here would
+   * require migration 9 + writer updates and is out of scope for B-1.
    */
   searchShared(query: string, limit = 10, opts?: { activeOnly?: boolean }): FtsResult[] {
     const ftsQuery = sanitizeFtsQuery(query);

@@ -122,6 +122,7 @@ export function mcpProtocolRoute(
 
               const result = await registry.callAsPublic(name, args ?? {}, {
                 executor,
+                agentId: null, // MCP JSON-RPC = admin scope; B-1 isolation in agent-loop ctx
               });
               const text = JSON.stringify(result, null, 2);
 

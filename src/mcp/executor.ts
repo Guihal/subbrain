@@ -146,16 +146,21 @@ export class ToolExecutor {
     agent_id?: string;
     confidence?: "HIGH" | "LOW";
     key?: string;
-  }): ToolResult {
-    return this.memoryTools.write(params);
+  }, agentId: string | null = null): ToolResult {
+    return this.memoryTools.write(params, agentId);
   }
 
-  memoryDelete(id: string, layer: string): ToolResult {
-    return this.memoryTools.delete(id, layer);
+  memoryDelete(id: string, layer: string, agentId: string | null = null): ToolResult {
+    return this.memoryTools.delete(id, layer, agentId);
   }
 
-  memorySearch(query: string, layer?: string, limit?: number): ToolResult {
-    return this.memoryTools.search(query, layer, limit);
+  memorySearch(
+    query: string,
+    layer?: string,
+    limit?: number,
+    agentId: string | null = null,
+  ): ToolResult {
+    return this.memoryTools.search(query, layer, limit, agentId);
   }
 
   async ragSearch(
@@ -163,8 +168,9 @@ export class ToolExecutor {
     layers?: ("context" | "archive" | "shared")[],
     topN?: number,
     skipRerank?: boolean,
+    agentId: string | null = null,
   ): Promise<ToolResult> {
-    return this.embedTools.ragSearch(query, layers, topN, skipRerank);
+    return this.embedTools.ragSearch(query, layers, topN, skipRerank, agentId);
   }
 
   // ─── Logging (delegated) ─────────────────────────────────
@@ -313,7 +319,7 @@ export class ToolExecutor {
     text: string,
     opts?: { topic?: string; sinceHours?: number },
   ): Promise<ToolResult> {
-    return sendReport({ executor: this }, text, {
+    return sendReport({ executor: this, agentId: null }, text, {
       topic: opts?.topic,
       sinceHours: opts?.sinceHours,
       memory: this.memory,

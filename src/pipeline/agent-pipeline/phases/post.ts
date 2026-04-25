@@ -34,13 +34,15 @@ export interface RunPostArgs {
   };
   reasoning?: string;
   options?: { skipRawLog?: boolean };
+  /** B-1: per-agent identity used to scope context-layer writes; null = no scope. */
+  agentId?: string | null;
 }
 
 export async function runPost(args: RunPostArgs): Promise<void> {
   const {
     memory, router, rag, executor, registry,
     userMessage, assistantMessage, requestId, sessionId, model,
-    usage, reasoning, options,
+    usage, reasoning, options, agentId,
   } = args;
 
   const log = logger.forRequest(requestId, sessionId);
@@ -89,6 +91,7 @@ export async function runPost(args: RunPostArgs): Promise<void> {
       reasoning,
       requestId,
       log,
+      agentId: agentId ?? null,
     });
     log.info(
       "post",
@@ -115,10 +118,12 @@ export async function runPostFromStream(args: {
   sessionId: string;
   model: string;
   log: RequestLogger;
+  /** B-1: per-agent identity propagated to runPost. */
+  agentId?: string | null;
 }): Promise<void> {
   const {
     memory, router, rag, executor, registry,
-    stream, userMessage, requestId, sessionId, model, log,
+    stream, userMessage, requestId, sessionId, model, log, agentId,
   } = args;
 
   const decoder = new TextDecoder();
@@ -164,6 +169,7 @@ export async function runPostFromStream(args: {
       sessionId,
       model,
       reasoning: fullReasoning || undefined,
+      agentId: agentId ?? null,
     });
   }
 }

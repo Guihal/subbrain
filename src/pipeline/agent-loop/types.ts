@@ -54,6 +54,13 @@ export interface AgentLoopRequest {
    * human pass `"interactive"` (the default).
    */
   agentMode?: AgentMode;
+  /**
+   * B-1: per-agent identity used to scope context-layer reads/writes.
+   * Schedulers ("autonomous", "free-agent") MUST set this. HTTP routes
+   * derive it from headers / session / authed user; absent / null = no
+   * scope (admin / legacy back-compat).
+   */
+  agentId?: string | null;
 }
 
 export interface AgentLoopStep {

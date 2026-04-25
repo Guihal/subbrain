@@ -102,16 +102,24 @@ export class MemoryTable {
 
   /**
    * Batch-lookup context rows by id. `activeOnly` (PR 22a / MEM-5) filters out
-   * pending/rejected rows at SQL level — used by RAG injection so unapproved
-   * facts never reach model context.
+   * pending/rejected rows. `agentId` (B-1) restricts to the caller's own
+   * private rows + global (NULL) rows; absent → no agent filter (admin scope).
    */
-  getContextMany(ids: string[], opts?: { activeOnly?: boolean }): ContextRow[] {
+  getContextMany(
+    ids: string[],
+    opts?: { activeOnly?: boolean; agentId?: string },
+  ): ContextRow[] {
     if (ids.length === 0) return [];
     const placeholders = ids.map(() => "?").join(",");
     const statusFilter = opts?.activeOnly ? " AND status = 'active'" : "";
+    const agentFilter = opts?.agentId ? " AND (agent_id = ? OR agent_id IS NULL)" : "";
+    const params: (string | number)[] = [...ids];
+    if (opts?.agentId) params.push(opts.agentId);
     return this.db
-      .query(`SELECT * FROM layer2_context WHERE id IN (${placeholders})${statusFilter}`)
-      .all(...ids) as ContextRow[];
+      .query(
+        `SELECT * FROM layer2_context WHERE id IN (${placeholders})${statusFilter}${agentFilter}`,
+      )
+      .all(...params) as ContextRow[];
   }
 
   listContext(limit = 50, offset = 0): ContextRow[] {
@@ -187,17 +195,28 @@ export class MemoryTable {
 
   /**
    * FTS5 search on layer2_context. `activeOnly` (PR 22a / MEM-5) filters by
-   * status = 'active' via JOIN — used by RAG injection path.
+   * status = 'active'. `agentId` (B-1) restricts to caller's own private rows +
+   * global (NULL) rows; absent → no agent filter (admin scope). Pre-B-1 rows
+   * stored without agent_id are NULL → visible to any caller (legacy "shared"
+   * back-compat; see B-1 leak-window note in docs/02-audit.md).
    */
-  searchContext(query: string, limit = 10, opts?: { activeOnly?: boolean }): FtsResult[] {
+  searchContext(
+    query: string,
+    limit = 10,
+    opts?: { activeOnly?: boolean; agentId?: string },
+  ): FtsResult[] {
     const ftsQuery = sanitizeFtsQuery(query);
     if (!ftsQuery) return [];
     const statusFilter = opts?.activeOnly ? " AND c.status = 'active'" : "";
+    const agentFilter = opts?.agentId ? " AND (c.agent_id = ? OR c.agent_id IS NULL)" : "";
+    const params: (string | number)[] = [ftsQuery];
+    if (opts?.agentId) params.push(opts.agentId);
+    params.push(limit);
     return this.db
       .query(
-        `SELECT c.id, c.title, c.tags, snippet(fts_context, 1, '<b>', '</b>', '...', 32) AS snippet, rank, c.created_at, c.updated_at FROM fts_context f JOIN layer2_context c ON c.rowid = f.rowid WHERE fts_context MATCH ?${statusFilter} ORDER BY rank LIMIT ?`,
+        `SELECT c.id, c.title, c.tags, snippet(fts_context, 1, '<b>', '</b>', '...', 32) AS snippet, rank, c.created_at, c.updated_at FROM fts_context f JOIN layer2_context c ON c.rowid = f.rowid WHERE fts_context MATCH ?${statusFilter}${agentFilter} ORDER BY rank LIMIT ?`,
       )
-      .all(ftsQuery, limit) as FtsResult[];
+      .all(...params) as FtsResult[];
   }
 
   searchArchive(query: string, limit = 10): FtsResult[] {

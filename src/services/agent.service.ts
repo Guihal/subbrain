@@ -35,6 +35,8 @@ export interface AgentRunOpts {
   maxSteps?: number;
   sessionId?: string;
   schedule?: ScheduleContext;
+  /** B-1: per-agent identity for context-layer scoping; null = unscoped. */
+  agentId?: string | null;
 }
 
 export class AgentService {
@@ -63,6 +65,7 @@ export class AgentService {
       maxSteps: opts.maxSteps,
       sessionId: opts.sessionId,
       agentMode: opts.agentMode,
+      agentId: opts.agentId ?? null,
       schedule: opts.schedule,
     };
   }

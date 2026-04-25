@@ -2,6 +2,7 @@ import { Elysia, t } from "elysia";
 import type { AgentService } from "../services/agent.service";
 import type { MemoryDB } from "../db";
 import { sseResponse } from "../lib/sse";
+import { sanitizeAgentId } from "../services/chat.service";
 
 /**
  * `/v1/autonomous` — human-triggered interactive agent run (LAYER-4, PR 26b).
@@ -19,6 +20,10 @@ export function autonomousRoute(agentService: AgentService, memory?: MemoryDB) {
       const chatId = (headers["x-chat-id"] as string | undefined) || sessionId;
       const source = (headers["x-chat-source"] as string) || (sessionId ? "web" : "autonomous");
       const model = body.model || "teamlead";
+      // B-1: optional `x-agent-id` header — admin-controlled scoping primitive
+      // (route is auth-gated already). Validated to a strict id charset so a
+      // hostile token-holder cannot inject arbitrary strings into the DB.
+      const agentId = sanitizeAgentId(headers["x-agent-id"] as string | undefined);
 
       if (memory && chatId) {
         const existing = memory.getChat(chatId);
@@ -33,6 +38,7 @@ export function autonomousRoute(agentService: AgentService, memory?: MemoryDB) {
         maxSteps: body.max_steps,
         sessionId,
         agentMode: "interactive" as const,
+        agentId,
       };
 
       if (stream) return sseResponse(agentService.createStream(opts));

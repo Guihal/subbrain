@@ -27,4 +27,10 @@ export interface RAGSearchOptions {
   vecLimit?: number;
   rerankTopN?: number;
   skipRerank?: boolean;
+  /**
+   * B-1: restrict context-layer hits to caller's own private rows + global
+   * (NULL) rows. Absent → no agent filter (admin / digest / report scope).
+   * Archive + shared layers ignore this — both are by-design global.
+   */
+  agentId?: string;
 }

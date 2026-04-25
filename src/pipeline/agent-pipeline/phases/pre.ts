@@ -35,9 +35,13 @@ export async function runPre(args: {
   userMessage: string;
   firstMessage: boolean;
   onProgress?: (msg: string) => void;
+  /** B-1: per-agent identity for context-layer scoping; null = unscoped. */
+  agentId?: string | null;
 }): Promise<PreResult> {
-  const { memory, router, rag, model, userMessage, firstMessage, onProgress } =
-    args;
+  const {
+    memory, router, rag, model, userMessage, firstMessage, onProgress,
+    agentId = null,
+  } = args;
 
   const seed = loadFocusSeed(memory);
 
@@ -94,6 +98,7 @@ export async function runPre(args: {
     userMessage,
     seedContext,
     onProgress,
+    agentId,
   });
 
   const rawMemoryBlock = buildRawMemoryBlock(seedContext, exec.ragResults);

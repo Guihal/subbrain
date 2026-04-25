@@ -103,23 +103,25 @@ describe("MemoryTools", () => {
     expect(r.success).toBe(true);
   });
 
-  test("write — agent layer requires agent_id", () => {
-    const w = tools.write({
-      layer: "agent",
-      content: "Agent note",
-    });
+  test("write — agent layer rejects when server agentId is null (B-1)", () => {
+    // B-1: agent layer requires server-bound agentId, not LLM-supplied
+    // params.agent_id (would let an agent spoof another agent's bucket).
+    const w = tools.write({ layer: "agent", content: "Agent note" }, null);
     expect(w.success).toBe(false);
-    expect(w.error).toContain("agent_id");
+    expect(w.error).toContain("server-bound agentId");
   });
 
-  test("write + read — agent layer", () => {
-    const w = tools.write({
-      layer: "agent",
-      id: "agent-001",
-      agent_id: "critic",
-      content: "Critic's note",
-      tags: "review",
-    });
+  test("write + read — agent layer with server-bound agentId (B-1)", () => {
+    const w = tools.write(
+      {
+        layer: "agent",
+        id: "agent-001",
+        agent_id: "ignored-spoof", // intentionally try to spoof — server wins
+        content: "Critic's note",
+        tags: "review",
+      },
+      "critic", // server-controlled agentId — this is what gets persisted
+    );
     expect(w.success).toBe(true);
 
     const r = tools.read("agent-001", "agent");

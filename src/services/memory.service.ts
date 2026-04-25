@@ -155,6 +155,10 @@ export class MemoryService {
   deleteShared(id: string): void { this.repo.deleteShared(id); }
 
   // ─── Context (L2) ─────────────────────────────────────────
+  // B-1 note: MemoryService backs the admin /v1/memory/* routes — no
+  // agentId is threaded here, so search returns rows from every agent.
+  // The agent-loop reaches context through the registry's memory_search /
+  // rag_search handlers, which DO pass `ctx.agentId`.
   listContext(opts: ListOpts): PaginatedResult<ContextRow> {
     if (opts.q) {
       const hits = this.repo.searchContext(opts.q, opts.limit);

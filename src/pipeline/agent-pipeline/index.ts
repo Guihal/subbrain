@@ -71,15 +71,26 @@ export class AgentPipeline {
       return { requestId, sessionId, stream };
     }
 
+    const agentId: string | null = req.agentId ?? null;
+
     const preStart = Date.now();
-    const pre = await runPre({ ...deps, model: req.model, userMessage, firstMessage: firstMsg });
+    const pre = await runPre({
+      ...deps,
+      model: req.model,
+      userMessage,
+      firstMessage: firstMsg,
+      agentId,
+    });
     if (firstMsg) {
       this.metrics?.record({ model: "coder", priority: "normal", stage: "pre",
         latencyMs: Date.now() - preStart, tokensIn: 0, tokensOut: 0, status: "ok" });
     }
 
     const fire = (assistantMessage: string, model: string, extras: Partial<RunPostArgs> = {}) =>
-      runPost({ ...deps, userMessage, assistantMessage, requestId, sessionId, model, ...extras })
+      runPost({
+        ...deps, userMessage, assistantMessage, requestId, sessionId, model,
+        agentId, ...extras,
+      })
         .catch((err) => log.error("post", `Post failed: ${err instanceof Error ? err.message : err}`));
 
     const roomConfig = this.room?.classify(userMessage);

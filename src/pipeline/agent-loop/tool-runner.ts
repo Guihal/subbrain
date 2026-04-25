@@ -91,6 +91,8 @@ export interface ToolRunnerDeps {
   persistDynamicTools: () => void;
   codeTools: CodeToolRegistry | null;
   session: AgentLoopSession;
+  /** B-1: per-agent identity for context-layer scoping; null = no scope. */
+  agentId: string | null;
 }
 
 type Log = ReturnType<typeof logger.forRequest>;
@@ -131,6 +133,7 @@ export async function executeAgentTool(
             log,
             registry: deps.registry,
             session: deps.session,
+            agentId: deps.agentId,
           },
           signal,
         );

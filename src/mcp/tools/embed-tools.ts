@@ -27,15 +27,21 @@ export class EmbedTools {
     layers?: ("context" | "archive" | "shared")[],
     topN?: number,
     skipRerank?: boolean,
+    /**
+     * B-1: per-agent identity for context-layer scoping. `null` = admin
+     * (no filter); set string = filter `(agent_id = ? OR agent_id IS NULL)`.
+     */
+    agentId: string | null = null,
   ): Promise<ToolResult> {
     const rag = this.getRag();
+    const ctxOpts = agentId ? { agentId } : undefined;
     if (!rag) {
       // FTS-only fallback
       const n = topN || 10;
       const results: Record<string, unknown[]> = {};
       const target = layers?.[0] || "all";
       if (target === "all" || target === "context")
-        results.context = this.memory.searchContext(query, n);
+        results.context = this.memory.searchContext(query, n, ctxOpts);
       if (target === "all" || target === "archive")
         results.archive = this.memory.searchArchive(query, n);
       if (target === "all" || target === "shared")
@@ -48,6 +54,7 @@ export class EmbedTools {
       layers,
       rerankTopN: topN || 5,
       skipRerank,
+      agentId: agentId ?? undefined,
     });
 
     return { success: true, data: results };

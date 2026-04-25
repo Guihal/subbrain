@@ -63,6 +63,8 @@ export function buildPipelineStream(args: {
       try {
         const emit = (text: string) => controller.enqueue(makeProgressChunk(text));
 
+        const agentId: string | null = req.agentId ?? null;
+
         const preStart = Date.now();
         log.info("pre", "Starting pre-processing");
         const pre = await runPre({
@@ -73,6 +75,7 @@ export function buildPipelineStream(args: {
           userMessage,
           firstMessage,
           onProgress: firstMessage ? emit : undefined,
+          agentId,
         });
         const preDur = Date.now() - preStart;
         log.info(
@@ -138,6 +141,7 @@ export function buildPipelineStream(args: {
           sessionId,
           model: req.model,
           log,
+          agentId,
         }).catch((err) => {
           log.error(
             "post",

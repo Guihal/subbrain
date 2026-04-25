@@ -24,9 +24,18 @@ export type { AgentLoopSession } from "../../pipeline/agent-loop/types";
 /** Тип лог-объекта, который агент-луп прокидывает в хендлеры. */
 export type ToolLog = ReturnType<typeof logger.forRequest>;
 
-/** Public context — REST + MCP JSON-RPC. Minimal. */
+/**
+ * Public context — REST + MCP JSON-RPC. Minimal.
+ *
+ * B-1: `agentId` lives on the public base so handlers like `memory_search`
+ * (scope:"public", but reachable from the agent-loop via `callAsAgent`) can
+ * scope context-layer reads to the calling agent. REST/MCP transports default
+ * it to `null` (admin scope); the agent-loop populates it from
+ * `AgentToolContext.agentId`.
+ */
 export interface PublicToolContext {
   executor: ToolExecutor;
+  agentId: string | null;
 }
 
 /** Agent context — agent-loop only. All agent fields strictly present (null where legitimately nullable). */

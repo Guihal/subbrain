@@ -68,16 +68,24 @@ function makePipeline() {
 }
 
 describe("extractChatMeta", () => {
-  test("reads X-Chat-Id / source / session / direct-mode", () => {
+  test("reads X-Chat-Id / source / session / direct-mode / agent-id", () => {
     const meta = extractChatMeta({
       "x-chat-id": "c1",
       "x-chat-source": "tg",
       "x-session-id": "s1",
       "x-direct-mode": "true",
+      "x-agent-id": "alice",
     });
     expect(meta).toEqual({
-      chatId: "c1", source: "tg", sessionId: "s1", directModeForced: true,
+      chatId: "c1",
+      source: "tg",
+      sessionId: "s1",
+      directModeForced: true,
+      agentId: "alice",
     });
+  });
+  test("agentId defaults to null when header absent", () => {
+    expect(extractChatMeta({}).agentId).toBeNull();
   });
   test("defaults source to api when absent", () => {
     expect(extractChatMeta({}).source).toBe("api");
