@@ -88,15 +88,18 @@ export class NvidiaProvider implements LLMProvider {
   }
 
   async embed(params: EmbedParams): Promise<EmbedResponse> {
+    // Strip `signal` from the wire body (server doesn't expect it); thread it
+    // into fetchJson so caller-side aborts cancel the upstream request (H-1).
+    const { signal, ...body } = params;
     try {
       return await fetchJson<EmbedResponse>(
         `${this.baseUrl}/embeddings`,
         {
           method: "POST",
           headers: this.headers(),
-          body: JSON.stringify(params),
+          body: JSON.stringify(body),
         },
-        { timeoutMs: 30_000 },
+        { timeoutMs: 30_000, signal },
       );
     } catch (e) {
       if (e instanceof HttpError) throw new ProviderError(e.status, e.body);

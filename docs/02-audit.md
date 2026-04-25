@@ -221,6 +221,11 @@ RAG ищет в трёх слоях, включая `shared`. Но `grep "upsert
 **Header validation:** `x-agent-id` через `sanitizeAgentId(raw)` (`chat.service.ts`) — regex `^[a-z0-9][a-z0-9_-]{0,63}$/i` + lowercase-normalize после match (предотвращает split buckets `Alice` ↔ `alice`). Невалидное → `null` (silently dropped). Trust model: single shared bearer = admin-grade; header — admin-controlled scoping primitive (не privilege escalation).
 **Tests:** `tests/cross-agent-isolation.test.ts` — 17 кейсов (reader-side searchContext+getContextMany; activeOnly+agentId combine; writer-spoof reject context+agent layers; ownership UPDATE check + NULL legacy back-compat + delete cross-agent reject + admin bypass; sanitizeAgentId charset/length/lowercase-normalize/leading-char). `bun test` 576 pass / 0 fail.
 
+### H-1 ✅ `src/rag/pipeline.ts:344` — `embedContent` принимает `AbortSignal` (закрыто PR H-1, 2026-04-25)
+`async embedContent(content: string)` без signal-параметра → SSE-cancel / tool-timeout / request-abort оставляли upstream embed работать до конца, жгли NVIDIA RPM на discarded result. Подтверждалось комментарием в `extractors.ts:11` ("rag.embedContent does not accept an AbortSignal").
+**Fix:** `embedContent(content, signal?: AbortSignal)` + `indexEntry(id, layer, content, signal?)` + `embedQuery(query, signal?)` — все три прокидывают `signal` в `router.raw.embed({..., signal})`. `EmbedParams.signal?: AbortSignal` (`providers/types.ts`); `nvidia.embed` strips signal из body, threads в `fetchJson(..., {timeoutMs, signal})`. `extractors.ts` `embedWithTimeout` упрощён: `rag.embedContent(content, AbortSignal.timeout(EMBED_TIMEOUT_MS))` вместо Promise.race + setTimeout (orphan promise был побочный эффект race). Header docstring обновлён.
+**Tests:** `tests/shared-embed-write.test.ts:104` мок embed теперь honor-ит signal (как fetchJson upstream), error-pattern matches `timed out|timeout|aborted`. `bun test` 576/0; `tsc` 0.
+
 ### B-2 ✅ `src/pipeline/agent-loop/code-tools/index.ts` + `agent-loop/persist.ts` — raw SQL вне repo-слоя (закрыто PR B-2, 2026-04-25)
 `CodeToolRegistry` держал 7 raw SQL ops над `code_tools`; `agent-loop/persist.ts` — 3 raw SQL для round-trip dynamic-tools blob через `agent_memory`. Layer-boundary test уже сканировал `pipeline/`, но эти файлы были в `KNOWN_LEGACY` allowlist (silent free pass).
 **Fix (PR B-2):**

@@ -102,9 +102,24 @@ describe("writeShared — embed + transactional persistence (PR 24)", () => {
   });
 
   test("embed timeout → no DB rows written (atomic)", async () => {
+    // H-1: mock now honors signal — embed waits and rejects on signal.aborted,
+    // mirroring real upstream behavior (fetchJson propagates signal).
     const hangingRouter = {
       raw: {
-        embed: () => new Promise(() => {}), // never resolves
+        embed: (params: { signal?: AbortSignal }) =>
+          new Promise((_, rej) => {
+            const signal = params.signal;
+            if (!signal) return; // never resolves without signal — old behavior
+            if (signal.aborted) {
+              rej(signal.reason ?? new Error("aborted"));
+              return;
+            }
+            signal.addEventListener(
+              "abort",
+              () => rej(signal.reason ?? new Error("aborted")),
+              { once: true },
+            );
+          }),
         rerank: async () => ({ results: [] }),
       },
       scheduleRaw: async (_p: string, fn: () => Promise<any>) => fn(),
@@ -112,7 +127,6 @@ describe("writeShared — embed + transactional persistence (PR 24)", () => {
     const ragHang = new RAGPipeline(memory, hangingRouter);
 
     const before = memory.countShared();
-    // Shorten the test: spy timeout is 5s in extractors; we accept the wait.
     const wr = await writeShared(
       memory,
       ragHang,
@@ -120,7 +134,9 @@ describe("writeShared — embed + transactional persistence (PR 24)", () => {
       log,
     );
     expect(wr.ok).toBe(false);
-    expect(wr.error).toBe("embed_timeout");
+    // AbortSignal.timeout fires DOMException("The operation timed out.",
+    // "TimeoutError") — match the timeout-flavored error.
+    expect(String(wr.error)).toMatch(/timed out|timeout|aborted/i);
     expect(memory.countShared()).toBe(before);
   }, 10_000);
 });

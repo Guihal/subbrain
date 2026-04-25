@@ -305,8 +305,12 @@ export class RAGPipeline {
   /**
    * Embed a query string, using LRU cache to save RPM.
    * Normalizes key to lowercase trimmed. TTL = 5 min.
+   * H-1: optional `signal` propagates into the upstream HTTP call.
    */
-  private async embedQuery(query: string): Promise<Float32Array> {
+  private async embedQuery(
+    query: string,
+    signal?: AbortSignal,
+  ): Promise<Float32Array> {
     const key = query.toLowerCase().trim();
     const now = Date.now();
 
@@ -322,6 +326,7 @@ export class RAGPipeline {
         model: EMBED_MODEL,
         input: [query],
         input_type: "query",
+        signal,
       }),
     );
 
@@ -354,13 +359,18 @@ export class RAGPipeline {
   /**
    * Embed a piece of content via the embedding provider. Throws on failure —
    * callers decide whether to swallow or propagate (night-cycle wants atomicity).
+   *
+   * H-1: optional `signal` propagates into the upstream HTTP call so SSE
+   * cancel / tool-timeout / request-abort actually stops the embed call
+   * instead of running to completion (was the leak burning NVIDIA RPM).
    */
-  async embedContent(content: string): Promise<Float32Array> {
+  async embedContent(content: string, signal?: AbortSignal): Promise<Float32Array> {
     const embedResult = await this.router.scheduleRaw("low", () =>
       this.router.raw.embed({
         model: EMBED_MODEL,
         input: [content],
         input_type: "passage",
+        signal,
       }),
     );
     return new Float32Array(embedResult.data[0].embedding);
@@ -370,8 +380,13 @@ export class RAGPipeline {
    * Embed and store a memory entry's content.
    * Call this after memory_write to keep vec index in sync.
    */
-  async indexEntry(id: string, layer: string, content: string): Promise<void> {
-    const vec = await this.embedContent(content);
+  async indexEntry(
+    id: string,
+    layer: string,
+    content: string,
+    signal?: AbortSignal,
+  ): Promise<void> {
+    const vec = await this.embedContent(content, signal);
     this.memory.upsertEmbedding(id, layer, vec);
   }
 }

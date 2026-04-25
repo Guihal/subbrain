@@ -81,6 +81,13 @@ export interface EmbedParams {
   input: string | string[];
   encoding_format?: "float" | "base64";
   input_type?: "query" | "passage";
+  /**
+   * H-1: optional cancel signal threaded into the underlying `fetchJson` so a
+   * caller-side abort (SSE disconnect, tool timeout, request abort) actually
+   * stops the embed call instead of letting it run to completion and burning
+   * NVIDIA RPM on a discarded result.
+   */
+  signal?: AbortSignal;
 }
 
 export interface EmbedResponse {

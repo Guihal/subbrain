@@ -2,16 +2,16 @@
  * Atomic memory writers used by the post-processing hippocampus.
  *
  * writeShared and writeContext use an embed-first strategy:
- *   1. Await rag.embedContent(content) (with 5s timeout) BEFORE any DB call.
+ *   1. Await rag.embedContent(content, AbortSignal.timeout(5s)) BEFORE any
+ *      DB call.
  *   2. Inside a sync bun:sqlite transaction, insert the row + upsert the
  *      vec_embedding. The network call never enters the transaction, and a
  *      failure at any step leaves the DB unchanged (no row-without-embed
  *      window; no orphan vec).
  *
- * Known follow-up: rag.embedContent does not accept an AbortSignal, so a
- * timed-out embed keeps running in the background until the http-client's
- * default timeout fires. That is a resource-leak, not a correctness bug —
- * a later PR will thread AbortSignal through ModelRouter.scheduleRaw.
+ * H-1 (PR 2026-04-25): AbortSignal now threads into the upstream embed
+ * fetch — a timed-out / cancelled embed actually stops the request instead
+ * of leaking until the http-client default timeout fires.
  */
 import { randomUUID } from "crypto";
 import type { MemoryDB, MemoryStatus } from "../../../db";
@@ -42,20 +42,9 @@ async function embedWithTimeout(
   rag: RAGPipeline,
   content: string,
 ): Promise<Float32Array> {
-  let timer: ReturnType<typeof setTimeout> | null = null;
-  try {
-    return await Promise.race([
-      rag.embedContent(content),
-      new Promise<never>((_, rej) => {
-        timer = setTimeout(
-          () => rej(new Error("embed_timeout")),
-          EMBED_TIMEOUT_MS,
-        );
-      }),
-    ]);
-  } finally {
-    if (timer) clearTimeout(timer);
-  }
+  // H-1: AbortSignal.timeout cancels the upstream fetch directly (no orphan
+  // Promise running in the background after the race rejects).
+  return rag.embedContent(content, AbortSignal.timeout(EMBED_TIMEOUT_MS));
 }
 
 /**
@@ -133,24 +122,14 @@ export async function writeContext(
   const clamped = Math.min(1, Math.max(0, args.confidence));
 
   let vec: Float32Array;
-  let timer: ReturnType<typeof setTimeout> | null = null;
   try {
-    vec = await Promise.race([
-      rag.embedContent(args.content),
-      new Promise<never>((_, rej) => {
-        timer = setTimeout(
-          () => rej(new Error("embed_timeout")),
-          EMBED_TIMEOUT_MS,
-        );
-      }),
-    ]);
+    // H-1: AbortSignal.timeout cancels the upstream fetch directly.
+    vec = await rag.embedContent(args.content, AbortSignal.timeout(EMBED_TIMEOUT_MS));
   } catch (err) {
-    if (timer) clearTimeout(timer);
     const em = err instanceof Error ? err.message : String(err);
     log.warn("post", `writeContext embed failed: ${em}`);
     return { ok: false, error: em };
   }
-  if (timer) clearTimeout(timer);
 
   if (!vec || vec.length === 0) {
     log.warn("post", "writeContext embed returned empty vector");
