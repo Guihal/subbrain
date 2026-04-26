@@ -140,7 +140,7 @@ describe("M-02 — access tracking columns + bumpAccess + RAG hook", () => {
     memory.insertShared("bump-2", "profile", "row two", "");
     memory.insertShared("bump-3", "profile", "row three", "");
 
-    const tsBefore = Date.now();
+    const tsBefore = Math.floor(Date.now() / 1000);
     memory.memoryRepo.bumpAccess("shared", ["bump-1", "bump-2"]);
     memory.memoryRepo.bumpAccess("shared", ["bump-1", "bump-2"]);
 

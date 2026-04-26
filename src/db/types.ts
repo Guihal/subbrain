@@ -19,9 +19,10 @@ export interface ContextRow {
   // MEM-6 (mig 9): id of the row that replaced this one, or 'expired' when
   // the night cycle marks a row as past its expires_at.
   superseded_by: string | null;
-  // M-02 (mig 10): unix-ms timestamp of last RAG retrieval hit; NULL on
+  // M-02 (mig 10): unix-seconds timestamp of last RAG retrieval hit; NULL on
   // legacy rows that have never been retrieved. Populated by
-  // MemoryRepository.bumpAccess after rerank.
+  // MemoryRepository.bumpAccess after rerank. Same unit as created_at /
+  // updated_at / expires_at — M-08 decay reads (now - last_accessed_at).
   last_accessed_at?: number | null;
   // M-02 (mig 10): cumulative popularity counter (NOT NULL DEFAULT 0).
   // Optional in TS for back-compat with older selects.

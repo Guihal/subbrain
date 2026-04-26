@@ -221,7 +221,11 @@ export class MemoryRepository {
         ? "layer2_context"
         : "layer3_archive";
     const placeholders = ids.map(() => "?").join(",");
-    const now = Date.now();
+    // unix-seconds — matches the rest of the schema (created_at/updated_at/
+    // expires_at all use unixepoch()). M-08 Ebbinghaus decay computes
+    // (now - last_accessed_at) and would silently 1000× over-age if we
+    // wrote ms here.
+    const now = Math.floor(Date.now() / 1000);
     this.db
       .query(
         `UPDATE ${table}
