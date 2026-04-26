@@ -160,15 +160,16 @@ export async function runReflect(deps: ReflectDeps): Promise<ReflectResult> {
     log.info("disabled (REFLECT_ENABLED=false)");
     return result;
   }
-  let groups = selectGroups(deps.memory, cfg.minAccess, cfg.minGroup, cfg.maxGroups);
-  // M-10: optional manual-trigger filter. Applied post-fetch — `selectGroups`
-  // already capped at `maxGroups`, so the filter narrows what the LLM is
-  // called on but cannot reach groups outside the top-N. Acceptable for the
-  // manual MCP path; night-cycle does not pass `categoryFilter`.
-  if (deps.categoryFilter) {
-    const cf = deps.categoryFilter;
-    groups = groups.filter((g) => g.category === cf);
-  }
+  // M-10 fix-round: when `categoryFilter` is set, fetch UNCAPPED then filter
+  // and cap. Pre-fix the filter ran AFTER `maxGroups` cap, so a manual
+  // `memory_reflect{category:"learning"}` returned groups_examined=0 if
+  // learning sat at rank 6+ in the unfiltered top. Night-cycle path stays
+  // capped (no filter → same behavior as before).
+  let groups = deps.categoryFilter
+    ? selectGroups(deps.memory, cfg.minAccess, cfg.minGroup, Number.MAX_SAFE_INTEGER)
+        .filter((g) => g.category === deps.categoryFilter)
+        .slice(0, cfg.maxGroups)
+    : selectGroups(deps.memory, cfg.minAccess, cfg.minGroup, cfg.maxGroups);
   result.groups_examined = groups.length;
   if (groups.length === 0) {
     log.info("no groups to reflect on");

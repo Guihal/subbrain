@@ -195,13 +195,15 @@ describe("M-10 MemoryCurationTools", () => {
       src_id: "ctx-promo",
       src_layer: "context",
       target_layer: "shared",
+      category: "skill",
     });
     expect(r.success).toBe(true);
     const newId = (r.data as { id: string }).id;
     const fresh = memory.getShared(newId);
     expect(fresh).not.toBeNull();
     expect(fresh!.source).toBe("promote");
-    expect(fresh!.category).toBe("project");
+    expect(fresh!.category).toBe("skill");
+    expect(fresh!.confidence).toBe(0.8); // M-10 fix-round: explicit autoaccept default
     const edges = memory.getEdgesFromSrc("ctx-promo", "context", ["derives"]);
     expect(edges.length).toBe(1);
     expect(edges[0].dst_id).toBe(newId);
@@ -213,6 +215,7 @@ describe("M-10 MemoryCurationTools", () => {
       src_id: "ghost",
       src_layer: "context",
       target_layer: "shared",
+      category: "skill",
     });
     expect(r.success).toBe(false);
     expect(r.error).toContain("src not found");

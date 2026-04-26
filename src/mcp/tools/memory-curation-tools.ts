@@ -121,11 +121,24 @@ export class MemoryCurationTools {
   /**
    * memory_promote — context → shared. Source row is preserved; caller may
    * follow up with memory_supersede or memory_delete for cleanup.
+   *
+   * `category` MUST be supplied explicitly because layer2_context stores a
+   * human-readable `title` (free-form), not a shared-layer category enum.
+   * Auto-deriving from `src.title` produced "general" for anything not in
+   * WHITELIST_SHARED, which downstream RAG persona/semantic kind mapping
+   * could never reach. Caller (agent / curator) decides the right enum.
+   *
+   * `confidence` defaults to MEMORY_AUTOACCEPT_CONFIDENCE (0.8) so the
+   * promoted row lands status='active' and is injected into RAG; otherwise
+   * it would fall to status='pending' and be invisible until manually
+   * approved.
    */
   async promote(args: {
     src_id: string;
     src_layer: "context";
     target_layer: "shared";
+    category: string;
+    confidence?: number;
   }): Promise<ToolResult> {
     const svc = this.getMemoryService();
     if (!svc) return { success: false, error: "memory service not configured" };
@@ -133,11 +146,11 @@ export class MemoryCurationTools {
     if (!src) return { success: false, error: `src not found: context/${args.src_id}` };
     try {
       const newId = await svc.insertShared({
-        category: src.title || "general",
+        category: args.category,
         content: src.content,
         tags: src.tags,
         source: "promote",
-        confidence: src.confidence ?? undefined,
+        confidence: args.confidence ?? 0.8,
         kind: "semantic",
       });
       this.memory.linkEdge(args.src_id, "context", newId, "shared", "derives", 1.0);

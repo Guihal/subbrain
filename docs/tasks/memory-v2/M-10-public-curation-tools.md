@@ -1,6 +1,6 @@
 # M-10 · Public MCP curation tools (`memory_link/supersede/promote/reflect`)
 
-**Tier:** P2 · **Effort:** S · **Deps:** M-05 (edges) — landed · **Status:** OPEN
+**Tier:** P2 · **Effort:** S · **Deps:** M-05 (edges) — landed · **Status:** DONE (commit `df041e4` + fix-round `5e00513`: promote-category-required, promote-confidence=0.8, categoryFilter unbounded)
 **Migration assignment:** **none** (pure MCP registry — no schema changes).
 
 ## Цель
@@ -161,4 +161,4 @@ Requires M-06's `runReflect` to accept optional `categoryFilter` + `dryRun` para
 
 ---
 
-**Status:** OPEN
+**Status:** DONE (commit `df041e4` + fix-round `5e00513`)

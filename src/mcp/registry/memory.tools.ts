@@ -197,12 +197,14 @@ export function registerMemoryTools(registry: ToolRegistry): void {
   registry.register({
     name: "memory_promote",
     description:
-      "Promote a context memo to the shared layer (insert + `derives` edge). Source row is preserved — caller may follow up with memory_supersede or memory_delete.",
+      "Promote a context memo to the shared layer (insert + `derives` edge). Source row is preserved — caller may follow up with memory_supersede or memory_delete. `category` MUST be supplied (shared whitelist: profile|preference|goal|relationship|skill|constraint|style); `confidence` defaults to 0.8 (autoaccept threshold).",
     scope: "agent-only",
     input: t.Object({
       src_id: t.String(),
       src_layer: t.Literal("context"),
       target_layer: t.Literal("shared"),
+      category: t.String(),
+      confidence: t.Optional(t.Number({ minimum: 0, maximum: 1 })),
     }),
     handler: (args, ctx) => ctx.executor.memoryCurationTools.promote(args),
   });
