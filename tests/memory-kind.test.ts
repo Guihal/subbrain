@@ -377,3 +377,206 @@ describe("GET /v1/memory/shared?kind=persona filters", () => {
     expect(r.status).toBe(422);
   });
 });
+
+// ─────────────────────────────────────────────────────────────────
+// M-FINAL2 (M-07.1): regression — every shared writer derives kind
+// ─────────────────────────────────────────────────────────────────
+
+describe("M-07.1: MemoryTools.write derives kind from category", () => {
+  // legacy fallback path (no MemoryService injected): writeSharedAtomic
+  // must still resolve kind from category so older tests / boot-time
+  // scripts produce persona rows for persona-grade categories.
+  let memory: MemoryDB;
+  let rag: RAGPipeline;
+
+  beforeAll(() => {
+    cleanup();
+    memory = new MemoryDB(TEST_DB);
+    rag = new RAGPipeline(memory, mkRouter());
+  });
+
+  afterAll(() => {
+    memory.close();
+    cleanup();
+  });
+
+  test("layer='shared' category='profile' → kind='persona' (writeSharedAtomic path)", async () => {
+    const { MemoryTools } = await import("../src/mcp/tools/memory-tools");
+    const tools = new MemoryTools(memory, () => rag);
+    const r = await tools.write({
+      layer: "shared",
+      category: "profile",
+      content: "user uses Hyprland on Arch",
+      confidence: 0.95,
+    });
+    expect(r.success).toBe(true);
+    const id = (r.data as { id: string }).id;
+    expect(memory.getShared(id)!.kind).toBe("persona");
+  });
+
+  test("layer='shared' category='goal' → kind='semantic'", async () => {
+    const { MemoryTools } = await import("../src/mcp/tools/memory-tools");
+    const tools = new MemoryTools(memory, () => rag);
+    const r = await tools.write({
+      layer: "shared",
+      category: "goal",
+      content: "ship M-FINAL2 today",
+      confidence: 0.95,
+    });
+    expect(r.success).toBe(true);
+    const id = (r.data as { id: string }).id;
+    expect(memory.getShared(id)!.kind).toBe("semantic");
+  });
+
+  test("layer='shared' with injected MemoryService also derives kind='persona'", async () => {
+    const { MemoryTools } = await import("../src/mcp/tools/memory-tools");
+    const svc = new MemoryService(memory.memoryRepo, rag, memory.logRepo);
+    const tools = new MemoryTools(memory, () => rag);
+    tools.setMemoryService(svc);
+    const r = await tools.write({
+      layer: "shared",
+      category: "preference",
+      content: "prefers fish shell",
+      confidence: 0.95,
+    });
+    expect(r.success).toBe(true);
+    const id = (r.data as { id: string }).id;
+    expect(memory.getShared(id)!.kind).toBe("persona");
+  });
+});
+
+describe("M-07.1: context-compressor persists kind from category", () => {
+  // ChatService's compressor shim used to drop opts.kind, so every fact
+  // backfilled to default 'semantic' even for category='preference'.
+  // Regression: with kind threaded through, persona-grade categories land
+  // as persona.
+  let memory: MemoryDB;
+  let rag: RAGPipeline;
+
+  beforeAll(() => {
+    cleanup();
+    memory = new MemoryDB(TEST_DB);
+    rag = new RAGPipeline(memory, mkRouter());
+  });
+
+  afterAll(() => {
+    memory.close();
+    cleanup();
+  });
+
+  test("compressor shim with category='preference' lands as kind='persona'", async () => {
+    // Drive the actual code path the production compressor uses: a
+    // CompressorMemory shim wrapping MemoryService.insertShared, plus
+    // the categoryToKind derivation that compressContext applies.
+    // We don't need to run the full LLM call — just simulate the
+    // post-`facts` persist loop the compressor executes.
+    const svc = new MemoryService(memory.memoryRepo, rag, memory.logRepo);
+    const shim = {
+      insertShared: (
+        _id: string,
+        category: string,
+        content: string,
+        tags?: string,
+        source?: string,
+        opts?: { confidence?: number | null; status?: import("../src/db").MemoryStatus; kind?: import("../src/db").MemoryKind },
+      ) =>
+        svc.insertShared({
+          category,
+          content,
+          tags: tags ?? "",
+          source,
+          confidence: opts?.confidence,
+          status: opts?.status,
+          kind: opts?.kind,
+        }),
+    };
+    // Mirror compressContext's persist branch: derive kind, call shim.
+    const persona = categoryToKind("preference", "shared");
+    const semantic = categoryToKind("finding", "shared");
+    expect(persona).toBe("persona");
+    expect(semantic).toBe("semantic");
+
+    const personaId = (await shim.insertShared(
+      "ignored",
+      "preference",
+      "user prefers Hyprland",
+      "",
+      "context-compression",
+      { kind: persona },
+    )) as string;
+    const semanticId = (await shim.insertShared(
+      "ignored",
+      "finding",
+      "subbrain repo lives at /usr/projects/subbrain",
+      "",
+      "context-compression",
+      { kind: semantic },
+    )) as string;
+
+    expect(memory.getShared(personaId)!.kind).toBe("persona");
+    expect(memory.getShared(semanticId)!.kind).toBe("semantic");
+  });
+
+  test("compressContext end-to-end: persona facts land with kind='persona'", async () => {
+    // Full integration: stub router to return one preference + one finding
+    // fact, run compressContext, verify both rows landed with correct kind.
+    const { compressContext } = await import("../src/pipeline/context-compressor");
+    const svc = new MemoryService(memory.memoryRepo, rag, memory.logRepo);
+    const shim: import("../src/pipeline/context-compressor").CompressorMemory = {
+      insertShared: (_id, category, content, tags, source, opts) =>
+        svc.insertShared({
+          category,
+          content,
+          tags: tags ?? "",
+          source,
+          confidence: opts?.confidence,
+          status: opts?.status,
+          kind: opts?.kind,
+        }),
+    };
+    const stubRouter = {
+      chat: async () => ({
+        choices: [
+          {
+            message: {
+              content: JSON.stringify({
+                summary: "compressed summary placeholder",
+                facts: [
+                  { category: "preference", content: "user runs caveman mode" },
+                  { category: "finding", content: "vec_embeddings layer column needed" },
+                ],
+              }),
+            },
+          },
+        ],
+      }),
+    } as unknown as import("../src/lib/model-router").ModelRouter;
+    // Build messages over SOFT_LIMIT so compressContext fires.
+    // Need head + middle + tail: system + first user + 5 middle msgs +
+    // 10-msg tail. keepRecent=2 narrows the tail so middle is non-empty.
+    const big = "x".repeat(2_000);
+    const msgs: import("../src/providers/types").Message[] = [
+      { role: "system", content: "sys" },
+      { role: "user", content: "first task" },
+      { role: "assistant", content: big },
+      { role: "user", content: big },
+      { role: "assistant", content: big },
+      { role: "user", content: "tail user" },
+    ];
+    const beforeCount = memory.countShared();
+    // limit=100 forces compression — we don't care about real soft-limit
+    // semantics here, only that the persist branch runs with kind threaded.
+    // keepRecent=2 keeps the last 2 messages so the middle (3 messages)
+    // stays non-empty.
+    const did = await compressContext(msgs, stubRouter, shim, { limit: 100, keepRecent: 2 });
+    expect(did).toBe(true);
+    expect(memory.countShared()).toBeGreaterThan(beforeCount);
+    const all = memory.getAllShared();
+    const pref = all.find((r) => r.content === "user runs caveman mode");
+    const fnd = all.find((r) => r.content === "vec_embeddings layer column needed");
+    expect(pref).toBeDefined();
+    expect(fnd).toBeDefined();
+    expect(pref!.kind).toBe("persona");
+    expect(fnd!.kind).toBe("semantic");
+  });
+});
