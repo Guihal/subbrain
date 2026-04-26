@@ -110,6 +110,15 @@ export class MemoryDB {
   getAllFocus = () => this.memoryRepo.getAllFocus();
   deleteFocus = (key: string) => this.memoryRepo.deleteFocus(key);
 
+  // ─── Layer 1 shadow (M-11, mig 16) ─────────────────────────
+  getShadowFocus = (key: string) => this.memoryRepo.getShadowFocus(key);
+  setShadowFocus = (key: string, value: string) =>
+    this.memoryRepo.setShadowFocus(key, value);
+  getAllShadowFocus = () => this.memoryRepo.getAllShadowFocus();
+  clearShadowFocus = () => this.memoryRepo.clearShadowFocus();
+  selectTopSharedForFocusRewrite = (limit: number) =>
+    this.memoryRepo.selectTopSharedForFocusRewrite(limit);
+
   // ─── Layer 2: Context ──────────────────────────────────────
   insertContext = (
     id: string,

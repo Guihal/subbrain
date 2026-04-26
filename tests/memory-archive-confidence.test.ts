@@ -113,11 +113,11 @@ describe("M-12 mig 15 — schema rebuild", () => {
     const ver = opened
       .query<{ user_version: number }, []>("PRAGMA user_version")
       .get();
-    expect(ver?.user_version).toBe(15);
+    expect(ver?.user_version).toBe(16);
     opened.close();
   });
 
-  test("re-open is idempotent (user_version stays 15)", () => {
+  test("re-open is idempotent (user_version stays at latest)", () => {
     const db1 = openDatabase(TEST_DB);
     migrate(db1);
     db1.close();
@@ -126,7 +126,7 @@ describe("M-12 mig 15 — schema rebuild", () => {
     const ver = db2
       .query<{ user_version: number }, []>("PRAGMA user_version")
       .get();
-    expect(ver?.user_version).toBe(15);
+    expect(ver?.user_version).toBe(16);
     // typeof confidence is still REAL — no double-rebuild damage.
     const typ = db2
       .query<{ t: string }, []>(
