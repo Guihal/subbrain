@@ -30,6 +30,11 @@ const CONSULT_TIMEOUT_MS = Number(process.env.CONSULT_TIMEOUT_MS ?? 180_000);
 const TOOL_TIMEOUTS: { prefix: string; ms: number }[] = [
   { prefix: "critic_", ms: CRITIC_TIMEOUT_MS },
   { prefix: "web_", ms: 15_000 },
+  // M-10: more specific memory_* prefixes win because TOOL_TIMEOUTS is
+  // first-match. `memory_reflect` calls the LLM (~30s) and embed for the
+  // skip-guard; `memory_promote` does an embed + transactional insert.
+  { prefix: "memory_reflect", ms: 60_000 },
+  { prefix: "memory_promote", ms: 10_000 },
   { prefix: "memory_", ms: 3_000 },
   { prefix: "embed_", ms: 5_000 },
   { prefix: "task_", ms: 3_000 },

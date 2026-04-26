@@ -145,4 +145,77 @@ export function registerMemoryTools(registry: ToolRegistry): void {
       return { success: true, data: hits };
     },
   });
+
+  // M-10: agent-only curation tools. Edges + lifecycle are sensitive (raw
+  // memo manipulation) — kept off REST/MCP public transports. All four
+  // delegate to `executor.memoryCurationTools`.
+  const CURATION_LAYER = t.Union([
+    t.Literal("context"),
+    t.Literal("archive"),
+    t.Literal("shared"),
+  ]);
+  const SUPERSEDE_LAYER = t.Union([
+    t.Literal("context"),
+    t.Literal("shared"),
+  ]);
+  const EDGE_KIND = t.Union([
+    t.Literal("derives"),
+    t.Literal("relates"),
+    t.Literal("contradicts"),
+    t.Literal("supersedes"),
+  ]);
+
+  registry.register({
+    name: "memory_link",
+    description:
+      "Add a typed edge between two memory rows (graph curation). Idempotent on PK collision (same src/dst/kind tuple → no-op). Edge weight is fixed at 1.0.",
+    scope: "agent-only",
+    input: t.Object({
+      src_id: t.String(),
+      src_layer: CURATION_LAYER,
+      dst_id: t.String(),
+      dst_layer: CURATION_LAYER,
+      kind: EDGE_KIND,
+    }),
+    handler: (args, ctx) => ctx.executor.memoryCurationTools.link(args),
+  });
+
+  registry.register({
+    name: "memory_supersede",
+    description:
+      "Mark `old` memo as superseded by `new`. Updates the `superseded_by` column on the old row and writes an audit edge `kind='supersedes'`. Layers limited to context|shared (archive has no `superseded_by` column).",
+    scope: "agent-only",
+    input: t.Object({
+      old_id: t.String(),
+      old_layer: SUPERSEDE_LAYER,
+      new_id: t.String(),
+      new_layer: SUPERSEDE_LAYER,
+    }),
+    handler: (args, ctx) => ctx.executor.memoryCurationTools.supersede(args),
+  });
+
+  registry.register({
+    name: "memory_promote",
+    description:
+      "Promote a context memo to the shared layer (insert + `derives` edge). Source row is preserved — caller may follow up with memory_supersede or memory_delete.",
+    scope: "agent-only",
+    input: t.Object({
+      src_id: t.String(),
+      src_layer: t.Literal("context"),
+      target_layer: t.Literal("shared"),
+    }),
+    handler: (args, ctx) => ctx.executor.memoryCurationTools.promote(args),
+  });
+
+  registry.register({
+    name: "memory_reflect",
+    description:
+      "Manually trigger the night-cycle reflect step (CoALA episodic→semantic consolidation). Optional `category` narrows the top-N groups; `dryRun` previews without inserting.",
+    scope: "agent-only",
+    input: t.Object({
+      category: t.Optional(t.String()),
+      dryRun: t.Optional(t.Boolean()),
+    }),
+    handler: (args, ctx) => ctx.executor.memoryCurationTools.reflect(args),
+  });
 }

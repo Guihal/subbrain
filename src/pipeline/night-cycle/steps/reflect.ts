@@ -40,6 +40,10 @@ export interface ReflectDeps {
   memoryService: MemoryService;
   rag: RAGPipeline;
   router: ModelRouter;
+  // M-10: optional manual-trigger knobs (MCP `memory_reflect`). Night-cycle
+  // caller leaves these undefined and gets default behaviour.
+  categoryFilter?: string;
+  dryRun?: boolean;
 }
 
 interface GroupRow {
@@ -115,6 +119,16 @@ async function processGroup(
     return { promoted: false, edges: 0 };
   }
 
+  // M-10: dryRun (manual MCP trigger) — counts the group as promotable but
+  // skips the actual insert + edge linking. Caller uses this to preview what
+  // a real reflect would do without mutating shared_memory.
+  if (deps.dryRun) {
+    log.info(
+      `dryRun: category=${group.category} sources=${ids.length} (no insert)`,
+    );
+    return { promoted: true, edges: 0 };
+  }
+
   const newId = await deps.memoryService.insertShared({
     category: group.category,
     content: fact,
@@ -146,7 +160,15 @@ export async function runReflect(deps: ReflectDeps): Promise<ReflectResult> {
     log.info("disabled (REFLECT_ENABLED=false)");
     return result;
   }
-  const groups = selectGroups(deps.memory, cfg.minAccess, cfg.minGroup, cfg.maxGroups);
+  let groups = selectGroups(deps.memory, cfg.minAccess, cfg.minGroup, cfg.maxGroups);
+  // M-10: optional manual-trigger filter. Applied post-fetch — `selectGroups`
+  // already capped at `maxGroups`, so the filter narrows what the LLM is
+  // called on but cannot reach groups outside the top-N. Acceptable for the
+  // manual MCP path; night-cycle does not pass `categoryFilter`.
+  if (deps.categoryFilter) {
+    const cf = deps.categoryFilter;
+    groups = groups.filter((g) => g.category === cf);
+  }
   result.groups_examined = groups.length;
   if (groups.length === 0) {
     log.info("no groups to reflect on");
