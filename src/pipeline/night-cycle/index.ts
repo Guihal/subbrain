@@ -46,6 +46,10 @@ function emptyResult(): NightCycleResult {
     reflectFactsPromoted: 0,
     reflectEdgesCreated: 0,
     reflectLLMFailures: 0,
+    crossLayerPairsExamined: 0,
+    crossLayerSupersedesAdded: 0,
+    crossLayerPromotedToShared: 0,
+    crossLayerErrors: 0,
     errors: [],
     lastProcessedId: 0,
   };
@@ -96,7 +100,7 @@ export class NightCycle {
     this.memory.setFocus(FOCUS_KEY_LAST_PROCESSED, String(result.lastProcessedId));
     const elapsedSec = Math.round((Date.now() - startedAt) / 1000);
     log.info(
-      `Cycle finished in ${elapsedSec}s — archived=${result.archiveEntriesCreated} antiPatterns=${result.antiPatternsFound} contradictions=${result.contradictionsResolved} sharedPruned=${result.sharedPruned} contextPruned=${result.contextPruned} focusPruned=${result.focusPruned} tasksPruned=${result.tasksPruned} strays=${result.straysCollected} sharedDeduped=${result.sharedDeduped} contextDeduped=${result.contextDeduped} expired=${result.expiredMarked} salienceDecayed=${result.salienceDecayed} reflectGroups=${result.reflectGroupsExamined} reflectPromoted=${result.reflectFactsPromoted} reflectEdges=${result.reflectEdgesCreated} reflectFailures=${result.reflectLLMFailures} errors=${result.errors.length}`,
+      `Cycle finished in ${elapsedSec}s — archived=${result.archiveEntriesCreated} antiPatterns=${result.antiPatternsFound} contradictions=${result.contradictionsResolved} sharedPruned=${result.sharedPruned} contextPruned=${result.contextPruned} focusPruned=${result.focusPruned} tasksPruned=${result.tasksPruned} strays=${result.straysCollected} sharedDeduped=${result.sharedDeduped} contextDeduped=${result.contextDeduped} expired=${result.expiredMarked} salienceDecayed=${result.salienceDecayed} reflectGroups=${result.reflectGroupsExamined} reflectPromoted=${result.reflectFactsPromoted} reflectEdges=${result.reflectEdgesCreated} reflectFailures=${result.reflectLLMFailures} crossPairs=${result.crossLayerPairsExamined} crossSupersedes=${result.crossLayerSupersedesAdded} crossPromoted=${result.crossLayerPromotedToShared} crossErrors=${result.crossLayerErrors} errors=${result.errors.length}`,
       { meta: { ...result } },
     );
     return result;

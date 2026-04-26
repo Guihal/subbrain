@@ -8,7 +8,13 @@ import type { ModelRouter } from "../../lib/model-router";
 import type { RAGPipeline } from "../../rag";
 import type { MemoryService } from "../../services/memory.service";
 import { logger } from "../../lib/logger";
-import { resolveContradictions, runMemoryDedup, decaySalience, runReflect } from "./steps";
+import {
+  resolveContradictions,
+  runMemoryDedup,
+  decaySalience,
+  runReflect,
+  runCrossLayerDedup,
+} from "./steps";
 import {
   pruneShared,
   pruneContext,
@@ -79,10 +85,30 @@ export async function runPostBatchSteps(
     );
   }, result);
 
+  // M-09: pure-cosine cross-layer dedup + archive→shared promote. Runs
+  // AFTER memory-dedup + decay-salience so it sees the post-intra-dedup
+  // substrate, and BEFORE reflect so reflect doesn't race against
+  // archive-promote inserts that cross-layer would immediately re-supersede.
+  // Skipped when memoryService is missing (legacy test ctor without 4th arg)
+  // — promote pass needs `MemoryService.insertShared` for atomic embed-first.
+  if (memoryService) {
+    await runStep("Cross-layer dedup", "Cross-layer dedup", async () => {
+      const r = await runCrossLayerDedup({ memory, memoryService });
+      result.crossLayerPairsExamined = r.pairs_examined;
+      result.crossLayerSupersedesAdded = r.supersedes_added;
+      result.crossLayerPromotedToShared = r.promoted_to_shared;
+      result.crossLayerErrors = r.errors;
+      log.info(
+        `cross-layer: pairs=${r.pairs_examined} supersedes=${r.supersedes_added} promoted=${r.promoted_to_shared} errors=${r.errors}`,
+      );
+    }, result);
+  }
+
   // M-06: CoALA reflect — promote frequently-accessed context patterns into
   // shared semantic facts + derives edges. Runs AFTER memory-dedup +
-  // decay-salience so reflect sees the cleaned, decayed substrate. Skipped
-  // when memoryService is missing (legacy test ctor without 4th arg).
+  // decay-salience + cross-layer-dedup so reflect sees the cleaned, decayed,
+  // cross-layer-merged substrate. Skipped when memoryService is missing
+  // (legacy test ctor without 4th arg).
   if (memoryService) {
     await runStep("Reflect (episodic→semantic)", "Reflect", async () => {
       const r = await runReflect({ memory, memoryService, rag, router });

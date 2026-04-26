@@ -25,6 +25,11 @@ export interface NightCycleResult {
   reflectFactsPromoted: number;
   reflectEdgesCreated: number;
   reflectLLMFailures: number;
+  // M-09: cross-layer dedup + archive→shared promote counters.
+  crossLayerPairsExamined: number;
+  crossLayerSupersedesAdded: number;
+  crossLayerPromotedToShared: number;
+  crossLayerErrors: number;
   errors: string[];
   lastProcessedId: number;
 }

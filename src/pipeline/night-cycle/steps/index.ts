@@ -8,3 +8,8 @@ export { resolveContradictions } from "./contradictions";
 export { runMemoryDedup } from "./memory-dedup";
 export { decaySalience } from "./decay-salience";
 export { runReflect, type ReflectResult, type ReflectDeps } from "./reflect";
+export {
+  runCrossLayerDedup,
+  type CrossLayerResult,
+  type CrossLayerDeps,
+} from "./cross-layer-dedup";

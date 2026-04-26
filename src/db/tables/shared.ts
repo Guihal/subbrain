@@ -353,4 +353,44 @@ export class SharedTable {
   deleteEmbedding(id: string): void {
     this.db.query("DELETE FROM vec_embeddings WHERE id = ?").run(id);
   }
+
+  /**
+   * M-09: most-recent active+fresh shared rows for cross-layer dedup. Returns
+   * `cat = lower(category)` so the caller can match against context.title /
+   * archive.title without a second pass.
+   */
+  recentActiveSharedForCrossLayer(limit: number): { id: string; cat: string; updated_at: number }[] {
+    return this.db
+      .query<{ id: string; cat: string; updated_at: number }, [number]>(
+        "SELECT id, lower(category) AS cat, updated_at FROM shared_memory WHERE status='active' AND superseded_by IS NULL AND (expires_at IS NULL OR expires_at > unixepoch()) ORDER BY updated_at DESC LIMIT ?",
+      )
+      .all(limit);
+  }
+
+  /**
+   * M-09: bulk-fetch raw embedding vectors for given ids in a layer. Used by
+   * the cross-layer dedup step to compute cosine in JS (sqlite-vec returns L2
+   * on un-normalised vectors per audit). Empty ids → empty Map. Callers cap
+   * `ids.length` (CROSS_LAYER_DEDUP_LIMIT) so the IN(?,?,…) clause stays
+   * SQLite-friendly. Missing ids are simply absent from the returned Map.
+   */
+  getEmbeddingsByIds(layer: string, ids: string[]): Map<string, Float32Array> {
+    const out = new Map<string, Float32Array>();
+    if (ids.length === 0) return out;
+    const placeholders = ids.map(() => "?").join(",");
+    const rows = this.db
+      .query(
+        `SELECT id, embedding FROM vec_embeddings WHERE layer = ? AND id IN (${placeholders})`,
+      )
+      .all(layer, ...ids) as { id: string; embedding: Uint8Array }[];
+    for (const r of rows) {
+      const blob = r.embedding;
+      if (!blob || blob.byteLength % 4 !== 0) continue;
+      out.set(
+        r.id,
+        new Float32Array(blob.buffer, blob.byteOffset, blob.byteLength / 4),
+      );
+    }
+    return out;
+  }
 }

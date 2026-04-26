@@ -334,4 +334,36 @@ export class MemoryTable {
         maxGroups,
       ) as { category: string; n: number; ids: string; contents: string }[];
   }
+
+  /**
+   * M-09: most-recent active+fresh context rows for cross-layer dedup. Returns
+   * `cat = lower(title)` so the caller can match against shared.category /
+   * archive.title without a second pass.
+   */
+  recentActiveContextForCrossLayer(limit: number): { id: string; cat: string; updated_at: number }[] {
+    return this.db
+      .query<{ id: string; cat: string; updated_at: number }, [number]>(
+        "SELECT id, lower(title) AS cat, updated_at FROM layer2_context WHERE status='active' AND superseded_by IS NULL AND (expires_at IS NULL OR expires_at > unixepoch()) ORDER BY updated_at DESC LIMIT ?",
+      )
+      .all(limit);
+  }
+
+  /** M-09: most-recent archive rows for cross-layer dedup. Archive has no
+   * status / superseded_by columns so unfiltered. */
+  recentArchiveForCrossLayer(limit: number): { id: string; cat: string; updated_at: number }[] {
+    return this.db
+      .query<{ id: string; cat: string; updated_at: number }, [number]>(
+        "SELECT id, lower(title) AS cat, updated_at FROM layer3_archive ORDER BY updated_at DESC LIMIT ?",
+      )
+      .all(limit);
+  }
+
+  /** M-09: archive promote candidates filtered by access_count + confidence. */
+  archivePromoteCandidates(minAccess: number, minConfidence: number, limit: number): ArchiveRow[] {
+    return this.db
+      .query<ArchiveRow, [number, number, number]>(
+        "SELECT * FROM layer3_archive WHERE access_count >= ? AND confidence IS NOT NULL AND confidence >= ? ORDER BY access_count DESC, updated_at DESC LIMIT ?",
+      )
+      .all(minAccess, minConfidence, limit);
+  }
 }

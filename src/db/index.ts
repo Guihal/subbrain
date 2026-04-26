@@ -254,6 +254,9 @@ export class MemoryDB {
   searchEmbeddings = (embedding: Float32Array, limit?: number, layer?: string) =>
     this.memoryRepo.searchEmbeddings(embedding, limit, layer);
   deleteEmbedding = (id: string) => this.memoryRepo.deleteEmbedding(id);
+  // M-09: bulk-fetch raw vectors for cross-layer cosine in JS.
+  getEmbeddingsByIds = (layer: string, ids: string[]) =>
+    this.memoryRepo.getEmbeddingsByIds(layer, ids);
 
   // ─── Pending approval (PR 22b) — back-compat facade ───────
   listPending = (
