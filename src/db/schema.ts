@@ -850,6 +850,15 @@ export function migrate(db: Database): void {
          INSERT INTO fts_archive(rowid, title, content, tags)
          VALUES (new.rowid, new.title, new.content, new.tags);
        END`,
+      // Critic round-1 fix: fts_archive (contentless FTS5 with
+      // content=layer3_archive, content_rowid=rowid) survived the
+      // DROP+RENAME but its index is keyed by OLD rowids that no longer
+      // map to anything. New rows entering via `_ai` trigger work fine
+      // (matched rowids); legacy rows would silently fall out of FTS
+      // search. The 'rebuild' command tells FTS5 to re-read everything
+      // from the (now-renamed) source table — single statement, fast on
+      // modest archive sizes, fully solves the rowid mismatch.
+      `INSERT INTO fts_archive(fts_archive) VALUES('rebuild')`,
       `PRAGMA user_version = 15`,
     ];
     db.transaction(() => {

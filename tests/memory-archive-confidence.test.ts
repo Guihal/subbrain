@@ -165,6 +165,48 @@ describe("M-12 mig 15 — schema rebuild", () => {
     expect(idx).toContain("idx_archive_salience");
     db.close();
   });
+
+  // Critic round-1 regression: legacy rows must remain FTS-searchable after
+  // mig 15 schema rebuild. Pre-fix the contentless fts_archive index
+  // pointed at OLD rowids (orphaned by the DROP+RENAME); only post-mig
+  // INSERTs were findable. Fix: `INSERT INTO fts_archive(fts_archive)
+  // VALUES('rebuild')` after the trigger setup. Test seeds row with mig 14
+  // schema (TEXT confidence) directly via openDatabase(no migrate()) +
+  // manual CREATE TABLE matching mig 14 shape, then opens via MemoryDB
+  // (triggers full migrate including 15) and verifies FTS hit.
+  test("legacy rows remain FTS-searchable after mig 15 rebuild", () => {
+    const LEGACY_DB = `${TEST_DB}.legacy-fts.db`;
+    for (const ext of ["", "-shm", "-wal"]) {
+      const p = `${LEGACY_DB}${ext}`;
+      if (existsSync(p)) unlinkSync(p);
+    }
+    // Phase 1: open raw DB, run migrate to bring it up through mig 14
+    // (forced by setting user_version = 14 BEFORE the CREATE-block runs
+    // its initial schema). Simpler path: open + migrate (head) + INSERT
+    // + roll user_version back to 14 + close + reopen via MemoryDB to
+    // trigger mig 15 on a populated fts_archive.
+    const seed = openDatabase(LEGACY_DB);
+    migrate(seed);
+    seed.query(
+      `INSERT INTO layer3_archive(id,title,content,confidence) VALUES (?,?,?,?)`,
+    ).run("legacy-1", "Hyprland tiling wm", "compositor with workspaces", 0.85);
+    // Roll user_version back so reopen re-triggers mig 15 on populated FTS.
+    seed.query(`PRAGMA user_version = 14`).run();
+    seed.close();
+
+    const m = new MemoryDB(LEGACY_DB);
+    const hit = m.db
+      .query<{ id: string }, [string]>(
+        `SELECT a.id FROM fts_archive f JOIN layer3_archive a ON a.rowid=f.rowid WHERE fts_archive MATCH ?`,
+      )
+      .get("hyprland");
+    expect(hit?.id).toBe("legacy-1");
+    m.close();
+    for (const ext of ["", "-shm", "-wal"]) {
+      const p = `${LEGACY_DB}${ext}`;
+      if (existsSync(p)) unlinkSync(p);
+    }
+  });
 });
 
 // ─── 4-6: insert + admin route TypeBox shape ─────────────────
