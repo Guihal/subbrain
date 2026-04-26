@@ -316,9 +316,11 @@ export class SharedTable {
     const filter = buildActiveFilter("s", opts);
     // M-07: SELECT `s.kind` so RAG can apply the persona boost without an
     // extra round-trip. Other FtsResult consumers ignore the field.
+    // M-03 (mig 13): SELECT `s.salience` so the RAG salience-boost step
+    // does not need an extra round-trip per hit.
     return this.db
       .query(
-        `SELECT s.id, s.category AS title, s.tags, snippet(fts_shared, 1, '<b>', '</b>', '...', 32) AS snippet, rank, s.created_at, s.updated_at, s.kind FROM fts_shared f JOIN shared_memory s ON s.rowid = f.rowid WHERE fts_shared MATCH ?${filter} ORDER BY rank LIMIT ?`,
+        `SELECT s.id, s.category AS title, s.tags, snippet(fts_shared, 1, '<b>', '</b>', '...', 32) AS snippet, rank, s.created_at, s.updated_at, s.kind, s.salience FROM fts_shared f JOIN shared_memory s ON s.rowid = f.rowid WHERE fts_shared MATCH ?${filter} ORDER BY rank LIMIT ?`,
       )
       .all(ftsQuery, limit) as FtsResult[];
   }

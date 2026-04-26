@@ -56,6 +56,14 @@ export interface ContextRow {
   // M-02 (mig 10): cumulative popularity counter (NOT NULL DEFAULT 0).
   // Optional in TS for back-compat with older selects.
   access_count?: number;
+  // M-03 (mig 13): popularity/importance score [0..1]. NOT NULL DEFAULT 0.5
+  // in SQL; optional in TS so legacy selects without the column compile.
+  // Reinforced by `bumpAccess`, decayed nightly by `decay-salience` step.
+  salience?: number;
+  // M-03 (mig 13): unix-seconds bookkeeping for the idempotent night-cycle
+  // decay step. NULL on legacy rows; first decay run uses last_accessed_at
+  // as proxy and then writes `now` here.
+  last_decayed_at?: number | null;
 }
 
 export interface ArchiveRow {
@@ -71,6 +79,9 @@ export interface ArchiveRow {
   // M-02 (mig 10): see ContextRow comment.
   last_accessed_at?: number | null;
   access_count?: number;
+  // M-03 (mig 13): see ContextRow comment.
+  salience?: number;
+  last_decayed_at?: number | null;
 }
 
 export interface LogRow {
@@ -103,6 +114,9 @@ export interface SharedRow {
   // M-02 (mig 10): see ContextRow comment.
   last_accessed_at?: number | null;
   access_count?: number;
+  // M-03 (mig 13): see ContextRow comment.
+  salience?: number;
+  last_decayed_at?: number | null;
   // M-07 (mig 12): closed enum. NOT NULL DEFAULT 'semantic' in SQL — required
   // here. Persona rows get +10% boost in RAG rerank (`rag/pipeline.ts`).
   kind: MemoryKind;
@@ -129,6 +143,11 @@ export interface FtsResult {
   // whose underlying table carries the `kind` column). Optional so context /
   // archive search paths stay unchanged.
   kind?: string;
+  // M-03 (mig 13): salience score [0..1]. Selected by FTS searchShared /
+  // searchContext / searchArchive so the RAG rerank salience-boost step
+  // (`rag/pipeline.ts:applySalienceBoost`) does not need an extra round-trip.
+  // Optional for back-compat with the log layer (no salience column).
+  salience?: number;
 }
 
 export interface VecResult {

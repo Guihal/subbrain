@@ -688,21 +688,55 @@ export function migrate(db: Database): void {
     })();
   }
 
+  // Migration 13 (M-03): salience + last_decayed_at on shared / context /
+  // archive. Builds on M-02 (mig 10) access tracking — salience is the
+  // popularity/importance score that grows on every retrieval hit
+  // (`MemoryRepository.bumpAccess`) and decays daily in the night cycle
+  // (`night-cycle/steps/decay-salience.ts`).
+  //
+  // `salience REAL NOT NULL DEFAULT 0.5` — neutral baseline; existing rows
+  // backfilled by SQLite's ALTER ADD COLUMN-with-DEFAULT mechanism.
+  // `last_decayed_at INTEGER DEFAULT NULL` — bookkeeping for idempotent
+  // night-cycle decay (Path A in M-03 plan): decay computes
+  // `(now - last_decayed_at) / 86400` and updates `last_decayed_at = now`,
+  // so a same-day re-run is a no-op (age delta = 0).
+  //
+  // Idempotency: try/catch on "duplicate column name" — same belt-and-
+  // braces pattern as mig 10/12. Indexes are CREATE IF NOT EXISTS.
+  if (version < 13) {
+    const addColumnStmts = [
+      `ALTER TABLE shared_memory   ADD COLUMN salience REAL NOT NULL DEFAULT 0.5`,
+      `ALTER TABLE shared_memory   ADD COLUMN last_decayed_at INTEGER DEFAULT NULL`,
+      `ALTER TABLE layer2_context  ADD COLUMN salience REAL NOT NULL DEFAULT 0.5`,
+      `ALTER TABLE layer2_context  ADD COLUMN last_decayed_at INTEGER DEFAULT NULL`,
+      `ALTER TABLE layer3_archive  ADD COLUMN salience REAL NOT NULL DEFAULT 0.5`,
+      `ALTER TABLE layer3_archive  ADD COLUMN last_decayed_at INTEGER DEFAULT NULL`,
+    ];
+    const indexStmts = [
+      `CREATE INDEX IF NOT EXISTS idx_shared_salience  ON shared_memory  (salience DESC)`,
+      `CREATE INDEX IF NOT EXISTS idx_context_salience ON layer2_context (salience DESC)`,
+      `CREATE INDEX IF NOT EXISTS idx_archive_salience ON layer3_archive (salience DESC)`,
+    ];
+    db.transaction(() => {
+      for (const sql of addColumnStmts) {
+        try {
+          db.query(sql).run();
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          if (!/duplicate column name/i.test(msg)) throw err;
+        }
+      }
+      for (const sql of indexStmts) db.query(sql).run();
+      db.query(`PRAGMA user_version = 13`).run();
+    })();
+  }
+
   // Migration 14 (M-05): memory_edges table + 3 indexes + backfill from
   // layer2_context.derived_from JSON. Typed edges between memory rows
-  // (A-MEM lite Zettelkasten). Migration 13 is reserved for M-03 (salience)
-  // running in a parallel worktree; this ticket explicitly takes 14 to avoid
-  // a number collision when both branches land.
-  //
-  // Backfill heuristic: `derived_from` stores ids without layer info. We
-  // assume the source memo lives in `context` too (true for current writers
-  // — only writeContext populates derived_from). Cross-layer correction is
-  // out of scope for M-05 (manual SQL or follow-up).
-  //
-  // Idempotency: PK (src_id, src_layer, dst_id, dst_layer, kind) makes the
-  // backfill safe to re-run. We additionally guard the SELECT with a
-  // `count(memory_edges) = 0` check so a partial-rerun doesn't waste a
-  // full table scan.
+  // (A-MEM lite Zettelkasten). Backfill heuristic: `derived_from` stores
+  // ids without layer info; assume `context` (true for current writers).
+  // Idempotency: PK (src_id, src_layer, dst_id, dst_layer, kind) +
+  // `count(memory_edges) = 0` guard before backfill.
   if (version < 14) {
     const mig14Stmts = [
       `CREATE TABLE IF NOT EXISTS memory_edges (
@@ -721,9 +755,6 @@ export function migrate(db: Database): void {
     ];
     db.transaction(() => {
       for (const sql of mig14Stmts) db.query(sql).run();
-
-      // Backfill only when memory_edges is empty — skips on a partial-rerun
-      // where the table already has rows.
       const edgeCount = db
         .query<{ c: number }, []>("SELECT count(*) AS c FROM memory_edges")
         .get()!.c;
