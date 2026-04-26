@@ -420,6 +420,13 @@ Tests: `tests/mcp-curation-tools.test.ts` (12 кейсов).
 **Out of scope:** evolution (M-05.1), LLM-contradiction-detect (M-05.2), public REST для curation (privacy out), `memory_unlink`, bulk ops, ACL.
 **Scope:** M-10.
 
+### MEM-18 ✅ per-kind decay tuning (закрыто M-08.1, 2026-04-26)
+M-08 forgetting curve treated all kinds uniformly (kind=persona override = R=1.0; semantic/episodic/procedural = одинаковый decay rate). Per CoALA / cognitive science: episodic events transient, procedural skills persistent, semantic baseline. Без per-kind tuning episodic-факты "цеплялись" в системном промпте дольше нужного, procedural — затухали быстрее.
+**Fix:** M-08.1 — `computeRecallScore(now, lastAccess, accessCount, salience, kind?)` принимает optional kind; tau умножается на per-kind multiplier: episodic × 0.5 (faster), procedural × 2.0 (slower), semantic/undefined × 1.0 (default unchanged), persona handled by skipPersona override (R=1.0 separate path). Env knobs `RAG_DECAY_MULT_EPISODIC` (default 0.5) и `RAG_DECAY_MULT_PROCEDURAL` (default 2.0) read at call-time. Pure-fn purity preserved (memory-decay.ts 76 LOC ≤80 cap). `applyForgettingCurve` пробрасывает `r.kind` в `computeRecallScore`.
+Tests: `tests/memory-forgetting-curve.test.ts` расширен +5 кейсов (episodic decay faster, procedural slower, persona unchanged, env override, undefined baseline). 770 pass / 0 fail (765 baseline + 5 new).
+**Out of scope:** A/B benchmark, tuning constants (0.5/2.0 — M-08.2), archive layer (kind not on archive per M-07).
+**Scope:** M-08.1.
+
 ### Memory-v2 wave 1 review (2026-04-26, M-FINAL)
 
 **Closed:** MEM-2 (M-01), MEM-7 (M-02), MEM-8 (M-04), MEM-9 (M-07), MEM-10 (M-03).
