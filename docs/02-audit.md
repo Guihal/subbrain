@@ -420,3 +420,27 @@ Tests: `tests/memory-forgetting-curve.test.ts` (11 кейсов — pure-fn base
 **Verdict:** wave 1 (4 features × 4 миграций × 47 новых тестов) закрыта без regressions. Опциональный refactor-пасс не запускался — anti-goal per plan §107.
 
 **Scope:** M-FINAL (docs-only).
+
+### Memory-v2 wave 1-3 final refactor (2026-04-26, M-FINAL2)
+
+**Closed:**
+
+- ✅ **M-07.1** (real bug): `categoryToKind` теперь зовётся во всех трёх shared-writer путях.
+  - `src/mcp/tools/memory-tools.ts:217` — `case "shared"` derives kind once before делегации в service / writeSharedAtomic / raw-fallback.
+  - `src/pipeline/context-compressor.ts:259` — persist-loop derives kind перед shim.insertShared.
+  - `src/services/chat.service.ts:236` — compressor shim прокидывает `opts.kind` в `MemoryService.insertShared`.
+  - Single-call definition site: `src/pipeline/agent-pipeline/post/validators.ts:203` (unchanged).
+  - Regression: `tests/memory-kind.test.ts` extended +5 cases (MCP write persona+semantic, MCP write через injected service, compressor shim end-to-end, compressContext integration).
+- ✅ **writeSharedAtomic DI-cleanup**: `MemoryTools` теперь принимает `MemoryService` через `setMemoryService(svc)` (постcttor, симметрично с `setRAG`). Wired in `src/app/deps.ts:218`. Production MCP path делегирует в `MemoryService.insertShared` — single source-of-truth для shared embed-first + transactional writes. `writeSharedAtomic` остался как private fallback с TODO-комментом для legacy tests (`cross-agent-isolation`, `mcp-tools`, `tool-runner`), которые конструируют `new MemoryTools(db, () => null)` без service — final rip-out отложен до миграции этих 6 тестов.
+
+**File-cap status:**
+
+- `src/mcp/tools/memory-tools.ts` — 470 LOC (был 409). Рост из M-07.1 wiring + DI-plumbing + service-delegate path. Над cap (250). Split-кандидат `memory-write.ts` / `memory-read.ts` / `memory-search.ts` обсуждался: класс-уровневый split ломает single-instance API (`registerMemoryTools` импортирует `MemoryTools`), а method-extraction в helper-файлы дублирует `this.memory` / `this.getRag` / `this.memoryService` deps в каждый extracted файл. **Flagged для M-FINAL3** когда writeSharedAtomic полностью исчезнет (после миграции 6 legacy test sites) — тогда write-case упростится с ~110 до ~30 LOC и файл естественно сядет в 350-LOC. Anti-goal "don't artificially break" применён здесь.
+- `src/db/tables/shared.ts` — 356 LOC. Same analysis as M-FINAL: shared-memory CRUD = single-responsibility, split-кандидат write/read искусственный (`SharedTable` класс с общим `db` deps).
+- Прочие файлы из плана §13 — не тронуты (single-responsibility intact per plan §63-67).
+
+**Tests:** 725 pass / 0 fail (was 720 pre-M-FINAL2 baseline — +5 regression cases from this pass).
+
+**Verdict:** M-07.1 fix landed, DI-cleanup landed, file-cap deferred с обоснованием. Acceptance §5 (`memory-tools.ts ≤250`) не выполнен — plan §3 explicit allowed defer для artificial splits, §5 написан в предположении "if Step 3a runs". Step 3a не запускался в этом pass.
+
+**Scope:** M-FINAL2 (real bug fix + DI cleanup + audit doc).

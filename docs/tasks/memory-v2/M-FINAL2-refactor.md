@@ -1,6 +1,6 @@
 # M-FINAL2 · Refactor pass after memory-v2 wave-3
 
-**Tier:** P0 (closes wave) · **Effort:** M · **Deps:** M-01..M-08 + M-FINAL — landed · **Status:** OPEN
+**Tier:** P0 (closes wave) · **Effort:** M · **Deps:** M-01..M-08 + M-FINAL — landed · **Status:** DONE (2026-04-26)
 
 ## Цель
 
@@ -137,4 +137,12 @@ If subagent splits anything → regression-test (existing test still pass). Move
 
 ---
 
-**Status:** OPEN
+**Status:** DONE (2026-04-26)
+
+**Закрытие:**
+
+- M-07.1 wired в три источника: `mcp/tools/memory-tools.ts`, `pipeline/context-compressor.ts`, `services/chat.service.ts` shim. Persona-grade рows из MCP + compressor теперь получают `kind='persona'` → +10% RAG boost (см. M-07).
+- DI-cleanup: `MemoryTools.setMemoryService(svc)` + `ToolExecutor.setMemoryService` + wire-up в `app/deps.ts:218`. MCP shared-write path делегирует в `MemoryService.insertShared`. `writeSharedAtomic` оставлен private fallback для 6 legacy test-sites (TODO-маркер на rip-out).
+- File-cap: `memory-tools.ts` 470 LOC (>250). Split deferred to M-FINAL3 — обоснование в `docs/02-audit.md` § "Memory-v2 wave 1-3 final refactor".
+- Tests: 720 → 725 (+5 regression cases в `tests/memory-kind.test.ts` MCP+compressor paths).
+- tsc: exit 0, bun test: 725/0.
