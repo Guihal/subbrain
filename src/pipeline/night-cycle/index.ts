@@ -10,6 +10,7 @@
 import type { MemoryDB } from "../../db";
 import type { ModelRouter } from "../../lib/model-router";
 import type { RAGPipeline } from "../../rag";
+import type { MemoryService } from "../../services/memory.service";
 import { logger } from "../../lib/logger";
 import {
   type NightCycleResult,
@@ -41,6 +42,10 @@ function emptyResult(): NightCycleResult {
     contextDeduped: 0,
     expiredMarked: 0,
     salienceDecayed: 0,
+    reflectGroupsExamined: 0,
+    reflectFactsPromoted: 0,
+    reflectEdgesCreated: 0,
+    reflectLLMFailures: 0,
     errors: [],
     lastProcessedId: 0,
   };
@@ -51,12 +56,18 @@ export class NightCycle {
     private memory: MemoryDB,
     private router: ModelRouter,
     private rag: RAGPipeline,
+    private memoryService?: MemoryService,
   ) {}
 
   async run(): Promise<NightCycleResult> {
     const result = emptyResult();
     const startedAt = Date.now();
-    const deps = { memory: this.memory, router: this.router, rag: this.rag };
+    const deps = {
+      memory: this.memory,
+      router: this.router,
+      rag: this.rag,
+      memoryService: this.memoryService,
+    };
     log.info("Cycle started");
 
     const lastIdStr = this.memory.getFocus(FOCUS_KEY_LAST_PROCESSED);
@@ -85,7 +96,7 @@ export class NightCycle {
     this.memory.setFocus(FOCUS_KEY_LAST_PROCESSED, String(result.lastProcessedId));
     const elapsedSec = Math.round((Date.now() - startedAt) / 1000);
     log.info(
-      `Cycle finished in ${elapsedSec}s — archived=${result.archiveEntriesCreated} antiPatterns=${result.antiPatternsFound} contradictions=${result.contradictionsResolved} sharedPruned=${result.sharedPruned} contextPruned=${result.contextPruned} focusPruned=${result.focusPruned} tasksPruned=${result.tasksPruned} strays=${result.straysCollected} sharedDeduped=${result.sharedDeduped} contextDeduped=${result.contextDeduped} expired=${result.expiredMarked} salienceDecayed=${result.salienceDecayed} errors=${result.errors.length}`,
+      `Cycle finished in ${elapsedSec}s — archived=${result.archiveEntriesCreated} antiPatterns=${result.antiPatternsFound} contradictions=${result.contradictionsResolved} sharedPruned=${result.sharedPruned} contextPruned=${result.contextPruned} focusPruned=${result.focusPruned} tasksPruned=${result.tasksPruned} strays=${result.straysCollected} sharedDeduped=${result.sharedDeduped} contextDeduped=${result.contextDeduped} expired=${result.expiredMarked} salienceDecayed=${result.salienceDecayed} reflectGroups=${result.reflectGroupsExamined} reflectPromoted=${result.reflectFactsPromoted} reflectEdges=${result.reflectEdgesCreated} reflectFailures=${result.reflectLLMFailures} errors=${result.errors.length}`,
       { meta: { ...result } },
     );
     return result;

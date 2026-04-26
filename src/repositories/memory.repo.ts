@@ -115,6 +115,14 @@ export class MemoryRepository {
   searchArchive = (query: string, limit?: number): FtsResult[] =>
     this.mem.searchArchive(query, limit);
 
+  // M-06: see MemoryTable.reflectGroups doc-comment.
+  reflectGroups = (
+    whitelist: readonly string[],
+    minAccess: number,
+    minGroup: number,
+    maxGroups: number,
+  ) => this.mem.reflectGroups(whitelist, minAccess, minGroup, maxGroups);
+
   // ─── Shared Memory ─────────────────────────────────────────
   insertShared = (
     id: string,

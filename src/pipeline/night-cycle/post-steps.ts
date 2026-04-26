@@ -6,8 +6,9 @@
 import type { MemoryDB } from "../../db";
 import type { ModelRouter } from "../../lib/model-router";
 import type { RAGPipeline } from "../../rag";
+import type { MemoryService } from "../../services/memory.service";
 import { logger } from "../../lib/logger";
-import { resolveContradictions, runMemoryDedup, decaySalience } from "./steps";
+import { resolveContradictions, runMemoryDedup, decaySalience, runReflect } from "./steps";
 import {
   pruneShared,
   pruneContext,
@@ -20,10 +21,10 @@ import type { NightCycleResult } from "./types";
 const log = logger.child("night.post");
 
 export async function runPostBatchSteps(
-  deps: { memory: MemoryDB; router: ModelRouter; rag: RAGPipeline },
+  deps: { memory: MemoryDB; router: ModelRouter; rag: RAGPipeline; memoryService?: MemoryService },
   result: NightCycleResult,
 ): Promise<void> {
-  const { memory, router, rag } = deps;
+  const { memory, router, rag, memoryService } = deps;
 
   await runStep("Resolve contradictions", "Resolve", async () => {
     result.contradictionsResolved = await resolveContradictions(memory, router, rag);
@@ -77,6 +78,23 @@ export async function runPostBatchSteps(
       `decay-salience: shared=${r.shared}, context=${r.context}, archive=${r.archive}`,
     );
   }, result);
+
+  // M-06: CoALA reflect — promote frequently-accessed context patterns into
+  // shared semantic facts + derives edges. Runs AFTER memory-dedup +
+  // decay-salience so reflect sees the cleaned, decayed substrate. Skipped
+  // when memoryService is missing (legacy test ctor without 4th arg).
+  if (memoryService) {
+    await runStep("Reflect (episodic→semantic)", "Reflect", async () => {
+      const r = await runReflect({ memory, memoryService, rag, router });
+      result.reflectGroupsExamined = r.groups_examined;
+      result.reflectFactsPromoted = r.facts_promoted;
+      result.reflectEdgesCreated = r.edges_created;
+      result.reflectLLMFailures = r.llm_failures;
+      log.info(
+        `reflect: groups=${r.groups_examined} promoted=${r.facts_promoted} edges=${r.edges_created} failures=${r.llm_failures}`,
+      );
+    }, result);
+  }
 }
 
 async function runStep(

@@ -243,7 +243,7 @@ export async function initDeps(config: AppConfig = loadConfig()): Promise<AppDep
     memoryService,
   );
 
-  const nightCycle = new NightCycle(memory, router, rag);
+  const nightCycle = new NightCycle(memory, router, rag, memoryService);
   const agentLoop = new AgentLoop(memory, router, rag, tools, registry);
   agentLoop.setMetrics(metrics);
   agentLoop.setRoom(room);

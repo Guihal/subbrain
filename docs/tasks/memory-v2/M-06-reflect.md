@@ -1,6 +1,6 @@
 # M-06 · Reflect step (CoALA episodic→semantic consolidation)
 
-**Tier:** P1 · **Effort:** M · **Deps:** M-02 (access tracking) + M-05 (edges) — landed · **Status:** OPEN
+**Tier:** P1 · **Effort:** M · **Deps:** M-02 (access tracking) + M-05 (edges) — landed · **Status:** DONE (2026-04-26)
 **Migration assignment:** **none** (pure code — uses existing tables only).
 
 ## Цель
@@ -167,4 +167,4 @@ Mocking router: использовать стиль M-04/M-05 — `router = { ra
 
 ---
 
-**Status:** OPEN
+**Status:** DONE (2026-04-26)
