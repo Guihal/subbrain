@@ -1,6 +1,6 @@
 # M-04 · Layer4 episodic-queryable (`fts_log` + RAG layer `"log"`)
 
-**Tier:** P0 · **Effort:** M · **Deps:** — · **Status:** OPEN
+**Tier:** P0 · **Effort:** M · **Deps:** — · **Status:** DONE (commit `c6d52b6` + `31a159f`, merge `73b00e0`)
 **Migration assignment:** **11** (M-07 takes 12 — do NOT use 12 here even if file ordering suggests it).
 
 ## Цель
