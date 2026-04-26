@@ -15,6 +15,7 @@ import {
   runReflect,
   runCrossLayerDedup,
   runEmbedLog,
+  runFocusRewrite,
 } from "./steps";
 import {
   pruneShared,
@@ -50,6 +51,21 @@ export async function runPostBatchSteps(
   await runStep("Prune layer1_focus", "Prune focus", async () => {
     result.focusPruned = await pruneFocus(memory, router);
     log.info(`focus pruned=${result.focusPruned}`);
+  }, result);
+
+  // M-11 (mig 16): sleep-time focus block rewriter. Runs AFTER pruneFocus so
+  // dropped/merged keys never reach the rewrite synthesis step. Writes go
+  // exclusively to layer1_focus_shadow — real layer1_focus stays untouched
+  // until a manual flip. Default off via env gate (NIGHT_CYCLE_FOCUS_REWRITE_
+  // ENABLED). Errors per-key tracked separately from step-level throws.
+  await runStep("Focus rewrite (shadow)", "Focus rewrite", async () => {
+    const r = await runFocusRewrite({ memory, router });
+    result.focusRewritten = r.rewritten;
+    result.focusSkipped = r.skipped;
+    result.focusErrors = r.errors;
+    log.info(
+      `focus-rewrite: rewritten=${r.rewritten} skipped=${r.skipped} errors=${r.errors}`,
+    );
   }, result);
 
   await runStep("Prune completed tasks", "Prune tasks", async () => {

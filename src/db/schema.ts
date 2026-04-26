@@ -865,6 +865,27 @@ export function migrate(db: Database): void {
       for (const sql of mig15Stmts) db.query(sql).run();
     })();
   }
+
+  // Migration 16 (M-11): layer1_focus_shadow KV mirror table for the
+  // sleep-time focus-block rewriter. Real `layer1_focus` stays the source of
+  // truth for `system-prompt.ts`; the shadow table receives night-cycle
+  // rewrites so a human can diff weeks of proposed values before flipping.
+  // No FTS, no triggers — pure KV mirror, written only by the night-cycle
+  // step `pipeline/night-cycle/steps/focus-rewrite.ts` (env-gated, off by
+  // default). PROTECTED_FOCUS_KEYS guarding lives in the step, not here.
+  if (version < 16) {
+    const mig16Stmts = [
+      `CREATE TABLE IF NOT EXISTS layer1_focus_shadow (
+        key        TEXT PRIMARY KEY,
+        value      TEXT NOT NULL,
+        updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+      )`,
+      `PRAGMA user_version = 16`,
+    ];
+    db.transaction(() => {
+      for (const sql of mig16Stmts) db.query(sql).run();
+    })();
+  }
 }
 
 export { EMBEDDING_DIM };

@@ -34,8 +34,23 @@ export interface NightCycleResult {
   logEmbedded: number;
   logEvicted: number;
   logEmbedErrors: number;
+  // M-11 (mig 16): sleep-time focus block rewriter counters. Off by default
+  // — `NIGHT_CYCLE_FOCUS_REWRITE_ENABLED=true` flips it on. Writes go to
+  // `layer1_focus_shadow`; real `layer1_focus` stays untouched.
+  focusRewritten: number;
+  focusSkipped: number;
+  focusErrors: number;
   errors: string[];
   lastProcessedId: number;
+}
+
+// M-11: result shape for runFocusRewrite step. Aligns with NightCycleResult
+// `focus*` counters above so the step's return value lands cleanly into the
+// aggregate via `result.focusRewritten = r.rewritten` etc.
+export interface FocusRewriteResult {
+  rewritten: number;
+  skipped: number;
+  errors: number;
 }
 
 // M-12 (mig 15): confidence unified to REAL [0..1] across all 3 layers.

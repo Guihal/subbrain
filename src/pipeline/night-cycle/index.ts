@@ -53,6 +53,9 @@ function emptyResult(): NightCycleResult {
     logEmbedded: 0,
     logEvicted: 0,
     logEmbedErrors: 0,
+    focusRewritten: 0,
+    focusSkipped: 0,
+    focusErrors: 0,
     errors: [],
     lastProcessedId: 0,
   };

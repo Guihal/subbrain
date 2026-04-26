@@ -51,6 +51,17 @@ export class MemoryRepository {
   getAllFocus = () => this.mem.getAllFocus();
   deleteFocus = (key: string) => this.mem.deleteFocus(key);
 
+  // ─── Layer 1 shadow (M-11, mig 16) ─────────────────────────
+  getShadowFocus = (key: string) => this.mem.getShadowFocus(key);
+  setShadowFocus = (key: string, value: string) =>
+    this.mem.setShadowFocus(key, value);
+  getAllShadowFocus = () => this.mem.getAllShadowFocus();
+  clearShadowFocus = () => this.mem.clearShadowFocus();
+
+  // ─── M-11: shared rows ranked for focus-block rewrite ──────
+  selectTopSharedForFocusRewrite = (limit: number) =>
+    this.mem.selectTopSharedForFocusRewrite(limit);
+
   // ─── Layer 2: Context ──────────────────────────────────────
   insertContext = (
     id: string,

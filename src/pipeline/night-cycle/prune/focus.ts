@@ -16,7 +16,7 @@ const NIGHT_MODEL = process.env.NIGHT_CYCLE_MODEL || "memory";
  *   tasks.state                   — src/scheduler/telegram-poller.ts:23,178,196
  * Extend when a new scheduler stores state in layer1_focus.
  */
-const PROTECTED_FOCUS_KEYS = new Set<string>([
+export const PROTECTED_FOCUS_KEYS = new Set<string>([
   "night_cycle_last_processed_id",
   "tasks.state",
   "tg.poller.last_id",

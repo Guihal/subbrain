@@ -18,3 +18,7 @@ export {
   type EmbedLogResult,
   type EmbedLogDeps,
 } from "./embed-log";
+export {
+  runFocusRewrite,
+  type FocusRewriteDeps,
+} from "./focus-rewrite";
