@@ -13,6 +13,9 @@ export interface FocusEntry {
   value: string;
 }
 
+// M-07 (mig 12): shared-only enum. UI dropdown narrows the list by kind.
+export type MemoryKind = "persona" | "semantic" | "episodic" | "procedural";
+
 export interface SharedRow {
   id: string;
   category: string;
@@ -21,6 +24,9 @@ export interface SharedRow {
   source: string | null;
   created_at: number;
   updated_at: number;
+  // M-07: row carries kind from the API. Optional for back-compat with any
+  // mock fixtures that still omit it.
+  kind?: MemoryKind;
 }
 
 export interface ContextRow {

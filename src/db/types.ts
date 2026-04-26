@@ -2,6 +2,14 @@
 
 export type MemoryStatus = "pending" | "active" | "rejected";
 
+// M-07 (mig 12): persona/semantic/episodic/procedural enum on shared_memory.
+// Persona = identity / profile / preference / relationship facts; gets +10%
+// boost in RAG rerank. Semantic = factual knowledge (goal/skill/constraint/
+// style). Episodic + procedural reserved for future writers (M-06 reflect
+// step + code-tools). Stored as TEXT, validated via BEFORE INSERT/UPDATE
+// triggers (SQLite ALTER cannot ADD CHECK in place).
+export type MemoryKind = "persona" | "semantic" | "episodic" | "procedural";
+
 export interface ContextRow {
   id: string;
   title: string;
@@ -74,6 +82,9 @@ export interface SharedRow {
   // M-02 (mig 10): see ContextRow comment.
   last_accessed_at?: number | null;
   access_count?: number;
+  // M-07 (mig 12): closed enum. NOT NULL DEFAULT 'semantic' in SQL — required
+  // here. Persona rows get +10% boost in RAG rerank (`rag/pipeline.ts`).
+  kind: MemoryKind;
 }
 
 export interface AgentMemRow {
@@ -93,6 +104,10 @@ export interface FtsResult {
   rank: number;
   created_at: number;
   updated_at: number;
+  // M-07 (mig 12): only populated by `searchShared` (the only FTS source
+  // whose underlying table carries the `kind` column). Optional so context /
+  // archive search paths stay unchanged.
+  kind?: string;
 }
 
 export interface VecResult {

@@ -17,6 +17,8 @@ const {
   log,
   logSessions,
   logSessionFilter,
+  // M-07: shared-only kind dropdown filter.
+  kindFilter,
   selected,
   loading,
   error,
@@ -61,7 +63,7 @@ onMounted(() => {
   refreshPendingCount();
 });
 
-watch([page, agentFilter, logSessionFilter, pendingLayer], () => {
+watch([page, agentFilter, logSessionFilter, pendingLayer, kindFilter], () => {
   loadActive();
 });
 
@@ -136,6 +138,16 @@ async function handleDelete(row: MemoryRow) {
         <span class="ml-auto">{{ pending.total }} pending</span>
       </div>
 
+      <div v-if="activeTab === 'shared'" class="px-4 py-2 border-b border-(--ui-border) flex items-center gap-2 text-xs">
+        <span class="text-(--ui-text-muted)">Kind:</span>
+        <select :value="kindFilter" class="text-sm rounded border border-(--ui-border) bg-(--ui-bg) px-2 py-1" @change="kindFilter = ($event.target as HTMLSelectElement).value as ('persona' | 'semantic' | 'episodic' | 'procedural' | '')">
+          <option value="">Все</option>
+          <option value="persona">persona</option>
+          <option value="semantic">semantic</option>
+          <option value="episodic">episodic</option>
+          <option value="procedural">procedural</option>
+        </select>
+      </div>
       <MemoryFilterBar
         v-if="activeTab !== 'pending'"
         :active="activeTab as MemoryTab"
@@ -153,10 +165,7 @@ async function handleDelete(row: MemoryRow) {
         @submit="onSearchSubmit"
       />
 
-      <div
-        v-if="error"
-        class="px-4 py-2 bg-red-500/10 text-red-400 text-xs border-b border-red-500/30"
-      >
+      <div v-if="error" class="px-4 py-2 bg-red-500/10 text-red-400 text-xs border-b border-red-500/30">
         ⚠️ {{ error }}
       </div>
 

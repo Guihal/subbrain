@@ -18,6 +18,10 @@ export interface RAGResult {
   score: number;
   created_at?: number;
   updated_at?: number;
+  // M-07 (mig 12): kind enum carried only for shared-layer hits. Powers the
+  // persona-boost step in `rag/pipeline.ts` (RAGPipeline.applyPersonaBoost).
+  // Optional because context/archive/log rows have no `kind` column.
+  kind?: string;
 }
 
 // M-04: include "log" so the agent-only `memory_log_search` tool and

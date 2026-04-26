@@ -30,6 +30,12 @@ function isBumpLayer(l: string): l is BumpLayer {
   return l === "shared" || l === "context" || l === "archive";
 }
 
+// M-07 (mig 12): persona-grade shared rows get a +10% rerank score boost.
+// 1.1× is intentionally moderate — anything bigger drowns out semantic facts
+// that are also relevant to the query. M-08 will A/B-tune this constant
+// against the new salience signal.
+const PERSONA_BOOST = 1.1;
+
 function dedupeById(results: RAGResult[]): RAGResult[] {
   // M-04: dedupe key is `${layer}:${id}` — log layer ids are stringified
   // integers ("42") while shared/context/archive use uuids; an unguarded
@@ -106,6 +112,11 @@ export class RAGPipeline {
       }
     }
 
+    // M-07: +10% rerank boost for `kind === 'persona'` shared rows. Applied
+    // after rerank so it covers both the Cohere path and the skipRerank /
+    // rerank-fail fallbacks. Re-sorts in place.
+    final = this.applyPersonaBoost(final);
+
     // 5. M-02 (mig 10): bump access counters for surviving rows. Non-
     // blocking — fire-and-forget so retrieval latency is not paid for the
     // UPDATE. `Promise.allSettled` per layer (never `Promise.all`) so a
@@ -115,6 +126,28 @@ export class RAGPipeline {
     this.bumpAccessAsync(final);
 
     return final;
+  }
+
+  /**
+   * M-07 (mig 12): boost persona-grade shared rows by `PERSONA_BOOST` (1.1×).
+   * Pure mutation of the score field + re-sort by descending score. Non-
+   * persona rows pass through unchanged. Shared-only — context/archive
+   * results have `kind === undefined` and skip the multiplier branch.
+   *
+   * Why post-rerank: Cohere reranker doesn't see our persona signal, so
+   * the bump is applied AFTER its `relevance_score` lands. For skipRerank
+   * and rerank-failure paths, the same step still fires and ranks persona
+   * facts above semantic ones with the same RRF score.
+   */
+  private applyPersonaBoost(results: RAGResult[]): RAGResult[] {
+    if (results.length === 0) return results;
+    const boosted = results.map((r) =>
+      r.layer === "shared" && r.kind === "persona"
+        ? { ...r, score: r.score * PERSONA_BOOST }
+        : r,
+    );
+    boosted.sort((a, b) => b.score - a.score);
+    return boosted;
   }
 
   /**
@@ -216,6 +249,8 @@ export class RAGPipeline {
           score: 0,
           created_at: r.created_at,
           updated_at: r.updated_at,
+          // M-07: kind threaded through the SELECT in SharedTable.searchShared.
+          kind: r.kind,
         });
       }
     }
@@ -260,9 +295,16 @@ export class RAGPipeline {
 
       const ids = vecResults.map((v) => v.id);
       // One batch SELECT per layer, keyed by id.
+      // M-07: `kind` is shared-only — non-shared layers leave it undefined.
       const byId = new Map<
         string,
-        { title: string; content: string; created_at?: number; updated_at?: number }
+        {
+          title: string;
+          content: string;
+          created_at?: number;
+          updated_at?: number;
+          kind?: string;
+        }
       >();
       // MEM-5 (PR 22a): vec search can return ids whose rows are pending /
       // rejected (the vec_embeddings table has no status column). activeOnly
@@ -278,6 +320,8 @@ export class RAGPipeline {
             content: r.content,
             created_at: r.created_at,
             updated_at: r.updated_at,
+            // M-07: persona boost reads this in applyPersonaBoost.
+            kind: r.kind,
           });
         }
       }
@@ -296,6 +340,7 @@ export class RAGPipeline {
           score: 1 / (1 + vr.distance),
           created_at: row?.created_at,
           updated_at: row?.updated_at,
+          kind: row?.kind,
         });
       }
     }

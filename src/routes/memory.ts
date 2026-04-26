@@ -6,7 +6,7 @@ import { Elysia, t } from "elysia";
 import { paginate } from "../lib/api-envelope";
 import { NotFoundError } from "../lib/errors";
 import type { MemoryService } from "../services/memory.service";
-import type { MemoryStatus } from "../db";
+import type { MemoryStatus, MemoryKind } from "../db";
 
 const str = (v: unknown): string | undefined =>
   typeof v === "string" && v.length > 0 ? v : undefined;
@@ -17,6 +17,19 @@ const toStatus = (v: unknown): MemoryStatus | undefined =>
 // trail. Accept "true"/"1" case-insensitively; everything else = false.
 const toActive = (v: unknown): boolean =>
   typeof v === "string" && (v.toLowerCase() === "true" || v === "1");
+
+// M-07 (mig 12): explicit closed enum. Rejects unknown values (e.g.
+// `?kind=foo`) at TypeBox-validation time; runtime narrows to MemoryKind.
+const KIND_QUERY = t.Union([
+  t.Literal("persona"),
+  t.Literal("semantic"),
+  t.Literal("episodic"),
+  t.Literal("procedural"),
+]);
+const toKind = (v: unknown): MemoryKind | undefined =>
+  v === "persona" || v === "semantic" || v === "episodic" || v === "procedural"
+    ? v
+    : undefined;
 
 const bodies = {
   shared: t.Object({
@@ -66,12 +79,35 @@ export function memoryRoute(svc: MemoryService) {
       return { key: params.key, value: body.value };
     }, { body: t.Object({ value: t.String() }) })
     .delete("/focus/:key", ({ params }) => (svc.deleteFocus(params.key), { ok: true }))
-    .get("/shared", ({ query }) =>
-      paginate((limit, offset, q) => svc.listShared({
-        limit, offset, q,
-        category: str(query.category), status: toStatus(query.status),
-        active: toActive(query.active),
-      }), query))
+    .get(
+      "/shared",
+      ({ query }) =>
+        paginate(
+          (limit, offset, q) =>
+            svc.listShared({
+              limit, offset, q,
+              category: str(query.category), status: toStatus(query.status),
+              active: toActive(query.active),
+              // M-07: closed enum query param. TypeBox below rejects garbage
+              // values; toKind() is a defensive narrow for the runtime side.
+              kind: toKind(query.kind),
+            }),
+          query,
+        ),
+      {
+        query: t.Object({
+          page: t.Optional(t.String()),
+          page_size: t.Optional(t.String()),
+          limit: t.Optional(t.String()),
+          offset: t.Optional(t.String()),
+          q: t.Optional(t.String()),
+          category: t.Optional(t.String()),
+          status: t.Optional(t.String()),
+          active: t.Optional(t.String()),
+          kind: t.Optional(KIND_QUERY),
+        }),
+      },
+    )
     .patch("/shared/:id", ({ params, body }) => {
       if (!svc.getShared(params.id)) throw new NotFoundError("Shared entry");
       return svc.patchShared(params.id, body);

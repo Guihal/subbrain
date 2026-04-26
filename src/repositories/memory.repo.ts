@@ -26,6 +26,7 @@ import type {
   FtsResult,
   VecResult,
   MemoryStatus,
+  MemoryKind,
 } from "../db/types";
 
 type PendingLayer = "shared" | "context";
@@ -124,11 +125,16 @@ export class MemoryRepository {
     opts?: InsertSharedOpts,
   ) => this.shared.insertShared(id, category, content, tags, source, opts);
   getAllShared = (): SharedRow[] => this.shared.getAllShared();
-  listShared = (limit?: number, offset?: number, category?: string) =>
-    this.shared.listShared(limit, offset, category);
+  listShared = (
+    limit?: number,
+    offset?: number,
+    category?: string,
+    kind?: MemoryKind,
+  ) => this.shared.listShared(limit, offset, category, kind);
   listSharedActive = (limit?: number, offset?: number, category?: string) =>
     this.shared.listSharedActive(limit, offset, category);
-  countShared = (category?: string) => this.shared.countShared(category);
+  countShared = (category?: string, kind?: MemoryKind) =>
+    this.shared.countShared(category, kind);
   getShared = (id: string) => this.shared.getShared(id);
   getSharedMany = (
     ids: string[],
@@ -146,6 +152,8 @@ export class MemoryRepository {
       // MEM-6: post-hippocampus + night-cycle write paths.
       expires_at?: number | null;
       superseded_by?: string | null;
+      // M-07: persona/semantic re-classification on merge-update.
+      kind?: MemoryKind;
     },
   ) => this.shared.updateShared(id, fields);
   deleteShared = (id: string) => this.shared.deleteShared(id);

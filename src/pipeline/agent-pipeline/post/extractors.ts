@@ -3,7 +3,11 @@ import type { MemoryDB } from "../../../db";
 import type { RAGPipeline } from "../../../rag";
 import type { RequestLogger } from "../../../lib/logger";
 
-import { validateCategoryAndContent, validateExpiresAt } from "./validators";
+import {
+  validateCategoryAndContent,
+  validateExpiresAt,
+  categoryToKind,
+} from "./validators";
 import { findDuplicate, mergeContent, mergeTags, bumpConfidence } from "./dedupe";
 import {
   computeStatus,
@@ -66,12 +70,16 @@ export async function writeShared(
         const tags = mergeTags(old.tags, args.tags);
         const conf = bumpConfidence(old.confidence, args.confidence);
         const status = computeStatus(conf);
+        // M-07: re-classify on merge so an old `semantic` row promoted to
+        // persona-grade category (e.g. preference) gets the rerank boost.
+        const kind = categoryToKind(args.category, "shared");
         memory.transaction(() => {
           memory.updateShared(dup.id!, {
             content: merged,
             tags,
             confidence: conf,
             status,
+            kind,
             ...(args.expires_at !== undefined ? { expires_at: args.expires_at } : {}),
           });
           if (dup.vec) memory.upsertEmbedding(dup.id!, "shared", dup.vec);
@@ -105,6 +113,9 @@ export async function writeShared(
     return { ok: false, error: "embed_failed" };
   }
 
+  // M-07 (mig 12): map category → kind once per insert. Persona-grade rows
+  // (profile/preference/relationship) carry +10% RAG rerank boost downstream.
+  const kind = categoryToKind(args.category, "shared");
   try {
     memory.transaction(() => {
       memory.insertShared(
@@ -113,7 +124,7 @@ export async function writeShared(
         args.content,
         args.tags,
         "post-processing",
-        { confidence: clamped, status },
+        { confidence: clamped, status, kind },
       );
       memory.upsertEmbedding(id, "shared", vec);
       if (args.expires_at !== undefined && args.expires_at !== null) {

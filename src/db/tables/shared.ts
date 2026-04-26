@@ -1,6 +1,13 @@
 import { Database } from "bun:sqlite";
 import { sanitizeFtsQuery } from "../../lib/fts-utils";
-import type { SharedRow, AgentMemRow, FtsResult, VecResult, MemoryStatus } from "../types";
+import type {
+  SharedRow,
+  AgentMemRow,
+  FtsResult,
+  VecResult,
+  MemoryStatus,
+  MemoryKind,
+} from "../types";
 import { updateRow } from "./update-row";
 
 // columns updatable from REST/UI
@@ -9,6 +16,9 @@ import { updateRow } from "./update-row";
 // MEM-6 (mig 9): expires_at + superseded_by join the allow-list so the
 // post-hippocampus + night cycle can write expiry/supersede markers via
 // the same `updateRow` path the admin UI uses.
+// M-07 (mig 12): `kind` joins so the post-hippocampus extractor can write
+// the persona/semantic classification on a merge-update of an existing row.
+// Trigger `trg_shared_kind_check_upd` enforces the closed enum at SQL level.
 const SHARED_UPDATABLE = new Set([
   "content",
   "tags",
@@ -17,6 +27,7 @@ const SHARED_UPDATABLE = new Set([
   "confidence",
   "expires_at",
   "superseded_by",
+  "kind",
 ]);
 const AGENT_MEM_UPDATABLE = new Set(["content", "tags"]);
 
@@ -41,6 +52,10 @@ function buildActiveFilter(
 export interface InsertSharedOpts {
   confidence?: number | null;
   status?: MemoryStatus;
+  // M-07 (mig 12): persona/semantic/episodic/procedural. Default 'semantic'
+  // matches the SQL DEFAULT — callers pass 'persona' for identity facts via
+  // `categoryToKind(category, 'shared')` in the post-hippocampus.
+  kind?: MemoryKind;
 }
 
 export class SharedTable {
@@ -58,11 +73,12 @@ export class SharedTable {
   ): void {
     const conf = opts?.confidence ?? null;
     const status = opts?.status ?? "active";
+    const kind: MemoryKind = opts?.kind ?? "semantic";
     this.db
       .query(
-        "INSERT INTO shared_memory (id, category, content, tags, source, confidence, status) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO shared_memory (id, category, content, tags, source, confidence, status, kind) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
       )
-      .run(id, category, content, tags, source ?? null, conf, status);
+      .run(id, category, content, tags, source ?? null, conf, status, kind);
   }
 
   getAllShared(): SharedRow[] {
@@ -71,15 +87,30 @@ export class SharedTable {
       .all() as SharedRow[];
   }
 
-  listShared(limit = 50, offset = 0, category?: string): SharedRow[] {
+  listShared(
+    limit = 50,
+    offset = 0,
+    category?: string,
+    kind?: MemoryKind,
+  ): SharedRow[] {
+    // M-07: optional `kind` filter (persona/semantic/episodic/procedural).
+    // Composes with category — both clauses AND-joined when both supplied.
+    const where: string[] = [];
+    const params: (string | number)[] = [];
     if (category) {
-      return this.db
-        .query("SELECT * FROM shared_memory WHERE category = ? ORDER BY updated_at DESC LIMIT ? OFFSET ?")
-        .all(category, limit, offset) as SharedRow[];
+      where.push("category = ?");
+      params.push(category);
     }
+    if (kind) {
+      where.push("kind = ?");
+      params.push(kind);
+    }
+    const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
     return this.db
-      .query("SELECT * FROM shared_memory ORDER BY updated_at DESC LIMIT ? OFFSET ?")
-      .all(limit, offset) as SharedRow[];
+      .query(
+        `SELECT * FROM shared_memory ${whereSql} ORDER BY updated_at DESC LIMIT ? OFFSET ?`,
+      )
+      .all(...params, limit, offset) as SharedRow[];
   }
 
   /**
@@ -107,14 +138,21 @@ export class SharedTable {
     return { items, total: totalRow.c };
   }
 
-  countShared(category?: string): number {
+  countShared(category?: string, kind?: MemoryKind): number {
+    const where: string[] = [];
+    const params: (string | number)[] = [];
     if (category) {
-      const row = this.db
-        .query("SELECT COUNT(*) AS c FROM shared_memory WHERE category = ?")
-        .get(category) as { c: number };
-      return row.c;
+      where.push("category = ?");
+      params.push(category);
     }
-    const row = this.db.query("SELECT COUNT(*) AS c FROM shared_memory").get() as { c: number };
+    if (kind) {
+      where.push("kind = ?");
+      params.push(kind);
+    }
+    const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+    const row = this.db
+      .query(`SELECT COUNT(*) AS c FROM shared_memory ${whereSql}`)
+      .get(...params) as { c: number };
     return row.c;
   }
 
@@ -160,6 +198,10 @@ export class SharedTable {
       // MEM-6 (mig 9): post-hippocampus + night-cycle write paths.
       expires_at?: number | null;
       superseded_by?: string | null;
+      // M-07 (mig 12): merge-update path in writeShared can re-classify
+      // the row's kind when category changes. Closed enum enforced by
+      // trigger `trg_shared_kind_check_upd`.
+      kind?: MemoryKind;
     },
   ): void {
     updateRow(this.db, "shared_memory", SHARED_UPDATABLE, id, fields);
@@ -272,9 +314,11 @@ export class SharedTable {
     const ftsQuery = sanitizeFtsQuery(query);
     if (!ftsQuery) return [];
     const filter = buildActiveFilter("s", opts);
+    // M-07: SELECT `s.kind` so RAG can apply the persona boost without an
+    // extra round-trip. Other FtsResult consumers ignore the field.
     return this.db
       .query(
-        `SELECT s.id, s.category AS title, s.tags, snippet(fts_shared, 1, '<b>', '</b>', '...', 32) AS snippet, rank, s.created_at, s.updated_at FROM fts_shared f JOIN shared_memory s ON s.rowid = f.rowid WHERE fts_shared MATCH ?${filter} ORDER BY rank LIMIT ?`,
+        `SELECT s.id, s.category AS title, s.tags, snippet(fts_shared, 1, '<b>', '</b>', '...', 32) AS snippet, rank, s.created_at, s.updated_at, s.kind FROM fts_shared f JOIN shared_memory s ON s.rowid = f.rowid WHERE fts_shared MATCH ?${filter} ORDER BY rank LIMIT ?`,
       )
       .all(ftsQuery, limit) as FtsResult[];
   }

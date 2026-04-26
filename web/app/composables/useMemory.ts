@@ -22,6 +22,7 @@ export type {
   AgentMemRow,
   LogRow,
   MemoryRow,
+  MemoryKind,
 } from "./useMemory/types";
 export { LAYER_SCHEMAS } from "./useMemory/types";
 
@@ -33,6 +34,7 @@ import type {
   ArchiveRow,
   AgentMemRow,
   LogRow,
+  MemoryKind,
 } from "./useMemory/types";
 import { useMemoryLayer, type LayerDeps } from "./useMemory/layer";
 import { useMemoryFocus } from "./useMemory/focus";
@@ -76,7 +78,14 @@ export function useMemory() {
     q: search.value || undefined,
   });
 
-  const sharedL = useMemoryLayer<SharedRow>("shared", deps, { buildQuery: stdQuery });
+  // M-07: shared-only kind filter. "" = "all" (filter omitted from query).
+  const kindFilter = useState<MemoryKind | "">("memory-shared-kind", () => "");
+  const sharedL = useMemoryLayer<SharedRow>("shared", deps, {
+    buildQuery: () => ({
+      ...stdQuery(),
+      kind: kindFilter.value || undefined,
+    }),
+  });
   const contextL = useMemoryLayer<ContextRow>("context", deps, { buildQuery: stdQuery });
   const archiveL = useMemoryLayer<ArchiveRow>("archive", deps, { buildQuery: stdQuery });
   const agentL = useMemoryLayer<AgentMemRow>("agent", deps, {
@@ -196,6 +205,8 @@ export function useMemory() {
     // state
     activeTab, search, page, pageSize,
     focus,
+    // M-07: shared kind filter exposed for the UI dropdown.
+    kindFilter,
     shared: sharedL.state,
     context: contextL.state,
     archive: archiveL.state,

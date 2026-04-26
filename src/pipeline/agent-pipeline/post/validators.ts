@@ -11,7 +11,12 @@
  *
  * Code-level enforcement is the system of record — the prompt also lists
  * these as hints, but we never trust the model to self-police.
+ *
+ * M-07: + `categoryToKind(category, layer)` — pure mapping from category
+ * string to the closed `MemoryKind` enum on shared_memory (mig 12).
  */
+import type { MemoryKind } from "../../../db";
+export type { MemoryKind } from "../../../db";
 
 // Closed taxonomy. Anything outside the whitelist is rejected.
 // Lower-case, kebab-friendly. Compared case-insensitively.
@@ -173,4 +178,33 @@ export function validateExpiresAt(
     return { ok: false, reason: `expires_at must be > now+60s (now=${nowSec}, got ${v})` };
   }
   return { ok: true };
+}
+
+// M-07 (mig 12): categories that map to the `persona` kind on shared_memory.
+// Identity / preference / relationship facts about the user. Everything else
+// in the shared whitelist (goal/skill/constraint/style) is `semantic`.
+// Comparison is case-insensitive — extractors lowercase before lookup.
+const PERSONA_CATEGORIES = new Set<string>([
+  "profile",
+  "preference",
+  "relationship",
+]);
+
+/**
+ * Map a memory_write category to the shared_memory `kind` enum (mig 12).
+ *
+ * Only the `shared` layer carries `kind` in M-07 — context/archive call sites
+ * stay on the implicit `semantic` default and never read this column. The
+ * `layer` argument exists so future layers (episodic on context, procedural
+ * on code-tools) can be slotted in here without changing call sites.
+ *
+ * Pure: identical input → identical output. No I/O, no side effects.
+ */
+export function categoryToKind(
+  category: string,
+  layer: "shared" | "context",
+): MemoryKind {
+  if (layer !== "shared") return "semantic";
+  if (PERSONA_CATEGORIES.has(category.trim().toLowerCase())) return "persona";
+  return "semantic";
 }

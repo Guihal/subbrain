@@ -352,3 +352,10 @@ Tests: `tests/pipeline-post-{gate,validators,dedupe,supersede}.test.ts`, `tests/
 Routes делают DB-доступ + бизнес-логику + HTTP-shaping одновременно. Introduce controller/service/repository слои поэтапно.
 **Fix:** ~~LAYER-1 (PR 25a — AuthService)~~ ✅, ~~LAYER-2 (PR 25b — MemoryService)~~ ✅, ~~LAYER-3 (PR 26a — ChatService)~~ ✅, ~~LAYER-4 (PR 26b — AgentService)~~ ✅, ~~LAYER-5 (PR 27 — Repository слой над `db/tables/*`)~~ ✅.
 **Scope:** PR 25a ✅, 25b ✅, 26a ✅, 26b ✅, 27 ✅.
+
+### MEM-9 ✅ memory kind/persona enum (закрыто M-07)
+`shared_memory` смешивал personality-факты (profile/preference/relationship) с semantic-знанием (goal/skill/constraint/style) в одной плоской таблице. Не было способа отличить "пользователь любит Hyprland" (persona, ↑ приоритет в системном промпте) от "TypeScript строгая типизация важнее DX" (semantic, средний приоритет).
+**Fix:** M-07 — миграция 12 (M-04 takes 11, no conflict): `kind TEXT NOT NULL DEFAULT 'semantic'` на `shared_memory` + UPDATE backfill из category (profile/preference/relationship → persona, остальное → semantic) + 2 BEFORE-триггера (INSERT + UPDATE OF kind) для CHECK enum (SQLite ALTER не поддерживает ADD CHECK) + idx_shared_kind. `categoryToKind(category, layer)` pure-fn в `post/validators.ts` (re-export `MemoryKind` из `db/types.ts`); `extractors.writeShared` + merge-update derive kind через helper. `RAGPipeline.applyPersonaBoost` post-rerank: `score *= 1.1` для `kind === 'persona'` shared rows + re-sort. `RAGResult.kind?: string` — optional т.к. context/archive/log не имеют поля. Admin `GET /v1/memory/shared?kind=persona` через TypeBox `t.Union([t.Literal(...)])` enum (rejects garbage 422). UI: `kindFilter` state в `useMemory` + dropdown only on shared tab.
+Tests: `tests/memory-kind.test.ts` (18 кейсов — schema, idempotency, mapping, CHECK trigger INSERT+UPDATE, service insert, extractors derive, RAG persona boost ranking, admin filter +422 invalid). 668 pass / 0 fail.
+**Foundation для M-08** (asymmetric forgetting curve — persona never decays) **и M-11** (sleep-time block rewriter переписывает persona в layer1_focus).
+**Scope:** M-07.

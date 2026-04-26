@@ -1,6 +1,6 @@
 # M-07 · Memory type/persona enum (`kind`)
 
-**Tier:** P1 · **Effort:** S · **Deps:** — · **Status:** OPEN
+**Tier:** P1 · **Effort:** S · **Deps:** — · **Status:** DONE
 **Migration assignment:** **12** (M-04 takes 11 — do NOT use 11 here).
 
 ## Цель
@@ -152,4 +152,4 @@ if (r.layer === 'shared' && r.kind === 'persona') {
 
 ---
 
-**Status:** OPEN
+**Status:** DONE

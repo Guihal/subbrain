@@ -39,6 +39,7 @@ export type {
   TaskStatus,
   SchedulerStateRow,
   MemoryStatus,
+  MemoryKind,
 } from "./types";
 
 export { InvalidTransitionError } from "./tables/task-transitions";
@@ -176,11 +177,16 @@ export class MemoryDB {
     opts?: import("./tables/shared").InsertSharedOpts,
   ) => this.memoryRepo.insertShared(id, category, content, tags, source, opts);
   getAllShared = () => this.memoryRepo.getAllShared();
-  listShared = (limit?: number, offset?: number, category?: string) =>
-    this.memoryRepo.listShared(limit, offset, category);
+  listShared = (
+    limit?: number,
+    offset?: number,
+    category?: string,
+    kind?: import("./types").MemoryKind,
+  ) => this.memoryRepo.listShared(limit, offset, category, kind);
   listSharedActive = (limit?: number, offset?: number, category?: string) =>
     this.memoryRepo.listSharedActive(limit, offset, category);
-  countShared = (category?: string) => this.memoryRepo.countShared(category);
+  countShared = (category?: string, kind?: import("./types").MemoryKind) =>
+    this.memoryRepo.countShared(category, kind);
   getShared = (id: string) => this.memoryRepo.getShared(id);
   getSharedMany = (
     ids: string[],
@@ -198,6 +204,8 @@ export class MemoryDB {
       // MEM-6 (mig 9): same as updateContext — surface so facade matches.
       expires_at?: number | null;
       superseded_by?: string | null;
+      // M-07 (mig 12): persona/semantic re-classification on merge-update.
+      kind?: import("./types").MemoryKind;
     },
   ) => this.memoryRepo.updateShared(id, fields);
   deleteShared = (id: string) => this.memoryRepo.deleteShared(id);

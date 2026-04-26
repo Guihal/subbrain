@@ -29,6 +29,7 @@ import type {
   AgentMemRow,
   LogRow,
   MemoryStatus,
+  MemoryKind,
 } from "../db";
 import type { MemoryRepository, LogRepository } from "../repositories";
 import type { RAGPipeline } from "../rag";
@@ -52,6 +53,8 @@ export type ListOpts = {
   // Admin UI default = false (sees full audit trail). RAG/pre never call into
   // this service, so default-false is safe.
   active?: boolean;
+  // M-07 (mig 12): filter shared list by kind. Ignored on non-shared layers.
+  kind?: MemoryKind;
 };
 
 export type InsertSharedInput = {
@@ -61,6 +64,8 @@ export type InsertSharedInput = {
   source?: string;
   confidence?: number | null;
   status?: MemoryStatus;
+  // M-07: optional kind override; default 'semantic' applies via SQL DEFAULT.
+  kind?: MemoryKind;
 };
 
 export type InsertContextInput = {
@@ -129,7 +134,11 @@ export class MemoryService {
     if (opts.q) {
       const filter = opts.active ? { activeOnly: true, notStale: true } : undefined;
       const hits = this.repo.searchShared(opts.q, opts.limit, filter);
-      const items = hits.map((h) => this.repo.getShared(h.id)).filter((r): r is SharedRow => r !== null);
+      let items = hits
+        .map((h) => this.repo.getShared(h.id))
+        .filter((r): r is SharedRow => r !== null);
+      // M-07: kind filter applied post-FTS (search doesn't index kind column).
+      if (opts.kind) items = items.filter((r) => r.kind === opts.kind);
       return { items, total: items.length };
     }
     if (opts.status) return this.listByStatus("shared", opts.status, opts.limit, opts.offset) as PaginatedResult<SharedRow>;
@@ -137,8 +146,8 @@ export class MemoryService {
       return this.repo.listSharedActive(opts.limit, opts.offset, opts.category);
     }
     return {
-      items: this.repo.listShared(opts.limit, opts.offset, opts.category),
-      total: this.repo.countShared(opts.category),
+      items: this.repo.listShared(opts.limit, opts.offset, opts.category, opts.kind),
+      total: this.repo.countShared(opts.category, opts.kind),
     };
   }
   getShared(id: string): SharedRow | null { return this.repo.getShared(id); }
@@ -151,7 +160,11 @@ export class MemoryService {
     this.repo.transaction(() => {
       this.repo.insertShared(
         id, input.category, input.content, input.tags ?? "", input.source,
-        { confidence: input.confidence ?? null, status: input.status },
+        {
+          confidence: input.confidence ?? null,
+          status: input.status,
+          kind: input.kind,
+        },
       );
       this.repo.upsertEmbedding(id, "shared", vec);
     });
