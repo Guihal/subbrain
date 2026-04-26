@@ -196,6 +196,18 @@ export class MemoryRepository {
   searchEmbeddings = (embedding: Float32Array, limit?: number, layer?: string): VecResult[] =>
     this.shared.searchEmbeddings(embedding, limit, layer);
   deleteEmbedding = (id: string) => this.shared.deleteEmbedding(id);
+  // M-09: bulk-fetch raw vectors for cross-layer cosine in JS.
+  getEmbeddingsByIds = (layer: string, ids: string[]): Map<string, Float32Array> =>
+    this.shared.getEmbeddingsByIds(layer, ids);
+  // M-09: per-layer recent-row helpers for the cross-layer dedup step.
+  recentActiveContextForCrossLayer = (limit: number) =>
+    this.mem.recentActiveContextForCrossLayer(limit);
+  recentArchiveForCrossLayer = (limit: number) =>
+    this.mem.recentArchiveForCrossLayer(limit);
+  recentActiveSharedForCrossLayer = (limit: number) =>
+    this.shared.recentActiveSharedForCrossLayer(limit);
+  archivePromoteCandidates = (minAccess: number, minConfidence: number, limit: number) =>
+    this.mem.archivePromoteCandidates(minAccess, minConfidence, limit);
 
   // ─── MEM-6 supersede helper ─────────────────────────────────
   /**

@@ -1,6 +1,6 @@
 # M-09 · Cross-layer dedup + archive→shared promote
 
-**Tier:** P2 · **Effort:** M · **Deps:** M-05 (edges) + M-06 (reflect) — landed · **Status:** OPEN
+**Tier:** P2 · **Effort:** M · **Deps:** M-05 (edges) + M-06 (reflect) — landed · **Status:** DONE
 **Migration assignment:** **none** (extends existing tables, uses existing memory_edges).
 
 ## Цель
@@ -132,4 +132,4 @@ Test DB = `data/test-mem9-crosslayer.db`.
 
 ---
 
-**Status:** OPEN
+**Status:** DONE
