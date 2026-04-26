@@ -31,8 +31,15 @@ function isBumpLayer(l: string): l is BumpLayer {
 }
 
 function dedupeById(results: RAGResult[]): RAGResult[] {
+  // M-04: dedupe key is `${layer}:${id}` — log layer ids are stringified
+  // integers ("42") while shared/context/archive use uuids; an unguarded
+  // id-only key would silently drop one if a future layer emitted numeric
+  // ids that happened to collide with an existing uuid prefix.
   const seen = new Map<string, RAGResult>();
-  for (const r of results) if (!seen.has(r.id)) seen.set(r.id, r);
+  for (const r of results) {
+    const key = `${r.layer}:${r.id}`;
+    if (!seen.has(key)) seen.set(key, r);
+  }
   return [...seen.values()];
 }
 
@@ -213,11 +220,10 @@ export class RAGPipeline {
       }
     }
     if (layers.includes("log")) {
-      // searchLog already calls sanitizeFtsQuery internally, but we pass
-      // ftsQuery (already sanitized) — sanitizing twice is idempotent on
-      // the safe form (quoted+ORed terms) and sidesteps the empty-result
-      // early-return pattern of the helper.
-      for (const r of this.memory.logRepo.searchLog(query, { limit, agentId, sessionId })) {
+      // Pass the already-sanitized `ftsQuery` (single source of truth,
+      // matches the other layers above). searchLog re-sanitizes internally
+      // — idempotent on the safe form, kept for direct callers.
+      for (const r of this.memory.logRepo.searchLog(ftsQuery, { limit, agentId, sessionId })) {
         results.push({
           id: r.id,
           layer: "log",
