@@ -15,6 +15,7 @@ import * as tg from "./telegram-tools";
 import { sendReport } from "./tools/telegram-report";
 import type { CodeToolRegistry } from "../pipeline/agent-loop/code-tools";
 import type { ArbitrationRoom } from "../pipeline/arbitration-room";
+import type { MemoryService } from "../services/memory.service";
 
 export type { ToolResult } from "./types";
 
@@ -50,6 +51,16 @@ export class ToolExecutor {
   /** Set RAG pipeline (avoids circular dependency) */
   setRAG(rag: RAGPipeline): void {
     this.rag = rag;
+  }
+
+  /**
+   * M-FINAL2: inject MemoryService so MemoryTools.write `case shared`
+   * delegates to the single embed-first + transactional implementation
+   * instead of the inline `writeSharedAtomic` fallback. Wired post-ctor
+   * because the service depends on RAG, which is itself set post-ctor.
+   */
+  setMemoryService(service: MemoryService): void {
+    this.memoryTools.setMemoryService(service);
   }
 
   /** Expose memory for tools that need direct DB access (report-context). */

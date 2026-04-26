@@ -214,6 +214,12 @@ export async function initDeps(config: AppConfig = loadConfig()): Promise<AppDep
   // PR 27: services consume repos; `MemoryDB` facade still hosts the
   // repos so scripts/seed.ts etc. keep working.
   const memoryService = new MemoryService(memory.memoryRepo, rag, memory.logRepo);
+  // M-FINAL2: thread MemoryService into MemoryTools so the MCP `memory_write`
+  // shared-layer path delegates to the single embed-first + transactional
+  // implementation (mirrors compressor + extractors). Without this, the MCP
+  // path went through the inline `writeSharedAtomic` fallback and could drift
+  // from the service's invariants.
+  tools.setMemoryService(memoryService);
   const playwright = new PlaywrightClient();
   tools.setPlaywright(playwright);
 

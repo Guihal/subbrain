@@ -3,16 +3,26 @@
  *
  * MEM-2 (M-01): the `shared` layer write path embeds **before** insert and
  * wraps both rows (`shared_memory` + `vec_embeddings`) in a single
- * `db.transaction()`. Embed-fail therefore never leaves a row without a
- * vector. Mirror of `MemoryService.insertShared` / `extractors.writeShared`
- * — kept inline here to avoid threading `MemoryService` through every
- * ToolExecutor caller (including legacy tests that pass `() => null` for
- * RAG and rely on the sync raw-insert fallback).
+ * `db.transaction()`. Two paths exist:
+ *
+ *   1. Preferred (M-FINAL2): a `MemoryService` is injected via
+ *      `setMemoryService` — `MemoryTools.write` delegates `case shared` to
+ *      `memoryService.insertShared`, the single source of embed-first +
+ *      transactional shared writes (mirrors `extractors.writeShared`).
+ *   2. Legacy fallback: when no service is wired (older tests construct
+ *      `new MemoryTools(db, () => rag)` directly), the inline
+ *      `writeSharedAtomic` keeps the same atomicity guarantee.
+ *
+ * M-07.1: both paths derive `kind` from `category` via `categoryToKind` so
+ * persona-grade rows (profile / preference / relationship) pick up the +10%
+ * RAG rerank boost regardless of which path runs.
  */
 import { randomUUID } from "crypto";
-import type { MemoryDB, FtsResult } from "../../db";
+import type { MemoryDB, FtsResult, MemoryKind } from "../../db";
 import type { RAGPipeline } from "../../rag";
+import type { MemoryService } from "../../services/memory.service";
 import type { ToolResult } from "../types";
+import { categoryToKind } from "../../pipeline/agent-pipeline/post/validators";
 
 const EMBED_TIMEOUT_MS = 5000;
 
@@ -34,10 +44,23 @@ async function embedWithTimeout(
 }
 
 export class MemoryTools {
+  /**
+   * M-FINAL2: optional service injection. Wired from `ToolExecutor.setMemoryService`
+   * after `initDeps` constructs the service (which depends on RAG, which is set
+   * post-ctor too — so we cannot pass it through the constructor without
+   * breaking the existing setRAG ordering). Legacy tests skip this and fall
+   * through to `writeSharedAtomic`.
+   */
+  private memoryService: MemoryService | null = null;
+
   constructor(
     private memory: MemoryDB,
     private getRag: () => RAGPipeline | null,
   ) {}
+
+  setMemoryService(service: MemoryService): void {
+    this.memoryService = service;
+  }
 
   read(id: string, layer?: string): ToolResult {
     let data: unknown = null;
@@ -186,33 +209,66 @@ export class MemoryTools {
         break;
 
       case "shared": {
+        // M-07.1: derive kind ONCE here so both paths (service delegate +
+        // legacy fallback + raw-insert path with no RAG) use the same
+        // classification. Persona-grade categories (profile/preference/
+        // relationship) → 'persona', everything else → 'semantic'.
+        const category = params.category || "general";
+        const kind = categoryToKind(category, "shared");
+        const tags = params.tags || "";
+        // M-FINAL2: prefer the injected service so we don't fork the
+        // embed-first + transactional logic. The service generates its own
+        // id and returns it — we ignore the caller's id in this path. (The
+        // public registry path already lets MemoryTools mint the id; legacy
+        // direct callers pass id explicitly and hit the writeSharedAtomic
+        // fallback below where the caller-supplied id is honoured.)
+        const svc = this.memoryService;
+        if (svc) {
+          return svc
+            .insertShared({
+              category,
+              content: params.content,
+              tags,
+              confidence,
+              status,
+              kind,
+            })
+            .then(
+              (newId): ToolResult => ({ success: true, data: { id: newId } }),
+              (err): ToolResult => ({
+                success: false,
+                error: err instanceof Error ? err.message : String(err),
+              }),
+            );
+        }
         const rag = this.getRag();
         if (rag) {
-          // MEM-2 (M-01): atomic embed+insert. Returns a Promise so the
-          // caller (registry handler — accepts ToolResult|Promise<ToolResult>)
-          // awaits the upstream embed call. Skips the bottom-of-method
-          // fire-and-forget indexEntry — the transaction already wrote
-          // vec_embeddings.
+          // Legacy fallback (no service wired): atomic embed+insert. Returns
+          // a Promise so the caller (registry handler — accepts ToolResult|
+          // Promise<ToolResult>) awaits the upstream embed call. Skips the
+          // bottom-of-method fire-and-forget indexEntry — the transaction
+          // already wrote vec_embeddings.
           return this.writeSharedAtomic(
             id,
-            params.category || "general",
+            category,
             params.content,
-            params.tags || "",
+            tags,
             confidence,
             status,
+            kind,
             rag,
           );
         }
-        // Legacy fallback: caller did not wire a RAG pipeline (older tests,
+        // Final fallback: caller did not wire a RAG pipeline (older tests,
         // boot-time scripts). Sync raw insert; row will lack vec_embeddings
         // until a follow-up indexEntry runs. Acceptable only outside prod.
         this.memory.insertShared(
           id,
-          params.category || "general",
+          category,
           params.content,
-          params.tags || "",
+          tags,
           undefined,
-          { confidence, status },
+          { confidence, status, kind },
         );
         break;
       }
@@ -251,10 +307,14 @@ export class MemoryTools {
   }
 
   /**
-   * MEM-2 (M-01): embed-first then transactional insert+upsertEmbedding for
-   * the `shared` layer. Mirrors `MemoryService.insertShared` so we keep the
-   * same atomicity guarantee without threading the service through every
-   * ToolExecutor caller.
+   * MEM-2 (M-01) / M-FINAL2: legacy fallback path for the `shared` layer when
+   * no `MemoryService` was wired (older tests). Mirrors
+   * `MemoryService.insertShared` (embed-first + transactional). Production
+   * goes through the injected service via `setMemoryService`.
+   *
+   * TODO(post-wave-3 cleanup): once `cross-agent-isolation`, `mcp-tools`, and
+   * `tool-runner` tests construct via the same DI flow, remove this method
+   * and inline the service call.
    */
   private async writeSharedAtomic(
     id: string,
@@ -263,6 +323,7 @@ export class MemoryTools {
     tags: string,
     confidence: number,
     status: "active" | "pending",
+    kind: MemoryKind,
     rag: RAGPipeline,
   ): Promise<ToolResult> {
     let vec: Float32Array;
@@ -285,7 +346,7 @@ export class MemoryTools {
           content,
           tags,
           undefined,
-          { confidence, status },
+          { confidence, status, kind },
         );
         this.memory.upsertEmbedding(id, "shared", vec);
       });
