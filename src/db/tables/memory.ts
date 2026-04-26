@@ -277,4 +277,50 @@ export class MemoryTable {
       )
       .all(ftsQuery, limit) as FtsResult[];
   }
+
+  /**
+   * M-06: aggregate active+fresh layer2_context rows by lower(title) (the
+   * post-extractor "category"). Returns groups of size ≥ minGroup, age >
+   * 24h proxied via `created_at < (now - 86400)`, access_count ≥ minAccess,
+   * not superseded, not stale, title in caller-supplied whitelist. Top
+   * `maxGroups` by count desc. Used by night-cycle reflect step.
+   *
+   * IDs and contents are concatenated with '|' / '⟂' delimiters so a single
+   * statement returns the group plus its members; caller splits in JS.
+   */
+  reflectGroups(
+    whitelist: readonly string[],
+    minAccess: number,
+    minGroup: number,
+    maxGroups: number,
+  ): { category: string; n: number; ids: string; contents: string }[] {
+    if (whitelist.length === 0) return [];
+    const now = Math.floor(Date.now() / 1000);
+    const olderThan = now - 86_400;
+    const placeholders = whitelist.map(() => "?").join(",");
+    const sql = `SELECT title AS category, COUNT(*) AS n,
+                        GROUP_CONCAT(id, '|') AS ids,
+                        GROUP_CONCAT(content, '⟂') AS contents
+                   FROM layer2_context
+                  WHERE access_count >= ?
+                    AND created_at < ?
+                    AND status = 'active'
+                    AND superseded_by IS NULL
+                    AND (expires_at IS NULL OR expires_at > ?)
+                    AND lower(title) IN (${placeholders})
+                  GROUP BY lower(title)
+                 HAVING n >= ?
+                  ORDER BY n DESC
+                  LIMIT ?`;
+    return this.db
+      .query(sql)
+      .all(
+        minAccess,
+        olderThan,
+        now,
+        ...whitelist,
+        minGroup,
+        maxGroups,
+      ) as { category: string; n: number; ids: string; contents: string }[];
+  }
 }

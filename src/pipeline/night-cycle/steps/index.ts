@@ -7,3 +7,4 @@ export { extractAntiPatterns } from "./anti-patterns";
 export { resolveContradictions } from "./contradictions";
 export { runMemoryDedup } from "./memory-dedup";
 export { decaySalience } from "./decay-salience";
+export { runReflect, type ReflectResult, type ReflectDeps } from "./reflect";

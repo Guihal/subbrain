@@ -20,6 +20,11 @@ export interface NightCycleResult {
   // M-03 (mig 13): rows whose salience was multiplied by 0.98^days_since
   // in the night-cycle decay-salience step (sum across 3 layers).
   salienceDecayed: number;
+  // M-06: reflect-step counters (CoALA episodic → semantic consolidation).
+  reflectGroupsExamined: number;
+  reflectFactsPromoted: number;
+  reflectEdgesCreated: number;
+  reflectLLMFailures: number;
   errors: string[];
   lastProcessedId: number;
 }
