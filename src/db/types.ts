@@ -148,6 +148,11 @@ export interface FtsResult {
   // (`rag/pipeline.ts:applySalienceBoost`) does not need an extra round-trip.
   // Optional for back-compat with the log layer (no salience column).
   salience?: number;
+  // M-08 (no new mig): access columns (M-02, mig 10) threaded through FTS
+  // SELECT lists so `applyForgettingCurve` in `rag/pipeline.ts` can read
+  // them without a second round-trip. Optional — log layer has no columns.
+  last_accessed_at?: number | null;
+  access_count?: number;
 }
 
 export interface VecResult {

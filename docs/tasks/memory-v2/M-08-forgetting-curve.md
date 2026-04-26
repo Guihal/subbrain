@@ -1,6 +1,6 @@
 # M-08 · Forgetting curve в retrieval ranking (MemoryBank-style)
 
-**Tier:** P1 · **Effort:** M · **Deps:** M-02 (access) + M-03 (salience) — landed · **Status:** OPEN
+**Tier:** P1 · **Effort:** M · **Deps:** M-02 (access) + M-03 (salience) — landed · **Status:** DONE (2026-04-26)
 **Migration assignment:** **none** (pure RAG-side ranking — uses existing columns).
 
 ## Цель
@@ -161,4 +161,10 @@ final.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
 
 ---
 
-**Status:** OPEN
+**Status:** DONE (2026-04-26).
+
+## Implementation note (2026-04-26)
+
+Plan §Persona override snippet `return r unchanged` was implemented as `R=1.0 pinned` instead — the no-bump branch let never-accessed semantic rows multiply by `1+W*1.0=1.15` while persona stayed at `×1`, flipping the M-07 invariant (`memory-kind.test.ts:308 "persona row outranks semantic row"`). Persona now passes through `R=1.0` and gets the same recall bump as equally-fresh semantic peers; the M-07 ×1.1 upstream persona boost preserves the rank gap.
+
+Final tally: 711 pass / 0 fail / 92 files / 2107 expect calls. `bunx tsc --noEmit` exit 0.
