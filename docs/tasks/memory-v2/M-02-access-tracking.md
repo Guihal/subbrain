@@ -1,12 +1,12 @@
 # M-02 · Access tracking columns (`last_accessed_at`, `access_count`)
 
-**Tier:** P0 · **Effort:** M · **Deps:** — · **Status:** OPEN
+**Tier:** P0 · **Effort:** M · **Deps:** — · **Status:** DONE (commits `03348d1` + `b6f43ab`, merge `c2d0593`)
 
 ## Цель
 
 Добавить два signal-поля на трёх memory-слоях, которые сейчас retrieval-side полностью игнорирует:
 
-- `last_accessed_at INTEGER` — unix-ms последнего попадания строки в финальный rerank-выход RAG-pipeline'а.
+- `last_accessed_at INTEGER` — unix-seconds последнего попадания строки в финальный rerank-выход RAG-pipeline'а (одинаково с created_at/updated_at/expires_at; критик round-1 поймал ms-инициализацию, fix `b6f43ab`).
 - `access_count INTEGER NOT NULL DEFAULT 0` — кумулятивный счётчик popularity.
 
 После M-02 RAG retrieval инкрементит `access_count` и обновляет `last_accessed_at` каждый раз, когда строка попадает в результаты `searchHybrid` (после rerank, до возврата). Поля сами по себе ranking signal не дают — это foundation для **M-03** (salience reinforce-on-access) и **M-08** (MemoryBank Ebbinghaus-style decay в retrieval ranking). Без M-02 эти тикеты невозможны.
