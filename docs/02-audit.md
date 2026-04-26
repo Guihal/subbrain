@@ -702,3 +702,14 @@ Worktree env note: `usemarkdown.test.ts` worktree-FP резолвится чер
 Tests: `tests/night-cycle-focus-rewrite.test.ts` (9 cases: disabled-default, empty-focus, no-shared, happy-path, real-untouched, protected-skip, identical-output, len-cap, throw). 779/0 (770 baseline + 9 new).
 **Out of scope:** shadow→real flip (manual SQL after weeks-обкатки), persona-only mode, diff-tool / admin UI shadow viewer, multi-iteration rewrite, TOP_K / MAX_FOCUS_LEN / scoring tuning (A/B follow-up).
 **Scope:** M-11.
+
+### Memory-v2 M-11 review (2026-04-26, M-11-AUDIT)
+**Closed:** MEM-19 (M-11).
+**§1 Debug findings:** 0 real regressions. `db.insertShared`: 1 hit в `scripts/seed.ts:140` — known seed-script pattern (pre-M-01-era, not a regression). `'HIGH'/'LOW'` archive: 0 hits ✓. `console.*`: 5 hits, все pre-existing baseline (`logger.ts`, `telegram/userbot.ts` session-print, `app/deps.ts` fatal startup, `providers/index.ts` warn). `Promise.all` non-Settled: 0 hits ✓. Raw `fetch(` outside `http-client`: 0 actual calls (hits — comments / sandbox-blocklist строки в `code-mgmt.tools.ts`). `TODO M-11/MEM-19/wave`: 0. `(as any)/@ts-ignore/@ts-expect-error` в src/: 0 ✓.
+**§2 File-cap:** 11 файлов >250 LOC. `schema.ts:891` (frozen, exempt §1). `rag/pipeline.ts:699` (exempt §1). `mcp/tools/memory-tools.ts:472` (M-FINAL2 known issue). `db/index.ts:453` (грew +9 от M-11 shadow facade). `db/tables/memory.ts:437` (грew +68 от M-11 shadow methods + selectTopSharedForFocusRewrite). `pipeline/arbitration-room.ts:420` (pre-existing). `app/deps.ts:414` (pre-existing). `db/tables/shared.ts:396` (pre-existing). `repositories/memory.repo.ts:379` (грew +11 от M-11). `mcp/executor.ts:361` (pre-existing). `telegram/userbot.ts:348` (pre-existing). Anti-goal соблюдён — никаких natural splits.
+**§3 Test stability:** 779/0 × 2 runs (26.07s, 26.99s). Identical counts. Stable.
+**§4 Schema:** `PRAGMA user_version = 16` ✓. `layer1_focus_shadow` present ✓. 50 tables (21 base + FTS shadows + audit/scheduler).
+**§5 Optional refactor:** не выполнен (anti-goal). M-11 grew db/index.ts / memory.ts / memory.repo.ts на ~90 LOC суммарно — все pass-through / SQL helper, natural single-responsibility, splitting churn-only.
+**Open follow-ups:** M-05.1 evolution (A-MEM neighbour update on insert), M-05.2 LLM contradiction detection, file-cap memory-tools.ts/schema.ts (documented, not blocking).
+**Verdict:** M-11 закрыт чисто. 0 регрессов введено. Anti-goal "no over-refactor" соблюдён.
+**Scope:** M-11-AUDIT.

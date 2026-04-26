@@ -65,4 +65,6 @@ M-11 закрыл MEM-19 (sleep-time focus block rewriter, mig 16, shadow-write)
 
 ---
 
-**Status:** TODO
+**Status:** DONE (2026-04-26)
+
+**Result:** §1 debug grep — 0 real regressions (insertShared 1 hit pre-M-01 seed-script; HIGH/LOW 0; console 5 pre-existing baseline; Promise.all non-Settled 0; raw fetch 0; TODO 0; as-any/ts-ignore 0). §2 file-cap — 11 over-cap, anti-goal соблюдён (M-11 рост: db/index +9, memory.ts +68, memory.repo +11; всё pass-through). §3 stability — 779/0 × 2 runs identical. §4 schema — user_version=16, layer1_focus_shadow ✓, 50 tables. §5 refactor — не выполнен. Подробнее — `docs/02-audit.md` "Memory-v2 M-11 review" section.
