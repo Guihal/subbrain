@@ -1,6 +1,6 @@
 # M-FINAL · Test + refactor pass after memory-v2 wave 1
 
-**Tier:** P0 (закрывает wave) · **Effort:** M · **Deps:** M-01..M-07 merged · **Status:** OPEN
+**Tier:** P0 (закрывает wave) · **Effort:** M · **Deps:** M-01..M-07 merged · **Status:** DONE (2026-04-26, docs-only audit pass)
 
 ## Цель
 
@@ -116,4 +116,17 @@ Write-zone (только если есть проблемы):
 
 ---
 
-**Status:** OPEN
+**Status:** DONE (2026-04-26)
+
+## Result
+
+**Tests:** 678 pass / 0 fail / 89 files (matches baseline). `bunx tsc --noEmit` exit 0.
+
+**Audit-pass findings** (no code changes, see `docs/02-audit.md` → "Memory-v2 wave 1 review"):
+- M-04.1 (rolling embed для `layer4_log`) — открыт per M-04 plan.
+- M-07.1 (categoryToKind miss в `MemoryTools.write` shared + `compressor` paths) — verified via grep; out-of-scope per plan §113 (документировать, не править здесь).
+- `writeSharedAtomic` duplication intentional (explanatory comment present).
+- `src/db/tables/shared.ts` 351 LOC — flagged for possible future split, не блокер.
+- No new `as any` / `TODO M-0X` markers from wave 1 subagents.
+
+Closed docs-only.
