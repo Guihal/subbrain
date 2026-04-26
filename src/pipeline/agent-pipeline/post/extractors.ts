@@ -16,6 +16,8 @@ import {
   embedOrReuse,
   type WriteResult,
 } from "./extractors-helpers";
+// M-05 (mig 14): post-insert top-3 `relates` edges hook.
+import { linkRelated } from "./link-related";
 
 export type { WriteResult } from "./extractors-helpers";
 
@@ -145,6 +147,10 @@ export async function writeShared(
     `→ shared/${args.category} [${status} ${clamped.toFixed(2)}]: ${args.content.slice(0, 100)}`,
     { meta: { factId: id, layer: "shared", category: args.category, status, confidence: clamped } },
   );
+
+  // M-05: best-effort `relates` edges (non-blocking, post-commit).
+  await linkRelated(memory, rag, id, "shared", args.content, log);
+
   return { ok: true, id, status };
 }
 
@@ -257,5 +263,9 @@ export async function writeContext(
     `→ context/${args.category} [${status} ${clamped.toFixed(2)}]: ${args.content.slice(0, 100)}`,
     { meta: { factId: id, layer: "context", category: args.category, status, confidence: clamped } },
   );
+
+  // M-05: see writeShared.
+  await linkRelated(memory, rag, id, "context", args.content, log);
+
   return { ok: true, id, status };
 }

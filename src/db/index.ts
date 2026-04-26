@@ -7,6 +7,7 @@ import { ChatRepository } from "../repositories/chat.repo";
 import { LogRepository } from "../repositories/log.repo";
 import { TelegramRepository } from "../repositories/telegram.repo";
 import { FreelanceRepository } from "../repositories/freelance.repo";
+import { EdgeRepository } from "../repositories/edges.repo";
 import type {
   TgMessageInsert,
   TgSearchOpts,
@@ -40,7 +41,12 @@ export type {
   SchedulerStateRow,
   MemoryStatus,
   MemoryKind,
+  EdgeKind,
+  EdgeRow,
 } from "./types";
+
+export { EdgesTable } from "./tables/edges";
+export { EdgeRepository } from "../repositories/edges.repo";
 
 export { InvalidTransitionError } from "./tables/task-transitions";
 export type { UpsertResult } from "./tables/tasks";
@@ -68,6 +74,7 @@ export class MemoryDB {
   readonly logRepo: LogRepository;
   readonly telegramRepo: TelegramRepository;
   readonly freelanceRepo: FreelanceRepository;
+  readonly edgesRepo: EdgeRepository;
   private _tasks: TasksTable;
   private _scheduler: SchedulerStateTable;
 
@@ -79,6 +86,7 @@ export class MemoryDB {
     this.logRepo = new LogRepository(this.db);
     this.telegramRepo = new TelegramRepository(this.db);
     this.freelanceRepo = new FreelanceRepository(this.db);
+    this.edgesRepo = new EdgeRepository(this.db);
     this._tasks = new TasksTable(this.db);
     this._scheduler = new SchedulerStateTable(this.db);
   }
@@ -391,6 +399,34 @@ export class MemoryDB {
     limit: number;
     offset: number;
   }) => this._tasks.listCompletedSince(opts);
+
+  // ─── Memory edges (M-05, mig 14) ───────────────────────────
+  // Thin facade over EdgeRepository — kept for parity with the other
+  // memory layers; new pipeline code can hold edgesRepo directly.
+  linkEdge = (
+    srcId: string,
+    srcLayer: string,
+    dstId: string,
+    dstLayer: string,
+    kind: import("./types").EdgeKind,
+    weight: number = 1.0,
+  ) => this.edgesRepo.link(srcId, srcLayer, dstId, dstLayer, kind, weight);
+  getEdgesFromSrc = (
+    srcId: string,
+    srcLayer: string,
+    kinds?: import("./types").EdgeKind[],
+  ) => this.edgesRepo.getEdgesFromSrc(srcId, srcLayer, kinds);
+  getEdgesToDst = (
+    dstId: string,
+    dstLayer: string,
+    kinds?: import("./types").EdgeKind[],
+  ) => this.edgesRepo.getEdgesToDst(dstId, dstLayer, kinds);
+  getRelated = (
+    id: string,
+    layer: string,
+    depth: 1 | 2 = 1,
+    kinds?: import("./types").EdgeKind[],
+  ) => this.edgesRepo.getRelated(id, layer, depth, kinds);
 
   // ─── Scheduler state (ephemeral runtime flags) ─────────────
   getSchedulerState = (key: string) => this._scheduler.get(key);
