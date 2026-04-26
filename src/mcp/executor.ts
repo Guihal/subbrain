@@ -11,6 +11,7 @@ import {
   WebTools,
   TasksTools,
 } from "./tools/index";
+import { MemoryCurationTools } from "./tools/memory-curation-tools";
 import * as tg from "./telegram-tools";
 import { sendReport } from "./tools/telegram-report";
 import type { CodeToolRegistry } from "../pipeline/agent-loop/code-tools";
@@ -29,9 +30,16 @@ export class ToolExecutor {
   private botNotify: ((text: string) => Promise<void>) | null = null;
   private _codeTools: CodeToolRegistry | null = null;
   private _room: ArbitrationRoom | null = null;
+  // M-FINAL2 / M-10: MemoryService is wired post-ctor (depends on RAG, which
+  // is itself set post-ctor). Curation tools need it for `memory_promote`
+  // (insertShared) + `memory_reflect` (runReflect deps), so we keep the
+  // reference directly on the executor instead of fishing it out of
+  // `memoryTools`.
+  private _memoryService: MemoryService | null = null;
 
   // Domain modules
   readonly memoryTools: MemoryTools;
+  readonly memoryCurationTools: MemoryCurationTools;
   readonly embedTools: EmbedTools;
   readonly logTools: LogTools;
   readonly webTools: WebTools;
@@ -42,6 +50,12 @@ export class ToolExecutor {
     private router: ModelRouter,
   ) {
     this.memoryTools = new MemoryTools(memory, () => this.rag);
+    this.memoryCurationTools = new MemoryCurationTools(
+      memory,
+      () => this._memoryService,
+      () => this.rag,
+      () => this.router,
+    );
     this.embedTools = new EmbedTools(memory, router, () => this.rag);
     this.logTools = new LogTools(memory, router);
     this.webTools = new WebTools();
@@ -60,6 +74,7 @@ export class ToolExecutor {
    * because the service depends on RAG, which is itself set post-ctor.
    */
   setMemoryService(service: MemoryService): void {
+    this._memoryService = service;
     this.memoryTools.setMemoryService(service);
   }
 

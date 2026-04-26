@@ -391,6 +391,13 @@ Tests: `tests/memory-forgetting-curve.test.ts` (11 кейсов — pure-fn base
 **Foundation для:** memory-v2 P1 закрыт. M-09/M-10/M-11/M-12 — P2 backlog (cross-layer dedup, public MCP curation, sleep-time block rewriter, A-MEM evolution).
 **Scope:** M-08.
 
+### MEM-15 ✅ public MCP curation tools (закрыто M-10, 2026-04-26)
+После M-05 + M-06 у агентов нет explicit-API для curation (auto-write only через hippocampus / linkRelated и night-cycle reflect). Letta-style explicit memory management отсутствовал.
+**Fix:** M-10 — 4 agent-only MCP tool'а (`memory_link`, `memory_supersede`, `memory_promote`, `memory_reflect`) в новом файле `src/mcp/tools/memory-curation-tools.ts` (≤200 LOC, изолирован от 470-LOC `memory-tools.ts`). Domain logic делегирует в `MemoryDB.linkEdge` (M-05, INSERT OR IGNORE на PK), `MemoryService.insertShared` (M-01, embed-first transactional, kind='semantic'), `runReflect` (M-06 расширен optional `categoryFilter` + `dryRun`). Edge weight const 1.0. TypeBox enum на layer + EdgeKind. `memory_supersede` accepts только context+shared (archive не имеет superseded_by). `memory_promote` requires explicit `category` (context.title — free-form, не enum); `confidence` default 0.8 (autoaccept threshold) — иначе promoted row → status='pending'. `categoryFilter` берёт UNCAPPED + filter + cap (raw `selectGroups` cap=5 maskировал rank-6+ категории).
+Tests: `tests/mcp-curation-tools.test.ts` (12 кейсов).
+**Out of scope:** evolution (M-05.1), LLM-contradiction-detect (M-05.2), public REST для curation (privacy out), `memory_unlink`, bulk ops, ACL.
+**Scope:** M-10.
+
 ### Memory-v2 wave 1 review (2026-04-26, M-FINAL)
 
 **Closed:** MEM-2 (M-01), MEM-7 (M-02), MEM-8 (M-04), MEM-9 (M-07), MEM-10 (M-03).
