@@ -10,6 +10,7 @@ import {
   type RAGResult,
   type RAGSearchOptions,
 } from "./types";
+import { applyForgettingCurve } from "../lib/memory-decay";
 
 export type { RAGResult, RAGSearchOptions } from "./types";
 
@@ -42,6 +43,26 @@ const PERSONA_BOOST = 1.1;
 // persona row at high salience sees ~1.21× combined — the cosine signal
 // still dominates ranking. Tunable; M-08 A/B may revise.
 const SALIENCE_BOOST_FACTOR = 0.1;
+
+// M-08: env knobs for the forgetting-curve recall multiplier. Read at
+// call-time (not module load) so test suites can toggle per-case without
+// a subprocess. `RAG_RECALL_WEIGHT=0` disables the effect entirely (the
+// multiplier collapses to 1.0). `RAG_SALIENCE_WEIGHT` is documented here
+// for parity even though the salience-boost itself still lives in
+// `applySalienceBoost` — the constant `SALIENCE_BOOST_FACTOR` above is
+// the actual source of truth for the salience multiplier.
+function recallWeight(): number {
+  const raw = process.env.RAG_RECALL_WEIGHT;
+  if (raw === undefined || raw === "") return 0.15;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : 0.15;
+}
+function salienceWeight(): number {
+  const raw = process.env.RAG_SALIENCE_WEIGHT;
+  if (raw === undefined || raw === "") return SALIENCE_BOOST_FACTOR;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : SALIENCE_BOOST_FACTOR;
+}
 
 function dedupeById(results: RAGResult[]): RAGResult[] {
   // M-04: dedupe key is `${layer}:${id}` — log layer ids are stringified
@@ -130,6 +151,20 @@ export class RAGPipeline {
     // referenced?". Applied after persona so the resulting order reflects
     // both signals — a hot persona row outranks a cold persona row.
     final = this.applySalienceBoost(final);
+
+    // M-08: MemoryBank-style forgetting curve. Multiplies score by
+    // (1 + W_RECALL * R) where R = exp(-Δt / S). Persona rows pass through
+    // unchanged (skipPersona=true) — identity facts must never decay.
+    // Re-sort here so this layer's signal is reflected in the final order.
+    // RAG_RECALL_WEIGHT=0 collapses the multiplier to 1.0 (effect disabled).
+    const nowSec = Math.floor(Date.now() / 1000);
+    final = applyForgettingCurve(
+      final,
+      nowSec,
+      { recall: recallWeight(), salience: salienceWeight() },
+      { skipPersona: true },
+    );
+    final.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
 
     // 5. M-02 (mig 10): bump access counters for surviving rows. Non-
     // blocking — fire-and-forget so retrieval latency is not paid for the
@@ -260,6 +295,9 @@ export class RAGPipeline {
           // M-03: salience threaded through searchContext SELECT for
           // the post-rerank salience-boost step.
           salience: r.salience,
+          // M-08: access columns threaded for the forgetting-curve step.
+          last_accessed_at: r.last_accessed_at,
+          access_count: r.access_count,
         });
       }
     }
@@ -275,6 +313,9 @@ export class RAGPipeline {
           updated_at: r.updated_at,
           // M-03: see context branch.
           salience: r.salience,
+          // M-08: see context branch.
+          last_accessed_at: r.last_accessed_at,
+          access_count: r.access_count,
         });
       }
     }
@@ -292,6 +333,9 @@ export class RAGPipeline {
           kind: r.kind,
           // M-03: salience threaded through searchShared SELECT.
           salience: r.salience,
+          // M-08: see context branch.
+          last_accessed_at: r.last_accessed_at,
+          access_count: r.access_count,
         });
       }
     }
@@ -347,6 +391,9 @@ export class RAGPipeline {
           updated_at?: number;
           kind?: string;
           salience?: number;
+          // M-08: access columns hydrated from SELECT * in get*Many helpers.
+          last_accessed_at?: number | null;
+          access_count?: number;
         }
       >();
       // MEM-5 (PR 22a): vec search can return ids whose rows are pending /
@@ -361,6 +408,9 @@ export class RAGPipeline {
             updated_at: r.updated_at,
             // M-03: SELECT * already returns salience.
             salience: r.salience,
+            // M-08: SELECT * already returns access columns (M-02 mig 10).
+            last_accessed_at: r.last_accessed_at,
+            access_count: r.access_count,
           });
         }
       } else if (layer === "archive") {
@@ -371,6 +421,8 @@ export class RAGPipeline {
             created_at: r.created_at,
             updated_at: r.updated_at,
             salience: r.salience,
+            last_accessed_at: r.last_accessed_at,
+            access_count: r.access_count,
           });
         }
       } else if (layer === "shared") {
@@ -384,6 +436,9 @@ export class RAGPipeline {
             kind: r.kind,
             // M-03: salience boost reads this in applySalienceBoost.
             salience: r.salience,
+            // M-08: forgetting-curve reads these in applyForgettingCurve.
+            last_accessed_at: r.last_accessed_at,
+            access_count: r.access_count,
           });
         }
       }
@@ -404,6 +459,10 @@ export class RAGPipeline {
           updated_at: row?.updated_at,
           kind: row?.kind,
           salience: row?.salience,
+          // M-08: thread access columns into RAGResult for the
+          // forgetting-curve step in `lib/memory-decay.ts`.
+          last_accessed_at: row?.last_accessed_at,
+          access_count: row?.access_count,
         });
       }
     }

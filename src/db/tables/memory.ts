@@ -260,9 +260,11 @@ export class MemoryTable {
     if (opts?.agentId) params.push(opts.agentId);
     params.push(limit);
     // M-03 (mig 13): SELECT `c.salience` for the RAG salience-boost step.
+    // M-08: SELECT `c.last_accessed_at, c.access_count` for the forgetting
+    // curve step in `lib/memory-decay.ts`.
     return this.db
       .query(
-        `SELECT c.id, c.title, c.tags, snippet(fts_context, 1, '<b>', '</b>', '...', 32) AS snippet, rank, c.created_at, c.updated_at, c.salience FROM fts_context f JOIN layer2_context c ON c.rowid = f.rowid WHERE fts_context MATCH ?${filter}${agentFilter} ORDER BY rank LIMIT ?`,
+        `SELECT c.id, c.title, c.tags, snippet(fts_context, 1, '<b>', '</b>', '...', 32) AS snippet, rank, c.created_at, c.updated_at, c.salience, c.last_accessed_at, c.access_count FROM fts_context f JOIN layer2_context c ON c.rowid = f.rowid WHERE fts_context MATCH ?${filter}${agentFilter} ORDER BY rank LIMIT ?`,
       )
       .all(...params) as FtsResult[];
   }
@@ -271,9 +273,11 @@ export class MemoryTable {
     const ftsQuery = sanitizeFtsQuery(query);
     if (!ftsQuery) return [];
     // M-03 (mig 13): SELECT `a.salience` for the RAG salience-boost step.
+    // M-08: SELECT `a.last_accessed_at, a.access_count` for the forgetting
+    // curve step in `lib/memory-decay.ts`.
     return this.db
       .query(
-        "SELECT a.id, a.title, a.tags, snippet(fts_archive, 1, '<b>', '</b>', '...', 32) AS snippet, rank, a.created_at, a.updated_at, a.salience FROM fts_archive f JOIN layer3_archive a ON a.rowid = f.rowid WHERE fts_archive MATCH ? ORDER BY rank LIMIT ?",
+        "SELECT a.id, a.title, a.tags, snippet(fts_archive, 1, '<b>', '</b>', '...', 32) AS snippet, rank, a.created_at, a.updated_at, a.salience, a.last_accessed_at, a.access_count FROM fts_archive f JOIN layer3_archive a ON a.rowid = f.rowid WHERE fts_archive MATCH ? ORDER BY rank LIMIT ?",
       )
       .all(ftsQuery, limit) as FtsResult[];
   }

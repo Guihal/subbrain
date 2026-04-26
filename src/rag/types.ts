@@ -28,6 +28,14 @@ export interface RAGResult {
   // when undefined (e.g. log layer or pre-mig-13 row), so callers don't
   // need to populate it. Stacks multiplicatively with persona boost.
   salience?: number;
+  // M-08 (mig 10, no new mig): unix-seconds timestamp of last RAG retrieval
+  // hit; NULL on legacy / never-retrieved rows. Powers the forgetting-curve
+  // step `applyForgettingCurve` in `lib/memory-decay.ts`. Optional because
+  // the log layer has no access columns.
+  last_accessed_at?: number | null;
+  // M-08 (mig 10): cumulative popularity counter feeding the recall formula
+  // `S = (1 + log(1 + access_count)) * (0.5 + salience)`.
+  access_count?: number;
 }
 
 // M-04: include "log" so the agent-only `memory_log_search` tool and
