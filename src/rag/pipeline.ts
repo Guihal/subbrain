@@ -1,6 +1,7 @@
 import type { MemoryDB, FtsResult, VecResult } from "../db";
 import type { ModelRouter } from "../lib/model-router";
 import { EMBED_MODEL, RERANK_MODEL } from "../lib/model-map";
+import { logger } from "../lib/logger";
 import {
   RRF_K,
   EMBED_CACHE_MAX,
@@ -11,6 +12,23 @@ import {
 } from "./types";
 
 export type { RAGResult, RAGSearchOptions } from "./types";
+
+const log = logger.child("rag");
+
+// M-02: env flag — `RAG_BUMP_ACCESS=false` disables the post-rerank access
+// bump entirely. Default on. Read at call-time (not module load) so test
+// suites can toggle the flag per case without spawning a subprocess.
+function bumpAccessEnabled(): boolean {
+  return process.env.RAG_BUMP_ACCESS !== "false";
+}
+
+// M-02 (mig 10): the three layers we know how to bump. `RAGResult.layer` is
+// a free string upstream, so this filter both narrows the type and silently
+// skips any future synthetic layer (e.g. a "tasks" layer M-04 might add).
+type BumpLayer = "shared" | "context" | "archive";
+function isBumpLayer(l: string): l is BumpLayer {
+  return l === "shared" || l === "context" || l === "archive";
+}
 
 function dedupeById(results: RAGResult[]): RAGResult[] {
   const seen = new Map<string, RAGResult>();
@@ -64,15 +82,61 @@ export class RAGPipeline {
     );
 
     // 4. Rerank top candidates (1 RPM) — graceful degradation
+    let final: RAGResult[];
     if (skipRerank || merged.length <= 1) {
-      return merged.slice(0, rerankTopN);
+      final = merged.slice(0, rerankTopN);
+    } else {
+      try {
+        final = await this.rerank(query, merged, rerankTopN);
+      } catch {
+        final = merged.slice(0, rerankTopN);
+      }
     }
 
-    try {
-      return await this.rerank(query, merged, rerankTopN);
-    } catch {
-      return merged.slice(0, rerankTopN);
+    // 5. M-02 (mig 10): bump access counters for surviving rows. Non-
+    // blocking — fire-and-forget so retrieval latency is not paid for the
+    // UPDATE. `Promise.allSettled` per layer (never `Promise.all`) so a
+    // single layer's failure does not poison the others. Errors are
+    // logged via `log.warn` and otherwise swallowed — access tracking is
+    // a side-signal, never a retrieval-blocker.
+    this.bumpAccessAsync(final);
+
+    return final;
+  }
+
+  /**
+   * M-02: schedule a non-blocking access bump for the supplied results.
+   * Groups by layer (Map<layer, ids[]>), one `bumpAccess` call per layer,
+   * fan-out via `Promise.allSettled`. `void` + no `await` — caller does
+   * not wait. Errors are warned and dropped.
+   *
+   * Disabled when env `RAG_BUMP_ACCESS=false` is set (early return).
+   */
+  private bumpAccessAsync(results: RAGResult[]): void {
+    if (!bumpAccessEnabled()) return;
+    if (results.length === 0) return;
+
+    const byLayer = new Map<BumpLayer, string[]>();
+    for (const r of results) {
+      if (!isBumpLayer(r.layer)) continue;
+      const arr = byLayer.get(r.layer);
+      if (arr) arr.push(r.id);
+      else byLayer.set(r.layer, [r.id]);
     }
+    if (byLayer.size === 0) return;
+
+    void Promise.allSettled(
+      [...byLayer.entries()].map(([layer, ids]) =>
+        Promise.resolve().then(() => this.memory.memoryRepo.bumpAccess(layer, ids)),
+      ),
+    ).then((settled) => {
+      for (const s of settled) {
+        if (s.status === "rejected") {
+          const msg = s.reason instanceof Error ? s.reason.message : String(s.reason);
+          log.warn(`bumpAccess failed: ${msg}`);
+        }
+      }
+    });
   }
 
   /**

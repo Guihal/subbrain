@@ -315,6 +315,12 @@ Post-hippocampus пишет в `shared_memory` / `memory` мгновенно, б
 **Fix:** PR 22a + 22b — миграция 7 добавляет `confidence REAL` + `status TEXT CHECK('pending'|'active'|'rejected')`; post-hippocampus эмитит confidence; ≥0.8 → active, <0.8 → pending; RAG injection фильтрует только active; UI approve/reject.
 **Scope:** PR 22a (schema), 22b (UI).
 
+### MEM-7 ✅ access tracking columns на shared/context/archive (закрыто M-02, 2026-04-26)
+RAG retrieval не оставляет следа на конкретных строках — нет данных для popularity-ranking, decay-ranking, salience-reinforce. Foundation для M-03 (salience reinforce-on-access) и M-08 (Ebbinghaus decay в retrieval ranking).
+**Fix:** M-02 — миграция 10: `last_accessed_at INTEGER NULL` + `access_count INTEGER NOT NULL DEFAULT 0` на `shared_memory` / `layer2_context` / `layer3_archive` + три `idx_*_access` индекса. `MemoryRepository.bumpAccess(layer, ids[])` — single batched UPDATE per layer (early-return на пустом массиве). `RAGPipeline.search` после rerank fire-and-forget группирует результаты по layer и вызывает `bumpAccess` через `void Promise.allSettled` — retrieval не блокируется. Env `RAG_BUMP_ACCESS=false` отключает hook полностью. `last_accessed_at` / `access_count` НЕ в `ALLOW_*_PATCH` allow-list — pure repo-managed signal.
+Tests: `tests/memory-access-tracking.test.ts` (11 кейсов — миграция, идемпотентность, schema, индексы, bump increment, empty no-op, RAG hook, env disable, ordering invariance).
+**Scope:** M-02 (M-03 + M-08 строятся поверх).
+
 ### MEM-6 ✅ `src/pipeline/agent-pipeline/post/*` — гиппокамп собирает мусор (закрыто 2026-04-26)
 Прод-аудит 2026-04-26 (147 shared, 655 layer2_context): self-feeding loop через subbrain-ping (`[from Claude Code CLI] freelance scout deployed` сохранялось как `category=deploy`); дубликаты тех же предпочтений (3 строки про `consult_specialists`); полные тексты статей в `context` (>1KB на строку); time-bomb факты (`FL.ru заказы к 27.04` без expires_at); конкурирующие "главные планы" без supersede.
 **Fix:** PR 28 (single PR) —
