@@ -13,3 +13,8 @@ export {
   type CrossLayerResult,
   type CrossLayerDeps,
 } from "./cross-layer-dedup";
+export {
+  runEmbedLog,
+  type EmbedLogResult,
+  type EmbedLogDeps,
+} from "./embed-log";

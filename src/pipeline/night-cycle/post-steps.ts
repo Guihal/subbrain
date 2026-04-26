@@ -14,6 +14,7 @@ import {
   decaySalience,
   runReflect,
   runCrossLayerDedup,
+  runEmbedLog,
 } from "./steps";
 import {
   pruneShared,
@@ -121,6 +122,21 @@ export async function runPostBatchSteps(
       );
     }, result);
   }
+
+  // M-04.1: rolling N-row vec embed for layer4_log. Runs LAST — heavy IO
+  // (NVIDIA embed batches) is the lowest priority of all post-batch work,
+  // so a slow / rate-limited NVIDIA never blocks dedup, decay, reflect or
+  // cross-layer steps from completing. Default off-rail when
+  // LOG_EMBED_ENABLED=false.
+  await runStep("Embed log (rolling N=10k)", "Embed log", async () => {
+    const r = await runEmbedLog({ memory, rag });
+    result.logEmbedded = r.embedded;
+    result.logEvicted = r.evicted;
+    result.logEmbedErrors = r.errors;
+    log.info(
+      `embed-log: embedded=${r.embedded} evicted=${r.evicted} errors=${r.errors}`,
+    );
+  }, result);
 }
 
 async function runStep(

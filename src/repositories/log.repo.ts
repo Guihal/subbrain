@@ -4,7 +4,12 @@
  */
 import { Database } from "bun:sqlite";
 import { LogsTable } from "../db/tables/logs";
-import { LogTable, type SearchLogOpts } from "../db/tables/log";
+import {
+  LogTable,
+  type SearchLogOpts,
+  type UnembeddedLogRow,
+  type LogVecHydrateRow,
+} from "../db/tables/log";
 import type { FtsResult, LogRow } from "../db/types";
 
 export class LogRepository {
@@ -47,4 +52,23 @@ export class LogRepository {
    */
   searchLog = (query: string, opts?: SearchLogOpts): FtsResult[] =>
     this.fts.searchLog(query, opts);
+
+  /**
+   * M-04.1: pass-through for the night-cycle `embed-log` step. Returns the
+   * most recent `layer4_log` rows missing from `vec_embeddings(layer='log')`,
+   * up to `limit`. Used as the rolling-window incremental fill source.
+   */
+  selectUnembeddedRecent = (limit: number): UnembeddedLogRow[] =>
+    this.fts.selectUnembeddedRecent(limit);
+
+  /** M-04.1: pass-through. Used by the embed-log step's cap math. */
+  countLogEmbeddings = (): number => this.fts.countLogEmbeddings();
+
+  /** M-04.1: pass-through. Drops `n` oldest log embeddings (rolling-cap). */
+  evictOldestLogEmbeddings = (n: number): number =>
+    this.fts.evictOldestLogEmbeddings(n);
+
+  /** M-04.1: batch-hydrate log rows by id for the RAG vec branch. */
+  hydrateForVec = (ids: string[]): LogVecHydrateRow[] =>
+    this.fts.hydrateForVec(ids);
 }

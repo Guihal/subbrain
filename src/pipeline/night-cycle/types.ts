@@ -30,6 +30,10 @@ export interface NightCycleResult {
   crossLayerSupersedesAdded: number;
   crossLayerPromotedToShared: number;
   crossLayerErrors: number;
+  // M-04.1: rolling N-row vec embed for layer4_log counters.
+  logEmbedded: number;
+  logEvicted: number;
+  logEmbedErrors: number;
   errors: string[];
   lastProcessedId: number;
 }
