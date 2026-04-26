@@ -1,6 +1,6 @@
 # M-05 · Memory edges (A-MEM lite)
 
-**Tier:** P1 · **Effort:** M · **Deps:** — · **Status:** OPEN
+**Tier:** P1 · **Effort:** M · **Deps:** — · **Status:** DONE (commit `3a6c168` + critic round-1 fix-up: weight=const 1.0, MEM-11 audit entry, Status sync)
 **Migration assignment:** **14** (M-03 takes 13 — do NOT use 13 here).
 
 ## Цель
@@ -173,4 +173,4 @@ Depth=1 = direct edges (out + in). Depth=2 = 1-hop further (set difference из 
 
 ---
 
-**Status:** OPEN
+**Status:** DONE (commit `3a6c168` + fix-up — see header)

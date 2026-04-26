@@ -360,6 +360,14 @@ Tests: `tests/memory-kind.test.ts` (18 кейсов — schema, idempotency, map
 **Foundation для M-08** (asymmetric forgetting curve — persona never decays) **и M-11** (sleep-time block rewriter переписывает persona в layer1_focus).
 **Scope:** M-07.
 
+### MEM-11 ✅ memory edges (A-MEM lite, закрыто M-05, 2026-04-26)
+`derived_from` JSON массив в `layer2_context` хранил one-way источники (id'и без указания layer), не запрашивался ни одним API. Никакого typed graph между memos: A-MEM (NeurIPS '25) Zettelkasten / Mem0g entity-relation pattern отсутствовал. Foundation для M-06 reflect-step (CoALA-style episodic→semantic promotion с derives-edges) + M-09 cross-layer dedup (use edges для merge tracking) был не закрыт.
+**Fix:** M-05 — миграция 14 (M-03 owns 13): `memory_edges(src_id, src_layer, dst_id, dst_layer, kind, weight, created_at)` + composite PK + 3 индекса (idx_edges_src/dst/kind) + CHECK на src_layer/dst_layer + CHECK на kind. `EdgeKind` union: `'derives' | 'relates' | 'contradicts' | 'supersedes'` (distinct from `MemoryKind` of M-07). `EdgesTable` (`db/tables/edges.ts`, 147 LOC) + `EdgeRepository` (`repositories/edges.repo.ts`, 46 LOC) wired в MemoryDB facade. `linkRelated` hook (`pipeline/agent-pipeline/post/link-related.ts`, 48 LOC) после dedupe + insert в `writeShared` / `writeContext` → top-3 vec neighbours в same layer (skipRerank, self-skip) → INSERT edges kind='relates' weight=1.0 (existence-based, not strength — `n.score` from skipRerank=true is RRF-rank-derived, not calibrated similarity; persisting it would invert higher=stronger intuition for downstream consumers). Non-blocking — RAG failure → `log.warn` 2-arg, не throw. Backfill: existing `layer2_context.derived_from` JSON через `json_each(COALESCE(c.derived_from, '[]'))` → INSERT kind='derives' (assumes context-layer source per back-compat heuristic). Idempotent: empty-table guard перед backfill + INSERT OR IGNORE на PK collision.
+Tests: `tests/memory-edges.test.ts` (11 кейсов — schema + 3 indexes + composite PK, addEdge OR IGNORE, getEdgesFromSrc/Dst kind filter, getRelated depth=1/2 traversal, backfill from derived_from + idempotency on rerun, linkRelated top-3 cap + self-skip + RAG-fail swallowing).
+**Out of scope (follow-ups):** evolution (A-MEM update of neighbour attributes — M-05.1), LLM-based contradiction detection (M-05.2), public MCP curation tools (`memory_link` etc — M-10), cross-layer dedup using edges (M-09), web UI for edge visualisation, edge weight semantics tuning.
+**Foundation для M-06** (reflect-step promotion с derives edges) **и M-09** (cross-layer dedup).
+**Scope:** M-05.
+
 ### Memory-v2 wave 1 review (2026-04-26, M-FINAL)
 
 **Closed:** MEM-2 (M-01), MEM-7 (M-02), MEM-8 (M-04), MEM-9 (M-07).

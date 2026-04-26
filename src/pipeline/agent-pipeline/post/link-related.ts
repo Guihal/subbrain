@@ -34,7 +34,13 @@ export async function linkRelated(
       if (drawn >= LINK_RELATED_TOP_N) break;
       if (n.id === insertedId) continue;
       try {
-        memory.linkEdge(insertedId, layer, n.id, n.layer, "relates", n.score ?? 1.0);
+        // Edge weight is intentionally constant 1.0 in M-05: edges represent
+        // existence of a relation, not strength. With `skipRerank: true` the
+        // RAG result `score` is RRF-rank-derived (FTS+vec merge), not a
+        // calibrated similarity — using it here would invert intuition for
+        // downstream M-06 (reflect) / M-09 (cross-layer dedup) which read
+        // higher weight as stronger relation. Strength is M-05.1 (evolution).
+        memory.linkEdge(insertedId, layer, n.id, n.layer, "relates", 1.0);
         drawn++;
       } catch (err) {
         const em = err instanceof Error ? err.message : String(err);
