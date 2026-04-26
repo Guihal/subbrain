@@ -687,6 +687,52 @@ export function migrate(db: Database): void {
       db.query(`PRAGMA user_version = 12`).run();
     })();
   }
+
+  // Migration 13 (M-03): salience + last_decayed_at on shared / context /
+  // archive. Builds on M-02 (mig 10) access tracking — salience is the
+  // popularity/importance score that grows on every retrieval hit
+  // (`MemoryRepository.bumpAccess`) and decays daily in the night cycle
+  // (`night-cycle/steps/decay-salience.ts`).
+  //
+  // `salience REAL NOT NULL DEFAULT 0.5` — neutral baseline; existing rows
+  // backfilled by SQLite's ALTER ADD COLUMN-with-DEFAULT mechanism.
+  // `last_decayed_at INTEGER DEFAULT NULL` — bookkeeping for idempotent
+  // night-cycle decay (Path A in M-03 plan): decay computes
+  // `(now - last_decayed_at) / 86400` and updates `last_decayed_at = now`,
+  // so a same-day re-run is a no-op (age delta = 0).
+  //
+  // Idempotency: try/catch on "duplicate column name" — same belt-and-
+  // braces pattern as mig 10/12. Indexes are CREATE IF NOT EXISTS.
+  //
+  // Number assignment: 13 (M-05 takes 14 — disjoint table scopes, merges
+  // resolve cleanly).
+  if (version < 13) {
+    const addColumnStmts = [
+      `ALTER TABLE shared_memory   ADD COLUMN salience REAL NOT NULL DEFAULT 0.5`,
+      `ALTER TABLE shared_memory   ADD COLUMN last_decayed_at INTEGER DEFAULT NULL`,
+      `ALTER TABLE layer2_context  ADD COLUMN salience REAL NOT NULL DEFAULT 0.5`,
+      `ALTER TABLE layer2_context  ADD COLUMN last_decayed_at INTEGER DEFAULT NULL`,
+      `ALTER TABLE layer3_archive  ADD COLUMN salience REAL NOT NULL DEFAULT 0.5`,
+      `ALTER TABLE layer3_archive  ADD COLUMN last_decayed_at INTEGER DEFAULT NULL`,
+    ];
+    const indexStmts = [
+      `CREATE INDEX IF NOT EXISTS idx_shared_salience  ON shared_memory  (salience DESC)`,
+      `CREATE INDEX IF NOT EXISTS idx_context_salience ON layer2_context (salience DESC)`,
+      `CREATE INDEX IF NOT EXISTS idx_archive_salience ON layer3_archive (salience DESC)`,
+    ];
+    db.transaction(() => {
+      for (const sql of addColumnStmts) {
+        try {
+          db.query(sql).run();
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          if (!/duplicate column name/i.test(msg)) throw err;
+        }
+      }
+      for (const sql of indexStmts) db.query(sql).run();
+      db.query(`PRAGMA user_version = 13`).run();
+    })();
+  }
 }
 
 export { EMBEDDING_DIM };

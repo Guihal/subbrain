@@ -22,6 +22,12 @@ export interface RAGResult {
   // persona-boost step in `rag/pipeline.ts` (RAGPipeline.applyPersonaBoost).
   // Optional because context/archive/log rows have no `kind` column.
   kind?: string;
+  // M-03 (mig 13): salience score [0..1] carried for shared / context /
+  // archive layers. Powers the salience-boost step in
+  // `rag/pipeline.ts:applySalienceBoost`. Defaults to 0.5 in that step
+  // when undefined (e.g. log layer or pre-mig-13 row), so callers don't
+  // need to populate it. Stacks multiplicatively with persona boost.
+  salience?: number;
 }
 
 // M-04: include "log" so the agent-only `memory_log_search` tool and

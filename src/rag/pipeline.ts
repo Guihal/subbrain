@@ -36,6 +36,13 @@ function isBumpLayer(l: string): l is BumpLayer {
 // against the new salience signal.
 const PERSONA_BOOST = 1.1;
 
+// M-03 (mig 13): salience signal blends multiplicatively with the rerank
+// score. A row at salience=1.0 gets a +10% bump (1 + 0.1 * 1); salience=0.0
+// gets nothing; default 0.5 gets +5%. Stacks with persona boost so a
+// persona row at high salience sees ~1.21× combined — the cosine signal
+// still dominates ranking. Tunable; M-08 A/B may revise.
+const SALIENCE_BOOST_FACTOR = 0.1;
+
 function dedupeById(results: RAGResult[]): RAGResult[] {
   // M-04: dedupe key is `${layer}:${id}` — log layer ids are stringified
   // integers ("42") while shared/context/archive use uuids; an unguarded
@@ -117,6 +124,13 @@ export class RAGPipeline {
     // rerank-fail fallbacks. Re-sorts in place.
     final = this.applyPersonaBoost(final);
 
+    // M-03 (mig 13): salience boost stacks multiplicatively on top of the
+    // persona boost. Persona signal answers "what KIND of fact is this?"
+    // (identity vs. semantic); salience answers "how often is THIS row
+    // referenced?". Applied after persona so the resulting order reflects
+    // both signals — a hot persona row outranks a cold persona row.
+    final = this.applySalienceBoost(final);
+
     // 5. M-02 (mig 10): bump access counters for surviving rows. Non-
     // blocking — fire-and-forget so retrieval latency is not paid for the
     // UPDATE. `Promise.allSettled` per layer (never `Promise.all`) so a
@@ -146,6 +160,26 @@ export class RAGPipeline {
         ? { ...r, score: r.score * PERSONA_BOOST }
         : r,
     );
+    boosted.sort((a, b) => b.score - a.score);
+    return boosted;
+  }
+
+  /**
+   * M-03 (mig 13): salience-based boost. Multiplies score by
+   * `1 + 0.1 * salience` so hot rows (salience → 1.0) get up to +10% on top
+   * of whatever ranking they already have. Default salience for log layer
+   * (no column) or pre-mig-13 rows is 0.5 — a neutral +5%. Stacks
+   * multiplicatively with persona boost; combined max ≈ 1.21×.
+   *
+   * Applied after persona boost in `search()` so the re-sort here is the
+   * final order. Pure function: returns a new array, original untouched.
+   */
+  private applySalienceBoost(results: RAGResult[]): RAGResult[] {
+    if (results.length === 0) return results;
+    const boosted = results.map((r) => {
+      const salience = r.salience ?? 0.5;
+      return { ...r, score: r.score * (1 + SALIENCE_BOOST_FACTOR * salience) };
+    });
     boosted.sort((a, b) => b.score - a.score);
     return boosted;
   }
@@ -223,6 +257,9 @@ export class RAGPipeline {
           score: 0,
           created_at: r.created_at,
           updated_at: r.updated_at,
+          // M-03: salience threaded through searchContext SELECT for
+          // the post-rerank salience-boost step.
+          salience: r.salience,
         });
       }
     }
@@ -236,6 +273,8 @@ export class RAGPipeline {
           score: 0,
           created_at: r.created_at,
           updated_at: r.updated_at,
+          // M-03: see context branch.
+          salience: r.salience,
         });
       }
     }
@@ -251,6 +290,8 @@ export class RAGPipeline {
           updated_at: r.updated_at,
           // M-07: kind threaded through the SELECT in SharedTable.searchShared.
           kind: r.kind,
+          // M-03: salience threaded through searchShared SELECT.
+          salience: r.salience,
         });
       }
     }
@@ -296,6 +337,7 @@ export class RAGPipeline {
       const ids = vecResults.map((v) => v.id);
       // One batch SELECT per layer, keyed by id.
       // M-07: `kind` is shared-only — non-shared layers leave it undefined.
+      // M-03: `salience` is hydrated for all three layers (mig 13 columns).
       const byId = new Map<
         string,
         {
@@ -304,15 +346,33 @@ export class RAGPipeline {
           created_at?: number;
           updated_at?: number;
           kind?: string;
+          salience?: number;
         }
       >();
       // MEM-5 (PR 22a): vec search can return ids whose rows are pending /
       // rejected (the vec_embeddings table has no status column). activeOnly
       // drops them at hydrate time so they never enter RAG injection.
       if (layer === "context") {
-        for (const r of this.memory.getContextMany(ids, { activeOnly: true, notStale: true, agentId })) byId.set(r.id, r);
+        for (const r of this.memory.getContextMany(ids, { activeOnly: true, notStale: true, agentId })) {
+          byId.set(r.id, {
+            title: r.title,
+            content: r.content,
+            created_at: r.created_at,
+            updated_at: r.updated_at,
+            // M-03: SELECT * already returns salience.
+            salience: r.salience,
+          });
+        }
       } else if (layer === "archive") {
-        for (const r of this.memory.getArchiveMany(ids)) byId.set(r.id, r);
+        for (const r of this.memory.getArchiveMany(ids)) {
+          byId.set(r.id, {
+            title: r.title,
+            content: r.content,
+            created_at: r.created_at,
+            updated_at: r.updated_at,
+            salience: r.salience,
+          });
+        }
       } else if (layer === "shared") {
         for (const r of this.memory.getSharedMany(ids, { activeOnly: true, notStale: true })) {
           byId.set(r.id, {
@@ -322,6 +382,8 @@ export class RAGPipeline {
             updated_at: r.updated_at,
             // M-07: persona boost reads this in applyPersonaBoost.
             kind: r.kind,
+            // M-03: salience boost reads this in applySalienceBoost.
+            salience: r.salience,
           });
         }
       }
@@ -341,6 +403,7 @@ export class RAGPipeline {
           created_at: row?.created_at,
           updated_at: row?.updated_at,
           kind: row?.kind,
+          salience: row?.salience,
         });
       }
     }

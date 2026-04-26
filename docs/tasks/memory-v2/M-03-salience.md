@@ -1,6 +1,6 @@
 # M-03 · Salience + reinforce-on-access + night-cycle decay
 
-**Tier:** P1 · **Effort:** M · **Deps:** M-02 (access tracking) — landed · **Status:** OPEN
+**Tier:** P1 · **Effort:** M · **Deps:** M-02 (access tracking) — landed · **Status:** DONE
 **Migration assignment:** **13** (M-05 takes 14 — do NOT use 14 here even if file ordering suggests it).
 
 ## Цель
@@ -127,4 +127,4 @@ Combine с persona-boost (M-07: `if persona → score *= 1.1`). Итоговое
 
 ---
 
-**Status:** OPEN
+**Status:** DONE

@@ -234,13 +234,72 @@ export class MemoryRepository {
     // (now - last_accessed_at) and would silently 1000× over-age if we
     // wrote ms here.
     const now = Math.floor(Date.now() / 1000);
+    // M-03 (mig 13): reinforce salience on every hit.
+    //   bonus = 0.05 * exp(-age_days / 7), age_days = (now - prev_last_accessed)/86400
+    // First-ever hit (last_accessed_at IS NULL) → COALESCE proxies to `now` →
+    // age_days = 0 → bonus = 0.05 (full). Older rows get exponentially
+    // smaller bonuses. Cap at 1.0 via MIN(1.0, ...). bun:sqlite ships EXP()
+    // (verified via `SELECT EXP(0)`) — no piecewise CASE fallback needed.
     this.db
       .query(
         `UPDATE ${table}
-            SET last_accessed_at = ?, access_count = access_count + 1
+            SET last_accessed_at = ?,
+                access_count = access_count + 1,
+                salience = MIN(
+                  1.0,
+                  salience + 0.05 * EXP(
+                    -CAST(? - COALESCE(last_accessed_at, ?) AS REAL) / (7.0 * 86400.0)
+                  )
+                )
           WHERE id IN (${placeholders})`,
       )
-      .run(now, ...ids);
+      .run(now, now, now, ...ids);
+  }
+
+  // ─── M-03: night-cycle salience decay (mig 13) ────────────
+  /**
+   * Multiply `salience` by `0.98 ^ days_since_last_decayed` for every row in
+   * a layer that has ever been accessed. Uses POW() (verified to be
+   * available in bun:sqlite via `SELECT POW(2,3)`). Returns the number of
+   * rows affected.
+   *
+   * Idempotency: when `last_decayed_at` is set, age = (now - last_decayed)
+   * → re-running on the same day is a no-op (multiplier = 1). On the
+   * very first run after migration `last_decayed_at IS NULL`; we proxy to
+   * `last_accessed_at` so the first decay still gets a sensible age.
+   * Rows that were never accessed (both columns NULL) are filtered out.
+   *
+   * Floor: rows with `salience <= 0.001` are skipped. Avoids epsilon
+   * multiplication noise on already-cold rows + saves writes.
+   *
+   * `now` is supplied by the caller so a single night-cycle pass uses one
+   * consistent timestamp across all 3 layers.
+   */
+  decaySalience(layer: "shared" | "context" | "archive", now: number): number {
+    const table =
+      layer === "shared"
+        ? "shared_memory"
+        : layer === "context"
+        ? "layer2_context"
+        : "layer3_archive";
+    // MAX(0, ...) clamps a future last_decayed_at (clock skew) so salience
+    // never inflates from a negative age.
+    const result = this.db
+      .query(
+        `UPDATE ${table}
+            SET salience = salience * POW(
+                  0.98,
+                  MAX(
+                    0.0,
+                    CAST(? - COALESCE(last_decayed_at, last_accessed_at) AS REAL) / 86400.0
+                  )
+                ),
+                last_decayed_at = ?
+          WHERE COALESCE(last_decayed_at, last_accessed_at) IS NOT NULL
+            AND salience > 0.001`,
+      )
+      .run(now, now);
+    return result.changes;
   }
 
   // ─── Pending (status-filtered) list (PR 22a / MEM-5) ──────

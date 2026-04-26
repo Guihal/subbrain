@@ -7,7 +7,7 @@ import type { MemoryDB } from "../../db";
 import type { ModelRouter } from "../../lib/model-router";
 import type { RAGPipeline } from "../../rag";
 import { logger } from "../../lib/logger";
-import { resolveContradictions, runMemoryDedup } from "./steps";
+import { resolveContradictions, runMemoryDedup, decaySalience } from "./steps";
 import {
   pruneShared,
   pruneContext,
@@ -62,6 +62,19 @@ export async function runPostBatchSteps(
     result.expiredMarked = r.expired;
     log.info(
       `memory-dedup: shared=${r.shared}, context=${r.context}, expired=${r.expired}`,
+    );
+  }, result);
+
+  // M-03 (mig 13): decay salience scores so popularity bumps fade over
+  // time. Pure SQL — runs after memory-dedup so superseded/expired rows
+  // (which sit untouched here) don't pull pointless writes. Order is
+  // intentional: dedup mutates rows, decay is read-then-multiply on the
+  // already-cleaned set.
+  await runStep("Decay salience", "Decay salience", async () => {
+    const r = await decaySalience(memory);
+    result.salienceDecayed = r.shared + r.context + r.archive;
+    log.info(
+      `decay-salience: shared=${r.shared}, context=${r.context}, archive=${r.archive}`,
     );
   }, result);
 }

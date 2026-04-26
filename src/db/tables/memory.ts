@@ -259,9 +259,10 @@ export class MemoryTable {
     const params: (string | number)[] = [ftsQuery];
     if (opts?.agentId) params.push(opts.agentId);
     params.push(limit);
+    // M-03 (mig 13): SELECT `c.salience` for the RAG salience-boost step.
     return this.db
       .query(
-        `SELECT c.id, c.title, c.tags, snippet(fts_context, 1, '<b>', '</b>', '...', 32) AS snippet, rank, c.created_at, c.updated_at FROM fts_context f JOIN layer2_context c ON c.rowid = f.rowid WHERE fts_context MATCH ?${filter}${agentFilter} ORDER BY rank LIMIT ?`,
+        `SELECT c.id, c.title, c.tags, snippet(fts_context, 1, '<b>', '</b>', '...', 32) AS snippet, rank, c.created_at, c.updated_at, c.salience FROM fts_context f JOIN layer2_context c ON c.rowid = f.rowid WHERE fts_context MATCH ?${filter}${agentFilter} ORDER BY rank LIMIT ?`,
       )
       .all(...params) as FtsResult[];
   }
@@ -269,9 +270,10 @@ export class MemoryTable {
   searchArchive(query: string, limit = 10): FtsResult[] {
     const ftsQuery = sanitizeFtsQuery(query);
     if (!ftsQuery) return [];
+    // M-03 (mig 13): SELECT `a.salience` for the RAG salience-boost step.
     return this.db
       .query(
-        "SELECT a.id, a.title, a.tags, snippet(fts_archive, 1, '<b>', '</b>', '...', 32) AS snippet, rank, a.created_at, a.updated_at FROM fts_archive f JOIN layer3_archive a ON a.rowid = f.rowid WHERE fts_archive MATCH ? ORDER BY rank LIMIT ?",
+        "SELECT a.id, a.title, a.tags, snippet(fts_archive, 1, '<b>', '</b>', '...', 32) AS snippet, rank, a.created_at, a.updated_at, a.salience FROM fts_archive f JOIN layer3_archive a ON a.rowid = f.rowid WHERE fts_archive MATCH ? ORDER BY rank LIMIT ?",
       )
       .all(ftsQuery, limit) as FtsResult[];
   }

@@ -17,6 +17,9 @@ export interface NightCycleResult {
   sharedDeduped: number;
   contextDeduped: number;
   expiredMarked: number;
+  // M-03 (mig 13): rows whose salience was multiplied by 0.98^days_since
+  // in the night-cycle decay-salience step (sum across 3 layers).
+  salienceDecayed: number;
   errors: string[];
   lastProcessedId: number;
 }
