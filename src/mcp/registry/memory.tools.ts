@@ -114,4 +114,35 @@ export function registerMemoryTools(registry: ToolRegistry): void {
     }),
     handler: (args, ctx) => ctx.executor.memoryTools.contextSummary(args.session_id),
   });
+
+  // M-04: agent-only FTS5 search over Layer 4 (raw_log). Hidden from
+  // public REST/MCP because raw log rows hold pre-scrub PII (user input
+  // before night-cycle sanitization). Reachable only inside the agent
+  // loop. Default limit 20; optional agentId / sessionId narrow the scan.
+  registry.register({
+    name: "memory_log_search",
+    description:
+      "Search Layer 4 raw log (FTS5) by content. Agent-only — raw logs may contain PII before night-cycle scrub. Returns id (log row), role (as title), snippet with <b>...</b> highlight, and timestamps.",
+    scope: "agent-only",
+    input: t.Object({
+      query: t.String({ description: "Search query (sanitized for FTS5)" }),
+      limit: t.Optional(
+        t.Number({ description: "Max rows (default 20)" }),
+      ),
+      agentId: t.Optional(
+        t.String({ description: "Restrict to a single agent's rows" }),
+      ),
+      sessionId: t.Optional(
+        t.String({ description: "Restrict to a single session's rows" }),
+      ),
+    }),
+    handler: (args, ctx) => {
+      const hits = ctx.executor.memoryDb.logRepo.searchLog(args.query, {
+        limit: args.limit,
+        agentId: args.agentId,
+        sessionId: args.sessionId,
+      });
+      return { success: true, data: hits };
+    },
+  });
 }

@@ -297,6 +297,13 @@ export class MemoryDB {
   listLogSessions = (limit?: number) => this.logRepo.listLogSessions(limit);
   groupLogsBySession = (rows: import("./types").LogRow[]) =>
     this.logRepo.groupLogsBySession(rows);
+  // M-04 (mig 11): FTS5 search over Layer 4. Agent-only callers should reach
+  // through `memory.logRepo.searchLog`; the facade keeps parity for
+  // scripts/tests/legacy. PII-bearing — no public REST surface.
+  searchLog = (
+    query: string,
+    opts?: import("./tables/log").SearchLogOpts,
+  ) => this.logRepo.searchLog(query, opts);
 
   // ─── Telegram Messages (FTS index) ─────────────────────────
   insertTgMessage = (msg: TgMessageInsert) => this.telegramRepo.insertTgMessage(msg);
