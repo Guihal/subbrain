@@ -120,10 +120,10 @@ export class MemoryTools {
     // MEM-5 (PR 22a): numeric confidence 0..1 classifies the row via the
     // MEMORY_AUTOACCEPT_CONFIDENCE threshold (default 0.8):
     //   ≥ threshold → 'active', below → 'pending'.
-    // Archive layer retains its legacy HIGH/LOW label — mapped from the same
-    // numeric score (≥ 0.8 → HIGH) so the registry surface stays uniform.
-    // Legacy string form ("HIGH"/"LOW") from direct-test callers is preserved
-    // as a fallback — they never reach the registry validator.
+    // M-12 (mig 15): archive now stores REAL [0..1] just like shared/context;
+    // we pass `confidence` straight through. Legacy string form
+    // ("HIGH"/"LOW") from direct-test callers is preserved as a fallback —
+    // they never reach the registry validator (which rejects strings).
     const THRESHOLD = Number(process.env.MEMORY_AUTOACCEPT_CONFIDENCE ?? 0.8);
     let numericConfidence: number;
     if (typeof params.confidence === "number") {
@@ -136,7 +136,6 @@ export class MemoryTools {
     const confidence = Math.min(1, Math.max(0, numericConfidence));
     const status: "active" | "pending" =
       confidence >= THRESHOLD ? "active" : "pending";
-    const archiveLabel: "HIGH" | "LOW" = confidence >= 0.8 ? "HIGH" : "LOW";
 
     switch (params.layer) {
       case "focus":
@@ -185,12 +184,15 @@ export class MemoryTools {
       }
 
       case "archive":
+        // M-12 (mig 15): archive confidence is now REAL [0..1] — pass the
+        // already-clamped numeric value straight through. Backfill mapping:
+        // pre-mig 'HIGH' → 0.9, 'LOW' → 0.4 (see schema.ts mig 15).
         if (this.memory.getArchive(id)) {
           this.memory.updateArchive(id, {
             title: params.title,
             content: params.content,
             tags: params.tags,
-            confidence: archiveLabel,
+            confidence,
           });
         } else {
           // Archive is shared-by-design (MEM-3); agentId is recorded for
@@ -202,7 +204,7 @@ export class MemoryTools {
             params.content,
             params.tags || "",
             [],
-            archiveLabel,
+            confidence,
             agentId ?? undefined,
           );
         }

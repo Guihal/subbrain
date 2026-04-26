@@ -50,17 +50,18 @@ describe("MemoryDB", () => {
   });
 
   test("Layer 3 (Archive): insert/get + source_request_ids round-trip", () => {
+    // M-12 (mig 15): confidence unified to REAL [0..1] | null.
     db.insertArchive(
       arcId,
       "Pattern: Error Handling",
       "Use ProviderError for upstream",
       "patterns",
       ["req-1", "req-2"],
-      "HIGH",
+      0.9,
       "coder",
     );
     const arc = db.getArchive(arcId);
-    expect(arc?.confidence).toBe("HIGH");
+    expect(arc?.confidence).toBe(0.9);
     expect(JSON.parse(arc!.source_request_ids).length).toBe(2);
   });
 

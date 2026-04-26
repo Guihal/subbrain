@@ -44,14 +44,15 @@ Accurate=false → confidence записи понижается до LOW (зап
       "low",
     );
 
+    // M-12 (mig 15): legacy "LOW" → 0.4 (< MEMORY_AUTOACCEPT_CONFIDENCE 0.8).
     const raw = response.choices[0]?.message?.content || "";
     const parsed = parseJson(raw);
     if (parsed && !parsed.accurate) {
-      return { ...entry, confidence: "LOW" };
+      return { ...entry, confidence: 0.4 };
     }
     return entry;
   } catch (err) {
     log.warn(`verify: ${(err as Error).message}`);
-    return { ...entry, confidence: "LOW" };
+    return { ...entry, confidence: 0.4 };
   }
 }

@@ -60,9 +60,10 @@ describe("MED-1: updateRow via allowlist", () => {
     db.updateContext("c1", { title: "t2" });
     expect(db.getContext("c1")!.title).toBe("t2");
 
-    db.insertArchive("a1", "T", "c", "t", [], "LOW");
-    db.updateArchive("a1", { confidence: "HIGH" });
-    expect(db.getArchive("a1")!.confidence).toBe("HIGH");
+    // M-12 (mig 15): confidence unified to REAL [0..1] | null.
+    db.insertArchive("a1", "T", "c", "t", [], 0.4);
+    db.updateArchive("a1", { confidence: 0.9 });
+    expect(db.getArchive("a1")!.confidence).toBe(0.9);
   });
 });
 

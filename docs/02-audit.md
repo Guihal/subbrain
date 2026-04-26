@@ -391,6 +391,13 @@ Tests: `tests/memory-forgetting-curve.test.ts` (11 кейсов — pure-fn base
 **Foundation для:** memory-v2 P1 закрыт. M-09/M-10/M-11/M-12 — P2 backlog (cross-layer dedup, public MCP curation, sleep-time block rewriter, A-MEM evolution).
 **Scope:** M-08.
 
+### MEM-14 ✅ archive confidence унификация (закрыто M-12, 2026-04-26)
+`layer3_archive.confidence` оставался TEXT('HIGH'|'LOW') NOT NULL DEFAULT 'HIGH' — наследие до миграции 8 (M-FINAL2 audit). Все остальные слои (`shared_memory`, `layer2_context`) после mig 8 имели `confidence REAL` с диапазоном [0, 1] + `MEMORY_AUTOACCEPT_CONFIDENCE` (default 0.8) threshold для status='active'. Schema mismatch блокировал унифицированную UI/API surface (route `/v1/memory/archive` принимал string-enum, остальные — number).
+**Fix:** M-12 — Migration 15: rebuild `layer3_archive` через temp-table + INSERT-SELECT + DROP + RENAME (mig 3/7 pattern). Backfill `'HIGH' → 0.9`, `'LOW' → 0.4`, иначе NULL. Под `db.transaction()` + per-statement `.run()`. Сохраняет M-02 (`last_accessed_at`, `access_count`) + M-03 (`salience`, `last_decayed_at`) колонки. Re-creates FTS5 mirror triggers + indexes (`idx_archive_access`, `idx_archive_salience`) после rename. `ArchiveRow.confidence: number | null` (заменил TEXT-union). `insertArchive` default = 0.9 (= legacy "HIGH"). Все callers переехали на numeric: `night-cycle/steps/{compress,verify,contradictions}.ts`, `night-cycle/anti-patterns-step.ts`, `night-cycle/prune/tasks.ts`, `mcp/tools/memory-tools.ts` (archive case), `routes/memory.ts` (TypeBox `t.Number({minimum:0, maximum:1})`), frontend (`useMemory/types.ts`, `MemoryEditor.vue`, `editor/ArchiveBody.vue`, `MemoryList.vue`, `useMemoryEditor.ts` — рендер `.toFixed(2)` + threshold-based color ≥0.8 → green). M-07 plan-locked archive из `kind` — НЕ добавлено.
+Tests: `tests/memory-archive-confidence.test.ts` (8 кейсов — backfill HIGH/LOW, mig 15 idempotent, FTS trigger sync survives rebuild, indexes preserved, `insertArchive` REAL round-trip, route TypeBox rejects out-of-range numbers + legacy "HIGH" string, valid REAL persists). 733 pass / 0 fail (725 baseline + 8). `bunx tsc --noEmit` exit 0. typeof(confidence) = "real".
+**Out of scope (follow-ups):** archive `kind` column (M-07 plan-locked); per-kind threshold tuning (M-12.1 если A/B); 100k+ rows perf — отдельная задача.
+**Scope:** M-12.
+
 ### Memory-v2 wave 1 review (2026-04-26, M-FINAL)
 
 **Closed:** MEM-2 (M-01), MEM-7 (M-02), MEM-8 (M-04), MEM-9 (M-07), MEM-10 (M-03).

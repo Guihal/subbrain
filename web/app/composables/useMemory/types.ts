@@ -40,13 +40,16 @@ export interface ContextRow {
   updated_at: number;
 }
 
+// M-12 (mig 15): archive confidence unified to REAL [0..1] | null.
+// Frontend renders via threshold (≥ 0.8 → "HIGH" green, < 0.8 → "LOW" gray)
+// in MemoryList.vue + useMemoryEditor.ts.
 export interface ArchiveRow {
   id: string;
   title: string;
   content: string;
   tags: string;
   source_request_ids: string;
-  confidence: "HIGH" | "LOW";
+  confidence: number | null;
   agent_id: string | null;
   created_at: number;
   updated_at: number;

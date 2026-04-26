@@ -10,13 +10,14 @@ export type ContextPatch = {
   id: string;
   patch: { title: string; content: string; tags: string };
 };
+// M-12 (mig 15): confidence unified to REAL [0..1] | null.
 export type ArchivePatch = {
   id: string;
   patch: {
     title: string;
     content: string;
     tags: string;
-    confidence: "HIGH" | "LOW";
+    confidence: number | null;
   };
 };
 export type AgentPatch = { id: string; patch: { content: string; tags: string } };
@@ -30,13 +31,14 @@ export type EditorPatch =
   | { kind: "log" };
 
 export function useMemoryEditor(selected: Ref<MemoryRow>) {
+  // M-12 (mig 15): confidence unified to REAL [0..1] | null.
   const fields = reactive({
     value: "",
     category: "",
     title: "",
     content: "",
     tags: "",
-    confidence: "LOW" as "HIGH" | "LOW",
+    confidence: null as number | null,
   });
 
   const dirty = ref(false);
@@ -47,7 +49,7 @@ export function useMemoryEditor(selected: Ref<MemoryRow>) {
     fields.title = "";
     fields.content = "";
     fields.tags = "";
-    fields.confidence = "LOW";
+    fields.confidence = null;
     switch (row.__kind) {
       case "focus":
         fields.value = row.value;
@@ -148,6 +150,8 @@ export function useMemoryEditor(selected: Ref<MemoryRow>) {
     });
   }
 
+  // M-12 (mig 15): archive confidence renders by threshold ≥ 0.8 → green
+  // ("HIGH"-equivalent), < 0.8 → gray, null → gray.
   function badgeColor(row: MemoryRow): string {
     switch (row.__kind) {
       case "focus":
@@ -157,7 +161,9 @@ export function useMemoryEditor(selected: Ref<MemoryRow>) {
       case "context":
         return "text-purple-400";
       case "archive":
-        return row.confidence === "HIGH" ? "text-green-400" : "text-gray-400";
+        return row.confidence !== null && row.confidence >= 0.8
+          ? "text-green-400"
+          : "text-gray-400";
       case "agent":
         return "text-orange-400";
       case "log":
@@ -174,7 +180,7 @@ export function useMemoryEditor(selected: Ref<MemoryRow>) {
       case "context":
         return (row.agent_id || "auto").slice(0, 12);
       case "archive":
-        return row.confidence;
+        return row.confidence === null ? "—" : row.confidence.toFixed(2);
       case "agent":
         return row.agent_id;
       case "log":

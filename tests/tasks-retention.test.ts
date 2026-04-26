@@ -174,7 +174,7 @@ describe("pruneCompletedTasks", () => {
       "old w1 content",
       w1,
       [],
-      "HIGH",
+      0.9, // M-12 (mig 15): REAL confidence
       "night-cycle",
     );
     // A fake digest for w10 label that should not collide with w1 via LIKE.

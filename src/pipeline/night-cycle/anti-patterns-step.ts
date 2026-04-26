@@ -27,6 +27,7 @@ export async function runAntiPatternsStep(
     const apId = randomUUID();
     try {
       const vec = await rag.embedContent(antiPatterns);
+      // M-12 (mig 15): confidence is REAL [0..1]. 0.9 = legacy "HIGH" mapping.
       memory.transaction(() => {
         memory.insertArchive(
           apId,
@@ -34,7 +35,7 @@ export async function runAntiPatternsStep(
           antiPatterns,
           "anti-patterns,night-cycle",
           [],
-          "HIGH",
+          0.9,
           "night-cycle",
         );
         memory.upsertEmbedding(apId, "archive", vec);

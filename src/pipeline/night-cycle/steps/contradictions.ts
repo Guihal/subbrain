@@ -9,9 +9,12 @@ export async function resolveContradictions(
   router: ModelRouter,
   rag?: RAGPipeline,
 ): Promise<number> {
+  // M-12 (mig 15): confidence unified to REAL [0..1]. Pre-mig 15 'LOW' rows
+  // backfilled to 0.4 → threshold < MEMORY_AUTOACCEPT_CONFIDENCE 0.8 selects
+  // exactly the same set; new writers (verify step) drop confidence to 0.4.
   const lowConfidence = memory.db
     .query(
-      "SELECT id, title, content FROM layer3_archive WHERE confidence = 'LOW' ORDER BY created_at DESC LIMIT 10",
+      "SELECT id, title, content FROM layer3_archive WHERE confidence IS NOT NULL AND confidence < 0.8 ORDER BY created_at DESC LIMIT 10",
     )
     .all() as { id: string; title: string; content: string }[];
 
@@ -22,7 +25,7 @@ export async function resolveContradictions(
     try {
       const related = memory.searchArchive(entry.title, 3);
       if (related.length === 0) {
-        memory.updateArchive(entry.id, { confidence: "HIGH" });
+        memory.updateArchive(entry.id, { confidence: 0.9 });
         resolved++;
         continue;
       }
@@ -62,10 +65,10 @@ Output JSON:
       if (!parsed) continue;
 
       if (!parsed.hasContradiction) {
-        memory.updateArchive(entry.id, { confidence: "HIGH" });
+        memory.updateArchive(entry.id, { confidence: 0.9 });
         resolved++;
       } else if (parsed.resolution === "keep_new") {
-        memory.updateArchive(entry.id, { confidence: "HIGH" });
+        memory.updateArchive(entry.id, { confidence: 0.9 });
         resolved++;
       } else if (parsed.resolution === "keep_old") {
         // M-4: drop vec row in the same transaction so dedup-resolution
@@ -79,7 +82,7 @@ Output JSON:
       } else if (parsed.resolution === "merge" && parsed.mergedContent) {
         memory.updateArchive(entry.id, {
           content: parsed.mergedContent,
-          confidence: "HIGH",
+          confidence: 0.9,
         });
         if (rag) {
           try {

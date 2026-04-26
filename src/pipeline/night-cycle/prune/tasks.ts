@@ -109,6 +109,7 @@ export async function pruneCompletedTasks(
           memory.deleteEmbedding(existing.id);
           memory.upsertEmbedding(existing.id, "archive", vec);
         } else {
+          // M-12 (mig 15): confidence REAL [0..1]; 0.9 = legacy "HIGH".
           const archiveId = randomUUID();
           memory.insertArchive(
             archiveId,
@@ -116,7 +117,7 @@ export async function pruneCompletedTasks(
             combined,
             tag,
             [],
-            "HIGH",
+            0.9,
             DIGEST_AGENT_ID,
           );
           memory.upsertEmbedding(archiveId, "archive", vec);

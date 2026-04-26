@@ -92,11 +92,14 @@ export type UpdateContextPatch = {
   status?: MemoryStatus;
   confidence?: number | null;
 };
+// M-12 (mig 15): unified with shared/context patches — confidence is
+// REAL [0..1] | null. Route validates via TypeBox `t.Number({minimum:0,
+// maximum:1})`; legacy "HIGH"/"LOW" strings are rejected at route boundary.
 export type UpdateArchivePatch = {
   title?: string;
   content?: string;
   tags?: string;
-  confidence?: "HIGH" | "LOW";
+  confidence?: number | null;
 };
 export type UpdateAgentPatch = { content?: string; tags?: string };
 

@@ -44,6 +44,8 @@ function rowTitle(row: MemoryRow): string {
   }
 }
 
+// M-12 (mig 15): archive confidence is REAL [0..1] | null. Badge shows
+// `.toFixed(2)` (or "—" for null); colour green ≥ 0.8, gray otherwise.
 function rowBadge(row: MemoryRow): string {
   switch (row.__kind) {
     case "focus":
@@ -53,7 +55,7 @@ function rowBadge(row: MemoryRow): string {
     case "context":
       return (row.agent_id || "auto").slice(0, 12);
     case "archive":
-      return row.confidence;
+      return row.confidence === null ? "—" : row.confidence.toFixed(2);
     case "agent":
       return row.agent_id;
     case "log":
@@ -70,7 +72,9 @@ function badgeColor(row: MemoryRow): string {
     case "context":
       return "text-purple-400";
     case "archive":
-      return row.confidence === "HIGH" ? "text-green-400" : "text-gray-400";
+      return row.confidence !== null && row.confidence >= 0.8
+        ? "text-green-400"
+        : "text-gray-400";
     case "agent":
       return "text-orange-400";
     case "log":
