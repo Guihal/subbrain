@@ -642,3 +642,56 @@ Note: discrepancy 749 vs parent baseline 765 — связан с worktree env (n
 **Verdict:** M-04.1 закрыт чисто. 0 регрессов введено. tsc 0, 749/0 (memory-v2-effective, worktree-env baseline). Status DONE уже выставлен в plan file `docs/tasks/memory-v2/M-04.1-rolling-embed-log.md:3`. Anti-goal "no over-refactor" соблюдён — pre-existing tech debt logged + skipped.
 
 **Scope:** M-04.1-AUDIT (debug grep audit + LOC audit + test stability + audit doc).
+
+---
+
+### M-08.1 review (2026-04-26)
+
+Post-merge audit pass for M-08.1 (per-kind decay tuning). MEM-18 closure entry уже landed в feat-commit `8394f42` (см. ↑ MEM-18 ✅ block). Этот блок = explicit audit-pass review, отдельно от MEM-18 closure.
+
+**Scope:** M-08.1-AUDIT (debug greps + LOC + test stability + audit doc).
+
+**Baseline pre-audit:** 770/0/97 (parent prompt — main worktree HEAD `0c7f97a`). Worktree env: после `bun install` (root + `web/`) + `mkdir -p data/` → 770/0/97 stable × 2 runs.
+
+**M-08.1 diff scope (from `c90177e`):**
+
+- `src/lib/memory-decay.ts` — extended `computeRecallScore(now, lastAccess, accessCount, salience, kind?)` with optional kind param + per-kind tau multiplier. Episodic ×0.5 (faster), procedural ×2.0 (slower), semantic/undefined ×1.0 (baseline). Env knobs `RAG_DECAY_MULT_EPISODIC` / `RAG_DECAY_MULT_PROCEDURAL` read at call-time. `applyForgettingCurve` threads `r.kind` through.
+- `tests/memory-forgetting-curve.test.ts` — +5 cases (episodic faster, procedural slower, kind=undefined matches semantic, env override collapses episodic to baseline, persona regression).
+- Plan file `docs/tasks/memory-v2/M-08.1-per-kind-decay.md` — `Status: DONE`.
+
+XS / pure-fn change. No DB/IO/globals introduced. No migration (uses existing M-07 kind column).
+
+**Debug greps post-M-08.1 (zero-tolerance):**
+
+- `MemoryDB.*insertShared|db.insertShared` raw outside repo/service/facade → 0 hits introduced by M-08.1. M-08.1 не трогает persistence.
+- `'HIGH'/'LOW'` archive enums → 0. M-12 unification holds.
+- Single-arg `logger.(info|warn|error|debug)(...)` → 0 calls. Match `lib/logger.ts:94` = comment.
+- `console.(log)` → 4 pre-existing hits (`index.ts:21` boot banner, `lib/logger.ts:70` impl re-entrancy fallback, `telegram/userbot.ts:97-99` one-shot session-string CLI). Не M-08.1 introductions.
+- Raw `fetch()` outside http-client → 0 production hits. Все совпадения = comments / hint-strings / regex-source / template literals в sandbox tooling.
+- `TODO M-08.1` / `FIXME M-08.1` → 0 markers.
+- `Promise.all(...)` introduced by M-08.1 diff → 0. M-08.1 = pure-fn, no fan-out.
+
+**File-cap status (§1):**
+
+M-08.1 touched files (post-merge LOC):
+
+- `src/lib/memory-decay.ts` — 76 LOC (под self-cap 80 заявленный в commit, далеко под §1 hard cap 250).
+- `tests/memory-forgetting-curve.test.ts` — 213 LOC (под §1 hard cap 250).
+
+**Verdict §1 (M-08.1 own files):** все ≤213 LOC, под cap. Plan-target ≤80 для `memory-decay.ts` соблюдён (76).
+
+Pre-existing >250 LOC list: identical к M-04.1 audit baseline. M-08.1 diff не растил ни один pre-existing god-file.
+
+**Test stability (§10):** 770 pass / 0 fail × 2 runs (identical counts). Stable, flakiness не наблюдается.
+
+Worktree env note: `usemarkdown.test.ts` worktree-FP резолвится через `cd web && bun install`; `data/` dir не committed → `mkdir -p data/` нужен после fresh worktree creation. После этих шагов worktree совпадает с main 770/0/97. tsc --noEmit exit 0.
+
+**Open follow-ups (P2 backlog, не блокеры):**
+
+- M-08.2 (archive-layer override — slower decay для compressed long-term) — out of scope per plan §`docs/tasks/memory-v2/M-08-forgetting-curve.md`.
+- `tests/usemarkdown.test.ts` worktree-env известная FP — fix в out-of-scope wave (не M-08.1 problem).
+- A/B benchmark per-kind decay (LongMemEval_S replication) — manual eval task, не code-side.
+
+**Verdict:** M-08.1 закрыт чисто. 0 регрессов введено. tsc 0, 770/0 × 2 runs. Status DONE уже выставлен в plan file. Anti-goal "no over-refactor" соблюдён — XS pure-fn change, audit pass = docs-only close.
+
+**Scope:** M-08.1-AUDIT (debug grep audit + LOC audit + test stability + audit doc, baseline 770/0/97 stable).
