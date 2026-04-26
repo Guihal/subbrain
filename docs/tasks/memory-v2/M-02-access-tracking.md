@@ -124,4 +124,4 @@ void Promise.allSettled(
 
 ---
 
-**Status:** OPEN
+**Status:** DONE (M-02 — Migration 10 + bumpAccess + RAG hook landed; 634 pass / 1 pre-existing fail)

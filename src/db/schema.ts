@@ -536,6 +536,49 @@ export function migrate(db: Database): void {
       for (const sql of mig9Stmts) db.query(sql).run();
     })();
   }
+
+  // Migration 10 (M-02): access tracking on shared / context / archive.
+  // Adds `last_accessed_at` (unix-ms, NULL for legacy rows that have never
+  // been retrieved) and `access_count` (cumulative popularity, NOT NULL
+  // DEFAULT 0 — SQLite ALTER ADD COLUMN with DEFAULT backfills existing
+  // rows). Foundation for M-03 (salience reinforce-on-access) and M-08
+  // (Ebbinghaus-style recency decay in retrieval ranking). RAG retrieval
+  // bumps these fields after rerank via MemoryRepository.bumpAccess.
+  //
+  // Idempotency: `user_version < 10` guard plus per-statement try/catch on
+  // "duplicate column name" — same belt-and-braces pattern as future re-runs
+  // on databases where partial state exists. The `db.transaction` wrap +
+  // per-statement `.run()` matches mig 7/8/9 (bun:sqlite multi-statement
+  // .exec swallows failures, .run + try/catch propagates them properly).
+  if (version < 10) {
+    const addColumnStmts = [
+      `ALTER TABLE shared_memory   ADD COLUMN last_accessed_at INTEGER DEFAULT NULL`,
+      `ALTER TABLE shared_memory   ADD COLUMN access_count INTEGER NOT NULL DEFAULT 0`,
+      `ALTER TABLE layer2_context  ADD COLUMN last_accessed_at INTEGER DEFAULT NULL`,
+      `ALTER TABLE layer2_context  ADD COLUMN access_count INTEGER NOT NULL DEFAULT 0`,
+      `ALTER TABLE layer3_archive  ADD COLUMN last_accessed_at INTEGER DEFAULT NULL`,
+      `ALTER TABLE layer3_archive  ADD COLUMN access_count INTEGER NOT NULL DEFAULT 0`,
+    ];
+    const indexStmts = [
+      `CREATE INDEX IF NOT EXISTS idx_shared_access  ON shared_memory  (last_accessed_at DESC)`,
+      `CREATE INDEX IF NOT EXISTS idx_context_access ON layer2_context (last_accessed_at DESC)`,
+      `CREATE INDEX IF NOT EXISTS idx_archive_access ON layer3_archive (last_accessed_at DESC)`,
+    ];
+    db.transaction(() => {
+      for (const sql of addColumnStmts) {
+        try {
+          db.query(sql).run();
+        } catch (err) {
+          // SQLite emits "duplicate column name: <name>" if a previous
+          // partial run already added this column; treat as idempotent.
+          const msg = err instanceof Error ? err.message : String(err);
+          if (!/duplicate column name/i.test(msg)) throw err;
+        }
+      }
+      for (const sql of indexStmts) db.query(sql).run();
+      db.query(`PRAGMA user_version = 10`).run();
+    })();
+  }
 }
 
 export { EMBEDDING_DIM };

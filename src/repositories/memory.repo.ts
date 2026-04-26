@@ -197,6 +197,40 @@ export class MemoryRepository {
     else this.mem.updateContext(id, { superseded_by: by });
   }
 
+  // ─── M-02: access tracking (mig 10) ───────────────────────
+  /**
+   * Bump `last_accessed_at` and `access_count` for a batch of rows in a
+   * single layer. Called by RAG retrieval after rerank so popularity-
+   * based signals (M-03 salience, M-08 Ebbinghaus decay) have data to
+   * work with. Single UPDATE — SQLite makes single-statement writes
+   * atomic, so no transaction wrapper needed.
+   *
+   * Empty `ids` is an early-return (SQLite rejects an empty `IN ()`
+   * clause at parse time). `layer` is a closed union — table name comes
+   * from a switch, no injection surface.
+   *
+   * Field names are intentionally `last_accessed_at` and `access_count`
+   * (not abbreviated) to match the migration column names exactly.
+   */
+  bumpAccess(layer: "shared" | "context" | "archive", ids: string[]): void {
+    if (ids.length === 0) return;
+    const table =
+      layer === "shared"
+        ? "shared_memory"
+        : layer === "context"
+        ? "layer2_context"
+        : "layer3_archive";
+    const placeholders = ids.map(() => "?").join(",");
+    const now = Date.now();
+    this.db
+      .query(
+        `UPDATE ${table}
+            SET last_accessed_at = ?, access_count = access_count + 1
+          WHERE id IN (${placeholders})`,
+      )
+      .run(now, ...ids);
+  }
+
   // ─── Pending (status-filtered) list (PR 22a / MEM-5) ──────
   /**
    * Previously lived in `MemoryService.listByStatus` (raw SQL leak that
