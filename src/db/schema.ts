@@ -687,6 +687,69 @@ export function migrate(db: Database): void {
       db.query(`PRAGMA user_version = 12`).run();
     })();
   }
+
+  // Migration 14 (M-05): memory_edges table + 3 indexes + backfill from
+  // layer2_context.derived_from JSON. Typed edges between memory rows
+  // (A-MEM lite Zettelkasten). Migration 13 is reserved for M-03 (salience)
+  // running in a parallel worktree; this ticket explicitly takes 14 to avoid
+  // a number collision when both branches land.
+  //
+  // Backfill heuristic: `derived_from` stores ids without layer info. We
+  // assume the source memo lives in `context` too (true for current writers
+  // — only writeContext populates derived_from). Cross-layer correction is
+  // out of scope for M-05 (manual SQL or follow-up).
+  //
+  // Idempotency: PK (src_id, src_layer, dst_id, dst_layer, kind) makes the
+  // backfill safe to re-run. We additionally guard the SELECT with a
+  // `count(memory_edges) = 0` check so a partial-rerun doesn't waste a
+  // full table scan.
+  if (version < 14) {
+    const mig14Stmts = [
+      `CREATE TABLE IF NOT EXISTS memory_edges (
+        src_id     TEXT NOT NULL,
+        src_layer  TEXT NOT NULL CHECK(src_layer IN ('context','archive','shared')),
+        dst_id     TEXT NOT NULL,
+        dst_layer  TEXT NOT NULL CHECK(dst_layer IN ('context','archive','shared')),
+        kind       TEXT NOT NULL CHECK(kind IN ('derives','relates','contradicts','supersedes')),
+        weight     REAL NOT NULL DEFAULT 1.0,
+        created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+        PRIMARY KEY (src_id, src_layer, dst_id, dst_layer, kind)
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_edges_src  ON memory_edges(src_id, src_layer)`,
+      `CREATE INDEX IF NOT EXISTS idx_edges_dst  ON memory_edges(dst_id, dst_layer)`,
+      `CREATE INDEX IF NOT EXISTS idx_edges_kind ON memory_edges(kind)`,
+    ];
+    db.transaction(() => {
+      for (const sql of mig14Stmts) db.query(sql).run();
+
+      // Backfill only when memory_edges is empty — skips on a partial-rerun
+      // where the table already has rows.
+      const edgeCount = db
+        .query<{ c: number }, []>("SELECT count(*) AS c FROM memory_edges")
+        .get()!.c;
+      if (edgeCount === 0) {
+        db.query(
+          `INSERT OR IGNORE INTO memory_edges
+             (src_id, src_layer, dst_id, dst_layer, kind, weight, created_at)
+           SELECT
+             je.value     AS src_id,
+             'context'    AS src_layer,
+             c.id         AS dst_id,
+             'context'    AS dst_layer,
+             'derives'    AS kind,
+             1.0          AS weight,
+             c.created_at AS created_at
+             FROM layer2_context c, json_each(COALESCE(c.derived_from, '[]')) je
+            WHERE c.derived_from IS NOT NULL
+              AND c.derived_from <> ''
+              AND c.derived_from <> '[]'
+              AND je.value IS NOT NULL
+              AND je.value <> ''`,
+        ).run();
+      }
+      db.query(`PRAGMA user_version = 14`).run();
+    })();
+  }
 }
 
 export { EMBEDDING_DIM };

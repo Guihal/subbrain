@@ -10,6 +10,27 @@ export type MemoryStatus = "pending" | "active" | "rejected";
 // triggers (SQLite ALTER cannot ADD CHECK in place).
 export type MemoryKind = "persona" | "semantic" | "episodic" | "procedural";
 
+// M-05 (mig 14): typed edges between memory rows (A-MEM lite Zettelkasten).
+// `derives` — backfilled from layer2_context.derived_from JSON. `relates` —
+// emitted by `linkRelated` extractors hook (top-3 vec neighbours per insert).
+// `contradicts` / `supersedes` reserved for follow-up tickets (M-05.1/.2).
+// Distinct from `MemoryKind` (shared_memory.kind, M-07). Validated by SQL
+// CHECK (fresh table — no trigger needed since no ALTER ADD CHECK).
+export type EdgeKind = "derives" | "relates" | "contradicts" | "supersedes";
+
+// M-05 (mig 14): row shape for `memory_edges`. Composite PK
+// (src_id, src_layer, dst_id, dst_layer, kind) — re-emitting the same edge
+// is INSERT OR IGNORE silent no-op via `addEdge`.
+export interface EdgeRow {
+  src_id: string;
+  src_layer: string;
+  dst_id: string;
+  dst_layer: string;
+  kind: EdgeKind;
+  weight: number;
+  created_at: number;
+}
+
 export interface ContextRow {
   id: string;
   title: string;
