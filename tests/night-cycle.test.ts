@@ -254,9 +254,10 @@ console.assert(
   firstEntry.tags.includes("bun"),
   `Tags should contain 'bun', got: ${firstEntry.tags}`,
 );
+// M-12 (mig 15): confidence unified to REAL [0..1]; 0.9 = legacy "HIGH".
 console.assert(
-  firstEntry.confidence === "HIGH",
-  `Confidence should be HIGH, got: ${firstEntry.confidence}`,
+  firstEntry.confidence === 0.9,
+  `Confidence should be 0.9, got: ${firstEntry.confidence}`,
 );
 
 // ─── Test 7: Anti-patterns entry created ─────────────────

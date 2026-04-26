@@ -185,13 +185,19 @@ export class MemoryTable {
 
   // ─── Layer 3: Archive ──────────────────────────────────────
 
+  // M-12 (mig 15): confidence is REAL [0..1] | null. Legacy default of
+  // 'HIGH' becomes 0.9 — same status='active' equivalence as the backfill
+  // mapping. Out-of-range values are clamped at the route boundary
+  // (TypeBox `t.Number({minimum:0, maximum:1})` in routes/memory.ts);
+  // direct DB callers (night cycle, scripts) pass numeric confidence
+  // explicitly.
   insertArchive(
     id: string,
     title: string,
     content: string,
     tags: string = "",
     sourceRequestIds: string[] = [],
-    confidence: "HIGH" | "LOW" = "HIGH",
+    confidence: number | null = 0.9,
     agentId?: string,
   ): void {
     this.db
@@ -226,9 +232,10 @@ export class MemoryTable {
     return row.c;
   }
 
+  // M-12: confidence REAL [0..1] | null. updateRow allow-list unchanged.
   updateArchive(
     id: string,
-    fields: { title?: string; content?: string; tags?: string; confidence?: "HIGH" | "LOW" },
+    fields: { title?: string; content?: string; tags?: string; confidence?: number | null },
   ): void {
     updateRow(this.db, "layer3_archive", ARCHIVE_UPDATABLE, id, fields);
   }

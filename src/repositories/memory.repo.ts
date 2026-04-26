@@ -87,13 +87,14 @@ export class MemoryRepository {
   deleteContext = (id: string) => this.mem.deleteContext(id);
 
   // ─── Layer 3: Archive ──────────────────────────────────────
+  // M-12 (mig 15): archive confidence unified to REAL [0..1] | null.
   insertArchive = (
     id: string,
     title: string,
     content: string,
     tags?: string,
     sourceRequestIds?: string[],
-    confidence?: "HIGH" | "LOW",
+    confidence?: number | null,
     agentId?: string,
   ) => this.mem.insertArchive(id, title, content, tags, sourceRequestIds, confidence, agentId);
   getArchive = (id: string) => this.mem.getArchive(id);
@@ -102,7 +103,7 @@ export class MemoryRepository {
   countArchive = () => this.mem.countArchive();
   updateArchive = (
     id: string,
-    fields: { title?: string; content?: string; tags?: string; confidence?: "HIGH" | "LOW" },
+    fields: { title?: string; content?: string; tags?: string; confidence?: number | null },
   ) => this.mem.updateArchive(id, fields);
   deleteArchive = (id: string) => this.mem.deleteArchive(id);
 

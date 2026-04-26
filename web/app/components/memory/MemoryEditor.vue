@@ -15,13 +15,14 @@ const emit = defineEmits<{
     id: string,
     patch: { title: string; content: string; tags: string },
   ];
+  // M-12 (mig 15): confidence unified to REAL [0..1] | null.
   "save-archive": [
     id: string,
     patch: {
       title: string;
       content: string;
       tags: string;
-      confidence: "HIGH" | "LOW";
+      confidence: number | null;
     },
   ];
   "save-agent": [id: string, patch: { content: string; tags: string }];

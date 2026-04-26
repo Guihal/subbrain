@@ -170,7 +170,10 @@ export class ToolExecutor {
     tags?: string;
     category?: string;
     agent_id?: string;
-    confidence?: "HIGH" | "LOW";
+    // M-12 (mig 15): unified numeric confidence [0..1]. Legacy "HIGH"/"LOW"
+    // strings still accepted by `MemoryTools.write` fallback for direct test
+    // callers (registry validator rejects strings — see memory-tools.ts).
+    confidence?: number | "HIGH" | "LOW";
     key?: string;
   }, agentId: string | null = null): ToolResult | Promise<ToolResult> {
     // MEM-2 (M-01): the `shared` layer returns a Promise so callers (registry

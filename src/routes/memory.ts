@@ -42,11 +42,14 @@ const bodies = {
     content: t.Optional(t.String()),
     tags: t.Optional(t.String()),
   }),
+  // M-12 (mig 15): confidence unified to REAL [0..1] across all 3 layers.
+  // Legacy 'HIGH'/'LOW' strings rejected by TypeBox here (returns 422);
+  // see tests/memory-archive-confidence.test.ts.
   archive: t.Object({
     title: t.Optional(t.String()),
     content: t.Optional(t.String()),
     tags: t.Optional(t.String()),
-    confidence: t.Optional(t.Union([t.Literal("HIGH"), t.Literal("LOW")])),
+    confidence: t.Optional(t.Number({ minimum: 0, maximum: 1 })),
   }),
   agent: t.Object({
     content: t.Optional(t.String()),

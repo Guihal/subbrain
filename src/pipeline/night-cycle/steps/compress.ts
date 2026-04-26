@@ -43,12 +43,13 @@ export async function compress(
     const parsed = parseJson(raw);
     if (!parsed || parsed.skip) return null;
 
+    // M-12 (mig 15): legacy "HIGH" → 0.9 (≥ MEMORY_AUTOACCEPT_CONFIDENCE 0.8).
     return {
       title: parsed.title || "Untitled",
       content: parsed.content || "",
       tags: parsed.tags || "",
       sourceRequestIds: requestIds,
-      confidence: "HIGH",
+      confidence: 0.9,
     };
   } catch (err) {
     log.warn(`compress: ${(err as Error).message}`);

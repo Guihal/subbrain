@@ -45,13 +45,17 @@ export function migrate(db: Database): void {
     -------------------------------------------------------------------
     -- Layer 3: Archive (compressed knowledge, EN)
     -------------------------------------------------------------------
+    -- M-12 (mig 15): confidence is REAL [0..1]; legacy 'HIGH'/'LOW' rows
+    -- backfilled to 0.9 / 0.4 on existing DBs. Fresh DBs land on REAL
+    -- directly. Mig 10 / 13 add last_accessed_at / access_count / salience /
+    -- last_decayed_at; ALTERs handle existing DBs, this CREATE seeds fresh.
     CREATE TABLE IF NOT EXISTS layer3_archive (
       id                 TEXT PRIMARY KEY,
       title              TEXT NOT NULL,
       content            TEXT NOT NULL,
       tags               TEXT NOT NULL DEFAULT '',
       source_request_ids TEXT NOT NULL DEFAULT '[]',
-      confidence         TEXT NOT NULL DEFAULT 'HIGH' CHECK(confidence IN ('HIGH', 'LOW')),
+      confidence         REAL DEFAULT NULL,
       agent_id           TEXT,
       created_at         INTEGER NOT NULL DEFAULT (unixepoch()),
       updated_at         INTEGER NOT NULL DEFAULT (unixepoch())
@@ -779,6 +783,86 @@ export function migrate(db: Database): void {
         ).run();
       }
       db.query(`PRAGMA user_version = 14`).run();
+    })();
+  }
+
+  // Migration 15 (M-12): unify layer3_archive.confidence — TEXT('HIGH'|'LOW')
+  // → REAL [0..1]. shared_memory + layer2_context already carry REAL via
+  // mig 8; archive was the last legacy holdout (different writer = night
+  // cycle). Backfill: 'HIGH' → 0.9 (≥ MEMORY_AUTOACCEPT_CONFIDENCE 0.8 →
+  // status='active'), 'LOW' → 0.4, NULL/anything else → NULL.
+  //
+  // SQLite cannot ALTER COLUMN type — same temp-table + INSERT SELECT +
+  // DROP + RENAME pattern as mig 3/7. Rebuild preserves M-02 columns
+  // (last_accessed_at, access_count) and M-03 columns (salience,
+  // last_decayed_at). FTS5 triggers (`fts_archive_*`) are dropped
+  // implicitly when the source table is dropped — re-create after rename.
+  // Indexes (idx_archive_access from mig 10, idx_archive_salience from
+  // mig 13) are also re-created.
+  //
+  // M-07 plan-locked archive out of `kind` — do NOT add it here.
+  // M-10 (parallel) needs no migration → 15 belongs entirely to M-12.
+  if (version < 15) {
+    const mig15Stmts = [
+      `CREATE TABLE IF NOT EXISTS layer3_archive_new (
+        id                 TEXT PRIMARY KEY,
+        title              TEXT NOT NULL,
+        content            TEXT NOT NULL,
+        tags               TEXT NOT NULL DEFAULT '',
+        source_request_ids TEXT NOT NULL DEFAULT '[]',
+        confidence         REAL DEFAULT NULL,
+        agent_id           TEXT,
+        created_at         INTEGER NOT NULL DEFAULT (unixepoch()),
+        updated_at         INTEGER NOT NULL DEFAULT (unixepoch()),
+        last_accessed_at   INTEGER DEFAULT NULL,
+        access_count       INTEGER NOT NULL DEFAULT 0,
+        salience           REAL NOT NULL DEFAULT 0.5,
+        last_decayed_at    INTEGER DEFAULT NULL
+      )`,
+      `INSERT INTO layer3_archive_new
+         SELECT id, title, content, tags, source_request_ids,
+                CASE confidence
+                  WHEN 'HIGH' THEN 0.9
+                  WHEN 'LOW'  THEN 0.4
+                  ELSE NULL
+                END,
+                agent_id, created_at, updated_at,
+                last_accessed_at, access_count, salience, last_decayed_at
+           FROM layer3_archive`,
+      `DROP TABLE layer3_archive`,
+      `ALTER TABLE layer3_archive_new RENAME TO layer3_archive`,
+      // M-02 / M-03 indexes — re-create after rename.
+      `CREATE INDEX IF NOT EXISTS idx_archive_access   ON layer3_archive(last_accessed_at DESC)`,
+      `CREATE INDEX IF NOT EXISTS idx_archive_salience ON layer3_archive(salience DESC)`,
+      // FTS5 mirror triggers — DROP TABLE invalidated them. fts_archive
+      // virtual table itself survives (separate table); just rewire.
+      `CREATE TRIGGER IF NOT EXISTS fts_archive_ai AFTER INSERT ON layer3_archive BEGIN
+         INSERT INTO fts_archive(rowid, title, content, tags)
+         VALUES (new.rowid, new.title, new.content, new.tags);
+       END`,
+      `CREATE TRIGGER IF NOT EXISTS fts_archive_ad AFTER DELETE ON layer3_archive BEGIN
+         INSERT INTO fts_archive(fts_archive, rowid, title, content, tags)
+         VALUES ('delete', old.rowid, old.title, old.content, old.tags);
+       END`,
+      `CREATE TRIGGER IF NOT EXISTS fts_archive_au AFTER UPDATE ON layer3_archive BEGIN
+         INSERT INTO fts_archive(fts_archive, rowid, title, content, tags)
+         VALUES ('delete', old.rowid, old.title, old.content, old.tags);
+         INSERT INTO fts_archive(rowid, title, content, tags)
+         VALUES (new.rowid, new.title, new.content, new.tags);
+       END`,
+      // Critic round-1 fix: fts_archive (contentless FTS5 with
+      // content=layer3_archive, content_rowid=rowid) survived the
+      // DROP+RENAME but its index is keyed by OLD rowids that no longer
+      // map to anything. New rows entering via `_ai` trigger work fine
+      // (matched rowids); legacy rows would silently fall out of FTS
+      // search. The 'rebuild' command tells FTS5 to re-read everything
+      // from the (now-renamed) source table — single statement, fast on
+      // modest archive sizes, fully solves the rowid mismatch.
+      `INSERT INTO fts_archive(fts_archive) VALUES('rebuild')`,
+      `PRAGMA user_version = 15`,
+    ];
+    db.transaction(() => {
+      for (const sql of mig15Stmts) db.query(sql).run();
     })();
   }
 }

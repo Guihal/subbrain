@@ -29,12 +29,16 @@ export interface NightCycleResult {
   lastProcessedId: number;
 }
 
+// M-12 (mig 15): confidence unified to REAL [0..1] across all 3 layers.
+// compress() emits 0.9 (≥ MEMORY_AUTOACCEPT_CONFIDENCE 0.8 → status='active'
+// equivalent of legacy "HIGH"); verify() drops to 0.4 on accuracy failure
+// (legacy "LOW"). Persisted via insertArchive(..., confidence: number|null).
 export interface CompressedEntry {
   title: string;
   content: string;
   tags: string;
   sourceRequestIds: string[];
-  confidence: "HIGH" | "LOW";
+  confidence: number;
 }
 
 // ─── Constants ───────────────────────────────────────────

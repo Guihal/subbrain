@@ -46,7 +46,7 @@ memory.insertArchive(
   "Use WAL mode for concurrent reads. FTS5 for full-text search. sqlite-vec for embeddings.",
   "patterns,database",
   [],
-  "HIGH",
+  0.9, // M-12 (mig 15): REAL confidence
 );
 memory.insertShared(
   "sh-1",

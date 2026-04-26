@@ -72,7 +72,9 @@ export interface ArchiveRow {
   content: string;
   tags: string;
   source_request_ids: string;
-  confidence: "HIGH" | "LOW";
+  // M-12 (mig 15): unified with shared/context — REAL [0..1], NULL allowed.
+  // Legacy 'HIGH' rows backfilled to 0.9, 'LOW' rows to 0.4.
+  confidence: number | null;
   agent_id: string | null;
   created_at: number;
   updated_at: number;

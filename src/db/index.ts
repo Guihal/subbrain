@@ -148,13 +148,14 @@ export class MemoryDB {
   deleteContext = (id: string) => this.memoryRepo.deleteContext(id);
 
   // ─── Layer 3: Archive ──────────────────────────────────────
+  // M-12 (mig 15): archive confidence unified to REAL [0..1] | null.
   insertArchive = (
     id: string,
     title: string,
     content: string,
     tags?: string,
     sourceRequestIds?: string[],
-    confidence?: "HIGH" | "LOW",
+    confidence?: number | null,
     agentId?: string,
   ) => this.memoryRepo.insertArchive(id, title, content, tags, sourceRequestIds, confidence, agentId);
   getArchive = (id: string) => this.memoryRepo.getArchive(id);
@@ -163,7 +164,7 @@ export class MemoryDB {
   countArchive = () => this.memoryRepo.countArchive();
   updateArchive = (
     id: string,
-    fields: { title?: string; content?: string; tags?: string; confidence?: "HIGH" | "LOW" },
+    fields: { title?: string; content?: string; tags?: string; confidence?: number | null },
   ) => this.memoryRepo.updateArchive(id, fields);
   deleteArchive = (id: string) => this.memoryRepo.deleteArchive(id);
 
