@@ -104,3 +104,31 @@
 - **Knowledge extraction**: Flash извлекает факты из ответа → Layer 2 с auto-embed
 - **Context injection**: Prepend к существующему system prompt (не перезаписываем)
 - **RPM budget**: Pre ~3 RPM (RAG + flash) + Main 1 RPM + Post ~2 RPM = **~6 RPM/запрос**
+
+## Post-processing hippocampus (MEM-6, 2026-04-26)
+
+Write-path подсистема прошла большой рефактор после прод-аудита, обнаружившего мусор в `shared_memory` + `layer2_context` (deploy events, commit hashes, дубли преференций, целые тексты статей, time-bomb факты, конкурирующие планы без supersede).
+
+### Файлы (`src/pipeline/agent-pipeline/post/`)
+
+| Файл                  | Назначение                                                                |
+| :-------------------- | :------------------------------------------------------------------------ |
+| `gate.ts`             | Length gate + skip subbrain-ping / free-agent / freelance-scout префиксов |
+| `prompt.ts`           | Hippocampus system prompt с whitelist/blacklist/expires/supersedes        |
+| `validators.ts`       | Pure category whitelist + blacklist + content cap + expires_at unit guard |
+| `dedupe.ts`           | FTS-first + vec dedupe (cosine ≥ 0.85 в JS); merge content/tags/conf      |
+| `extractors.ts`       | `writeShared` / `writeContext` orchestrator                               |
+| `extractors-helpers.ts` | computeStatus + supersede validation/apply + embed reuse                |
+| `tools.ts`            | OpenAI-style schemas (`memory_write` теперь принимает expires_at, supersedes) |
+| `hippocampus.ts`      | Tool-loop dispatcher                                                       |
+
+### Гарантии
+
+1. **Self-feed gate** — `[from Claude Code CLI]`, `🤖 Free agent —`, `[freelance scout]` не доходят до экстрактора.
+2. **Закрытая таксономия** — `shared` принимает только `profile|preference|goal|relationship|skill|constraint|style`; `context` только `project|decision|bug|architecture|learning`. Отказ на code-уровне (промпт лишь подсказывает).
+3. **Дедуп-на-вставке** — FTS overlap или cosine ≥ 0.85 → update, не insert. `embed_lazy`: эмбед только если FTS промазал.
+4. **Time-bound expires_at** — `plan|strategy|priority|urgent|deadline` обязаны нести `expires_at` (unix seconds). Pre/RAG фильтруют через `notStale` opt; admin видит всё.
+5. **Supersedes** — атомарная пометка прошлых записей `superseded_by=<new id>` в одной транзакции. Cap ≤ 10. С `supersedes` dedupe-on-merge не активен (intent: insert + retire).
+
+### Night-cycle dedup
+`src/pipeline/night-cycle/steps/memory-dedup.ts` (helpers — `memory-dedup-utils.ts`): per-layer кластеризация по cosine ≥ 0.9 (re-rank в JS) в одной категории, победитель = max(updated_at), longest content; expire-pass проставляет `superseded_by='expired'` для просрочки.

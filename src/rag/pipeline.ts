@@ -98,7 +98,7 @@ export class RAGPipeline {
     // pending / rejected rows are filtered at SQL level inside searchContext /
     // searchShared. Archive has no status column — unchanged.
     if (layers.includes("context")) {
-      for (const r of this.memory.searchContext(ftsQuery, limit, { activeOnly: true, agentId })) {
+      for (const r of this.memory.searchContext(ftsQuery, limit, { activeOnly: true, notStale: true, agentId })) {
         results.push({
           id: r.id,
           layer: "context",
@@ -124,7 +124,7 @@ export class RAGPipeline {
       }
     }
     if (layers.includes("shared")) {
-      for (const r of this.memory.searchShared(ftsQuery, limit, { activeOnly: true })) {
+      for (const r of this.memory.searchShared(ftsQuery, limit, { activeOnly: true, notStale: true })) {
         results.push({
           id: r.id,
           layer: "shared",
@@ -169,11 +169,11 @@ export class RAGPipeline {
       // rejected (the vec_embeddings table has no status column). activeOnly
       // drops them at hydrate time so they never enter RAG injection.
       if (layer === "context") {
-        for (const r of this.memory.getContextMany(ids, { activeOnly: true, agentId })) byId.set(r.id, r);
+        for (const r of this.memory.getContextMany(ids, { activeOnly: true, notStale: true, agentId })) byId.set(r.id, r);
       } else if (layer === "archive") {
         for (const r of this.memory.getArchiveMany(ids)) byId.set(r.id, r);
       } else if (layer === "shared") {
-        for (const r of this.memory.getSharedMany(ids, { activeOnly: true })) {
+        for (const r of this.memory.getSharedMany(ids, { activeOnly: true, notStale: true })) {
           byId.set(r.id, {
             title: r.category,
             content: r.content,

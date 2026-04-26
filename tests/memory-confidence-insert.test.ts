@@ -68,7 +68,7 @@ describe("writeShared / writeContext — confidence → status mapping", () => {
     const wr = await writeShared(
       memory,
       rag,
-      { category: "user", content: "confirmed fact A", tags: "", confidence: 0.9 },
+      { category: "profile", content: "confirmed fact A", tags: "", confidence: 0.9 },
       log,
     );
     expect(wr.ok).toBe(true);
@@ -82,7 +82,7 @@ describe("writeShared / writeContext — confidence → status mapping", () => {
     const wr = await writeShared(
       memory,
       rag,
-      { category: "user", content: "guess fact B", tags: "", confidence: 0.5 },
+      { category: "profile", content: "guess fact B", tags: "", confidence: 0.5 },
       log,
     );
     expect(wr.ok).toBe(true);
@@ -96,7 +96,7 @@ describe("writeShared / writeContext — confidence → status mapping", () => {
     const wr = await writeContext(
       memory,
       rag,
-      { category: "finding", content: "strong inference C", tags: "", confidence: 0.85 },
+      { category: "learning", content: "strong inference C", tags: "", confidence: 0.85 },
       "req-test-1",
       log,
     );
@@ -110,7 +110,7 @@ describe("writeShared / writeContext — confidence → status mapping", () => {
     const wr = await writeContext(
       memory,
       rag,
-      { category: "finding", content: "weak inference D", tags: "", confidence: 0.4 },
+      { category: "learning", content: "weak inference D", tags: "", confidence: 0.4 },
       "req-test-2",
       log,
     );
@@ -125,7 +125,7 @@ describe("writeShared / writeContext — confidence → status mapping", () => {
       const wr = await writeShared(
         memory,
         rag,
-        { category: "user", content: "env-override fact E", tags: "", confidence: 0.65 },
+        { category: "profile", content: "env-override fact E", tags: "", confidence: 0.65 },
         log,
       );
       expect(wr.ok).toBe(true);

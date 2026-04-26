@@ -119,14 +119,22 @@ export class MemoryDB {
       tags?: string;
       status?: import("./types").MemoryStatus;
       confidence?: number | null;
+      // MEM-6 (mig 9): expiry + supersede + derived_from union are write
+      // paths used by the post-hippocampus + night-cycle. Surface here so the
+      // facade matches the repo signature.
+      expires_at?: number | null;
+      superseded_by?: string | null;
+      derived_from?: string;
     },
   ) => this.memoryRepo.updateContext(id, fields);
   getContext = (id: string) => this.memoryRepo.getContext(id);
   getContextMany = (
     ids: string[],
-    opts?: { activeOnly?: boolean; agentId?: string },
+    opts?: { activeOnly?: boolean; notStale?: boolean; agentId?: string },
   ) => this.memoryRepo.getContextMany(ids, opts);
   listContext = (limit?: number, offset?: number) => this.memoryRepo.listContext(limit, offset);
+  listContextActive = (limit?: number, offset?: number) =>
+    this.memoryRepo.listContextActive(limit, offset);
   countContext = () => this.memoryRepo.countContext();
   deleteContext = (id: string) => this.memoryRepo.deleteContext(id);
 
@@ -154,7 +162,7 @@ export class MemoryDB {
   searchContext = (
     query: string,
     limit?: number,
-    opts?: { activeOnly?: boolean; agentId?: string },
+    opts?: { activeOnly?: boolean; notStale?: boolean; agentId?: string },
   ) => this.memoryRepo.searchContext(query, limit, opts);
   searchArchive = (query: string, limit?: number) => this.memoryRepo.searchArchive(query, limit);
 
@@ -170,10 +178,14 @@ export class MemoryDB {
   getAllShared = () => this.memoryRepo.getAllShared();
   listShared = (limit?: number, offset?: number, category?: string) =>
     this.memoryRepo.listShared(limit, offset, category);
+  listSharedActive = (limit?: number, offset?: number, category?: string) =>
+    this.memoryRepo.listSharedActive(limit, offset, category);
   countShared = (category?: string) => this.memoryRepo.countShared(category);
   getShared = (id: string) => this.memoryRepo.getShared(id);
-  getSharedMany = (ids: string[], opts?: { activeOnly?: boolean }) =>
-    this.memoryRepo.getSharedMany(ids, opts);
+  getSharedMany = (
+    ids: string[],
+    opts?: { activeOnly?: boolean; notStale?: boolean },
+  ) => this.memoryRepo.getSharedMany(ids, opts);
   getSharedByCategory = (category: string) => this.memoryRepo.getSharedByCategory(category);
   updateShared = (
     id: string,
@@ -183,6 +195,9 @@ export class MemoryDB {
       category?: string;
       status?: import("./types").MemoryStatus;
       confidence?: number | null;
+      // MEM-6 (mig 9): same as updateContext — surface so facade matches.
+      expires_at?: number | null;
+      superseded_by?: string | null;
     },
   ) => this.memoryRepo.updateShared(id, fields);
   deleteShared = (id: string) => this.memoryRepo.deleteShared(id);
@@ -206,8 +221,17 @@ export class MemoryDB {
   deleteAgentMemory = (id: string) => this.memoryRepo.deleteAgentMemory(id);
 
   // ─── FTS5 + Vector Search (shared) ─────────────────────────
-  searchShared = (query: string, limit?: number, opts?: { activeOnly?: boolean }) =>
-    this.memoryRepo.searchShared(query, limit, opts);
+  searchShared = (
+    query: string,
+    limit?: number,
+    opts?: { activeOnly?: boolean; notStale?: boolean },
+  ) => this.memoryRepo.searchShared(query, limit, opts);
+  // MEM-6: facade for repo.setSupersededBy — used by night-cycle dedup.
+  setSupersededBy = (
+    layer: "shared" | "context",
+    id: string,
+    by: string,
+  ) => this.memoryRepo.setSupersededBy(layer, id, by);
   upsertEmbedding = (id: string, layer: string, embedding: Float32Array) =>
     this.memoryRepo.upsertEmbedding(id, layer, embedding);
   searchEmbeddings = (embedding: Float32Array, limit?: number, layer?: string) =>

@@ -1,80 +1,108 @@
-/**
- * Atomic memory writers used by the post-processing hippocampus.
- *
- * writeShared and writeContext use an embed-first strategy:
- *   1. Await rag.embedContent(content, AbortSignal.timeout(5s)) BEFORE any
- *      DB call.
- *   2. Inside a sync bun:sqlite transaction, insert the row + upsert the
- *      vec_embedding. The network call never enters the transaction, and a
- *      failure at any step leaves the DB unchanged (no row-without-embed
- *      window; no orphan vec).
- *
- * H-1 (PR 2026-04-25): AbortSignal now threads into the upstream embed
- * fetch — a timed-out / cancelled embed actually stops the request instead
- * of leaking until the http-client default timeout fires.
- */
 import { randomUUID } from "crypto";
-import type { MemoryDB, MemoryStatus } from "../../../db";
+import type { MemoryDB } from "../../../db";
 import type { RAGPipeline } from "../../../rag";
 import type { RequestLogger } from "../../../lib/logger";
 
-const EMBED_TIMEOUT_MS = 5000;
+import { validateCategoryAndContent, validateExpiresAt } from "./validators";
+import { findDuplicate, mergeContent, mergeTags, bumpConfidence } from "./dedupe";
+import {
+  computeStatus,
+  validateSupersedes,
+  applySupersedes,
+  embedOrReuse,
+  type WriteResult,
+} from "./extractors-helpers";
 
-export interface WriteResult {
-  ok: boolean;
-  id?: string;
-  error?: string;
-  status?: MemoryStatus;
+export type { WriteResult } from "./extractors-helpers";
+
+export interface WriteSharedArgs {
+  category: string;
+  content: string;
+  tags: string;
+  confidence: number;
+  expires_at?: number | null;
+  supersedes?: string[];
 }
 
-/**
- * MEM-5 (PR 22a): compute memory status from a 0..1 confidence score and the
- * MEMORY_AUTOACCEPT_CONFIDENCE threshold (default 0.8). Below threshold →
- * 'pending', requires human approval before RAG injection picks it up.
- */
-function computeStatus(confidence: number): "active" | "pending" {
-  const threshold = Number(process.env.MEMORY_AUTOACCEPT_CONFIDENCE ?? 0.8);
-  const clamped = Math.min(1, Math.max(0, confidence));
-  return clamped >= threshold ? "active" : "pending";
-}
+export interface WriteContextArgs extends WriteSharedArgs {}
 
-async function embedWithTimeout(
-  rag: RAGPipeline,
-  content: string,
-): Promise<Float32Array> {
-  // H-1: AbortSignal.timeout cancels the upstream fetch directly (no orphan
-  // Promise running in the background after the race rejects).
-  return rag.embedContent(content, AbortSignal.timeout(EMBED_TIMEOUT_MS));
-}
-
-/**
- * B-1 note: writeShared takes no `agentId` because `shared_memory` has no
- * `agent_id` column (see schema.ts) — the table is by-design global. Agents
- * that need private writes use `writeContext` (per-agent scoped) or the
- * separate `agent_memory` table via `insertAgentMemory`.
- */
 export async function writeShared(
   memory: MemoryDB,
   rag: RAGPipeline,
-  args: { category: string; content: string; tags: string; confidence: number },
+  args: WriteSharedArgs,
   log: RequestLogger,
 ): Promise<WriteResult> {
+  const v1 = validateCategoryAndContent("shared", args.category, args.content);
+  if (!v1.ok) {
+    log.warn("post", `writeShared rejected: ${v1.reason}`);
+    return { ok: false, error: v1.reason };
+  }
+  const v2 = validateExpiresAt(args.category, args.expires_at);
+  if (!v2.ok) {
+    log.warn("post", `writeShared rejected: ${v2.reason}`);
+    return { ok: false, error: v2.reason };
+  }
+  const supersedeIds = args.supersedes ?? [];
+  if (supersedeIds.length > 0) {
+    const v3 = validateSupersedes(memory, "shared", supersedeIds);
+    if (!v3.ok) {
+      log.warn("post", `writeShared rejected: ${v3.reason}`);
+      return { ok: false, error: v3.reason };
+    }
+  }
+
+  // supersedes → force insert + retire (skip dedupe-on-merge so we don't
+  // collapse the new write into a row it's supposed to replace). Below, the
+  // `if (dup.id)` branch is unreachable when supersedes.length > 0.
+  const dup = supersedeIds.length > 0
+    ? { id: null, source: null as null, vec: null, embedFailed: false }
+    : await findDuplicate(memory, rag, "shared", args.category, args.content);
+
+  if (dup.id) {
+    const old = memory.getShared(dup.id);
+    if (old) {
+      try {
+        const merged = mergeContent(old.content, args.content);
+        const tags = mergeTags(old.tags, args.tags);
+        const conf = bumpConfidence(old.confidence, args.confidence);
+        const status = computeStatus(conf);
+        memory.transaction(() => {
+          memory.updateShared(dup.id!, {
+            content: merged,
+            tags,
+            confidence: conf,
+            status,
+            ...(args.expires_at !== undefined ? { expires_at: args.expires_at } : {}),
+          });
+          if (dup.vec) memory.upsertEmbedding(dup.id!, "shared", dup.vec);
+        });
+        log.info(
+          "post",
+          `→ shared/${args.category} [merged ${dup.source}, conf ${conf.toFixed(2)}]: ${args.content.slice(0, 100)}`,
+          { meta: { factId: dup.id, layer: "shared", category: args.category, merged: true, source: dup.source } },
+        );
+        return { ok: true, id: dup.id, status, merged: true };
+      } catch (err) {
+        const em = err instanceof Error ? err.message : String(err);
+        log.error("post", `writeShared merge update failed: ${em}`);
+        return { ok: false, error: em };
+      }
+    }
+  }
+
+  if (dup.embedFailed) {
+    const em = dup.embedError ?? "embed_failed";
+    log.warn("post", `writeShared embed failed: ${em}`);
+    return { ok: false, error: em };
+  }
   const id = randomUUID();
   const status = computeStatus(args.confidence);
   const clamped = Math.min(1, Math.max(0, args.confidence));
 
-  let vec: Float32Array;
-  try {
-    vec = await embedWithTimeout(rag, args.content);
-  } catch (err) {
-    const em = err instanceof Error ? err.message : String(err);
-    log.warn("post", `writeShared embed failed: ${em}`);
-    return { ok: false, error: em };
-  }
-
-  if (!vec || vec.length === 0) {
-    log.warn("post", "writeShared embed returned empty vector");
-    return { ok: false, error: "embed_empty" };
+  const vec = await embedOrReuse(rag, args.content, dup.vec);
+  if (!vec) {
+    log.warn("post", `writeShared embed failed`);
+    return { ok: false, error: "embed_failed" };
   }
 
   try {
@@ -88,6 +116,12 @@ export async function writeShared(
         { confidence: clamped, status },
       );
       memory.upsertEmbedding(id, "shared", vec);
+      if (args.expires_at !== undefined && args.expires_at !== null) {
+        memory.updateShared(id, { expires_at: args.expires_at });
+      }
+      if (supersedeIds.length > 0) {
+        applySupersedes(memory, "shared", id, supersedeIds);
+      }
     });
   } catch (err) {
     const em = err instanceof Error ? err.message : String(err);
@@ -106,34 +140,80 @@ export async function writeShared(
 export async function writeContext(
   memory: MemoryDB,
   rag: RAGPipeline,
-  args: { category: string; content: string; tags: string; confidence: number },
+  args: WriteContextArgs,
   requestId: string,
   log: RequestLogger,
-  /**
-   * B-1: per-agent identity tagged onto the new layer2_context row. `null`
-   * means "shared / no scope" — row goes in with `agent_id IS NULL` (legacy
-   * back-compat). Schedulers + agent-loop interactive routes must thread this
-   * through so writers and readers stay symmetric.
-   */
   agentId: string | null = null,
 ): Promise<WriteResult> {
+  const v1 = validateCategoryAndContent("context", args.category, args.content);
+  if (!v1.ok) {
+    log.warn("post", `writeContext rejected: ${v1.reason}`);
+    return { ok: false, error: v1.reason };
+  }
+  const v2 = validateExpiresAt(args.category, args.expires_at);
+  if (!v2.ok) {
+    log.warn("post", `writeContext rejected: ${v2.reason}`);
+    return { ok: false, error: v2.reason };
+  }
+  const supersedeIds = args.supersedes ?? [];
+  if (supersedeIds.length > 0) {
+    const v3 = validateSupersedes(memory, "context", supersedeIds);
+    if (!v3.ok) {
+      log.warn("post", `writeContext rejected: ${v3.reason}`);
+      return { ok: false, error: v3.reason };
+    }
+  }
+
+  // supersedes-skips-dedupe — see writeShared.
+  const dup = supersedeIds.length > 0
+    ? { id: null, source: null as null, vec: null, embedFailed: false }
+    : await findDuplicate(memory, rag, "context", args.category, args.content);
+
+  if (dup.id) {
+    const old = memory.getContext(dup.id);
+    if (old) {
+      try {
+        const merged = mergeContent(old.content, args.content);
+        const tags = mergeTags(old.tags, args.tags);
+        const conf = bumpConfidence(old.confidence, args.confidence);
+        const status = computeStatus(conf);
+        memory.transaction(() => {
+          memory.updateContext(dup.id!, {
+            content: merged,
+            tags,
+            confidence: conf,
+            status,
+            ...(args.expires_at !== undefined ? { expires_at: args.expires_at } : {}),
+          });
+          if (dup.vec) memory.upsertEmbedding(dup.id!, "context", dup.vec);
+        });
+        log.info(
+          "post",
+          `→ context/${args.category} [merged ${dup.source}, conf ${conf.toFixed(2)}]: ${args.content.slice(0, 100)}`,
+          { meta: { factId: dup.id, layer: "context", category: args.category, merged: true, source: dup.source } },
+        );
+        return { ok: true, id: dup.id, status, merged: true };
+      } catch (err) {
+        const em = err instanceof Error ? err.message : String(err);
+        log.error("post", `writeContext merge update failed: ${em}`);
+        return { ok: false, error: em };
+      }
+    }
+  }
+
+  if (dup.embedFailed) {
+    const em = dup.embedError ?? "embed_failed";
+    log.warn("post", `writeContext embed failed: ${em}`);
+    return { ok: false, error: em };
+  }
   const id = randomUUID();
   const status = computeStatus(args.confidence);
   const clamped = Math.min(1, Math.max(0, args.confidence));
 
-  let vec: Float32Array;
-  try {
-    // H-1: AbortSignal.timeout cancels the upstream fetch directly.
-    vec = await rag.embedContent(args.content, AbortSignal.timeout(EMBED_TIMEOUT_MS));
-  } catch (err) {
-    const em = err instanceof Error ? err.message : String(err);
-    log.warn("post", `writeContext embed failed: ${em}`);
-    return { ok: false, error: em };
-  }
-
-  if (!vec || vec.length === 0) {
-    log.warn("post", "writeContext embed returned empty vector");
-    return { ok: false, error: "embed_empty" };
+  const vec = await embedOrReuse(rag, args.content, dup.vec);
+  if (!vec) {
+    log.warn("post", `writeContext embed failed`);
+    return { ok: false, error: "embed_failed" };
   }
 
   try {
@@ -148,6 +228,12 @@ export async function writeContext(
         { confidence: clamped, status },
       );
       memory.upsertEmbedding(id, "context", vec);
+      if (args.expires_at !== undefined && args.expires_at !== null) {
+        memory.updateContext(id, { expires_at: args.expires_at });
+      }
+      if (supersedeIds.length > 0) {
+        applySupersedes(memory, "context", id, supersedeIds);
+      }
     });
   } catch (err) {
     const em = err instanceof Error ? err.message : String(err);

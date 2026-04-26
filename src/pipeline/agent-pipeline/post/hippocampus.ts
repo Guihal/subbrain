@@ -23,9 +23,37 @@ import type { RequestLogger } from "../../../lib/logger";
 import type { ToolExecutor } from "../../../mcp";
 import type { ToolRegistry, TaskMutationBudget } from "../../../mcp/registry";
 
-import { writeShared, writeContext } from "./extractors";
+import { writeShared, writeContext, type WriteSharedArgs } from "./extractors";
 import { POST_TOOLS } from "./tools";
 import { getExtractorPrompt } from "./prompt";
+
+type ParsedWrite =
+  | { ok: true; layer: "shared" | "context"; args: WriteSharedArgs }
+  | { ok: false; error: string };
+
+function parseMemoryWriteArgs(raw: Record<string, unknown>): ParsedWrite {
+  const layer = String(raw.layer || "context") === "shared" ? "shared" : "context";
+  const category = String(raw.category || "fact").slice(0, 64);
+  const content = String(raw.content || "").trim();
+  const tags = String(raw.tags || "");
+  const rawConf = raw.confidence;
+  if (typeof rawConf !== "number" || !Number.isFinite(rawConf)) {
+    return { ok: false, error: "confidence required (number 0..1)" };
+  }
+  if (!content) return { ok: false, error: "empty content" };
+  const confidence = Math.min(1, Math.max(0, rawConf));
+  const rawExp = raw.expires_at;
+  const expires_at: number | null | undefined =
+    rawExp === null ? null : typeof rawExp === "number" ? rawExp : undefined;
+  const supersedes = Array.isArray(raw.supersedes)
+    ? (raw.supersedes as unknown[]).filter((s): s is string => typeof s === "string")
+    : undefined;
+  return {
+    ok: true,
+    layer,
+    args: { category, content, tags, confidence, expires_at, supersedes },
+  };
+}
 
 const MAX_HIPPO_STEPS = 5;
 const MAX_SNIPPET_CHARS = 12_000;
@@ -179,37 +207,12 @@ export async function runHippocampus(args: {
           break;
         }
         case "memory_write": {
-          const layer = String(toolArgs.layer || "context");
-          const category = String(toolArgs.category || "fact").slice(0, 64);
-          const content = String(toolArgs.content || "").trim();
-          const tags = String(toolArgs.tags || "");
-          // MEM-5 (PR 22a): confidence is mandatory. A missing / non-numeric
-          // value is reported back so the model can retry with a proper score
-          // instead of silently landing as 'active'.
-          const rawConfidence = toolArgs.confidence;
-          if (typeof rawConfidence !== "number" || !Number.isFinite(rawConfidence)) {
-            result = JSON.stringify({
-              ok: false,
-              error: "confidence required (number 0..1)",
-            });
-            break;
-          }
-          const confidence = Math.min(1, Math.max(0, rawConfidence));
-          if (!content) {
-            result = JSON.stringify({ ok: false, error: "empty content" });
-            break;
-          }
+          const parsed = parseMemoryWriteArgs(toolArgs);
+          if (!parsed.ok) { result = JSON.stringify({ ok: false, error: parsed.error }); break; }
           const wr =
-            layer === "shared"
-              ? await writeShared(memory, rag, { category, content, tags, confidence }, log)
-              : await writeContext(
-                  memory,
-                  rag,
-                  { category, content, tags, confidence },
-                  requestId,
-                  log,
-                  agentId,
-                );
+            parsed.layer === "shared"
+              ? await writeShared(memory, rag, parsed.args, log)
+              : await writeContext(memory, rag, parsed.args, requestId, log, agentId);
           if (wr.ok) factsWritten++;
           result = JSON.stringify(wr);
           break;

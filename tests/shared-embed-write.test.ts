@@ -53,7 +53,7 @@ describe("writeShared — embed + transactional persistence (PR 24)", () => {
     const wr = await writeShared(
       memory,
       rag,
-      { category: "tech", content: "fact X: SNMP uses UDP 161", tags: "snmp", confidence: 0.95 },
+      { category: "skill", content: "fact X: SNMP uses UDP 161", tags: "snmp", confidence: 0.95 },
       log,
     );
     expect(wr.ok).toBe(true);
@@ -78,7 +78,7 @@ describe("writeShared — embed + transactional persistence (PR 24)", () => {
     const wr = await writeShared(
       memory,
       rag,
-      { category: "tech", content: "fact X extra content about SNMP discovery", tags: "", confidence: 0.9 },
+      { category: "skill", content: "fact X extra content about SNMP discovery", tags: "", confidence: 0.9 },
       log,
     );
     expect(wr.ok).toBe(true);
@@ -98,7 +98,7 @@ describe("writeShared — embed + transactional persistence (PR 24)", () => {
     const plainSnippet = hit!.snippet.replace(/<\/?b>/g, "");
     expect(plainSnippet).toContain("fact X");
     // title is category (mapped from SharedRow)
-    expect(hit!.title).toBe("tech");
+    expect(hit!.title).toBe("skill");
   });
 
   test("embed timeout → no DB rows written (atomic)", async () => {
@@ -130,7 +130,7 @@ describe("writeShared — embed + transactional persistence (PR 24)", () => {
     const wr = await writeShared(
       memory,
       ragHang,
-      { category: "tech", content: "should never persist", tags: "", confidence: 0.9 },
+      { category: "skill", content: "should never persist", tags: "", confidence: 0.9 },
       log,
     );
     expect(wr.ok).toBe(false);

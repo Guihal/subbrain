@@ -68,14 +68,20 @@ export class MemoryRepository {
       tags?: string;
       status?: MemoryStatus;
       confidence?: number | null;
+      // MEM-6: post-hippocampus + night-cycle write paths.
+      expires_at?: number | null;
+      superseded_by?: string | null;
+      derived_from?: string;
     },
   ) => this.mem.updateContext(id, fields);
   getContext = (id: string) => this.mem.getContext(id);
   getContextMany = (
     ids: string[],
-    opts?: { activeOnly?: boolean; agentId?: string },
+    opts?: { activeOnly?: boolean; notStale?: boolean; agentId?: string },
   ) => this.mem.getContextMany(ids, opts);
   listContext = (limit?: number, offset?: number) => this.mem.listContext(limit, offset);
+  listContextActive = (limit?: number, offset?: number) =>
+    this.mem.listContextActive(limit, offset);
   countContext = () => this.mem.countContext();
   deleteContext = (id: string) => this.mem.deleteContext(id);
 
@@ -103,7 +109,7 @@ export class MemoryRepository {
   searchContext = (
     query: string,
     limit?: number,
-    opts?: { activeOnly?: boolean; agentId?: string },
+    opts?: { activeOnly?: boolean; notStale?: boolean; agentId?: string },
   ): FtsResult[] => this.mem.searchContext(query, limit, opts);
   searchArchive = (query: string, limit?: number): FtsResult[] =>
     this.mem.searchArchive(query, limit);
@@ -120,10 +126,14 @@ export class MemoryRepository {
   getAllShared = (): SharedRow[] => this.shared.getAllShared();
   listShared = (limit?: number, offset?: number, category?: string) =>
     this.shared.listShared(limit, offset, category);
+  listSharedActive = (limit?: number, offset?: number, category?: string) =>
+    this.shared.listSharedActive(limit, offset, category);
   countShared = (category?: string) => this.shared.countShared(category);
   getShared = (id: string) => this.shared.getShared(id);
-  getSharedMany = (ids: string[], opts?: { activeOnly?: boolean }) =>
-    this.shared.getSharedMany(ids, opts);
+  getSharedMany = (
+    ids: string[],
+    opts?: { activeOnly?: boolean; notStale?: boolean },
+  ) => this.shared.getSharedMany(ids, opts);
   getSharedByCategory = (category: string) => this.shared.getSharedByCategory(category);
   updateShared = (
     id: string,
@@ -133,6 +143,9 @@ export class MemoryRepository {
       category?: string;
       status?: MemoryStatus;
       confidence?: number | null;
+      // MEM-6: post-hippocampus + night-cycle write paths.
+      expires_at?: number | null;
+      superseded_by?: string | null;
     },
   ) => this.shared.updateShared(id, fields);
   deleteShared = (id: string) => this.shared.deleteShared(id);
@@ -156,13 +169,33 @@ export class MemoryRepository {
   deleteAgentMemory = (id: string) => this.shared.deleteAgentMemory(id);
 
   // ─── FTS5 + Vector (shared + embeddings) ──────────────────
-  searchShared = (query: string, limit?: number, opts?: { activeOnly?: boolean }): FtsResult[] =>
-    this.shared.searchShared(query, limit, opts);
+  searchShared = (
+    query: string,
+    limit?: number,
+    opts?: { activeOnly?: boolean; notStale?: boolean },
+  ): FtsResult[] => this.shared.searchShared(query, limit, opts);
   upsertEmbedding = (id: string, layer: string, embedding: Float32Array) =>
     this.shared.upsertEmbedding(id, layer, embedding);
   searchEmbeddings = (embedding: Float32Array, limit?: number, layer?: string): VecResult[] =>
     this.shared.searchEmbeddings(embedding, limit, layer);
   deleteEmbedding = (id: string) => this.shared.deleteEmbedding(id);
+
+  // ─── MEM-6 supersede helper ─────────────────────────────────
+  /**
+   * Mark a row as superseded. `by` is one of:
+   *   - a UUID-shaped row id (the row that replaces this one), OR
+   *   - the literal string 'expired' (used by the night-cycle expiry pass).
+   *
+   * Sentinel + row-id share one column intentionally — collision is
+   * impossible because randomUUID() never produces the literal "expired".
+   * Wraps `updateShared` / `updateContext` so SQL stays in `tables/*`
+   * (boundary test stays green). Caller validates that a row id `by` exists;
+   * the BEFORE-UPDATE trigger only blocks self-supersede (id == NEW.superseded_by).
+   */
+  setSupersededBy(layer: "shared" | "context", id: string, by: string): void {
+    if (layer === "shared") this.shared.updateShared(id, { superseded_by: by });
+    else this.mem.updateContext(id, { superseded_by: by });
+  }
 
   // ─── Pending (status-filtered) list (PR 22a / MEM-5) ──────
   /**

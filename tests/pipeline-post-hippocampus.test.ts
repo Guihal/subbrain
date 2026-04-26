@@ -45,7 +45,7 @@ describe("post/hippocampus.runHippocampus", () => {
               function: {
                 name: "memory_write",
                 arguments: JSON.stringify({
-                  layer: "shared", category: "user",
+                  layer: "shared", category: "preference",
                   content: "User likes Bun runtime", tags: "bun,pref",
                   confidence: 0.95,
                 }),

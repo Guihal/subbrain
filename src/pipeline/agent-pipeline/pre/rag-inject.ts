@@ -70,13 +70,17 @@ export async function executeHippoTool(
       const layer = (args.layer as string) || "all";
       const limit = (args.limit as number) || 10;
       const results: Record<string, unknown[]> = {};
-      const ctxOpts = agentId ? { agentId } : undefined;
+      // MEM-6: hide superseded/expired rows from pre-phase summary (system
+      // prompt should never see stale plans/strategies). Pending rows stay
+      // visible — pre-phase already used to surface them, behaviour preserved.
+      const ctxOpts = { notStale: true, ...(agentId ? { agentId } : {}) };
+      const sharedOpts = { notStale: true };
       if (layer === "all" || layer === "context")
         results.context = memory.searchContext(query, limit, ctxOpts);
       if (layer === "all" || layer === "archive")
         results.archive = memory.searchArchive(query, limit);
       if (layer === "all" || layer === "shared")
-        results.shared = memory.searchShared(query, limit);
+        results.shared = memory.searchShared(query, limit, sharedOpts);
       return { result: JSON.stringify(results) };
     }
     case "rag_search": {

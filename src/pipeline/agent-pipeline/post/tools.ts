@@ -36,7 +36,7 @@ export const POST_TOOLS: Tool[] = [
     function: {
       name: "memory_write",
       description:
-        "Persist one fact. Use `shared` for long-lived facts about the user / their life / persistent preferences. Use `context` for project decisions, code findings, transient domain knowledge. For TODO/reminder/deadline use `task_add` instead. `confidence` (0..1) is required: ≥ 0.8 is stored as status='active' and reaches RAG injection; below → 'pending' (needs human approval).",
+        "Persist one fact. SHARED layer (long-lived user-life facts) accepts ONLY categories: profile, preference, goal, relationship, skill, constraint, style. CONTEXT layer (project knowledge) accepts ONLY: project, decision, bug, architecture, learning. DO NOT save: deploy events, commit hashes, current task descriptions, status updates, digest contents, full article texts, ephemeral autonomous-loop state, anything beginning '[from Claude Code CLI]'. For TODO/reminder/deadline use `task_add`. confidence (0..1) is required: ≥0.8 → status='active' (reaches RAG); <0.8 → 'pending' (needs approval). Hard caps: shared content ≤600 chars, context content ≤2000 chars (longer → use layer3_archive).",
       parameters: {
         type: "object",
         properties: {
@@ -44,7 +44,7 @@ export const POST_TOOLS: Tool[] = [
           category: {
             type: "string",
             description:
-              "Short category tag: user, project, decision, finding, url, preference, etc.",
+              "shared layer: profile|preference|goal|relationship|skill|constraint|style. context layer: project|decision|bug|architecture|learning. Reject for anything else.",
           },
           content: {
             type: "string",
@@ -60,6 +60,17 @@ export const POST_TOOLS: Tool[] = [
             maximum: 1,
             description:
               "0..1 score. 0.9+ = user-confirmed fact. 0.7–0.9 = strong inference. <0.7 = guess. Facts <0.8 auto-enter the pending queue and are hidden from RAG until approved.",
+          },
+          expires_at: {
+            type: ["number", "null"],
+            description:
+              "Unix seconds UTC (NOT milliseconds). REQUIRED when category in {plan, strategy, priority, urgent, deadline}. Example: Math.floor(Date.now()/1000) + 30*86400 for +30 days. Must be > now+60s and < 1e12. Null = no expiry (only for non-time-bound categories).",
+          },
+          supersedes: {
+            type: "array",
+            items: { type: "string" },
+            description:
+              "Optional list (≤10) of memory ids in THIS layer that this new write replaces. Each id is marked superseded_by=<new id> in the same transaction. Use when writing a new plan/strategy/priority that obsoletes a prior one. Each id must exist + not already be superseded.",
           },
         },
         required: ["layer", "category", "content", "confidence"],

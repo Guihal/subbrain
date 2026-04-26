@@ -54,6 +54,28 @@ export const MODEL_MAP: Record<string, ModelRoute> = {
     fallback: "mistralai/mistral-medium-3-instruct",
     fallbackProvider: "nvidia",
   },
+  // Generalist virtual role — broad-purpose default for dynamic_tools
+  // (`create_tool`) when caller doesn't specify a model. Same fallback shape
+  // as teamlead/coder. NOT in applyOpenAICompatOverrides hard-coded list
+  // (["teamlead","coder"]) — primary stays at MiniMax-M2.7 even when
+  // OPENAI_COMPAT_ENABLED=true.
+  generalist: {
+    primary: "MiniMax-M2.7",
+    primaryProvider: "minimax",
+    fallback: "minimaxai/minimax-m2.7",
+    fallbackProvider: "nvidia",
+  },
+  // Memory subsystem (hippocampus + night-cycle). Primary GPT-5.1 via
+  // CLIProxyAPI bridge → ChatGPT Pro. Fallback MiniMax-M2.7 (instruct,
+  // reliable tool-calling). Used when OPENAI_COMPAT_ENABLED=true; if flag
+  // off, applyOpenAICompatOverrides keeps primary as-is — gpt-5.1 will
+  // route to copilot provider, which won't have it; rely on minimax fallback.
+  memory: {
+    primary: "gpt-5.1",
+    primaryProvider: "openai-compat",
+    fallback: "MiniMax-M2.7",
+    fallbackProvider: "minimax",
+  },
 };
 
 /**

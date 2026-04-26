@@ -13,6 +13,12 @@ export interface ContextRow {
   updated_at: number;
   confidence: number | null;
   status: MemoryStatus;
+  // MEM-6 (mig 9): unix-seconds expiry; null = no expiry. RAG/pre filter
+  // out rows whose expires_at < now via the `notStale` opt.
+  expires_at: number | null;
+  // MEM-6 (mig 9): id of the row that replaced this one, or 'expired' when
+  // the night cycle marks a row as past its expires_at.
+  superseded_by: string | null;
 }
 
 export interface ArchiveRow {
@@ -48,6 +54,12 @@ export interface SharedRow {
   updated_at: number;
   confidence: number | null;
   status: MemoryStatus;
+  // MEM-6 (mig 9): unix-seconds expiry; null = no expiry. RAG/pre filter
+  // out rows whose expires_at < now via the `notStale` opt.
+  expires_at: number | null;
+  // MEM-6 (mig 9): id of the row that replaced this one, or 'expired' when
+  // the night cycle marks a row as past its expires_at.
+  superseded_by: string | null;
 }
 
 export interface AgentMemRow {

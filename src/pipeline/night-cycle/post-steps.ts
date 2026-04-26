@@ -7,7 +7,7 @@ import type { MemoryDB } from "../../db";
 import type { ModelRouter } from "../../lib/model-router";
 import type { RAGPipeline } from "../../rag";
 import { logger } from "../../lib/logger";
-import { resolveContradictions } from "./steps";
+import { resolveContradictions, runMemoryDedup } from "./steps";
 import {
   pruneShared,
   pruneContext,
@@ -52,6 +52,17 @@ export async function runPostBatchSteps(
   await runStep("Collect stray tasks", "Collect strays", async () => {
     result.straysCollected = await collectStrayTasks(memory, router);
     log.info(`strays migrated=${result.straysCollected}`);
+  }, result);
+
+  // MEM-6: cluster-merge near-duplicates + mark expired rows.
+  await runStep("Memory dedup (cluster + expire)", "Memory dedup", async () => {
+    const r = await runMemoryDedup(memory, rag);
+    result.sharedDeduped = r.shared;
+    result.contextDeduped = r.context;
+    result.expiredMarked = r.expired;
+    log.info(
+      `memory-dedup: shared=${r.shared}, context=${r.context}, expired=${r.expired}`,
+    );
   }, result);
 }
 

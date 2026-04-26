@@ -13,6 +13,10 @@ export interface NightCycleResult {
   focusPruned: number;
   tasksPruned: number;
   straysCollected: number;
+  // MEM-6 (mig 9): memory-dedup step counters (cluster-merge + expire mark).
+  sharedDeduped: number;
+  contextDeduped: number;
+  expiredMarked: number;
   errors: string[];
   lastProcessedId: number;
 }

@@ -495,6 +495,47 @@ export function migrate(db: Database): void {
       for (const sql of mig8Stmts) db.query(sql).run();
     })();
   }
+
+  // Migration 9 (MEM-6): expires_at + superseded_by on shared_memory and
+  // layer2_context. Lets the post-hippocampus + night cycle mark stale plans /
+  // strategies as expired, and merge near-duplicate facts into a single
+  // surviving row without losing the audit trail. Pre + RAG read paths gain a
+  // separate `notStale` filter so pending (status<active) rows stay visible to
+  // the pre-phase agentic search but expired/superseded rows never reach the
+  // system prompt. Migration is purely additive — ALTER ADD with NULL default,
+  // no backfill — so existing rows keep working under both old and new code.
+  // FTS5 mirrors are NOT touched: filter happens at JOIN-time on the source
+  // table, so mirror rebuild is unnecessary.
+  if (version < 9) {
+    const mig9Stmts = [
+      `ALTER TABLE shared_memory ADD COLUMN expires_at INTEGER DEFAULT NULL`,
+      `ALTER TABLE shared_memory ADD COLUMN superseded_by TEXT DEFAULT NULL`,
+      `CREATE INDEX IF NOT EXISTS idx_shared_active
+         ON shared_memory(expires_at, superseded_by)
+         WHERE superseded_by IS NULL`,
+      `CREATE TRIGGER IF NOT EXISTS shared_supersede_self
+         BEFORE UPDATE OF superseded_by ON shared_memory
+         WHEN NEW.superseded_by IS NOT NULL
+          AND NEW.superseded_by NOT IN ('expired')
+          AND NEW.superseded_by = NEW.id
+         BEGIN SELECT RAISE(ABORT, 'cannot supersede self'); END`,
+      `ALTER TABLE layer2_context ADD COLUMN expires_at INTEGER DEFAULT NULL`,
+      `ALTER TABLE layer2_context ADD COLUMN superseded_by TEXT DEFAULT NULL`,
+      `CREATE INDEX IF NOT EXISTS idx_context_active
+         ON layer2_context(expires_at, superseded_by)
+         WHERE superseded_by IS NULL`,
+      `CREATE TRIGGER IF NOT EXISTS context_supersede_self
+         BEFORE UPDATE OF superseded_by ON layer2_context
+         WHEN NEW.superseded_by IS NOT NULL
+          AND NEW.superseded_by NOT IN ('expired')
+          AND NEW.superseded_by = NEW.id
+         BEGIN SELECT RAISE(ABORT, 'cannot supersede self'); END`,
+      `PRAGMA user_version = 9`,
+    ];
+    db.transaction(() => {
+      for (const sql of mig9Stmts) db.query(sql).run();
+    })();
+  }
 }
 
 export { EMBEDDING_DIM };

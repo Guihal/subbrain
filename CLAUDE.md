@@ -67,8 +67,8 @@ Docker: `docker compose build && docker compose up -d`. **Never `docker compose 
   - **In-process** (primary): fires daily at `NIGHT_CYCLE_HOUR_UTC` (default `3` = 03:00 UTC). On startup, checks `night_cycle_last_processed_id` vs. current log count; if backlog ≥ `NIGHT_CYCLE_BACKLOG_TRIGGER` (default 10 — aggressive: favour fresh compression over token savings), runs a catch-up 2 min after boot. Disable with `NIGHT_CYCLE_SCHEDULER=false`.
   - **System cron** (safety net): `scripts/install-cron.sh` installs `0 3 * * * curl .../night-cycle` on the VPS. Harmless duplicate — if in-process fires first, cron's request gets a `409 already_running`. Cron log: `/var/log/subbrain-night-cycle.log`.
   - **Manual trigger:** `ssh root@109.120.187.244 'curl -X POST http://127.0.0.1:4000/night-cycle'`. Status: `curl http://127.0.0.1:4000/night-cycle/status`.
-  - **Post-processing extractor model:** `POST_EXTRACTOR_MODEL` env selects the virtual role used for agentic fact extraction after each chat/agent exchange (default `coder` — devstral-2, reliable at tool-calling; `flash` did not emit `tool_calls` in prod).
-  - **Night-cycle step model:** `NIGHT_CYCLE_MODEL` env selects the role used for PII-scrub / translate / compress / verify / dedup inside the cycle (default `coder`; `flash`/stepfun was a reasoning model and spent ~25s/call on thinking, making a full cycle take 7+ hours).
+  - **Post-processing extractor model:** `POST_EXTRACTOR_MODEL` env selects the virtual role used for agentic fact extraction after each chat/agent exchange (default `memory` since 2026-04-25 — gpt-5.1 via cliproxy + MiniMax-M2.7 fallback; previously `coder` = devstral-2; `flash` did not emit `tool_calls` in prod).
+  - **Night-cycle step model:** `NIGHT_CYCLE_MODEL` env selects the role used for PII-scrub / translate / compress / verify / dedup inside the cycle (default `memory` since 2026-04-25 — same gpt-5.1+MiniMax shape; previously `coder`; `flash`/stepfun was a reasoning model and spent ~25s/call on thinking, making a full cycle take 7+ hours).
 
 ## Architecture: things you can't see from one file
 
@@ -83,7 +83,7 @@ Inbound messages from any route go through `normalizeMessages()` in `src/lib/mes
 
 ### Virtual roles, never real model IDs
 
-`src/lib/model-map.ts` is the single source of truth: `teamlead`, `coder`, `critic`, `generalist`, `flash`, `chaos` resolve to real model IDs + provider + fallback. `GET /v1/models` is generated from this map. **Never hardcode a model ID elsewhere** — change the map. Most LLM work goes to GitHub Copilot (`copilot` provider); NVIDIA NIM is only for embed + rerank; OpenRouter is the fallback overflow.
+`src/lib/model-map.ts` is the single source of truth: `teamlead`, `coder`, `critic`, `generalist`, `flash`, `chaos`, `memory` resolve to real model IDs + provider + fallback. `GET /v1/models` is generated from this map. **Never hardcode a model ID elsewhere** — change the map. `memory` (added 2026-04-25) is dedicated to hippocampus + night-cycle (gpt-5.1 via cliproxy + MiniMax-M2.7 fallback); `generalist` is the broad-purpose default for `dynamic_tools` (`create_tool`). Most LLM work goes to GitHub Copilot (`copilot` provider); NVIDIA NIM is only for embed + rerank; OpenRouter is the fallback overflow.
 
 **Optional OpenAI-compat bridge.** When `OPENAI_COMPAT_ENABLED=true`, `teamlead`/`coder` re-point to `gpt-5.5` via a sidecar `cliproxy` container. Activation logic in `applyOpenAICompatOverrides` (called once at bootstrap before `createProviders`). Allowlist `gpt-5*/o3*/o4*/codex-*` only. See `docs/completed/03-model-router.md`.
 
@@ -114,7 +114,7 @@ Every tool is declared **once** in `src/mcp/registry/` and reused across REST (`
 
 ### Agentic post-processing (hippocampus)
 
-After **every** chat exchange (user message + assistant reply), `src/pipeline/agent-pipeline/post/hippocampus.ts` (orchestrated by `phases/post.ts:runPost`) runs a small agent loop (`model = POST_EXTRACTOR_MODEL`, default `coder`) with three tools: `memory_search`, `memory_write`, `done`. Cap: `MAX_HIPPO_STEPS = 5`. Gate: `post/gate.ts:shouldRunHippocampus` skips if `userMessage.length + assistantText.length < MIN_EXTRACTION_LENGTH` (=100). Writers live in `post/extractors.ts` (`writeShared`/`writeContext`).
+After **every** chat exchange (user message + assistant reply), `src/pipeline/agent-pipeline/post/hippocampus.ts` (orchestrated by `phases/post.ts:runPost`) runs a small agent loop (`model = POST_EXTRACTOR_MODEL`, default `memory` since 2026-04-25 = gpt-5.1+MiniMax) with three tools: `memory_search`, `memory_write`, `done`. Cap: `MAX_HIPPO_STEPS = 5`. Gate: `post/gate.ts:shouldRunHippocampus` skips if `userMessage.length + assistantText.length < MIN_EXTRACTION_LENGTH` (=100). Writers live in `post/extractors.ts` (`writeShared`/`writeContext`).
 
 - `memory_write layer:"shared"` → `memory.insertShared()` (global facts)
 - `memory_write layer:"context"` → `memory.insertContext()` + `rag.indexEntry()` (per-session context, FTS-indexed)

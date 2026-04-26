@@ -102,7 +102,7 @@ export function hasCompletedStatusTag(tags: string): boolean {
 export async function classifyCandidate(
   classifier: Classifier,
   row: CandidateRow,
-  model: string = process.env.NIGHT_CYCLE_MODEL || "coder",
+  model: string = process.env.NIGHT_CYCLE_MODEL || "memory",
 ): Promise<ClassifyResult | null> {
   const userBody =
     `table=${row.source_table}\n` +

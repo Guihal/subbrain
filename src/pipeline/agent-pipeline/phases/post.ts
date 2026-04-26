@@ -69,11 +69,14 @@ export async function runPost(args: RunPostArgs): Promise<void> {
     }
   }
 
-  // 2. Gate: combined length must clear the threshold.
+  // 2. Gate: combined length + self-feed-loop guard (MEM-6).
   const assistantText = assistantMessage || reasoning || "";
   const combinedLen = (userMessage?.length ?? 0) + assistantText.length;
-  if (!shouldRunHippocampus(combinedLen)) {
-    log.debug("post", `Skipping: combined exchange too short (${combinedLen})`);
+  if (!shouldRunHippocampus(combinedLen, userMessage)) {
+    log.debug(
+      "post",
+      `Skipping hippocampus: combinedLen=${combinedLen}, userMessage head="${(userMessage ?? "").slice(0, 60)}"`,
+    );
     return;
   }
 

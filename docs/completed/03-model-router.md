@@ -12,15 +12,37 @@
 
 ### Маппинг ролей
 
-| Виртуальная модель (от клиента) | Реальная модель NVIDIA                    | Fallback                              |
-| :------------------------------ | :---------------------------------------- | :------------------------------------ |
-| `teamlead`                      | `deepseek-ai/deepseek-v3.2`               | `minimaxai/minimax-m2.7`              |
-| `coder`                         | `mistralai/devstral-2-123b-instruct-2512` | `qwen/qwen3-coder-480b-a35b-instruct` |
-| `critic`                        | `moonshotai/kimi-k2-thinking`             | `deepseek-ai/deepseek-v3.2`           |
-| `generalist`                    | `qwen/qwen3-coder-480b-a35b-instruct`     | `minimaxai/minimax-m2.7`              |
-| `flash`                         | `stepfun-ai/step-3.5-flash`               | —                                     |
+> Источник истины — [`src/lib/model-map.ts`](../../src/lib/model-map.ts) (`MODEL_MAP` baseline) + [`src/lib/model-map/openai-compat-overrides.ts`](../../src/lib/model-map/openai-compat-overrides.ts) (runtime overrides). Снимок на 2026-04-25.
 
-> **Примечание:** `flash` = единый агент для pre/post-processing, компрессии и памяти (200B MoE).
+#### Baseline (как в `MODEL_MAP` literal, действует когда `OPENAI_COMPAT_ENABLED=false`)
+
+| Виртуальная роль | Primary (provider)            | Fallback (provider)                                  |
+| :--------------- | :---------------------------- | :--------------------------------------------------- |
+| `teamlead`       | `MiniMax-M2.7` (minimax)      | `minimaxai/minimax-m2.7` (nvidia)                    |
+| `coder`          | `MiniMax-M2.7` (minimax)      | `mistralai/devstral-2-123b-instruct-2512` (nvidia)   |
+| `critic`         | `MiniMax-M2.7` (minimax)      | `moonshotai/kimi-k2-thinking` (nvidia)               |
+| `flash`          | `MiniMax-M2.7` (minimax)      | `stepfun-ai/step-3.5-flash` (nvidia)                 |
+| `chaos`          | `MiniMax-M2.7` (minimax)      | `mistralai/mistral-medium-3-instruct` (nvidia)       |
+| `generalist`     | `MiniMax-M2.7` (minimax)      | `minimaxai/minimax-m2.7` (nvidia)                    |
+| `memory`         | `gpt-5.1` (openai-compat)     | `MiniMax-M2.7` (minimax)                             |
+
+#### Effective на проде (`OPENAI_COMPAT_ENABLED=true`)
+
+`applyOpenAICompatOverrides` итерирует hard-coded `["teamlead","coder"]` и re-points primary на `gpt-5.5` через `openai-compat`; baseline primary становится fallback'ом (поверх original fallback'а который превращается в third-tier — но `MAX_FALLBACK_ATTEMPTS=1`, так что effective fallback chain = одно звено).
+
+| Виртуальная роль | Primary (provider)            | Fallback (provider)         |
+| :--------------- | :---------------------------- | :-------------------------- |
+| `teamlead`       | `gpt-5.5` (openai-compat)     | `MiniMax-M2.7` (minimax)    |
+| `coder`          | `gpt-5.5` (openai-compat)     | `MiniMax-M2.7` (minimax)    |
+| `critic`         | `MiniMax-M2.7` (minimax)      | `moonshotai/kimi-k2-thinking` (nvidia) |
+| `flash`          | `MiniMax-M2.7` (minimax)      | `stepfun-ai/step-3.5-flash` (nvidia)   |
+| `chaos`          | `MiniMax-M2.7` (minimax)      | `mistralai/mistral-medium-3-instruct` (nvidia) |
+| `generalist`     | `MiniMax-M2.7` (minimax)      | `minimaxai/minimax-m2.7` (nvidia)      |
+| `memory`         | `gpt-5.1` (openai-compat)     | `MiniMax-M2.7` (minimax)               |
+
+> **`generalist`** — broad-purpose default для `dynamic_tools` (`create_tool`) когда caller не указал модель. Добавлено 2026-04-25 чтобы пофиксить runtime "provider copilot not loaded" на 5 dynamic-tools (task_status_check, find_vacancies_alternative, rss_vacancy_finder, flru_hot_orders, project_monitor), ссылавшихся на `generalist` до того как он существовал.
+>
+> **`memory`** — hippocampus + night-cycle. Primary GPT-5.1 через CLIProxyAPI bridge → ChatGPT Pro; MiniMax-M2.7 fallback для cliproxy outage. НЕ затрагивается `applyOpenAICompatOverrides` (hard-coded list = `["teamlead","coder"]`), поэтому `memory.primary` остаётся `gpt-5.1` независимо от env.
 
 ## Rate Limiter
 
@@ -63,6 +85,20 @@ Model Router **не знает** о NVIDIA напрямую. Он:
 - `src/lib/model-map.ts` — маппинг ролей + fallback таблица
 - `src/lib/model-router.ts` — `ModelRouter` с fallback + retry
 - `src/lib/rate-limiter.ts` — sliding window 40 RPM, 3 приоритета
+
+## Sandbox guard для code_tools (2026-04-25)
+
+`src/mcp/registry/code-mgmt.tools.ts` — handler'ы `create_code_tool` и `edit_code_tool` отвергают код с паттернами, заведомо ломающими Bun-Worker sandbox:
+
+| Pattern | Why blocked |
+| :--- | :--- |
+| `\brequire\s*\(` | `require` is nulled at runtime in `code-tools/sandbox.ts` |
+| `^\s*import\s+(?!type\b)` (multiline) | Static `import` parses as `import(...)` dynamic-call inside `new Function` body — SyntaxError |
+| `\bfrom\s+["']node:` | `node:*` modules unavailable in Worker |
+| `\bimport\s*\(\s*["']node:` | Dynamic `import("node:...")` — same reason; also blocked by sandbox regex |
+| `\bfrom\s+["']child_process["']` | No shell access in Worker |
+
+`import type {...}` is allowed (erased by transpiler). На violation — `{success:false, error:"sandbox_violation: <hint>"}` без записи в `code_tools` table.
 
 ## Решённые вопросы
 

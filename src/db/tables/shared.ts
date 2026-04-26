@@ -6,8 +6,37 @@ import { updateRow } from "./update-row";
 // columns updatable from REST/UI
 // MEM-5 (PR 22a): status joins the allow-list so the upcoming approval UI
 // (PR 22b) can transition pending → active/rejected via updateShared.
-const SHARED_UPDATABLE = new Set(["content", "tags", "category", "status", "confidence"]);
+// MEM-6 (mig 9): expires_at + superseded_by join the allow-list so the
+// post-hippocampus + night cycle can write expiry/supersede markers via
+// the same `updateRow` path the admin UI uses.
+const SHARED_UPDATABLE = new Set([
+  "content",
+  "tags",
+  "category",
+  "status",
+  "confidence",
+  "expires_at",
+  "superseded_by",
+]);
 const AGENT_MEM_UPDATABLE = new Set(["content", "tags"]);
+
+// MEM-6: shared SQL fragment used by every read path that filters out
+// expired/superseded rows. Lives here so the SQL stays in `tables/*` (per
+// `tests/layer-boundary.test.ts`); call sites compose by string concat.
+function buildActiveFilter(
+  alias: string,
+  opts: { activeOnly?: boolean; notStale?: boolean } | undefined,
+): string {
+  const parts: string[] = [];
+  if (opts?.activeOnly) parts.push(`AND ${alias}.status = 'active'`);
+  if (opts?.notStale) {
+    parts.push(`AND ${alias}.superseded_by IS NULL`);
+    parts.push(
+      `AND (${alias}.expires_at IS NULL OR ${alias}.expires_at > unixepoch())`,
+    );
+  }
+  return parts.length === 0 ? "" : ` ${parts.join(" ")}`;
+}
 
 export interface InsertSharedOpts {
   confidence?: number | null;
@@ -53,6 +82,31 @@ export class SharedTable {
       .all(limit, offset) as SharedRow[];
   }
 
+  /**
+   * MEM-6: list-with-fresh-filter helper. Used by admin `?active=true` only —
+   * default admin path stays through `listShared` and continues to show every
+   * row including expired/superseded for audit. Pagination + total are filtered
+   * symmetrically so the UI doesn't show "1234 results" when only 5 are live.
+   */
+  listSharedActive(
+    limit = 50,
+    offset = 0,
+    category?: string,
+  ): { items: SharedRow[]; total: number } {
+    const filter = buildActiveFilter("shared_memory", { activeOnly: true, notStale: true });
+    const where = category
+      ? `WHERE category = ? ${filter}`
+      : `WHERE 1=1 ${filter}`;
+    const params: (string | number)[] = category ? [category] : [];
+    const items = this.db
+      .query(`SELECT * FROM shared_memory ${where} ORDER BY updated_at DESC LIMIT ? OFFSET ?`)
+      .all(...params, limit, offset) as SharedRow[];
+    const totalRow = this.db
+      .query(`SELECT COUNT(*) AS c FROM shared_memory ${where}`)
+      .get(...params) as { c: number };
+    return { items, total: totalRow.c };
+  }
+
   countShared(category?: string): number {
     if (category) {
       const row = this.db
@@ -70,15 +124,22 @@ export class SharedTable {
 
   /**
    * Batch-lookup shared rows by id. `activeOnly` (PR 22a / MEM-5) filters out
-   * pending/rejected rows at SQL level — used by RAG injection so unapproved
-   * facts never reach model context.
+   * pending/rejected rows. `notStale` (MEM-6, mig 9) filters out
+   * superseded/expired rows. Both used by RAG injection so unapproved or
+   * expired facts never reach model context. Filters compose AND-wise.
    */
-  getSharedMany(ids: string[], opts?: { activeOnly?: boolean }): SharedRow[] {
+  getSharedMany(
+    ids: string[],
+    opts?: { activeOnly?: boolean; notStale?: boolean },
+  ): SharedRow[] {
     if (ids.length === 0) return [];
     const placeholders = ids.map(() => "?").join(",");
-    const statusFilter = opts?.activeOnly ? " AND status = 'active'" : "";
+    // alias `shared_memory` itself — no JOIN here, columns referenced bare.
+    const filter = buildActiveFilter("shared_memory", opts);
     return this.db
-      .query(`SELECT * FROM shared_memory WHERE id IN (${placeholders})${statusFilter}`)
+      .query(
+        `SELECT * FROM shared_memory WHERE id IN (${placeholders})${filter}`,
+      )
       .all(...ids) as SharedRow[];
   }
 
@@ -96,6 +157,9 @@ export class SharedTable {
       category?: string;
       status?: MemoryStatus;
       confidence?: number | null;
+      // MEM-6 (mig 9): post-hippocampus + night-cycle write paths.
+      expires_at?: number | null;
+      superseded_by?: string | null;
     },
   ): void {
     updateRow(this.db, "shared_memory", SHARED_UPDATABLE, id, fields);
@@ -189,23 +253,28 @@ export class SharedTable {
 
   /**
    * FTS5 search on shared_memory. `activeOnly` (PR 22a / MEM-5) filters by
-   * status = 'active' via JOIN — FTS mirror itself is not rebuilt (no status
-   * column in the virtual table). Used by RAG injection path.
+   * status = 'active'. `notStale` (MEM-6, mig 9) filters out superseded /
+   * expired rows. Both apply at JOIN-time on shared_memory; the FTS mirror
+   * has no status/expires/superseded columns and is not rebuilt.
    *
    * B-1 note: shared_memory has no `agent_id` column (see schema.ts). The
    * table is by-design global — accepted writers (post-hippocampus
    * `writeShared`, context-compressor) intentionally publish facts visible
    * to every agent. Per-agent privacy lives in the separate `agent_memory`
    * table (`getAgentMemories` filter). Adding agent isolation here would
-   * require migration 9 + writer updates and is out of scope for B-1.
+   * require schema work + writer updates and is out of scope.
    */
-  searchShared(query: string, limit = 10, opts?: { activeOnly?: boolean }): FtsResult[] {
+  searchShared(
+    query: string,
+    limit = 10,
+    opts?: { activeOnly?: boolean; notStale?: boolean },
+  ): FtsResult[] {
     const ftsQuery = sanitizeFtsQuery(query);
     if (!ftsQuery) return [];
-    const statusFilter = opts?.activeOnly ? " AND s.status = 'active'" : "";
+    const filter = buildActiveFilter("s", opts);
     return this.db
       .query(
-        `SELECT s.id, s.category AS title, s.tags, snippet(fts_shared, 1, '<b>', '</b>', '...', 32) AS snippet, rank, s.created_at, s.updated_at FROM fts_shared f JOIN shared_memory s ON s.rowid = f.rowid WHERE fts_shared MATCH ?${statusFilter} ORDER BY rank LIMIT ?`,
+        `SELECT s.id, s.category AS title, s.tags, snippet(fts_shared, 1, '<b>', '</b>', '...', 32) AS snippet, rank, s.created_at, s.updated_at FROM fts_shared f JOIN shared_memory s ON s.rowid = f.rowid WHERE fts_shared MATCH ?${filter} ORDER BY rank LIMIT ?`,
       )
       .all(ftsQuery, limit) as FtsResult[];
   }

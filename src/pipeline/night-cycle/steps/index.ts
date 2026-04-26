@@ -5,3 +5,4 @@ export { verify } from "./verify";
 export { dedup } from "./dedup";
 export { extractAntiPatterns } from "./anti-patterns";
 export { resolveContradictions } from "./contradictions";
+export { runMemoryDedup } from "./memory-dedup";

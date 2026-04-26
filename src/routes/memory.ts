@@ -12,6 +12,11 @@ const str = (v: unknown): string | undefined =>
   typeof v === "string" && v.length > 0 ? v : undefined;
 const toStatus = (v: unknown): MemoryStatus | undefined =>
   v === "pending" || v === "active" || v === "rejected" ? v : undefined;
+// MEM-6: `?active=true` flips on the fresh-only filter (status='active' AND
+// not superseded AND not expired). Default false → admin sees full audit
+// trail. Accept "true"/"1" case-insensitively; everything else = false.
+const toActive = (v: unknown): boolean =>
+  typeof v === "string" && (v.toLowerCase() === "true" || v === "1");
 
 const bodies = {
   shared: t.Object({
@@ -65,6 +70,7 @@ export function memoryRoute(svc: MemoryService) {
       paginate((limit, offset, q) => svc.listShared({
         limit, offset, q,
         category: str(query.category), status: toStatus(query.status),
+        active: toActive(query.active),
       }), query))
     .patch("/shared/:id", ({ params, body }) => {
       if (!svc.getShared(params.id)) throw new NotFoundError("Shared entry");
@@ -77,7 +83,11 @@ export function memoryRoute(svc: MemoryService) {
     })
     .get("/context", ({ query }) =>
       paginate((limit, offset, q) =>
-        svc.listContext({ limit, offset, q, status: toStatus(query.status) }), query))
+        svc.listContext({
+          limit, offset, q,
+          status: toStatus(query.status),
+          active: toActive(query.active),
+        }), query))
     .patch("/context/:id", ({ params, body }) => {
       if (!svc.getContext(params.id)) throw new NotFoundError("Context entry");
       return svc.patchContext(params.id, body);

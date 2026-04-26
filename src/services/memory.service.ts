@@ -48,6 +48,10 @@ export type ListOpts = {
   category?: string;
   agentId?: string;
   sessionId?: string;
+  // MEM-6: when true, hide superseded + expired rows from list/search results.
+  // Admin UI default = false (sees full audit trail). RAG/pre never call into
+  // this service, so default-false is safe.
+  active?: boolean;
 };
 
 export type InsertSharedInput = {
@@ -121,12 +125,17 @@ export class MemoryService {
 
   // ─── Shared ───────────────────────────────────────────────
   listShared(opts: ListOpts): PaginatedResult<SharedRow> {
+    // MEM-6: `?active=true` → hide superseded/expired AND status!='active'.
     if (opts.q) {
-      const hits = this.repo.searchShared(opts.q, opts.limit);
+      const filter = opts.active ? { activeOnly: true, notStale: true } : undefined;
+      const hits = this.repo.searchShared(opts.q, opts.limit, filter);
       const items = hits.map((h) => this.repo.getShared(h.id)).filter((r): r is SharedRow => r !== null);
       return { items, total: items.length };
     }
     if (opts.status) return this.listByStatus("shared", opts.status, opts.limit, opts.offset) as PaginatedResult<SharedRow>;
+    if (opts.active) {
+      return this.repo.listSharedActive(opts.limit, opts.offset, opts.category);
+    }
     return {
       items: this.repo.listShared(opts.limit, opts.offset, opts.category),
       total: this.repo.countShared(opts.category),
@@ -168,12 +177,17 @@ export class MemoryService {
   // The agent-loop reaches context through the registry's memory_search /
   // rag_search handlers, which DO pass `ctx.agentId`.
   listContext(opts: ListOpts): PaginatedResult<ContextRow> {
+    // MEM-6: `?active=true` → hide superseded/expired AND status!='active'.
     if (opts.q) {
-      const hits = this.repo.searchContext(opts.q, opts.limit);
+      const filter = opts.active ? { activeOnly: true, notStale: true } : undefined;
+      const hits = this.repo.searchContext(opts.q, opts.limit, filter);
       const items = hits.map((h) => this.repo.getContext(h.id)).filter((r): r is ContextRow => r !== null);
       return { items, total: items.length };
     }
     if (opts.status) return this.listByStatus("context", opts.status, opts.limit, opts.offset) as PaginatedResult<ContextRow>;
+    if (opts.active) {
+      return this.repo.listContextActive(opts.limit, opts.offset);
+    }
     return { items: this.repo.listContext(opts.limit, opts.offset), total: this.repo.countContext() };
   }
   getContext(id: string): ContextRow | null { return this.repo.getContext(id); }

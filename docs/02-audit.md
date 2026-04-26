@@ -312,6 +312,17 @@ Post-hippocampus пишет в `shared_memory` / `memory` мгновенно, б
 **Fix:** PR 22a + 22b — миграция 7 добавляет `confidence REAL` + `status TEXT CHECK('pending'|'active'|'rejected')`; post-hippocampus эмитит confidence; ≥0.8 → active, <0.8 → pending; RAG injection фильтрует только active; UI approve/reject.
 **Scope:** PR 22a (schema), 22b (UI).
 
+### MEM-6 ✅ `src/pipeline/agent-pipeline/post/*` — гиппокамп собирает мусор (закрыто 2026-04-26)
+Прод-аудит 2026-04-26 (147 shared, 655 layer2_context): self-feeding loop через subbrain-ping (`[from Claude Code CLI] freelance scout deployed` сохранялось как `category=deploy`); дубликаты тех же предпочтений (3 строки про `consult_specialists`); полные тексты статей в `context` (>1KB на строку); time-bomb факты (`FL.ru заказы к 27.04` без expires_at); конкурирующие "главные планы" без supersede.
+**Fix:** PR 28 (single PR) —
+1. `post/gate.ts`: skip exchanges starting with subbrain-ping / free-agent / freelance-scout prefixes.
+2. `post/validators.ts` (new): closed taxonomy (shared: profile|preference|goal|relationship|skill|constraint|style; context: project|decision|bug|architecture|learning) + content cap (600/2000) + content blacklist (deploy phrases, commit hashes, `[from Claude Code CLI]`).
+3. `post/dedupe.ts` (new): pre-insert FTS + vec dedupe (cosine ≥0.85 в JS — sqlite-vec возвращает L2 на ненормализованных векторах, не cosine); update merged content/tags/confidence on hit, no new row; embed lazy.
+4. Migration 9: `expires_at INTEGER NULL` + `superseded_by TEXT NULL` + indexes + self-supersede trigger; RAG/pre filter via new `notStale` opt (status `activeOnly` отдельный флаг, pending видны pre, expired/superseded — нет); `?active=true` admin query.
+5. `night-cycle/steps/memory-dedup.ts` (new): cluster-merge (cosine ≥0.9, same category) → max(updated_at) wins, longest content; expire pass marks `superseded_by='expired'`.
+Tests: `tests/pipeline-post-{gate,validators,dedupe,supersede}.test.ts`, `tests/memory-migration-9.test.ts`, `tests/rag-active-filter.test.ts`, `tests/night-cycle-memory-dedup.test.ts`, `tests/memory-routes-active.test.ts`. 633 pass / 0 fail.
+**Scope:** PR 28.
+
 ### ✅ ROUTE-1 `src/routes/chat.ts:31` + `src/lib/model-router.ts:61` — directMode триггерится не тем провайдером (PR #23)
 ~~`router.isOverloaded` смотрит только на NVIDIA limiter, но все роли primary=MiniMax. Когда NVIDIA перегружена (RAG/embed), чат через MiniMax внезапно переключается в direct mode → обходит pipeline + память. Плюс `providers/index.ts:23` требует Copilot+OpenRouter даже если они не primary/fallback нигде.~~
 **Fix:** PR 23 — `isOverloadedFor(provider)` с NVIDIA-alias `isOverloaded @deprecated`; `routes/chat.ts` компьютит directMode через `resolveModel(requested).provider`; `providers/index.ts:createProviders` читает MODEL_MAP и грузит только референснутые провайдеры (NVIDIA всегда, Copilot/OpenRouter — только если в map), unreferenced slots получают stub который кидает на вызове.
