@@ -235,7 +235,13 @@ export async function initDeps(config: AppConfig = loadConfig()): Promise<AppDep
   room.setMetrics(metrics);
   pipeline.setArbitrationRoom(room);
   tools.setRoom(room);
-  const chatService = new ChatService(router, pipeline, memory.chatRepo, memory.memoryRepo);
+  const chatService = new ChatService(
+    router,
+    pipeline,
+    memory.chatRepo,
+    memory.memoryRepo,
+    memoryService,
+  );
 
   const nightCycle = new NightCycle(memory, router, rag);
   const agentLoop = new AgentLoop(memory, router, rag, tools, registry);

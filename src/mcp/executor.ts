@@ -146,7 +146,10 @@ export class ToolExecutor {
     agent_id?: string;
     confidence?: "HIGH" | "LOW";
     key?: string;
-  }, agentId: string | null = null): ToolResult {
+  }, agentId: string | null = null): ToolResult | Promise<ToolResult> {
+    // MEM-2 (M-01): the `shared` layer returns a Promise so callers (registry
+    // handler — accepts ToolResult | Promise<ToolResult>) await embed+insert.
+    // Other layers stay sync.
     return this.memoryTools.write(params, agentId);
   }
 
