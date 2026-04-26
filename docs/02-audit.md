@@ -458,3 +458,55 @@ Tests: `tests/mcp-curation-tools.test.ts` (12 кейсов).
 **Verdict:** M-07.1 fix landed, DI-cleanup landed, file-cap deferred с обоснованием. Acceptance §5 (`memory-tools.ts ≤250`) не выполнен — plan §3 explicit allowed defer для artificial splits, §5 написан в предположении "if Step 3a runs". Step 3a не запускался в этом pass.
 
 **Scope:** M-FINAL2 (real bug fix + DI cleanup + audit doc).
+
+### Memory-v2 wave 4 review (2026-04-26, M-FINAL3)
+
+**Closed:** MEM-14 (M-12 archive confidence REAL), MEM-15 (M-10 public MCP curation tools).
+
+**Debug findings (§1 grep pass — all clean):**
+
+- `db.insertShared` raw outside SEED_SKIP_EMBED → 0 production hits. Only `scripts/seed.ts:140` (seed script, exempt — wave-1 баг закрыт через M-FINAL via `MemoryService.insertShared`).
+- `'HIGH'/'LOW'` strings on archive outside backfill → 0 hits. M-12 миграция 15 завершена чисто, ни одного residual literal.
+- `(as any)` since wave-1 baseline → 14 hits, **all pre-existing** (copilot/stream.ts boundary types, telegram/userbot.ts MTProto lib types, mcp-protocol.ts Elysia body, telegram.ts handleUpdate). Identical set to M-FINAL audit, no new wave-4 introductions.
+- `console.log/warn/error` → 5 hits, **все pre-existing fallbacks** (`logger.ts` itself: bootstrap fallback before logger ready; `providers/index.ts` warn; `telegram/userbot.ts` session-print one-shot CLI; `app/deps.ts` startup token-missing). Не logger violations — все вне normal runtime path.
+- `Promise.all` on fan-out → 0 hits. All upstream fan-out (arbitration, freelance, hippocampus) корректно использует `Promise.allSettled`.
+- Single-arg `logger.*()` → 0 hits. Match в `lib/logger.ts:94` — это комментарий, не call.
+- Raw `fetch()` outside http-client → 0 production hits. Совпадения только в sandbox docstrings и provider type-comments.
+- `TODO M-*/wave-*/M-FINAL` → 0 hits.
+
+**File-cap status (§2):**
+
+Over-cap (>250 LOC) после wave-4, исключая legitimate exceptions (`schema.ts` frozen, `system-prompt.ts` exempt, `model-map.ts` exempt, `rag/pipeline.ts` exempt, MCP registry, telegram):
+
+- `src/mcp/tools/memory-tools.ts` — 472 LOC (+2 vs M-FINAL2). M-10 не разрастил его (curation methods через `memory.repo.ts` + service); рост на 2 строки = noise. Split-кандидат всё ещё ждёт rip-out `writeSharedAtomic` (см. M-FINAL2 verdict).
+- `src/db/index.ts` — 441 LOC. Façade aggregate, single responsibility (re-export). Anti-goal: split = ломает back-compat для scripts/ + legacy tests.
+- `src/pipeline/arbitration-room.ts` — 420 LOC. Pre-wave subsystem, не задет memory-v2.
+- `src/app/deps.ts` — 414 LOC. DI wiring container — split = искусственный.
+- `src/mcp/executor.ts` — 361 LOC. Pre-wave.
+- `src/repositories/memory.repo.ts` — 356 LOC (+M-10 link/supersede/reflectGroups методов). Single-responsibility (memory CRUD repo); split write/read дублирует deps.
+- `src/db/tables/shared.ts` — 356 LOC. Same analysis as M-FINAL2.
+- `src/db/tables/memory.ts` — 337 LOC (+M-10 reflectGroups, +M-12 archive REAL helpers). Single-responsibility table API.
+- `src/services/chat.service.ts` — 323 LOC.
+- `src/services/memory.service.ts` — 305 LOC (+ M-12 archive paths). Service facade, single-responsibility.
+
+**Verdict §2:** ни один natural split не нашёлся. Anti-goal "if it works, don't fix it" применён согласно plan §5. Все рост-факторы естественные (M-10 добавил 3 curation методов в repo + service + table; M-12 unified confidence path), без god-file syndrome.
+
+**Test stability (§3):** 730 pass / 1 fail × 2 runs (identical). Стабильно — flakiness нет.
+
+The 1 fail = `tests/usemarkdown.test.ts` (Cannot find package `isomorphic-dompurify`). **Pre-existing**: web/app composable test зависит от web/-only npm package, который не установлен в root `package.json`. Не wave-4 регресс — введён в `bcc4816` (refactor PR-1..10, 2026-04-23, до memory-v2). Out of scope для M-FINAL3.
+
+Effective memory-v2 baseline = 730 pass / 0 memory-v2 fail.
+
+**Schema sanity (§4):** fresh DB → `PRAGMA user_version = 15`. 41 sqlite_master rows (21 base tables + 20 FTS-shadow tables). Все required tables present: `layer1_focus, layer2_context, layer3_archive, layer4_log, shared_memory, agent_memory, code_tools, memory_edges, freelance_leads, tasks, scheduler_state, fts_context, fts_archive, fts_shared, fts_log, fts_tg_messages, tg_messages, tg_excluded_chats, chats, chat_messages, metrics_log`.
+
+**Optional refactor (§5):** не выполнен. Anti-goal explicit. Все candidates от plan §41 (memory-tools.ts, memory.ts, routes/memory.ts) — не natural split. `routes/memory.ts` не в over-cap списке после M-12 (typebox enum добавил <20 LOC).
+
+**Open follow-ups (P2 backlog, не блокеры):**
+
+- Out of scope per plan §117: M-04.1 (rolling embed), M-05.1 (evolution), M-05.2 (LLM contradiction), M-08.1 (per-kind decay), M-09 (cross-layer dedup), M-11 (sleep-time block rewriter).
+- `memory-tools.ts` final split возможен после миграции 6 legacy test sites от direct `new MemoryTools(db, () => null)` к DI service injection (см. M-FINAL2 verdict).
+- `tests/usemarkdown.test.ts` нужно либо install `isomorphic-dompurify` в root package.json, либо переместить в `web/tests/` (pre-existing тех.долг, не memory-v2).
+
+**Verdict:** wave-4 закрыта чисто. 0 регрессов введено M-10/M-12. tsc 0, 730/0 (memory-v2-effective). Anti-goal соблюдён — refactor вылазить не стал.
+
+**Scope:** M-FINAL3 (debug grep audit + file-cap audit + test stability + schema sanity + audit doc).
