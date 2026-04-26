@@ -1,6 +1,6 @@
 # M-07 · Memory type/persona enum (`kind`)
 
-**Tier:** P1 · **Effort:** S · **Deps:** — · **Status:** DONE
+**Tier:** P1 · **Effort:** S · **Deps:** — · **Status:** DONE (commit `1eeb472` direct on main; subagent-process anomaly required rescue, see commit body)
 **Migration assignment:** **12** (M-04 takes 11 — do NOT use 11 here).
 
 ## Цель
