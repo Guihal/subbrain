@@ -582,3 +582,56 @@ Note: discrepancy 740 vs `bun test` 756 главного worktree — связа
 **Verdict:** M-09 закрыт чисто. 0 регрессов введено. tsc 0, 740/0 (memory-v2-effective, worktree-env baseline). Anti-goal соблюдён — refactor вылазить не стал.
 
 **Scope:** M-09-AUDIT (debug grep audit + file-cap audit + test stability + audit doc).
+
+### M-04.1 review (2026-04-26)
+
+**Scope:** M-04.1-AUDIT (debug grep audit + LOC audit + test stability + audit doc).
+
+**Baseline pre-audit:** 765/0/97 (parent prompt — main worktree). Worktree env: 749/1/1 (1 fail+error = `tests/usemarkdown.test.ts` known FP, web/ deps absent).
+
+**Debug greps post-M-04.1 (zero-tolerance):**
+
+- `MemoryDB.*insertShared|db.insertShared` raw outside SEED_SKIP_EMBED → 0 production hits. Match `scripts/seed.ts:140` (seed script, exempt by guard).
+- `'HIGH'/'LOW'` archive outside backfill → 0. M-12 unification holds.
+- Single-arg `logger.(info|warn|error|debug)(...)` → 0 calls. Match `lib/logger.ts:94` = comment.
+- `console.(log|warn|error)` → 7 hits, **все pre-existing**: `lib/logger.ts:70` (re-entrancy fallback), `lib/logger.ts:107` (`2ea10f8` hardening pre-M-04.1), `app/deps.ts:89` (token-missing startup), `providers/index.ts:141` (provider warn), `telegram/userbot.ts:97-99` (one-shot session-string CLI). Не M-04.1 introductions.
+- Raw `fetch()` outside http-client → 0 production hits. Все 8 совпадений = comments / hint-strings / regex-source / template literals в sandbox tooling (`mcp/registry/code-mgmt.tools.ts`, `pipeline/agent-loop/code-tools/sandbox.ts`, `system-prompt.ts`, `providers/types.ts` JSDoc).
+- `TODO M-04.1` → 0 hits.
+- `Promise.all(...)` introduced by M-04.1 diff → 0. Step `embed-log.ts` использует `Promise.allSettled` для batch fan-out (per план).
+- `as any` introduced by M-04.1 diff → 0.
+- `@ts-(ignore|nocheck|expect-error)` introduced by M-04.1 diff → 0.
+
+**File-cap status (§2):**
+
+M-04.1 touched files (post-merge LOC):
+
+- `src/db/tables/log.ts` — 179 (M-04.1 helpers `selectUnembeddedRecent`, `countLogEmbeddings`, `evictOldestLogEmbeddings`, `hydrateForVec`).
+- `src/pipeline/night-cycle/index.ts` — 111.
+- `src/pipeline/night-cycle/post-steps.ts` — 156.
+- `src/pipeline/night-cycle/steps/embed-log.ts` — 146 (NEW step, под cap 200 plan-target).
+- `src/pipeline/night-cycle/steps/index.ts` — 20.
+- `src/pipeline/night-cycle/types.ts` — 85.
+- `src/repositories/log.repo.ts` — 74.
+- `tests/night-cycle-embed-log.test.ts` — 200.
+- `src/rag/pipeline.ts` — 699 (exempt list per guardrail §1, плановый touch для vec branch unblock).
+
+**Verdict §2 (M-04.1 own files):** все ≤200 LOC, под cap. Sole exception = `rag/pipeline.ts` 699 (exempt from start). M-04.1 split в `steps/embed-log.ts` соблюдён.
+
+Pre-existing >250 LOC list (24 files): identical к M-09 audit baseline ± `src/db/tables/log.ts` (was ≤140 в M-04, now 179 — still under cap). M-04.1 diff не растил ни один pre-existing god-file.
+
+**Test stability (§3):** 749 pass / 1 fail / 1 error × 2 runs (identical counts). Stable, flakiness не наблюдается.
+
+The 1 fail+error = `tests/usemarkdown.test.ts` (`Cannot find package 'isomorphic-dompurify'`). **Known worktree-env FP** (web/ npm deps absent в worktree, parent prompt explicitly marked as ignore). Не M-04.1 regression.
+
+Effective M-04.1 baseline (excluding worktree-env FP) = **749/0** memory-v2-effective. Schema/code stability подтверждена (tsc 0).
+
+Note: discrepancy 749 vs parent baseline 765 — связан с worktree env (no `data/` dir initially → `mkdir -p data` pre-run; parent counted `bun test` from main worktree).
+
+**Open follow-ups (P2 backlog, не блокеры):**
+
+- M-03 (salience), M-05.1 (evolution), M-05.2 (LLM contradiction), M-08.1 (per-kind decay), M-11 (sleep-time block rewriter) — wave-2 plan files committed (commit `0bf8832`).
+- `tests/usemarkdown.test.ts` worktree-env (install `isomorphic-dompurify` в root или relocate в `web/tests/`) — pre-existing, не M-04.1 scope.
+
+**Verdict:** M-04.1 закрыт чисто. 0 регрессов введено. tsc 0, 749/0 (memory-v2-effective, worktree-env baseline). Status DONE уже выставлен в plan file `docs/tasks/memory-v2/M-04.1-rolling-embed-log.md:3`. Anti-goal "no over-refactor" соблюдён — pre-existing tech debt logged + skipped.
+
+**Scope:** M-04.1-AUDIT (debug grep audit + LOC audit + test stability + audit doc).
