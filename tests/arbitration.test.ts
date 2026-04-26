@@ -231,4 +231,67 @@ console.assert(
   "Exactly 2 of 3 specialists should have content",
 );
 
-console.log("✅ All 9 arbitration tests passed");
+// ─── Test 10: Synthesis timeout → top-2 fallback ─────────
+//
+// Specialists return fast, but teamlead synthesis hangs past
+// SYNTHESIS_TIMEOUT_MS (set to 100ms via env). Expect a fallback string with
+// the "Synthesis timed out" marker and content from the 2 highest-weighted
+// specialists for category "review" (critic 1.5, coder 0.8 → both, in that
+// order).
+
+process.env.SYNTHESIS_TIMEOUT_MS = "100";
+// Re-import to pick up the new env value (module-level const).
+const { ArbitrationRoom: ArbitrationRoomT } = await import(
+  "../src/pipeline/arbitration-room?t=" + Date.now()
+);
+
+chatCalls = [];
+const mockRouterSlowSynth = {
+  chat: async (model: string, params: any) => {
+    chatCalls.push({ model, messages: params.messages });
+    if (model === "teamlead") {
+      // Hang well past SYNTHESIS_TIMEOUT_MS so the race resolves to timeout.
+      await new Promise((r) => setTimeout(r, 1000));
+      return makeResponse("Slow synth that should have been aborted.");
+    }
+    if (model === "coder") return makeResponse("Coder: use locks.");
+    if (model === "critic") return makeResponse("Critic: deadlock risk.");
+    return makeResponse("?");
+  },
+} as any;
+const roomSlowSynth = new ArbitrationRoomT(mockRouterSlowSynth);
+const t0 = Date.now();
+const result5 = await roomSlowSynth.run(
+  "Should we add locks?",
+  "",
+  { agents: ["coder", "critic"], category: "review", timeout: 1000 },
+);
+const elapsed = Date.now() - t0;
+console.assert(
+  result5.synthesis.startsWith("⚠ Synthesis timed out"),
+  `Expected timeout marker, got: ${result5.synthesis.slice(0, 80)}`,
+);
+console.assert(
+  result5.synthesis.includes("Critic: deadlock risk."),
+  "Fallback should contain critic content (highest weight in review)",
+);
+console.assert(
+  result5.synthesis.includes("Coder: use locks."),
+  "Fallback should contain coder content (top-2)",
+);
+// Critic comes before coder in the fallback because critic has higher
+// review-weight (1.5 vs 0.8).
+const criticPos = result5.synthesis.indexOf("Critic:");
+const coderPos = result5.synthesis.indexOf("Coder:");
+console.assert(
+  criticPos > 0 && criticPos < coderPos,
+  `Top-2 should be ranked by weight: critic before coder, got positions ${criticPos}/${coderPos}`,
+);
+// Race must resolve roughly at SYNTHESIS_TIMEOUT_MS, NOT at the 1000ms hang.
+console.assert(
+  elapsed < 600,
+  `Run should return at synthesis timeout (~100ms), elapsed ${elapsed}ms`,
+);
+delete process.env.SYNTHESIS_TIMEOUT_MS;
+
+console.log("✅ All 10 arbitration tests passed");

@@ -6,8 +6,9 @@ describe("toolTimeoutMs", () => {
     expect(toolTimeoutMs("critic_review")).toBe(120_000);
   });
 
-  test("consult_* raised to 60s", () => {
-    expect(toolTimeoutMs("consult_coder")).toBe(60_000);
+  test("consult_* raised to 180s", () => {
+    // 180s = 30s (specialist) + 60s (synthesis) + slack (per tool-runner.ts).
+    expect(toolTimeoutMs("consult_coder")).toBe(180_000);
   });
 
   test("web_* keeps 15s", () => {

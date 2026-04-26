@@ -23,13 +23,17 @@ import { executeSandboxed } from "./code-tools/sandbox";
  * model can decide whether to retry or skip ahead.
  */
 const CRITIC_TIMEOUT_MS = Number(process.env.CRITIC_TIMEOUT_MS ?? 120_000);
+// consult_specialists fan-outs N specialists (≤30s each, parallel) + teamlead
+// synthesis (≤60s). Outer wrapper must exceed 30 + 60 + slack, otherwise outer
+// abort cascades and kills synthesis seconds before it returns.
+const CONSULT_TIMEOUT_MS = Number(process.env.CONSULT_TIMEOUT_MS ?? 180_000);
 const TOOL_TIMEOUTS: { prefix: string; ms: number }[] = [
   { prefix: "critic_", ms: CRITIC_TIMEOUT_MS },
   { prefix: "web_", ms: 15_000 },
   { prefix: "memory_", ms: 3_000 },
   { prefix: "embed_", ms: 5_000 },
   { prefix: "task_", ms: 3_000 },
-  { prefix: "consult_", ms: 60_000 },
+  { prefix: "consult_", ms: CONSULT_TIMEOUT_MS },
 ];
 const DEFAULT_TOOL_TIMEOUT_MS = 10_000;
 

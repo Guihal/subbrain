@@ -51,7 +51,13 @@ const ROLE_PROMPTS: Record<string, string> = {
     "Ты — Хаос, провокатор-стратег (Mistral). Найди 1-2 неочевидные или контринтуитивные позиции: black swan, uncomfortable alternatives, hidden second-order effects. Технически обоснованно. Предположи что «очевидный» ответ ошибочен — что тогда?",
 };
 
-const SPECIALIST_TIMEOUT = 30_000;
+const SPECIALIST_TIMEOUT =
+  Number(process.env.SPECIALIST_TIMEOUT_MS) || 30_000;
+// Synthesis runs after specialists; without its own ceiling it inherits the
+// outer consult_* budget, and outer-abort cascades kill near-finished calls.
+const SYNTHESIS_TIMEOUT =
+  Number(process.env.SYNTHESIS_TIMEOUT_MS) || 60_000;
+const SYNTHESIS_TIMEOUT_SENTINEL: unique symbol = Symbol("synthesis_timeout");
 
 // ─── ArbitrationRoom ─────────────────────────────────────
 
@@ -137,13 +143,36 @@ export class ArbitrationRoom {
     }
 
     // ─── 2. Synthesize via TeamLead ────────────────────
+    // Synthesis has its own timeout so a slow teamlead can't eat the whole
+    // outer consult_* budget. On timeout we abort the in-flight router.chat
+    // and fall back to the top-2 specialist responses by category weight —
+    // partial answer beats burning 4 specialist RPM for nothing.
     const synthesisStart = Date.now();
-    const synthesis = await this.synthesize(
-      userMessage,
-      validResponses,
-      config.category,
-      externalSignal,
-    );
+    const synthCtrl = new AbortController();
+    const synthSignal = externalSignal
+      ? AbortSignal.any([externalSignal, synthCtrl.signal])
+      : synthCtrl.signal;
+    let synthTimer: ReturnType<typeof setTimeout> | undefined;
+    const raced = await Promise.race([
+      this.synthesize(
+        userMessage,
+        validResponses,
+        config.category,
+        synthSignal,
+      ),
+      new Promise<typeof SYNTHESIS_TIMEOUT_SENTINEL>((resolve) => {
+        synthTimer = setTimeout(() => {
+          synthCtrl.abort();
+          resolve(SYNTHESIS_TIMEOUT_SENTINEL);
+        }, SYNTHESIS_TIMEOUT);
+      }),
+    ]).finally(() => {
+      if (synthTimer) clearTimeout(synthTimer);
+    });
+    const synthesisTimedOut = raced === SYNTHESIS_TIMEOUT_SENTINEL;
+    const synthesis = synthesisTimedOut
+      ? this.fallbackSynthesis(validResponses, config.category)
+      : (raced as string);
     this.metrics?.record({
       model: "teamlead",
       priority: "critical",
@@ -151,7 +180,8 @@ export class ArbitrationRoom {
       latencyMs: Date.now() - synthesisStart,
       tokensIn: 0,
       tokensOut: 0,
-      status: "ok",
+      status: synthesisTimedOut ? "error" : "ok",
+      ...(synthesisTimedOut ? { errorType: "timeout" } : {}),
     });
 
     return {
@@ -301,6 +331,27 @@ export class ArbitrationRoom {
 
       return { role, content: "", latencyMs, timedOut };
     }
+  }
+
+  /**
+   * Build a degraded answer from raw specialist outputs when synthesis
+   * times out. Picks top-2 by category weight so the agent still gets the
+   * highest-signal opinions and a clear marker that synthesis failed.
+   */
+  private fallbackSynthesis(
+    responses: AgentResponse[],
+    category: TaskCategory,
+  ): string {
+    const ranked = [...responses].sort(
+      (a, b) =>
+        (DEFAULT_WEIGHTS[b.role]?.[category] ?? 1.0) -
+        (DEFAULT_WEIGHTS[a.role]?.[category] ?? 1.0),
+    );
+    const top = ranked.slice(0, 2);
+    const sections = top
+      .map((r) => `### ${r.role}\n${r.content}`)
+      .join("\n\n---\n\n");
+    return `⚠ Synthesis timed out (${SYNTHESIS_TIMEOUT}ms) — раздаю top-${top.length} ответов специалистов как есть:\n\n${sections}`;
   }
 
   private async synthesize(

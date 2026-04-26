@@ -5,6 +5,27 @@
 import { t, type ToolRegistry } from "./tool-registry";
 import { executeSandboxed } from "../../pipeline/agent-loop/code-tools/sandbox";
 
+// Sandbox = Bun Worker with require/process/Function nulled and dynamic
+// import() blocked. Static imports of any kind also break (Function-body is
+// non-module-context — parser reads `import` as dynamic-call). Reject these
+// patterns at registration/edit time so the agent gets immediate feedback
+// instead of polluting hippocampus extraction with runtime errors.
+// `import type` is type-only and erased by transpiler — allowed via lookahead.
+const SANDBOX_FORBIDDEN: Array<{ re: RegExp; hint: string }> = [
+  { re: /\brequire\s*\(/, hint: "require() blocked in sandbox; use fetch() to /v1/* HTTP endpoints" },
+  { re: /^\s*import\s+(?!type\b)/m, hint: "static `import` (any form) breaks in sandbox Function-context; use fetch()-based pattern" },
+  { re: /\bfrom\s+["']node:/, hint: "node:* imports unavailable in sandbox; use fetch() to internal /v1/* endpoints" },
+  { re: /\bimport\s*\(\s*["']node:/, hint: "node:* imports unavailable in sandbox; dynamic import() is also blocked at runtime" },
+  { re: /\bfrom\s+["']child_process["']/, hint: "child_process unavailable; no shell access in sandbox" },
+];
+
+function checkSandboxCompat(code: string): { ok: true } | { ok: false; hint: string } {
+  for (const { re, hint } of SANDBOX_FORBIDDEN) {
+    if (re.test(code)) return { ok: false, hint };
+  }
+  return { ok: true };
+}
+
 export function registerCodeMgmtTools(registry: ToolRegistry): void {
   registry.register({
     name: "create_code_tool",
@@ -24,6 +45,10 @@ export function registerCodeMgmtTools(registry: ToolRegistry): void {
     handler: (args, ctx) => {
       if (!ctx.codeTools) {
         return { success: false, error: "Code tools not available" };
+      }
+      const guard = checkSandboxCompat(args.code);
+      if (!guard.ok) {
+        return { success: false, error: `sandbox_violation: ${guard.hint}` };
       }
       try {
         const tool = ctx.codeTools.create(args.name, args.description, args.code);
@@ -48,6 +73,12 @@ export function registerCodeMgmtTools(registry: ToolRegistry): void {
     handler: (args, ctx) => {
       if (!ctx.codeTools) {
         return { success: false, error: "Code tools not available" };
+      }
+      if (typeof args.code === "string") {
+        const guard = checkSandboxCompat(args.code);
+        if (!guard.ok) {
+          return { success: false, error: `sandbox_violation: ${guard.hint}` };
+        }
       }
       try {
         const tool = ctx.codeTools.update(args.name, {
