@@ -151,6 +151,64 @@ describe("M-08 — forgetting curve (pure)", () => {
     const out = applyForgettingCurve([r], now, { recall: 0 });
     expect(out[0].score).toBe(0.5);
   });
+
+  // ─── M-08.1: per-kind decay tuning ────────────────────────────
+  test("M-08.1: episodic decays faster than semantic (same params)", () => {
+    const now = 5_000_000;
+    const dt = 2 * DAY;
+    const sem = computeRecallScore(now, now - dt, 0, 0.5, "semantic");
+    const ep = computeRecallScore(now, now - dt, 0, 0.5, "episodic");
+    expect(ep).toBeLessThan(sem);
+    // Default mult 0.5 → tau half → R = exp(-2*dt/tau_sem) = sem^2.
+    expect(ep).toBeCloseTo(sem * sem, 5);
+  });
+
+  test("M-08.1: procedural decays slower than semantic (same params)", () => {
+    const now = 5_000_000;
+    const dt = 2 * DAY;
+    const sem = computeRecallScore(now, now - dt, 0, 0.5, "semantic");
+    const proc = computeRecallScore(now, now - dt, 0, 0.5, "procedural");
+    expect(proc).toBeGreaterThan(sem);
+    // Default mult 2.0 → tau double → R = exp(-dt/(2*tau_sem)) = sqrt(sem).
+    expect(proc).toBeCloseTo(Math.sqrt(sem), 5);
+  });
+
+  test("M-08.1: kind=undefined matches semantic (baseline unchanged)", () => {
+    const now = 5_000_000;
+    const dt = 3 * DAY;
+    const undef = computeRecallScore(now, now - dt, 0, 0.5);
+    const sem = computeRecallScore(now, now - dt, 0, 0.5, "semantic");
+    expect(undef).toBe(sem);
+  });
+
+  test("M-08.1: RAG_DECAY_MULT_EPISODIC=1.0 → episodic == semantic (env override)", () => {
+    const now = 5_000_000;
+    const dt = 2 * DAY;
+    const prev = process.env.RAG_DECAY_MULT_EPISODIC;
+    process.env.RAG_DECAY_MULT_EPISODIC = "1.0";
+    try {
+      const ep = computeRecallScore(now, now - dt, 0, 0.5, "episodic");
+      const sem = computeRecallScore(now, now - dt, 0, 0.5, "semantic");
+      expect(ep).toBe(sem);
+    } finally {
+      if (prev === undefined) delete process.env.RAG_DECAY_MULT_EPISODIC;
+      else process.env.RAG_DECAY_MULT_EPISODIC = prev;
+    }
+  });
+
+  test("M-08.1: persona override unchanged — kind='persona' still R=1.0 via skipPersona", () => {
+    // Regression: per-kind multiplier path must NOT bypass the persona pin.
+    const now = 10_000_000;
+    const r = row({
+      layer: "shared",
+      kind: "persona",
+      last_accessed_at: now - 30 * DAY,
+      access_count: 0,
+      salience: 0.5,
+    });
+    const out = applyForgettingCurve([r], now, { recall: 0.15 });
+    expect(out[0].score).toBeCloseTo(1.15, 5);
+  });
 });
 
 describe("M-08 — forgetting curve (RAG end-to-end)", () => {
