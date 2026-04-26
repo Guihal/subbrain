@@ -238,7 +238,11 @@ export class ChatService {
           content: string,
           tags?: string,
           source?: string,
-          opts?: { confidence?: number | null; status?: import("../db").MemoryStatus },
+          opts?: {
+            confidence?: number | null;
+            status?: import("../db").MemoryStatus;
+            kind?: import("../db").MemoryKind;
+          },
         ) => svc.insertShared({
           category,
           content,
@@ -246,6 +250,7 @@ export class ChatService {
           source,
           confidence: opts?.confidence,
           status: opts?.status,
+          kind: opts?.kind,
         }),
       };
     }

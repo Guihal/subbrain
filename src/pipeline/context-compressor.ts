@@ -17,6 +17,7 @@ import type { Message } from "../providers/types";
 import type { ModelRouter } from "../lib/model-router";
 import { logger } from "../lib/logger";
 import { estimateTokens } from "./agent-loop/types";
+import { categoryToKind } from "./agent-pipeline/post/validators";
 
 /**
  * PR 27: compressor only needs `insertShared` to persist extracted facts.
@@ -27,6 +28,13 @@ import { estimateTokens } from "./agent-loop/types";
  * ChatService caller can pass a `MemoryService`-backed shim whose
  * `insertShared` is async (embed-first → transactional). MemoryDB's sync
  * `void` still satisfies the union; legacy callers untouched.
+ *
+ * M-FINAL2 (M-07.1): `opts.kind` carries the persona/semantic classification
+ * derived via `categoryToKind` so persona-grade facts (preference / profile /
+ * relationship from compressor's `VALID_FACT_CATEGORIES`) actually pick up
+ * the +10% RAG rerank boost. Backfill default `'semantic'` happens in SQL,
+ * but only if caller doesn't pass kind — and the compressor used to never
+ * pass it.
  */
 export interface CompressorMemory {
   insertShared: (
@@ -35,7 +43,11 @@ export interface CompressorMemory {
     content: string,
     tags?: string,
     source?: string,
-    opts?: { confidence?: number | null; status?: import("../db").MemoryStatus },
+    opts?: {
+      confidence?: number | null;
+      status?: import("../db").MemoryStatus;
+      kind?: import("../db").MemoryKind;
+    },
   ) => void | Promise<unknown>;
 }
 
@@ -238,6 +250,10 @@ export async function compressContext(
     for (const f of normalizedFacts) {
       const category = f.category.slice(0, 64);
       const content = f.content;
+      // M-FINAL2 (M-07.1): derive kind from category so persona-grade facts
+      // (preference) get the +10% rerank boost. Without this, the compressor's
+      // shared_memory writes always backfilled to default 'semantic'.
+      const kind = categoryToKind(category, "shared");
       try {
         await memory.insertShared(
           randomUUID(),
@@ -245,6 +261,7 @@ export async function compressContext(
           content,
           "",
           "context-compression",
+          { kind },
         );
         written++;
       } catch (err) {
