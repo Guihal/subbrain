@@ -108,10 +108,13 @@ export class RAGPipeline {
     // 1. FTS5 search (local, no RPM cost)
     const ftsResults = this.ftsSearch(query, layers, ftsLimit, agentId, sessionId);
 
-    // 2. Vector search (1 RPM for embed) — graceful degradation. M-04:
-    // skip vec for the "log" layer (no embeddings on Layer 4 in this PR);
-    // pass through the embeddable subset only.
-    const vecLayers = layers.filter((l) => l !== "log");
+    // 2. Vector search (1 RPM for embed) — graceful degradation. M-04.1:
+    // `"log"` is now a first-class vec layer (rolling N=10k window kept by
+    // the night-cycle `embed-log` step), so it joins the other layers in
+    // the embedded set. Default `layers` = ["context","archive","shared"]
+    // still excludes log (privacy: raw log holds pre-scrub PII), so the
+    // log vec branch only runs when callers explicitly opt in.
+    const vecLayers = layers;
     let vecResults: RAGResult[] = [];
     try {
       if (vecLayers.length > 0) {
@@ -441,6 +444,22 @@ export class RAGPipeline {
             access_count: r.access_count,
           });
         }
+      } else if (layer === "log") {
+        // M-04.1: hydrate log rows via the LogRepository (raw SQL stays in
+        // db/tables per PR 27 layer boundary). No status column on
+        // `layer4_log`, so all rows hydrate; privacy is enforced upstream
+        // (log only enters this loop when the caller explicitly passes
+        // `layers: [..., "log"]`).
+        for (const r of this.memory.logRepo.hydrateForVec(ids)) {
+          byId.set(r.id, {
+            title: r.role,
+            content: r.content,
+            created_at: r.created_at,
+            // No `updated_at` on log rows — reuse created_at so the
+            // forgetting-curve / recency-boost branches see a sensible age.
+            updated_at: r.created_at,
+          });
+        }
       }
 
       for (const vr of vecResults) {
@@ -640,6 +659,28 @@ export class RAGPipeline {
       }),
     );
     return new Float32Array(embedResult.data[0].embedding);
+  }
+
+  /**
+   * M-04.1: batch embed for the night-cycle `embed-log` step. Single
+   * upstream call, one rate-limit slot. Caller is responsible for chunking
+   * the input list (NVIDIA limits per request); this helper does not split.
+   * Returns vectors in the same order as `inputs`.
+   */
+  async embedBatch(
+    inputs: string[],
+    signal?: AbortSignal,
+  ): Promise<Float32Array[]> {
+    if (inputs.length === 0) return [];
+    const embedResult = await this.router.scheduleRaw("low", () =>
+      this.router.raw.embed({
+        model: EMBED_MODEL,
+        input: inputs,
+        input_type: "passage",
+        signal,
+      }),
+    );
+    return embedResult.data.map((d) => new Float32Array(d.embedding));
   }
 
   /**
