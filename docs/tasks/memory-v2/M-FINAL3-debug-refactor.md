@@ -1,6 +1,6 @@
 # M-FINAL3 · Debug + refactor pass after wave-4
 
-**Tier:** P0 (closes wave-4) · **Effort:** M · **Deps:** M-10 + M-12 — landed · **Status:** OPEN
+**Tier:** P0 (closes wave-4) · **Effort:** M · **Deps:** M-10 + M-12 — landed · **Status:** DONE
 
 ## Цель
 
@@ -123,4 +123,13 @@ Read-mostly. Write-zone:
 
 ---
 
-**Status:** OPEN
+**Status:** DONE (2026-04-26)
+
+**Result:** wave-4 закрыта чисто. Подробный summary — `docs/02-audit.md` секция "Memory-v2 wave 4 review (2026-04-26, M-FINAL3)".
+
+- §1 debug grep — 0 regression hits (insertShared/HIGH-LOW/Promise.all/single-arg-logger/raw-fetch/TODO-markers все clean; `as any`/console — pre-existing baseline без новых wave-4 introductions).
+- §2 file-cap — 11 over-cap файлов после wave-4. Ни один natural split не нашёлся. Anti-goal соблюдён. List + per-file rationale в audit.md.
+- §3 test stability — 730/1 × 2 runs identical. 1 fail = `tests/usemarkdown.test.ts` pre-existing (web/-only `isomorphic-dompurify` отсутствует в root package.json, введён в `bcc4816` 2026-04-23, не memory-v2). Memory-v2 effective: 730/0.
+- §4 schema sanity — `PRAGMA user_version = 15`, 21 base + 20 FTS shadow tables, все required present.
+- §5 optional refactor — не выполнен (anti-goal).
+- §6 audit doc + Status DONE — committed.
