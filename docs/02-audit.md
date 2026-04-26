@@ -518,3 +518,60 @@ Effective memory-v2 baseline = 730 pass / 0 memory-v2 fail.
 **Verdict:** wave-4 закрыта чисто. 0 регрессов введено M-10/M-12. tsc 0, 730/0 (memory-v2-effective). Anti-goal соблюдён — refactor вылазить не стал.
 
 **Scope:** M-FINAL3 (debug grep audit + file-cap audit + test stability + schema sanity + audit doc).
+
+### M-09 review (2026-04-26)
+
+Post-merge audit pass after M-09 (cross-layer dedup + archive→shared promote, commit `4737749` → merge `ddfba9f`). Baseline: tsc 0, 740 pass / 1 fail-known / 96 files. 15 migrations (frozen).
+
+**Debug findings (§1 grep pass — all clean):**
+
+- `db.insertShared` raw outside SEED_SKIP_EMBED → 0 production hits. Only `scripts/seed.ts:140` (seed script, exempt).
+- `'HIGH'/'LOW'` strings on archive outside backfill → 0 hits. M-12 unification holds.
+- Single-arg `logger.*()` → 0 hits. Match in `lib/logger.ts:94` = comment, не call.
+- `console.log/warn/error` → 7 hits, **все pre-existing fallbacks** (`logger.ts` self-fallback, `providers/index.ts` warn, `app/deps.ts` startup token-missing, `telegram/userbot.ts` session-print CLI). Не logger violations.
+- `Promise.all` on fan-out → 0 hits с настоящим upstream. Match в `arbitration-room.ts:85` (try/catch wraps callSpecialist, never rejects — semantically allSettled-equivalent), `pre-processing.ts:151` (`Promise.resolve()` over sync — never rejects). Pre-existing pattern, не fan-out semantics.
+- Raw `fetch()` outside http-client → 0 production hits. Все совпадения (`mcp/registry/code-mgmt.tools.ts`, `providers/types.ts`, `agent-loop/code-tools/sandbox.ts`, `system-prompt.ts`) = comments / hint strings / regex / template literals.
+- `(as any)` since baseline → 14 hits, **all pre-existing** (copilot stream, telegram MTProto, mcp-protocol Elysia body, agent-loop reasoning_content boundary). Identical to M-FINAL3 set, ноль M-09 introductions.
+- `TODO M-09` → 0 hits.
+
+**File-cap status (§2):**
+
+Over-cap (>250 LOC) post-M-09, исключая legitimate exceptions (`schema.ts` frozen, `system-prompt.ts` exempt, `model-map.ts` exempt, `rag/pipeline.ts` exempt, MCP registry, telegram):
+
+- `src/mcp/tools/memory-tools.ts` — 472 LOC. M-09 не разрастил. Pre-existing.
+- `src/db/index.ts` — 444 LOC (+3 vs M-FINAL3, M-09 helpers). Façade aggregate.
+- `src/pipeline/arbitration-room.ts` — 420 LOC. Pre-wave.
+- `src/app/deps.ts` — 414 LOC. DI wiring.
+- `src/db/tables/shared.ts` — 396 LOC (+40 vs M-FINAL3). M-09 promote query helpers + cross-layer candidates SQL. Single-responsibility table API.
+- `src/db/tables/memory.ts` — 369 LOC (+32 vs M-FINAL3). M-09 cross-layer candidate helpers per плану.
+- `src/repositories/memory.repo.ts` — 368 LOC (+12 vs M-FINAL3). M-09 promote/dedup repo methods.
+- `src/mcp/executor.ts` — 361 LOC. Pre-wave.
+- `src/services/chat.service.ts` — 323 LOC. Pre-wave.
+- `src/mcp/playwright-client.ts` — 314 LOC. Pre-wave.
+- `src/services/memory.service.ts` — 305 LOC. Pre-wave.
+- `src/pipeline/context-compressor.ts` — 299 LOC. Pre-wave.
+- `src/pipeline/agent-pipeline/post/hippocampus.ts` — 271 LOC. Pre-wave.
+- `src/pipeline/agent-pipeline/post/extractors.ts` — 271 LOC. Pre-wave.
+- `src/lib/logger.ts` — 262 LOC. Pre-wave.
+- `src/db/tables/tasks.ts` — 259 LOC. Pre-wave.
+- `src/db/types.ts` — 254 LOC. Pre-wave.
+
+**Verdict §2:** ни один natural split не нашёлся. Anti-goal "if it works, don't fix it" применён. M-09 рост естественный (+40 в shared.ts cross-layer candidates SQL, +32 в memory.ts, +12 в repo) — без god-file syndrome. Все размеры в pre-existing trajectory.
+
+**Test stability (§3):** 740 pass / 1 fail / 1 error × 2 runs (identical). Стабильно — flakiness нет.
+
+The 1 fail+error = `tests/usemarkdown.test.ts` (Cannot find package `isomorphic-dompurify`). **Pre-existing worktree-env false-positive**: web/app composable test зависит от web/-only npm package, который не установлен в root `package.json` (web/node_modules absence в worktree). Documented в M-FINAL3, тот же баг. Не M-09 регресс.
+
+Effective M-09 baseline = 740 pass / 0 memory-v2 fail.
+
+Note: discrepancy 740 vs `bun test` 756 главного worktree — связан с worktree env (no `.env`, web/node_modules absent), не M-09. Schema/code-level стабильность подтверждена (tsc 0, греп 0).
+
+**Open follow-ups (P2 backlog, не блокеры):**
+
+- M-04.1 (salience M-03), M-05.1 (evolution), M-05.2 (LLM contradiction), M-08.1 (per-kind decay), M-11 (sleep-time block rewriter) — out of scope per plan files.
+- `memory-tools.ts` final split всё ещё ждёт миграции legacy test sites (см. M-FINAL2 verdict).
+- `tests/usemarkdown.test.ts` worktree-env (install `isomorphic-dompurify` в root или move в `web/tests/`) — pre-existing, не memory-v2.
+
+**Verdict:** M-09 закрыт чисто. 0 регрессов введено. tsc 0, 740/0 (memory-v2-effective, worktree-env baseline). Anti-goal соблюдён — refactor вылазить не стал.
+
+**Scope:** M-09-AUDIT (debug grep audit + file-cap audit + test stability + audit doc).
