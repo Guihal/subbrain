@@ -20,9 +20,15 @@ export interface RAGResult {
   updated_at?: number;
 }
 
+// M-04: include "log" so the agent-only `memory_log_search` tool and
+// hippocampus-style episodic queries can opt-in via `rag.search({...layers:["log"]})`.
+// The default layers in `RAGPipeline.search` stay `["context","archive","shared"]`
+// — "log" is opt-in only (privacy: raw log holds pre-scrub PII).
+export type RAGLayer = "context" | "archive" | "shared" | "log";
+
 export interface RAGSearchOptions {
   query: string;
-  layers?: ("context" | "archive" | "shared")[];
+  layers?: RAGLayer[];
   ftsLimit?: number;
   vecLimit?: number;
   rerankTopN?: number;
@@ -31,6 +37,14 @@ export interface RAGSearchOptions {
    * B-1: restrict context-layer hits to caller's own private rows + global
    * (NULL) rows. Absent → no agent filter (admin / digest / report scope).
    * Archive + shared layers ignore this — both are by-design global.
+   *
+   * M-04: also filters the "log" layer to rows produced by this agent.
    */
   agentId?: string;
+  /**
+   * M-04: optionally restrict the `"log"` layer to a specific session_id.
+   * Other layers ignore this. Used by per-session episodic recall (e.g.
+   * "what did I say earlier in this conversation").
+   */
+  sessionId?: string;
 }

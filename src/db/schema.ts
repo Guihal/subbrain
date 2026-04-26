@@ -579,6 +579,56 @@ export function migrate(db: Database): void {
       db.query(`PRAGMA user_version = 10`).run();
     })();
   }
+
+  // Migration 11 (M-04): FTS5 mirror over layer4_log (role + content) +
+  // sync triggers + one-shot backfill. Foundation for episodic queryable
+  // memory: agent-only `memory_log_search` tool + RAG layer "log" (FTS-only
+  // branch — no vec embeddings on Layer 4 in this PR; that's M-04.1).
+  //
+  // Public REST `/v1/memory/log` stays read-only without `?q` to avoid
+  // leaking PII through unauthenticated/admin search; the FTS index is
+  // reachable only via MCP `agent-only` scope.
+  //
+  // Backfill guarded: only runs when fts_log is empty so a partial
+  // migration rerun does not double-index existing rows. Pattern matches
+  // fts_context / fts_archive / fts_shared (schema.ts:126-200).
+  if (version < 11) {
+    const mig11Stmts = [
+      `CREATE VIRTUAL TABLE IF NOT EXISTS fts_log USING fts5(
+        role, content,
+        content='layer4_log', content_rowid='id',
+        tokenize='porter unicode61'
+      )`,
+      `CREATE TRIGGER IF NOT EXISTS fts_log_ai AFTER INSERT ON layer4_log BEGIN
+        INSERT INTO fts_log(rowid, role, content) VALUES (new.id, new.role, new.content);
+      END`,
+      `CREATE TRIGGER IF NOT EXISTS fts_log_ad AFTER DELETE ON layer4_log BEGIN
+        INSERT INTO fts_log(fts_log, rowid, role, content) VALUES('delete', old.id, old.role, old.content);
+      END`,
+      `CREATE TRIGGER IF NOT EXISTS fts_log_au AFTER UPDATE ON layer4_log BEGIN
+        INSERT INTO fts_log(fts_log, rowid, role, content) VALUES('delete', old.id, old.role, old.content);
+        INSERT INTO fts_log(rowid, role, content) VALUES (new.id, new.role, new.content);
+      END`,
+    ];
+    db.transaction(() => {
+      for (const sql of mig11Stmts) db.query(sql).run();
+      // One-shot backfill — only when fts_log is empty. Handles two cases:
+      // (a) fresh DB with non-empty layer4_log (mig 11 first run after
+      // upgrade), (b) partial-rerun where triggers already populated some
+      // rows. count=0 → seed from layer4_log; count>0 → triggers are in
+      // charge, no double-insert.
+      const ftsCount = db
+        .query<{ c: number }, []>("SELECT count(*) AS c FROM fts_log")
+        .get()!.c;
+      if (ftsCount === 0) {
+        db.query(
+          `INSERT INTO fts_log(rowid, role, content)
+             SELECT id, role, content FROM layer4_log`,
+        ).run();
+      }
+      db.query(`PRAGMA user_version = 11`).run();
+    })();
+  }
 }
 
 export { EMBEDDING_DIM };

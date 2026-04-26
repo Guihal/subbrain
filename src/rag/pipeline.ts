@@ -31,8 +31,15 @@ function isBumpLayer(l: string): l is BumpLayer {
 }
 
 function dedupeById(results: RAGResult[]): RAGResult[] {
+  // M-04: dedupe key is `${layer}:${id}` — log layer ids are stringified
+  // integers ("42") while shared/context/archive use uuids; an unguarded
+  // id-only key would silently drop one if a future layer emitted numeric
+  // ids that happened to collide with an existing uuid prefix.
   const seen = new Map<string, RAGResult>();
-  for (const r of results) if (!seen.has(r.id)) seen.set(r.id, r);
+  for (const r of results) {
+    const key = `${r.layer}:${r.id}`;
+    if (!seen.has(key)) seen.set(key, r);
+  }
   return [...seen.values()];
 }
 
@@ -61,15 +68,21 @@ export class RAGPipeline {
       rerankTopN = 5,
       skipRerank = false,
       agentId,
+      sessionId,
     } = opts;
 
     // 1. FTS5 search (local, no RPM cost)
-    const ftsResults = this.ftsSearch(query, layers, ftsLimit, agentId);
+    const ftsResults = this.ftsSearch(query, layers, ftsLimit, agentId, sessionId);
 
-    // 2. Vector search (1 RPM for embed) — graceful degradation
+    // 2. Vector search (1 RPM for embed) — graceful degradation. M-04:
+    // skip vec for the "log" layer (no embeddings on Layer 4 in this PR);
+    // pass through the embeddable subset only.
+    const vecLayers = layers.filter((l) => l !== "log");
     let vecResults: RAGResult[] = [];
     try {
-      vecResults = await this.vecSearch(query, layers, vecLimit, agentId);
+      if (vecLayers.length > 0) {
+        vecResults = await this.vecSearch(query, vecLayers, vecLimit, agentId);
+      }
     } catch {
       // Vector search unavailable — continue with FTS-only
     }
@@ -146,12 +159,18 @@ export class RAGPipeline {
    * rows + global (NULL) rows. Archive + shared ignore the filter (both
    * are by-design global; see searchShared comment in db/tables/shared.ts
    * and MEM-3 spec).
+   *
+   * M-04: `"log"` layer (when included) joins fts_log → layer4_log via
+   * rowid. FTS-only (no vec branch — see `search`). `sessionId` filters
+   * log rows by session; `agentId` filters by agent_id (NOT NULL on log
+   * rows, so unlike context/archive/shared this is a hard equality match).
    */
   ftsSearch(
     query: string,
     layers: string[],
     limit: number,
     agentId?: string,
+    sessionId?: string,
   ): RAGResult[] {
     const ftsQuery = sanitizeFtsQuery(query);
     if (!ftsQuery) return [];
@@ -192,6 +211,22 @@ export class RAGPipeline {
         results.push({
           id: r.id,
           layer: "shared",
+          title: r.title,
+          snippet: r.snippet,
+          score: 0,
+          created_at: r.created_at,
+          updated_at: r.updated_at,
+        });
+      }
+    }
+    if (layers.includes("log")) {
+      // Pass the already-sanitized `ftsQuery` (single source of truth,
+      // matches the other layers above). searchLog re-sanitizes internally
+      // — idempotent on the safe form, kept for direct callers.
+      for (const r of this.memory.logRepo.searchLog(ftsQuery, { limit, agentId, sessionId })) {
+        results.push({
+          id: r.id,
+          layer: "log",
           title: r.title,
           snippet: r.snippet,
           score: 0,

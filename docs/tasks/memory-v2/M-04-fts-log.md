@@ -151,4 +151,4 @@ Default `layers` массив RAG-pipeline'а **не** менять — `["conte
 
 ---
 
-**Status:** OPEN
+**Status:** DONE (commit `c6d52b6` + fix-round-1 follow-up: revert mig 12 scope-creep, dedupe by `${layer}:${id}`, pass sanitized `ftsQuery` to `searchLog` from RAG)
