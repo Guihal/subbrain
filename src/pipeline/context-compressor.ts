@@ -22,6 +22,11 @@ import { estimateTokens } from "./agent-loop/types";
  * PR 27: compressor only needs `insertShared` to persist extracted facts.
  * Accepts either the `MemoryDB` facade (legacy agent-loop callers) or a
  * `MemoryRepository` (new ChatService caller) — both satisfy this shape.
+ *
+ * MEM-2 (M-01): return broadened to `void | Promise<unknown>` so the
+ * ChatService caller can pass a `MemoryService`-backed shim whose
+ * `insertShared` is async (embed-first → transactional). MemoryDB's sync
+ * `void` still satisfies the union; legacy callers untouched.
  */
 export interface CompressorMemory {
   insertShared: (
@@ -31,7 +36,7 @@ export interface CompressorMemory {
     tags?: string,
     source?: string,
     opts?: { confidence?: number | null; status?: import("../db").MemoryStatus },
-  ) => void;
+  ) => void | Promise<unknown>;
 }
 
 export const SOFT_LIMIT = 80_000;
@@ -234,7 +239,7 @@ export async function compressContext(
       const category = f.category.slice(0, 64);
       const content = f.content;
       try {
-        memory.insertShared(
+        await memory.insertShared(
           randomUUID(),
           category,
           content,

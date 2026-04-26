@@ -1,10 +1,37 @@
 /**
  * Memory CRUD operations extracted from ToolExecutor.
+ *
+ * MEM-2 (M-01): the `shared` layer write path embeds **before** insert and
+ * wraps both rows (`shared_memory` + `vec_embeddings`) in a single
+ * `db.transaction()`. Embed-fail therefore never leaves a row without a
+ * vector. Mirror of `MemoryService.insertShared` / `extractors.writeShared`
+ * — kept inline here to avoid threading `MemoryService` through every
+ * ToolExecutor caller (including legacy tests that pass `() => null` for
+ * RAG and rely on the sync raw-insert fallback).
  */
 import { randomUUID } from "crypto";
 import type { MemoryDB, FtsResult } from "../../db";
 import type { RAGPipeline } from "../../rag";
 import type { ToolResult } from "../types";
+
+const EMBED_TIMEOUT_MS = 5000;
+
+async function embedWithTimeout(
+  rag: RAGPipeline,
+  content: string,
+): Promise<Float32Array> {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  try {
+    return await Promise.race([
+      rag.embedContent(content),
+      new Promise<never>((_, rej) => {
+        timer = setTimeout(() => rej(new Error("embed_timeout")), EMBED_TIMEOUT_MS);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
 
 export class MemoryTools {
   constructor(
@@ -65,7 +92,7 @@ export class MemoryTools {
      * this from the request context; REST/MCP routes default to null.
      */
     agentId: string | null = null,
-  ): ToolResult {
+  ): ToolResult | Promise<ToolResult> {
     const id = params.id || randomUUID();
     // MEM-5 (PR 22a): numeric confidence 0..1 classifies the row via the
     // MEMORY_AUTOACCEPT_CONFIDENCE threshold (default 0.8):
@@ -158,7 +185,27 @@ export class MemoryTools {
         }
         break;
 
-      case "shared":
+      case "shared": {
+        const rag = this.getRag();
+        if (rag) {
+          // MEM-2 (M-01): atomic embed+insert. Returns a Promise so the
+          // caller (registry handler — accepts ToolResult|Promise<ToolResult>)
+          // awaits the upstream embed call. Skips the bottom-of-method
+          // fire-and-forget indexEntry — the transaction already wrote
+          // vec_embeddings.
+          return this.writeSharedAtomic(
+            id,
+            params.category || "general",
+            params.content,
+            params.tags || "",
+            confidence,
+            status,
+            rag,
+          );
+        }
+        // Legacy fallback: caller did not wire a RAG pipeline (older tests,
+        // boot-time scripts). Sync raw insert; row will lack vec_embeddings
+        // until a follow-up indexEntry runs. Acceptable only outside prod.
         this.memory.insertShared(
           id,
           params.category || "general",
@@ -168,6 +215,7 @@ export class MemoryTools {
           { confidence, status },
         );
         break;
+      }
 
       case "agent":
         // agent_memory is a separate per-agent bucket (private API
@@ -199,6 +247,54 @@ export class MemoryTools {
       rag.indexEntry(id, params.layer, params.content).catch(() => {});
     }
 
+    return { success: true, data: { id } };
+  }
+
+  /**
+   * MEM-2 (M-01): embed-first then transactional insert+upsertEmbedding for
+   * the `shared` layer. Mirrors `MemoryService.insertShared` so we keep the
+   * same atomicity guarantee without threading the service through every
+   * ToolExecutor caller.
+   */
+  private async writeSharedAtomic(
+    id: string,
+    category: string,
+    content: string,
+    tags: string,
+    confidence: number,
+    status: "active" | "pending",
+    rag: RAGPipeline,
+  ): Promise<ToolResult> {
+    let vec: Float32Array;
+    try {
+      vec = await embedWithTimeout(rag, content);
+    } catch (err) {
+      return {
+        success: false,
+        error: `embed_failed: ${err instanceof Error ? err.message : String(err)}`,
+      };
+    }
+    if (!vec || vec.length === 0) {
+      return { success: false, error: "embed_empty" };
+    }
+    try {
+      this.memory.transaction(() => {
+        this.memory.insertShared(
+          id,
+          category,
+          content,
+          tags,
+          undefined,
+          { confidence, status },
+        );
+        this.memory.upsertEmbedding(id, "shared", vec);
+      });
+    } catch (err) {
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : String(err),
+      };
+    }
     return { success: true, data: { id } };
   }
 

@@ -99,4 +99,5 @@
 
 ---
 
-**Status:** OPEN
+**Status:** DONE (2026-04-26, commit pending)
+Все три ingress (seed.ts, MemoryTools MCP shared, context-compressor через ChatService) embed+insert атомарно. Тесты в `tests/shared-embed-write.test.ts` (расширен, 9 кейсов всего). `bunx tsc --noEmit` exit 0; `bun test` 639 pass / 0 fail. Acceptance-инвариант (orphan vec) проверяется в финальном тесте `invariant: zero shared_memory rows without vec_embeddings(layer='shared')`. Agent-loop compressor-hook оставлен как follow-up — низкий приоритет (raw `MemoryDB`, embed реже triggers).

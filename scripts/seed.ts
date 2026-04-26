@@ -5,6 +5,10 @@
  * Run: bun scripts/seed.ts
  */
 import { MemoryDB } from "../src/db";
+import { ModelRouter } from "../src/lib/model-router";
+import { createProviders } from "../src/providers";
+import { RAGPipeline } from "../src/rag";
+import { MemoryService } from "../src/services/memory.service";
 import { randomUUID } from "crypto";
 
 const dbPath = process.env.DB_PATH || "data/subbrain.db";
@@ -14,6 +18,20 @@ if (isProd && !process.argv.includes("--confirm")) {
   process.exit(1);
 }
 const db = new MemoryDB(dbPath);
+
+// MEM-2 (M-01): shared_memory rows must embed+insert atomically. We build a
+// MemoryService here so the seed walks the same code-path as production.
+// SEED_SKIP_EMBED=1 falls back to the legacy raw insert for offline/CI runs
+// without an NVIDIA NIM key — emits a loud warning so it never sneaks into
+// prod silently.
+const skipEmbed = process.env.SEED_SKIP_EMBED === "1";
+let memoryService: MemoryService | null = null;
+if (!skipEmbed) {
+  const providers = await createProviders();
+  const router = new ModelRouter(providers);
+  const rag = new RAGPipeline(db, router);
+  memoryService = new MemoryService(db.memoryRepo, rag, db.logRepo);
+}
 
 console.log("🧹 Cleaning test junk from shared_memory...");
 const junk = db.db
@@ -103,9 +121,24 @@ const sharedFacts: { category: string; content: string; tags: string }[] = [
   },
 ];
 
+if (skipEmbed) {
+  console.warn(
+    "⚠️  SEED_SKIP_EMBED=1 — inserting shared_memory rows WITHOUT embeddings.\n" +
+    "    Acceptable for offline CI; never use in prod (RAG vec-branch will be empty).",
+  );
+}
 for (const fact of sharedFacts) {
-  const id = randomUUID();
-  db.insertShared(id, fact.category, fact.content, fact.tags, "seed-script");
+  if (memoryService) {
+    await memoryService.insertShared({
+      category: fact.category,
+      content: fact.content,
+      tags: fact.tags,
+      source: "seed-script",
+    });
+  } else {
+    const id = randomUUID();
+    db.insertShared(id, fact.category, fact.content, fact.tags, "seed-script");
+  }
   console.log(`  ✅ [${fact.category}] ${fact.content.slice(0, 60)}...`);
 }
 

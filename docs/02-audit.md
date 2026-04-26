@@ -202,12 +202,15 @@ installed cli (без bunx). Прямой вызов `chromium.launch({channel:"
 **Fix:** обернуть `deleteArchive(id)` + `deleteEmbedding(id)` в `db.transaction()`. Также проверить аналогичный паттерн в routes/memory.ts admin DELETE.
 **Scope:** отдельный PR, вне prune-задачи.
 
-### MEM-2 🟡 `src/rag/pipeline.ts:112` — поиск по слою `shared` без индекса
-RAG ищет в трёх слоях, включая `shared`. Но `grep "upsertEmbedding.*shared" src/` → 0 hits. Никто не индексирует `shared_memory` в `vec_embeddings`. Vec-ветка для `shared` всегда пуста; работает только FTS-ветка.
-**Fix (варианты):**
-- (a) Удалить `shared` из default `layers` массива в RAG — корректнее отражает реальность.
-- (b) Или добавить вызов `rag.indexEntry(id, "shared", content)` в каждую запись `shared` (hippocampus `writeShared`, context-compressor `insertShared`, seed-script) — поднимет качество RAG, но увеличит latency post-processing.
-**Scope:** design-решение, обсудить отдельно.
+### MEM-2 ✅ `shared_memory` writers теперь embed+insert атомарно (закрыто M-01, 2026-04-26)
+RAG искал в трёх слоях, включая `shared`, но не-hippocampus writers (seed-script, MCP `MemoryTools.write` layer=shared, context-compressor) делали fire-and-forget `rag.indexEntry` — на embed-fail row оставался без вектора, либо вообще не embed-ился.
+**Fix (M-01):** все ingress'ы переключены на embed-first + transactional insert+upsertEmbedding пути:
+- `scripts/seed.ts` — конструирует `MemoryService` и зовёт `await memoryService.insertShared({...})`. Опциональный `SEED_SKIP_EMBED=1` для offline/CI с громким warn-логом.
+- `src/mcp/tools/memory-tools.ts` — `case "shared":` теперь делегирует в новый private `writeSharedAtomic(...)` (mirrors `MemoryService.insertShared`: `embedWithTimeout` → `db.transaction(insertShared+upsertEmbedding)`); `write` возвращает `ToolResult | Promise<ToolResult>` — registry handler уже принимает union. Legacy fallback (rag=null) сохранён для тестов.
+- `src/pipeline/context-compressor.ts` — `CompressorMemory.insertShared` теперь возвращает `void | Promise<unknown>`, call-site `await`-ит. `ChatService` подаёт shim, оборачивающий `MemoryService.insertShared` (embed-first), вместо `MemoryRepository` (raw insert без vec).
+- `src/services/chat.service.ts` — новый optional 5th ctor arg `memoryService`; `compressorMemory()` строит shim для compressor'а. `deps.ts` передаёт wired service.
+**Tests:** `tests/shared-embed-write.test.ts` расширен 6 новыми кейсами (MemoryService write+rollback, MemoryTools write+embed-fail, compressor-shim end-to-end, orphan-invariant). Acceptance: `SELECT COUNT(*) FROM shared_memory WHERE id NOT IN (SELECT id FROM vec_embeddings WHERE layer='shared')` = 0 после прогонки всех writers.
+**Out of scope (follow-up):** agent-loop compressor-hook (`src/pipeline/agent-loop/step.ts`) всё ещё передаёт `MemoryDB` (raw); embed добавится при отдельной задаче по threading'у `MemoryService` в `AgentLoopDeps` — компрессор там стреляет редко (>80k токенов в одном run'е), приоритет ниже.
 
 ### MEM-3 ✅ `src/db/tables/memory.ts:192` — `searchContext` теперь фильтрует по `agent_id` (закрыто PR B-1, 2026-04-25)
 `layer2_context` имеет колонку `agent_id` (nullable), но `searchContext`/`getContextMany` её игнорировали. Публичный и agent-приватный контексты смешивались при поиске.

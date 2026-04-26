@@ -14,10 +14,15 @@ import { ProviderError } from "../providers";
 import { sseResponse } from "../lib/sse";
 import { MODEL_MAP, resolveModel } from "../lib/model-map";
 import { normalizeMessages } from "../lib/messages";
-import { shouldCompress, compressContext } from "../pipeline/context-compressor";
+import {
+  shouldCompress,
+  compressContext,
+  type CompressorMemory,
+} from "../pipeline/context-compressor";
 import type { ModelRouter } from "../lib/model-router";
 import type { AgentPipeline } from "../pipeline";
 import type { ChatRepository, MemoryRepository } from "../repositories";
+import type { MemoryService } from "./memory.service";
 import type { Message } from "../providers/types";
 import { logger } from "../lib/logger";
 import { maskSecrets } from "../lib/redact";
@@ -84,6 +89,14 @@ export class ChatService {
     private readonly pipeline: AgentPipeline | undefined,
     private readonly chatRepo: ChatRepository | undefined,
     private readonly memoryRepo: MemoryRepository | undefined,
+    /**
+     * MEM-2 (M-01): when wired, the compressor persists extracted facts
+     * through `MemoryService.insertShared` (embed-first + transactional)
+     * instead of the raw `MemoryRepository.insertShared` it previously used,
+     * which left rows without `vec_embeddings`. Optional so legacy test
+     * callers (`new ChatService(router, pipeline, undefined)`) keep working.
+     */
+    private readonly memoryService: MemoryService | undefined = undefined,
   ) {}
 
   async handle(body: ChatCompletionRequest, meta: ChatMeta): Promise<Response> {
@@ -108,7 +121,7 @@ export class ChatService {
     this.persistUser(meta, model, messages);
     messages = this.maybeHydrate(meta, messages);
     if (shouldCompress(messages)) {
-      await compressContext(messages, this.router, this.memoryRepo ?? null);
+      await compressContext(messages, this.router, this.compressorMemory());
     }
     const params = { ...rest, messages } as Record<string, unknown>;
 
@@ -208,6 +221,35 @@ export class ChatService {
       this.chatRepo.updateChatModel(meta.chatId, model);
     }
     this.chatRepo.appendChatMessage(meta.chatId, "user", lastUserMsg.content);
+  }
+
+  /**
+   * MEM-2 (M-01): pick the strongest available `insertShared` for the
+   * compressor. Service shim → embed-first + transactional. memoryRepo →
+   * raw insert without vec (back-compat for older tests). null → drop facts.
+   */
+  private compressorMemory(): CompressorMemory | null {
+    if (this.memoryService) {
+      const svc = this.memoryService;
+      return {
+        insertShared: (
+          _id: string,
+          category: string,
+          content: string,
+          tags?: string,
+          source?: string,
+          opts?: { confidence?: number | null; status?: import("../db").MemoryStatus },
+        ) => svc.insertShared({
+          category,
+          content,
+          tags: tags ?? "",
+          source,
+          confidence: opts?.confidence,
+          status: opts?.status,
+        }),
+      };
+    }
+    return this.memoryRepo ?? null;
   }
 
   private maybeHydrate(meta: ChatMeta, messages: Message[]): Message[] {
