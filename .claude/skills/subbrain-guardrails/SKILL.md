@@ -62,6 +62,8 @@ Cross-layer rules:
 
 160-line cohesive file: don't split for the number — request whitelist via PR with rationale.
 
+**Pre-commit hook (opt-in):** `bash scripts/install-hooks.sh` copies `scripts/pre-commit.sh` → `.git/hooks/pre-commit`. Runs `check-file-size` + `check-deep-imports` STRICT on every commit. Bypass: `SKIP_GUARDRAILS=1 git commit ...` (emergency only — re-runs next commit). CI runs `bun test tests/repo-rules.test.ts` independently — hook is a fast local short-circuit, not the source of truth.
+
 ## 2. Concurrency + cancellation
 
 - N parallel upstreams → `Promise.allSettled`, never `Promise.all`. One failure must not kill siblings.

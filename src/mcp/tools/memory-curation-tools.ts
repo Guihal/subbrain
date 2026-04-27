@@ -17,7 +17,7 @@ import type { MemoryDB, EdgeKind } from "../../db";
 import type { MemoryService } from "../../services/memory.service";
 import type { RAGPipeline } from "../../rag";
 import type { ModelRouter } from "../../lib/model-router";
-import { runReflect, type ReflectResult } from "../../pipeline/night-cycle/steps/reflect";
+import { runReflect, type ReflectResult } from "../../pipeline/night-cycle/steps";
 import { logger } from "../../lib/logger";
 import type { ToolResult } from "../types";
 

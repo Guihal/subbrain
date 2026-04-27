@@ -1,4 +1,4 @@
-import { PlaywrightClient } from "../src/mcp/playwright-client";
+import { PlaywrightClient } from "../src/mcp";
 
 const pw = new PlaywrightClient();
 try {
