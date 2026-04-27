@@ -42,7 +42,6 @@ export const TRANSITIONAL_WHITELIST: Record<string, number> = {
   "src/lib/logger.ts": 263,
   "src/rag/pipeline.ts": 700,
   "src/db/tables/memory.ts": 452,
-  "src/pipeline/arbitration-room.ts": 421,
   "src/db/tables/shared.ts": 397,
   "src/services/memory.service.ts": 381,
   "src/repositories/memory.repo.ts": 381,

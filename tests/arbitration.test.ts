@@ -11,7 +11,7 @@
  * Uses mock router (no live API calls).
  */
 
-import { ArbitrationRoom } from "../src/pipeline/arbitration-room";
+import { ArbitrationRoom } from "../src/pipeline/arbitration";
 import type { ChatResponse, Message } from "../src/providers/types";
 
 // ─── Mock Router ─────────────────────────────────────────
@@ -241,8 +241,9 @@ console.assert(
 
 process.env.SYNTHESIS_TIMEOUT_MS = "100";
 // Re-import to pick up the new env value (module-level const).
+// Re-import the type module so SYNTHESIS_TIMEOUT picks up the new env value.
 const { ArbitrationRoom: ArbitrationRoomT } = await import(
-  "../src/pipeline/arbitration-room?t=" + Date.now()
+  "../src/pipeline/arbitration/index.ts?t=" + Date.now()
 );
 
 chatCalls = [];

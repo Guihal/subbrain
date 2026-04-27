@@ -9,7 +9,7 @@ import type { ModelRouter } from "../../lib/model-router";
 import type { RAGPipeline } from "../../rag";
 import type { ToolExecutor, ToolRegistry } from "../../mcp";
 import type { Tool, Message } from "../../providers/types";
-import type { ArbitrationRoom } from "../arbitration-room";
+import type { ArbitrationRoom } from "../arbitration";
 import { logger } from "../../lib/logger";
 import { runPost } from "../agent-pipeline/phases/post";
 import type { DynamicToolRegistry } from "./dynamic-tools";

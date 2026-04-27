@@ -8,7 +8,7 @@ import type { RAGPipeline } from "../../rag";
 import type { ToolExecutor, ToolRegistry } from "../../mcp";
 import type { Tool } from "../../providers/types";
 import type { Metrics } from "../../lib/metrics";
-import type { ArbitrationRoom } from "../arbitration-room";
+import type { ArbitrationRoom } from "../arbitration";
 import type { AgentLoopRequest, AgentLoopResult, AgentMode } from "./types";
 import { DynamicToolRegistry } from "./dynamic-tools";
 import { CodeToolRegistry } from "./code-tools";

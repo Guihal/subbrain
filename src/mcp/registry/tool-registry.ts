@@ -13,7 +13,7 @@ import { t, type TSchema, type Static } from "elysia";
 import type { ToolExecutor } from "../executor";
 import type { ToolResult } from "../types";
 import type { ModelRouter } from "../../lib/model-router";
-import type { ArbitrationRoom } from "../../pipeline/arbitration-room";
+import type { ArbitrationRoom } from "../../pipeline/arbitration";
 import type { logger } from "../../lib/logger";
 import type { DynamicToolRegistry } from "../../pipeline/agent-loop/dynamic-tools";
 import type { CodeToolRegistry } from "../../pipeline/agent-loop/code-tools";
