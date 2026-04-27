@@ -49,6 +49,16 @@
 
 Суммарно глава 2: ~10 дней.
 
+## Глава 3 — file-size 150 + SoC tightening (PLANNED 2026-04-27)
+
+Мастер-док: [28-file-size-150-limit.md](28-file-size-150-limit.md). Audit-tracker: [FILE-SIZE-1](../../02-audit.md#file-size-1--open--file-cap-150--soc-enforcement-introduced-2026-04-27). Roadmap: [docs/01-refactor-plan.md Часть VIII](../../01-refactor-plan.md).
+
+| # | Задача | Оценка | Зависимости |
+|---|---|---|---|
+| [28](28-file-size-150-limit.md) | Master task: cap 150 + three-layer SoC + entry-point rule + composable SR + whitelist enforcement (`scripts/check-file-size.ts` + `check-deep-imports.ts` + `tests/repo-rules.test.ts` + pre-commit hook STRICT) + Wave 1-4 PR-нарезка (frontend / backend smell / big modules / rag-pipeline) | ~6-9 дней при 2-3 параллельных субагентах; 2-3 недели solo | — (P0-A — блокер всего) |
+
+Суммарно глава 3: 1 master task → ~24 child PR (P0-A, P-C, W1-1..W1-5, W2-1..W2-4, W3-1..W3-10, W4-1, P-C2, MicroPR logger).
+
 ## Граф зависимостей
 
 ```

@@ -782,3 +782,30 @@ Tests: `tests/routes-memory-edges.test.ts` (227 LOC, 10 cases) — 2× auth-401,
 **§4 Verdict:** M-14 закрыт чисто после fixup. 2 medium закрыты, 1 high acknowledged (cosmetic, structural). Round-2 critic не запускался — round-1 feedback был достаточно специфичен для прямой parent-side фикса.
 **§5 Open follow-ups:** Edge mutations через REST (DELETE), graph viz, MemoryRow.vue split при >250 LOC follow-up.
 **Scope:** M-14 inline audit + fixup.
+
+
+### FILE-SIZE-1 🟡 OPEN — file cap 150 + SoC enforcement (introduced 2026-04-27)
+
+Hard cap снижен 250 → 150 строк на любой файл `src/**/*.ts`, `web/app/**/*.{ts,vue}`, `scripts/**/*.ts` (`tests/**` исключены — отдельная политика). Дополнительно — three-layer SoC (data / logic / view) с явным запретом SQL в `routes/*` и `$fetch`/`fetch(`/`useApi(` в `pages|components` без composable-обёртки. Минимальная связанность через единственный публичный `index.ts` per split-folder; deep-imports запрещены за исключением `import type`. Оркестратор (`index.ts` фасад) ≤100 строк.
+
+**Snapshot 2026-04-27 (рабочая копия после M-14 fixup):** `src/` — 64 файла >150 строк; `web/app/` — 12; `scripts/` — 2.
+
+**Whitelist (single source: `scripts/check-file-size.ts`, mirror в `subbrain-guardrails/SKILL.md` § "1. File size + split"):**
+
+| Path | Cap | Rationale |
+|---|---|---|
+| `src/db/schema.ts` | 1500 | DDL registry, append-only |
+| `src/db/index.ts` | 500 | DI facade |
+| `src/db/types.ts` | 300 | type-registry |
+| `src/app/deps.ts` | 500 | DI container |
+| `src/lib/model-map.ts` | 300 | virtual-roles SSoT |
+| `src/lib/logger.ts` | 200 | singleton + child + format helpers (squeeze from 262 в microPR) |
+| `src/pipeline/agent-loop/system-prompt.ts` | 300 | cohesive prompt |
+| `src/mcp/registry/*.tools.ts` | 250 each | declarative schema+wiring |
+| `src/rag/pipeline/index.ts` (post W4-1) | 200 | hybrid-search facade |
+
+`rag/pipeline.ts` (699 строк) — temporary "≤700 OPEN" до W4-1. После W4-1 → переходит в whitelist `rag/pipeline/index.ts:200`.
+
+**Master task:** [docs/tasks/refactor/28-file-size-150-limit.md](tasks/refactor/28-file-size-150-limit.md). PR-нарезка: P0-A (docs/rules) → P-C (enforcement scripts + tests + pre-commit hook, STRICT mode) → Wave 1 (5 frontend) → Wave 2 (4 backend smell) → Wave 3 (10 big modules; db→repo→service strict order) → Wave 4 (rag/pipeline split + bench-rag) → P-C2 (strict-mode flip).
+
+**Closes when:** `scripts/check-file-size.ts` + `scripts/check-deep-imports.ts` + `tests/repo-rules.test.ts` все strict-зелёные на main, все Wave 1-4 PR смерджены, P-C2 закрыт, нет файлов >150 вне whitelist.

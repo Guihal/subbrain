@@ -11,12 +11,56 @@ Follow as checklist. If new code violates rule — rewrite before commit.
 
 ## 1. File size + split
 
-- Hard cap: **150 lines** per file (lowered from 250 in 2026-04), one responsibility. Pre-existing legacy oversize files split поэтапно, не grow в новых PR.
+- Hard cap: **150 lines** per file (lowered from 250 in 2026-04). Counts ALL lines (blank + comments + code). Vue SFC: 150 total = `<template>` + `<script>` + `<style>` together. If `<template>` >80 — extract child component.
 - Big file smell → split now, not later. Template layouts:
-  - Orchestrator ≤100 lines → delegates to `phases/`, `steps/`, `tables/`, `post/`, `pre/`.
-  - Route file: handler thin, logic in `lib/`/`pipeline/`.
-  - Vue page: shell ≤100 lines, rest in `components/<page>/*.vue` + generic composable factory.
-- Exceptions (do not split): `src/pipeline/agent-loop/system-prompt.ts`, `src/lib/model-map.ts`, `src/rag/pipeline.ts`, MCP registry files, telegram modules.
+  - Orchestrator (`index.ts` of split folder) ≤100 lines → delegates to `phases/`, `steps/`, `tables/`, `post/`, `pre/`. Pure composition; no logic.
+  - Route file: thin handler, logic in `services/`/`pipeline/`. No SQL, no business rules.
+  - Vue page: shell ≤150 total, rest in `components/<page>/*.vue` + generic composable factory.
+
+**Whitelist** (single source: `scripts/check-file-size.ts` exports `WHITELIST: Record<string, number>`; this table is the docs mirror — `tests/repo-rules.test.ts:test("whitelist sync")` enforces parity):
+
+| Path / glob | Cap | Rationale |
+|---|---|---|
+| `src/db/schema.ts` | 1500 | DDL registry, append-only on migrations |
+| `src/db/index.ts` | 500 | DI facade: repositories + configuration |
+| `src/db/types.ts` | 300 | type-registry for all tables |
+| `src/app/deps.ts` | 500 | DI container |
+| `src/lib/model-map.ts` | 300 | virtual-roles single-source-of-truth |
+| `src/lib/logger.ts` | 200 | singleton + child + format helpers (squeeze from 262 in microPR; do not split) |
+| `src/pipeline/agent-loop/system-prompt.ts` | 300 | cohesive prompt; split = loss of instruction context |
+| `src/mcp/registry/*.tools.ts` | 250 each | schema + wiring declarations; split kills declarativity |
+| `src/rag/pipeline/index.ts` (post W4-1) | 200 | hybrid-search facade; everything splittable extracted to submodules |
+
+`rag/pipeline.ts` (currently 699) is **not** in whitelist; tracked under FILE-SIZE-1 with temporary "≤700 OPEN" until W4-1 ships. Whitelist изменения только PR-ом с обоснованием в commit-message.
+
+**Three-layer SoC** (mirror of CLAUDE.md §1a, deep version):
+
+| Layer | Folders | Allowed | Forbidden |
+|---|---|---|---|
+| Data | `src/db/tables/*`, `src/repositories/*` | raw SQL, row→entity mapping | HTTP, pipeline, RAG, route ctx |
+| Logic | `src/services/*`, `src/pipeline/*`, `src/mcp/tools/*`, `src/scheduler/*` | business rules, repo API, http-client | raw SQL, Elysia ctx, View imports |
+| View / transport | `src/routes/*`, `src/mcp/transport.ts`, `src/mcp/mcp-protocol.ts`, `web/app/pages/**`, `web/app/components/**` | input validation, delegate to logic, format response | SQL, business rules, direct DB access |
+
+Cross-layer rules:
+- Logic→Data: only via repository/table API (never raw SQL outside `db/tables/*`).
+- View→Logic: only via service API.
+- View→Data direct: **forbidden** (no `db.query` / `repo.findById` from a route or page).
+- Logic→View: **forbidden** (scheduler/pipeline cannot import `routes/*`). **Exception:** `src/telegram/bot/notify(chatId, msg)` is a logic-side helper (transport-agnostic queueing of notification); free-agent / freelance-scout / night-cycle call `notify()`, not transport internals.
+- Data→Logic / Data→View: forbidden absolutely.
+
+**No-SQL-in-routes / no-fetch-in-pages:**
+- `src/routes/**` must not contain `/(SELECT |INSERT INTO|UPDATE [\w"\`]+ SET|DELETE FROM)/`. Enforcement: `tests/repo-rules.test.ts:test("no SQL in routes")`.
+- `web/app/pages/**` and `web/app/components/**` must not contain `$fetch(`/`fetch(`/`useApi(` (use composable wrapper). Enforcement: `tests/repo-rules.test.ts:test("no fetch in pages")`.
+
+**Composable single-responsibility:** one composable = one of {data, UI-state, transform}. Composition through an explicit orchestrator-composable. No composables that mix `useState` (UI) + `useApi` (data) + date formatter (transform) in one file.
+
+**Minimal coupling via explicit entry points:**
+- Each split folder (`src/services/memory/`, `src/pipeline/arbitration/`, `web/app/composables/useMemory/`, …) has exactly one public `index.ts`.
+- Multi-entry allowed when justified per file (e.g., MCP registry: `index.ts` + per-domain `*.tools.ts` — each declares its scope).
+- External imports go through index. **Deep import** = `import` from path with ≥3 segments after `..` AND target has neighbour/ancestor `index.ts` exposing the same symbol. Type-only imports (`import type { X } from ".../internal/..."`) are allowed (internal types often needed without runtime coupling).
+- Enforcement: `scripts/check-deep-imports.ts` + `tests/repo-rules.test.ts:test("no deep imports")`.
+
+160-line cohesive file: don't split for the number — request whitelist via PR with rationale.
 
 ## 2. Concurrency + cancellation
 
@@ -107,6 +151,11 @@ Follow as checklist. If new code violates rule — rewrite before commit.
 | New model ID string-literal in pipeline/route | §9 |
 | `role: string` in route schema | §6 |
 | File over 150 lines growing | §1 |
+| File >150 not in whitelist (`scripts/check-file-size.ts`) | §1 |
+| `SELECT|INSERT INTO|UPDATE … SET|DELETE FROM` in `src/routes/*` | §1 (SoC) |
+| `$fetch(` / raw `fetch(` / `useApi(` in `web/app/pages` or `components` | §1 (SoC) |
+| Deep import — `from "../../foo/bar/baz"` when `../../foo/bar/index.ts` exists (non-`import type`) | §1 (entry-point) |
+| Composable mixing data + UI-state + transform in one file | §1 (composable SR) |
 | `process.exit` in `tests/*` | §10 |
 | Raw `fetch` for streaming Copilot/Nvidia | §5 |
 | `db.run("UPDATE ...")` hand-built in route | §4 |

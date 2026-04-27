@@ -234,3 +234,29 @@ Bugfix сначала, splitting после — чтобы diff-ы не смеш
 - `bun run tests/integration.live.ts` — полный end-to-end на dev-сервере.
 - Manual smoke на prod: создать chat в UI → ответ через pipeline → memory admin → автономный агент 3 шага → night-cycle trigger.
 - [docs/02-audit.md](02-audit.md) — все HIGH ✅, BROWSER-1 закрыт, браузеры не утекают.
+
+---
+
+## Часть VIII. File-size 150 + SoC tightening (Глава 3)
+
+Введено 2026-04-27. Старый cap 250 → новый **150 строк**, добавлен three-layer SoC + правила минимальной связанности через `index.ts`. Master task: [docs/tasks/refactor/28-file-size-150-limit.md](tasks/refactor/28-file-size-150-limit.md). Audit-tracker: [FILE-SIZE-1](02-audit.md#file-size-1--open--file-cap-150--soc-enforcement-introduced-2026-04-27).
+
+**Why now.** После Глав 1-2 кодовая база чистая на CRIT/HIGH/MEDIUM, но множество файлов >150 (`mcp/tools/memory-tools.ts` 472, `db/tables/memory.ts` 451, `pipeline/arbitration-room.ts` 420, `services/memory.service.ts` 380, `services/chat.service.ts` 323, `rag/pipeline.ts` 699 — список целиком в [28-file-size-150-limit.md](tasks/refactor/28-file-size-150-limit.md)). При компании-onboarding'е и LLM-сессиях оверсайз файлы → потеря контекста + случайные регрессии. Cap 150 + явный whitelist для оправданных исключений + энфорс через `scripts/check-file-size.ts` + `tests/repo-rules.test.ts` исключают повторение.
+
+**Roadmap (PR-нарезка):**
+
+| Шаг | PR | Что | Зависимости | Параллелизм |
+|-----|-----|-----|-------------|-------------|
+| 1 | P0-A | Docs/rules: CLAUDE.md §1+§1a, SKILL.md whitelist+SoC, audit FILE-SIZE-1, refactor-plan Part VIII, master task 28 | — | — |
+| 2 | P-C | `scripts/check-file-size.ts` + `scripts/check-deep-imports.ts` + `tests/repo-rules.test.ts` (5 тестов, **STRICT mode**) + pre-commit hook (.husky / git hook) | P0-A | ∥ Wave 1 |
+| 3 | Wave 1 (W1-1..W1-5) | Frontend split: useChatStream/useTasks/useMemoryEditor + pages/memory.vue + pages/tasks.vue | P0-A | все 5 ∥ |
+| 4a | Wave 2 (W2-1, W2-2, W2-4) | routes/logs.ts SQL→repo, routes/tasks.ts SQL→repo, prune/stray-tasks split | P0-A | ∥ |
+| 4b | W2-3 | mcp/tools/memory-tools.ts (472) → mcp/tools/memory/* | W2-1, W2-2, W2-4 finalized | sequence |
+| 5 | Wave 3 db (W3-3, W3-4) | db/tables/memory.ts (451), db/tables/shared.ts (396) | P0-A | ∥ |
+| 6 | Wave 3 repo (W3-2) | repositories/memory.repo.ts (380) | W3-3, W3-4 | sequence |
+| 7 | Wave 3 service (W3-1) | services/memory.service.ts (380) | W3-2 | sequence |
+| 8 | Wave 3 indep (W3-5..W3-10) | arbitration-room, executor, playwright-client, telegram/bot, telegram/userbot, services/chat.service (HOT PATH) | P0-A | все 6 ∥ |
+| 9 | Wave 4 (W4-1) | rag/pipeline.ts (699) → rag/pipeline/* + scripts/bench-rag.ts (perf invariants p50/p95/p99 + rerank_calls_per_search) | Wave 1-3 stable + неделя prod | — |
+| 10 | P-C2 | Remove `SKIP_STRICT` test guards (если оставались), close FILE-SIZE-1, MicroPR squeeze logger.ts ≤200 | Wave 4 | — |
+
+Суммарно ~6-9 дней при 2-3 параллельных субагентах; 2-3 недели solo. Деплой каждого PR — manual через ssh `root@109.120.187.244` (см. CLAUDE.md «Deploy»).
