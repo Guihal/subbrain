@@ -28,13 +28,13 @@
 - [x] `docs/tasks/refactor/28-file-size-150-limit.md` — этот файл
 - [x] `docs/tasks/refactor/README.md` — Глава 3 секция
 
-### P-C — enforcement (parallel with Wave 1)
+### P-C — enforcement (parallel with Wave 1) ✅ DONE (commit bae1377, 2026-04-28)
 
-- [ ] `scripts/check-file-size.ts` — экспорт `WHITELIST: Record<string,number>`, walk через `Bun.glob`, count `Bun.file(p).text().split("\n").length`, `STRICT_FILE_RULES=1` → exit 1; default **STRICT** (не soft).
-- [ ] `scripts/check-deep-imports.ts` — regex для import statements, `import type` skip, ≥3 segments past `..` + parent `index.ts` exists → violation.
-- [ ] `tests/repo-rules.test.ts` (bun:test, ~120 LOC, 5 тестов): file-size cap, no deep imports, no SQL in routes, no fetch in pages, whitelist sync (CLAUDE-md/SKILL.md ↔ scripts/check-file-size.ts).
-- [ ] Pre-commit hook (`.husky/pre-commit` или `scripts/install-pre-commit.sh`) — запускает `bun run scripts/check-file-size.ts` + `check-deep-imports.ts` на staged-файлах. Документирован в SKILL.md как opt-in setup.
-- [ ] DoD: `bun test tests/repo-rules.test.ts` зелёный; в момент мерджа SoSft-mode тесты file-size/deep-imports могут skip через `SKIP_STRICT=1` пока wave 1-3 in-flight; SQL/fetch/sync — strict сразу.
+- [x] `scripts/check-file-size.ts` — `CANONICAL_WHITELIST` + `CANONICAL_GLOB_WHITELIST` + `TRANSITIONAL_WHITELIST` (47 rows locked at exact LOC). Default **STRICT**. Канонический whitelist может быть relaxed транзитивным через `Math.max` (logger.ts pre-microPR).
+- [x] `scripts/check-deep-imports.ts` — regex для import statements, `import type` skip, ≥3 segments past `..` + parent `index.ts` exists → violation. `TRANSITIONAL_DEEP_IMPORTS` set для 4 known cases (code-tools sandbox/validators, mcp/snapshot, prune/tasks-classify) — ждут barrel re-exports в W2/W3.
+- [x] `tests/repo-rules.test.ts` (bun:test, 5 тестов): file-size cap, deep-imports, no SQL in routes (transitional whitelist tasks.ts+logs.ts), no fetch in pages, whitelist-sync SKILL.md ↔ CANONICAL_WHITELIST. Все 5 зелёные.
+- [x] Pre-commit hook (`scripts/{pre-commit,install-hooks}.sh`) — запускает оба check'а STRICT. Установка: `bash scripts/install-hooks.sh`. Bypass: `SKIP_GUARDRAILS=1 git commit ...`. Задокументирован в SKILL.md §1.
+- [x] DoD: STRICT с самого P-C по user override §F.4 (no `SKIP_STRICT` shortcut). 5 trivial deep-imports fixed inline (telegram, mcp, night-cycle/steps).
 
 ### Wave 1 — frontend low-risk (5 PR, параллельны)
 
