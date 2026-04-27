@@ -105,7 +105,6 @@ export const TRANSITIONAL_WHITELIST: Record<string, number> = {
   "src/pipeline/agent-loop/prompt-blocks/tasks.ts": 157,
   "src/pipeline/agent-loop/step.ts": 155,
   "web/app/pages/freelance.vue": 152,
-  "web/app/composables/useChatStream.ts": 152,
   "src/lib/http-client.ts": 151,
 };
 
