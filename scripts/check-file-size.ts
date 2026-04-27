@@ -60,7 +60,6 @@ export const TRANSITIONAL_WHITELIST: Record<string, number> = {
   "scripts/migrate-tasks-from-memory.ts": 263,
   "src/db/tables/tasks.ts": 260,
   "web/app/composables/useMemory.ts": 249,
-  "web/app/pages/tasks.vue": 246,
   "src/routes/memory.ts": 246,
   "src/pipeline/agent-pipeline/pre/exec-summary.ts": 245,
   "src/pipeline/agent-pipeline/post/dedupe.ts": 241,
