@@ -94,7 +94,6 @@ export const TRANSITIONAL_WHITELIST: Record<string, number> = {
   "src/providers/index.ts": 172,
   "src/providers/nvidia.ts": 172,
   "src/pipeline/agent-pipeline/phases/stream.ts": 168,
-  "web/app/composables/useTasks.ts": 168,
   "src/pipeline/night-cycle/prune/stray-tasks.ts": 165,
   "src/pipeline/night-cycle/steps/focus-rewrite.ts": 165,
   "src/lib/rate-limiter.ts": 164,
