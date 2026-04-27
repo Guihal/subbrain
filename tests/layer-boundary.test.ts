@@ -38,7 +38,7 @@ const FORBIDDEN = [
  */
 const KNOWN_LEGACY = new Set<string>([
   // W2-1 (2026-04-28) — pruned: src/routes/logs.ts SQL → LogRepository methods.
-  "src/routes/tasks.ts",
+  // W2-2 (2026-04-28) — pruned: src/routes/tasks.ts SQL → TaskRepository.
   // PR B-2 (2026-04-25) — pruned: agent-loop/persist.ts + agent-loop/code-tools/index.ts
   // migrated to src/db/tables/code-tools.ts + src/repositories/code-tools.repo.ts
   // and the agent_memory blob round-trip via SharedTable methods.

@@ -1,6 +1,6 @@
 # 28-W2-2 — `routes/tasks.ts` SQL → repo + ≤150
 
-**Status:** OPEN. Master: [28-file-size-150-limit.md](28-file-size-150-limit.md) Wave 2.
+**Status:** DONE (2026-04-28). Master: [28-file-size-150-limit.md](28-file-size-150-limit.md) Wave 2. Final: routes/tasks.ts 228→139, db/tables/tasks.ts 259→292 (whitelist 260→293), `TaskRepository` created.
 
 ## Цель
 

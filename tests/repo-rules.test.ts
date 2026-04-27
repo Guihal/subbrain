@@ -16,7 +16,8 @@ const ROOT = new URL("..", import.meta.url).pathname.replace(/\/$/, "");
 const SKIP_DIRS = new Set(["node_modules", ".nuxt", ".output", "dist", "build"]);
 
 // SQL in routes — only these are pre-existing W2-* (removed as those PRs ship).
-const TRANSITIONAL_SQL_ROUTES = new Set(["src/routes/tasks.ts"]);
+// W2-2 (2026-04-28) — pruned: src/routes/tasks.ts SQL → TaskRepository.
+const TRANSITIONAL_SQL_ROUTES = new Set<string>();
 
 function walk(dir: string, ext: RegExp, out: string[] = []): string[] {
   let entries: string[];

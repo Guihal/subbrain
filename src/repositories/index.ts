@@ -9,3 +9,4 @@ export { LogRepository } from "./log.repo";
 export { TelegramRepository } from "./telegram.repo";
 export { FreelanceRepository } from "./freelance.repo";
 export { EdgeRepository } from "./edges.repo";
+export { TaskRepository } from "./task.repo";

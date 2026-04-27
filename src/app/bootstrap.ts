@@ -11,6 +11,7 @@ import { memoryRoute } from "../routes/memory";
 import { freelanceRoute } from "../routes/freelance";
 import { telegramPublicRoute, telegramAdminRoute } from "../routes/telegram";
 import { tasksRoute } from "../routes/tasks";
+import { TaskRepository } from "../repositories/task.repo";
 import { mcpRoute, mcpProtocolRoute } from "../mcp";
 import { logger } from "../lib/logger";
 import { AppError } from "../lib/errors";
@@ -136,7 +137,7 @@ export function createApp(deps: AppDeps) {
     .use(chatsRoute(memory))
     .use(memoryRoute(memoryService))
     .use(freelanceRoute(memory, deps.freelanceScout))
-    .use(tasksRoute(memory));
+    .use(tasksRoute(new TaskRepository(memory)));
 
   return { app, nightCycleController } as const;
 }
