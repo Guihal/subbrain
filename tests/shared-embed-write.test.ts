@@ -15,7 +15,7 @@ import { MemoryDB } from "../src/db";
 import { RAGPipeline } from "../src/rag";
 import { writeShared } from "../src/pipeline/agent-pipeline/post/extractors";
 import { MemoryService } from "../src/services/memory.service";
-import { MemoryTools } from "../src/mcp/tools/memory-tools";
+import { MemoryTools } from "../src/mcp/tools/memory";
 import { compressContext, type CompressorMemory } from "../src/pipeline/context-compressor";
 import type { Message } from "../src/providers/types";
 

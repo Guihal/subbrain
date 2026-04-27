@@ -1,7 +1,7 @@
 /**
  * M-10: agent-only MCP curation tools (memory_link / memory_supersede /
  * memory_promote / memory_reflect). Domain logic split into its own module so
- * `memory-tools.ts` (already 470 LOC) stays untouched and the registry
+ * `memory/` split-folder (already 470 LOC pre-split) stays untouched and the registry
  * (`memory.tools.ts`) keeps thin handler shims.
  *
  * All ops delegate to existing primitives:

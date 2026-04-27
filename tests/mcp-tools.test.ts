@@ -4,7 +4,7 @@
  */
 import { describe, test, expect, beforeAll, afterAll } from "bun:test";
 import { MemoryDB } from "../src/db";
-import { MemoryTools } from "../src/mcp/tools/memory-tools";
+import { MemoryTools } from "../src/mcp/tools/memory";
 import { LogTools } from "../src/mcp/tools/log-tools";
 import { WebTools } from "../src/mcp/tools/web-tools";
 import { existsSync, unlinkSync } from "fs";
