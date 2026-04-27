@@ -1,6 +1,6 @@
 import type { MemoryDB } from "../../db";
 import type { ModelRouter } from "../../lib/model-router";
-import type { PlaywrightClient } from "../../mcp/playwright-client";
+import type { PlaywrightClient } from "../../mcp/playwright";
 import { pageSnapshot } from "../../mcp/snapshot";
 import type { TelegramBot } from "../../telegram/bot";
 import type { FreelanceSource } from "../../db/types";

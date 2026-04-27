@@ -46,7 +46,6 @@ export const TRANSITIONAL_WHITELIST: Record<string, number> = {
   "src/telegram/userbot.ts": 349,
   "src/telegram/bot.ts": 344,
   "src/services/chat.service.ts": 324,
-  "src/mcp/playwright-client.ts": 315,
   "src/pipeline/context-compressor.ts": 300,
   "src/mcp/registry/agent-meta.tools.ts": 290,
   "src/pipeline/agent-pipeline/post/extractors.ts": 281,

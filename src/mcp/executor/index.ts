@@ -2,7 +2,7 @@ import type { MemoryDB } from "../../db";
 import type { ModelRouter } from "../../lib/model-router";
 import type { RAGPipeline } from "../../rag";
 import type { Userbot } from "../../telegram/userbot";
-import type { PlaywrightClient } from "../playwright-client";
+import type { PlaywrightClient } from "../playwright";
 import type { ToolResult } from "../types";
 import { MemoryTools, EmbedTools, LogTools, WebTools, TasksTools } from "../tools/index";
 import { MemoryCurationTools } from "../tools/memory-curation-tools";

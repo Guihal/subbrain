@@ -1,6 +1,6 @@
 export { ToolExecutor } from "./executor";
 export { mcpRoute } from "./transport";
-export { PlaywrightClient } from "./playwright-client";
+export { PlaywrightClient } from "./playwright";
 export { mcpProtocolRoute } from "./mcp-protocol";
 export {
   buildRegistry,
