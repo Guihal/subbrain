@@ -43,7 +43,7 @@ const KNOWN_LEGACY = new Set<string>([
   // migrated to src/db/tables/code-tools.ts + src/repositories/code-tools.repo.ts
   // and the agent_memory blob round-trip via SharedTable methods.
   "src/pipeline/night-cycle/prune/tasks.ts",
-  "src/pipeline/night-cycle/prune/stray-tasks.ts",
+  "src/pipeline/night-cycle/prune/stray-tasks/fetch.ts",
   "src/pipeline/night-cycle/steps/contradictions.ts",
 ]);
 

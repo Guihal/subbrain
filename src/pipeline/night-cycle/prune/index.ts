@@ -3,3 +3,12 @@ export { pruneContext } from "./context";
 export { pruneFocus } from "./focus";
 export { pruneCompletedTasks, type Embedder } from "./tasks";
 export { collectStrayTasks, LAST_RUN_FOCUS_KEY } from "./stray-tasks";
+export {
+  classifyCandidate,
+  hasBlacklistTag,
+  hasCompletedStatusTag,
+  hasTaskTag,
+  type CandidateRow,
+  type Classifier,
+  type ClassifyResult,
+} from "./tasks-classify";
