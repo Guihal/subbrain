@@ -1,0 +1,49 @@
+import type { MemoryKind, MemoryStatus } from "../../types";
+
+// columns updatable from REST/UI
+// MEM-5 (PR 22a): status joins the allow-list so the upcoming approval UI
+// (PR 22b) can transition pending → active/rejected via updateShared.
+// MEM-6 (mig 9): expires_at + superseded_by join the allow-list so the
+// post-hippocampus + night cycle can write expiry/supersede markers via
+// the same `updateRow` path the admin UI uses.
+// M-07 (mig 12): `kind` joins so the post-hippocampus extractor can write
+// the persona/semantic classification on a merge-update of an existing row.
+// Trigger `trg_shared_kind_check_upd` enforces the closed enum at SQL level.
+export const SHARED_UPDATABLE = new Set([
+  "content",
+  "tags",
+  "category",
+  "status",
+  "confidence",
+  "expires_at",
+  "superseded_by",
+  "kind",
+]);
+export const AGENT_MEM_UPDATABLE = new Set(["content", "tags"]);
+
+// MEM-6: shared SQL fragment used by every read path that filters out
+// expired/superseded rows. Lives here so the SQL stays in `tables/*` (per
+// `tests/layer-boundary.test.ts`); call sites compose by string concat.
+export function buildActiveFilter(
+  alias: string,
+  opts: { activeOnly?: boolean; notStale?: boolean } | undefined,
+): string {
+  const parts: string[] = [];
+  if (opts?.activeOnly) parts.push(`AND ${alias}.status = 'active'`);
+  if (opts?.notStale) {
+    parts.push(`AND ${alias}.superseded_by IS NULL`);
+    parts.push(
+      `AND (${alias}.expires_at IS NULL OR ${alias}.expires_at > unixepoch())`,
+    );
+  }
+  return parts.length === 0 ? "" : ` ${parts.join(" ")}`;
+}
+
+export interface InsertSharedOpts {
+  confidence?: number | null;
+  status?: MemoryStatus;
+  // M-07 (mig 12): persona/semantic/episodic/procedural. Default 'semantic'
+  // matches the SQL DEFAULT — callers pass 'persona' for identity facts via
+  // `categoryToKind(category, 'shared')` in the post-hippocampus.
+  kind?: MemoryKind;
+}

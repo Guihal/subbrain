@@ -41,7 +41,6 @@ export const TRANSITIONAL_WHITELIST: Record<string, number> = {
   "scripts/check-file-size.ts": 170,
   "src/lib/logger.ts": 263,
   "src/rag/pipeline.ts": 700,
-  "src/db/tables/shared.ts": 397,
   "src/services/memory.service.ts": 381,
   "src/repositories/memory.repo.ts": 381,
   "src/mcp/executor.ts": 362,
