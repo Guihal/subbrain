@@ -1,7 +1,7 @@
 /**
  * Memory CRUD + context_summary.
  *
- * Логика по-прежнему живёт в src/mcp/tools/memory-tools.ts (MemoryTools).
+ * Логика по-прежнему живёт в src/mcp/tools/memory/ (MemoryTools).
  * Здесь — только декларация интерфейса для реестра.
  */
 import { t, type ToolRegistry } from "./tool-registry";

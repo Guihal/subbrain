@@ -1,6 +1,6 @@
 # 28-W2-3 — split `mcp/tools/memory-tools.ts` (472 → split-folder)
 
-**Status:** OPEN. Master: [28-file-size-150-limit.md](28-file-size-150-limit.md) Wave 2.
+**Status:** DONE. Master: [28-file-size-150-limit.md](28-file-size-150-limit.md) Wave 2.
 
 ## Цель
 

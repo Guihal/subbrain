@@ -11,7 +11,7 @@ import { describe, test, expect, beforeAll, afterAll } from "bun:test";
 import { unlinkSync } from "fs";
 import { randomUUID } from "crypto";
 import { MemoryDB } from "../src/db";
-import { MemoryTools } from "../src/mcp/tools/memory-tools";
+import { MemoryTools } from "../src/mcp/tools/memory";
 import { sanitizeAgentId } from "../src/services/chat.service";
 
 const TEST_DB = "data/test.db.b1";

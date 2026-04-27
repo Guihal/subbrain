@@ -403,7 +403,7 @@ describe("M-07.1: MemoryTools.write derives kind from category", () => {
   });
 
   test("layer='shared' category='profile' → kind='persona' (writeSharedAtomic path)", async () => {
-    const { MemoryTools } = await import("../src/mcp/tools/memory-tools");
+    const { MemoryTools } = await import("../src/mcp/tools/memory");
     const tools = new MemoryTools(memory, () => rag);
     const r = await tools.write({
       layer: "shared",
@@ -417,7 +417,7 @@ describe("M-07.1: MemoryTools.write derives kind from category", () => {
   });
 
   test("layer='shared' category='goal' → kind='semantic'", async () => {
-    const { MemoryTools } = await import("../src/mcp/tools/memory-tools");
+    const { MemoryTools } = await import("../src/mcp/tools/memory");
     const tools = new MemoryTools(memory, () => rag);
     const r = await tools.write({
       layer: "shared",
@@ -431,7 +431,7 @@ describe("M-07.1: MemoryTools.write derives kind from category", () => {
   });
 
   test("layer='shared' with injected MemoryService also derives kind='persona'", async () => {
-    const { MemoryTools } = await import("../src/mcp/tools/memory-tools");
+    const { MemoryTools } = await import("../src/mcp/tools/memory");
     const svc = new MemoryService(memory.memoryRepo, rag, memory.logRepo);
     const tools = new MemoryTools(memory, () => rag);
     tools.setMemoryService(svc);
