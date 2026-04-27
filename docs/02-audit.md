@@ -770,3 +770,15 @@ Tests: `tests/routes-memory-edges.test.ts` (227 LOC, 10 cases) — 2× auth-401,
 **File-cap:** `routes/memory.ts` 232 LOC (под 250 ✓, был 191; +41 net). `services/memory.service.ts` 380 LOC (+18 net на M-13 base 362, pre-existing >250 violation унаследован). `useMemory.ts` 248 LOC (под 250 ✓, был 240; +8). `MemoryRow.vue` 149 LOC (был 90; +59 — script edges state + collapsible template).
 **Out of scope:** edge mutations через REST (curation MCP уже умеет, UI follow-up), graph viz (force-directed), cross-layer click-to-jump navigation, edge-weight histograms, bulk-delete orphan edges (dst row gone — separate cleanup task).
 **Scope:** M-14.
+
+### Memory-v2 M-14 review (2026-04-27, inline audit + fixup `8281e71`)
+**Closed:** MEM-23 (M-14).
+**§1 Critic findings round-1:** `[high]ui-scope-creep @MemoryRow.vue +139/-43 vs plan ≤40` + `[medium]semantic-ambiguity @parseKindsCsv all-invalid silently unfiltered` + `[medium]layer-support-unverified @archive в EDGE_LAYER`.
+**§2 Fixup (`fixup(M-14)` 8281e71):**
+- **parseKindsCsv:** all-invalid CSV (`?kinds=foo,bar`) теперь возвращает `[]`, route handler short-circuits на `kinds === []` → `{items:[],total:0}`. EdgesTable.getEdgesFromSrc сама не различает `[]` от `undefined` (CHECK `kinds && kinds.length > 0` falls through) — fix на route-уровне без изменения lower-layer контракта.
+- **archive layer:** seed `arc-1` (archive) → `arc-target` (shared, изолированный) + regression test `archive layer: outbound derives edge surfaces`. Schema CHECK поддерживает archive (mig 14), prod-writer `cross-layer-dedup.ts:160` использует. Endpoint работает.
+- **ui-scope-creep:** **НЕ адресован** в fixup — wrapping flex-container нужен structurally, чтобы collapsible "🔗 Edges" panel ренделся НИЖЕ row а не inline. M-14-specific логика ~50 LOC; +89 LOC — re-indent existing buttons под flex-wrapper. Acknowledged here.
+**§3 Fixup tests:** +2 cases. 812/0 × 2 runs (29.85s, 30.41s) identical. Stable.
+**§4 Verdict:** M-14 закрыт чисто после fixup. 2 medium закрыты, 1 high acknowledged (cosmetic, structural). Round-2 critic не запускался — round-1 feedback был достаточно специфичен для прямой parent-side фикса.
+**§5 Open follow-ups:** Edge mutations через REST (DELETE), graph viz, MemoryRow.vue split при >250 LOC follow-up.
+**Scope:** M-14 inline audit + fixup.
