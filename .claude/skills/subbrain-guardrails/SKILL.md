@@ -11,7 +11,7 @@ Follow as checklist. If new code violates rule — rewrite before commit.
 
 ## 1. File size + split
 
-- Hard cap: **250 lines** per file, one responsibility.
+- Hard cap: **150 lines** per file (lowered from 250 in 2026-04), one responsibility. Pre-existing legacy oversize files split поэтапно, не grow в новых PR.
 - Big file smell → split now, not later. Template layouts:
   - Orchestrator ≤100 lines → delegates to `phases/`, `steps/`, `tables/`, `post/`, `pre/`.
   - Route file: handler thin, logic in `lib/`/`pipeline/`.
@@ -106,7 +106,7 @@ Follow as checklist. If new code violates rule — rewrite before commit.
 | `(m as any).reasoning_content` | §5 |
 | New model ID string-literal in pipeline/route | §9 |
 | `role: string` in route schema | §6 |
-| File over 250 lines growing | §1 |
+| File over 150 lines growing | §1 |
 | `process.exit` in `tests/*` | §10 |
 | Raw `fetch` for streaming Copilot/Nvidia | §5 |
 | `db.run("UPDATE ...")` hand-built in route | §4 |

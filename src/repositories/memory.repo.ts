@@ -47,6 +47,7 @@ export class MemoryRepository {
 
   // ─── Layer 1: Focus ────────────────────────────────────────
   getFocus = (key: string) => this.mem.getFocus(key);
+  getFocusWithMeta = (key: string) => this.mem.getFocusWithMeta(key);
   setFocus = (key: string, value: string) => this.mem.setFocus(key, value);
   getAllFocus = () => this.mem.getAllFocus();
   deleteFocus = (key: string) => this.mem.deleteFocus(key);

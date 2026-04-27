@@ -61,7 +61,7 @@ export class AgentLoop {
     return [
       ...this.registry.toOpenAIToolsForAgent(mode),
       ...this.dynamicTools.toToolDefs(),
-      ...this.codeTools.toToolDefs(),
+      ...this.codeTools.toToolDefs(mode),
     ];
   }
 

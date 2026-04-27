@@ -55,6 +55,20 @@ export class MemoryTable {
     return row?.value ?? null;
   }
 
+  /**
+   * Same as getFocus but also returns updated_at (unix seconds). Used by the
+   * tg_send_message focus-block gate to apply a 7-day TTL on the directive.
+   * Empty / whitespace value should be treated as "cleared" by callers.
+   */
+  getFocusWithMeta(
+    key: string,
+  ): { value: string; updated_at: number } | null {
+    const row = this.db
+      .query("SELECT value, updated_at FROM layer1_focus WHERE key = ?")
+      .get(key) as { value: string; updated_at: number } | null;
+    return row ?? null;
+  }
+
   setFocus(key: string, value: string): void {
     this.db
       .query(

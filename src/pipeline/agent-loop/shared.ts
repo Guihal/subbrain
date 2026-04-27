@@ -44,6 +44,7 @@ export function toolRunnerDeps(
   deps: AgentLoopDeps,
   session: AgentLoopSession,
   agentId: string | null,
+  agentMode: AgentMode,
 ): ToolRunnerDeps {
   return {
     registry: deps.registry,
@@ -55,6 +56,7 @@ export function toolRunnerDeps(
     codeTools: deps.codeTools,
     session,
     agentId,
+    agentMode,
   };
 }
 
@@ -62,11 +64,12 @@ export function stepDeps(
   deps: AgentLoopDeps,
   session: AgentLoopSession,
   agentId: string | null,
+  agentMode: AgentMode,
 ): StepDeps {
   return {
     router: deps.router,
     memory: deps.memory,
-    tools: toolRunnerDeps(deps, session, agentId),
+    tools: toolRunnerDeps(deps, session, agentId, agentMode),
   };
 }
 

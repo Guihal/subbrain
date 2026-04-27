@@ -106,6 +106,7 @@ export class MemoryDB {
 
   // ─── Layer 1: Focus ────────────────────────────────────────
   getFocus = (key: string) => this.memoryRepo.getFocus(key);
+  getFocusWithMeta = (key: string) => this.memoryRepo.getFocusWithMeta(key);
   setFocus = (key: string, value: string) => this.memoryRepo.setFocus(key, value);
   getAllFocus = () => this.memoryRepo.getAllFocus();
   deleteFocus = (key: string) => this.memoryRepo.deleteFocus(key);

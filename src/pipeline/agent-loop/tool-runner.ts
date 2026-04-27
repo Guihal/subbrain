@@ -14,7 +14,7 @@ import type { ArbitrationRoom } from "../arbitration-room";
 import type { logger } from "../../lib/logger";
 import type { DynamicToolDef, DynamicToolRegistry } from "./dynamic-tools";
 import type { CodeToolRegistry } from "./code-tools";
-import type { AgentLoopSession } from "../../mcp/registry/tool-registry";
+import type { AgentLoopSession, AgentMode } from "../../mcp/registry/tool-registry";
 import { executeSandboxed } from "./code-tools/sandbox";
 
 /**
@@ -102,6 +102,9 @@ export interface ToolRunnerDeps {
   session: AgentLoopSession;
   /** B-1: per-agent identity for context-layer scoping; null = no scope. */
   agentId: string | null;
+  /** SCHED-1: passed to tool ctx so handlers (e.g. tg_send_message F-4) can
+   *  gate on scheduled-vs-interactive without sniffing agentId. */
+  agentMode: AgentMode;
 }
 
 type Log = ReturnType<typeof logger.forRequest>;
@@ -143,6 +146,7 @@ export async function executeAgentTool(
             registry: deps.registry,
             session: deps.session,
             agentId: deps.agentId,
+            agentMode: deps.agentMode,
           },
           signal,
         );

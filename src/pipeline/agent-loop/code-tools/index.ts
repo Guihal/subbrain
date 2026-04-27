@@ -9,6 +9,8 @@ import { randomUUID } from "crypto";
 import type { CodeToolsRepository } from "../../../repositories/code-tools.repo";
 import type { CodeTool } from "./types";
 import { CODE_TOOL_LIMITS } from "./types";
+import type { AgentMode } from "../types";
+import { isHiddenInMode } from "./scheduled-blacklist";
 
 function hydrate(row: CodeTool | null): CodeTool | null {
   if (!row) return null;
@@ -77,8 +79,15 @@ export class CodeToolRegistry {
     }
   }
 
-  /** Convert enabled code tools to OpenAI tool format */
-  toToolDefs(): Array<{
+  /**
+   * Convert enabled code tools to OpenAI tool format.
+   *
+   * F-3b: when `mode === "scheduled"`, code tools listed in
+   * `STATEFUL_CLIENT_CODE_TOOLS` are dropped — they embed frozen client
+   * snapshots that are unsafe to surface to autonomous loops. Default
+   * `"interactive"` keeps backward-compat for any external caller.
+   */
+  toToolDefs(mode: AgentMode = "interactive"): Array<{
     type: "function";
     function: {
       name: string;
@@ -86,7 +95,9 @@ export class CodeToolRegistry {
       parameters: Record<string, unknown>;
     };
   }> {
-    return this.list().map((t) => ({
+    return this.list()
+      .filter((t) => !isHiddenInMode(t.name, mode))
+      .map((t) => ({
       type: "function" as const,
       function: {
         name: `code_${t.name}`,

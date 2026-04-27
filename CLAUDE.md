@@ -18,7 +18,7 @@ When making non-trivial changes, read the matching doc first; if you change beha
 
 Before editing `src/`, `web/app/`, `scripts/`, `tests/` — invoke the `subbrain-guardrails` skill (`.claude/skills/subbrain-guardrails/SKILL.md`). It encodes the lessons of the 15-PR refactor; violating it re-opens closed audit items. Hard rules (see skill for detail + red-flags table):
 
-1. **File cap 250 lines**, one responsibility. Orchestrator ≤100 lines, logic in `phases/`/`steps/`/`tables/`/`post/`/`pre/`. Exceptions: `system-prompt.ts`, `model-map.ts`, `rag/pipeline.ts`, MCP registry, telegram.
+1. **File cap 150 lines** (lowered from 250 in 2026-04), one responsibility. Orchestrator ≤100 lines, logic in `phases/`/`steps/`/`tables/`/`post/`/`pre/`. Exceptions: `system-prompt.ts`, `model-map.ts`, `rag/pipeline.ts`, MCP registry, telegram. Pre-existing oversize legacy files (`memory.ts`, `tool-runner.ts`, `tool-registry.ts`, `db/index.ts`, `shared.ts`) — split поэтапно, не grow их в новых PR.
 2. **`Promise.allSettled`**, never `Promise.all`, for fan-out upstream calls. `AbortController` composed with external signal, threaded through `ModelRouter.chat` → providers; providers check `signal.aborted` before start + in stream callback.
 3. **Per-tool timeout** in `tool-runner.ts` via `Promise.race`; scopes `web_*`=15s, `memory_*`=3s, `embed_*`=5s, `consult_*`=20s, default=5s. Timeout → `ToolError{code:"timeout"}`, not throw.
 4. **Rate-limit** atomic `tryAcquire()` under `Mutex`. **Fallback** capped `MAX_FALLBACK_ATTEMPTS=1` → `UpstreamExhaustedError` → 502.
@@ -32,6 +32,11 @@ Before editing `src/`, `web/app/`, `scripts/`, `tests/` — invoke the `subbrain
 12. **Tests:** `bun:test` with `describe/test/expect`. No top-level `process.exit`. Live tests = `*.live.ts`. Test DB = `data/test.db`.
 13. **Security:** `timingSafeEqual` + SHA-256 for token compare. Destructive scripts require `--confirm` or non-prod path. Logs mask `api_key|authorization|token|bearer` by default. Sandbox throws `sandbox_unavailable` when `Worker` missing.
 14. **Docs sync:** split/move a file → update CLAUDE.md paths + matching `docs/completed/*.md` in the same PR. Close task: ✅ `docs/02-audit.md`, strike in `docs/01-refactor-plan.md`, `Status: DONE (PR #N)` in task file.
+15. **Code-tools no hardcoded facts** (F-2/F-3b/F-4, см. `docs/tasks/code-tools-poisoning-fix.md`). Background: 27.04.2026 free-agent fake-digest incident, диагноз `~/vault/RLM/Daily/2026-04-28.md`.
+    - `create_code_tool`/`edit_code_tool` reject body с ≥2 hardcoded-fact patterns (имена клиентов / `chat_id` literals / `overdue_hours` / DD.MM dates / urgency emoji + key). Validator: `src/pipeline/agent-loop/code-tools/code-tool-validators.ts`.
+    - 4 known stateful client tools (`overdue_reminder`/`silent_projects_check`/`critical_clients_monitor`/`client_followup_check`) hidden от `agentMode==="scheduled"` через `STATEFUL_CLIENT_CODE_TOOLS` Set в `scheduled-blacklist.ts`. Расширять список при появлении новых stateful tools.
+    - `tg_send_message` blocks scheduled runs пока `layer1_focus.no_repetitive_tg_spam` non-empty AND set ≤7d ago (`telegram-spam-gate.ts`). Interactive runs bypass — у юзера прямой контроль. Override scheduled = `deleteFocus("no_repetitive_tg_spam")`.
+    - **Никогда** не embed dynamic facts (status, deadlines, names, chat_ids) как const'ы в code-tool body — pass через `input` или query memory/tg_read_chat в runtime.
 
 ## Common commands
 

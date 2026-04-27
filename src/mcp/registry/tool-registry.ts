@@ -36,6 +36,13 @@ export type ToolLog = ReturnType<typeof logger.forRequest>;
 export interface PublicToolContext {
   executor: ToolExecutor;
   agentId: string | null;
+  /**
+   * Execution mode (SCHED-1). Used by handlers that gate on
+   * scheduled-vs-interactive (e.g. tg_send_message focus-block in F-4).
+   * Undefined / missing → treated as interactive (backward-compat for
+   * REST/MCP callers that have no scheduler context).
+   */
+  agentMode?: AgentMode;
 }
 
 /**
