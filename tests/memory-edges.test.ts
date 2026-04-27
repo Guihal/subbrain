@@ -204,6 +204,7 @@ describe("M-05 backfill from derived_from + linkRelated hook", () => {
     const r = await writeContext(
       memory,
       rag,
+      mkRouter(),
       { category: "decision", content: "seed content NEW alpha beta gamma", tags: "", confidence: 0.9 },
       "req-link-1",
       log,
@@ -224,6 +225,7 @@ describe("M-05 backfill from derived_from + linkRelated hook", () => {
       const r = await writeContext(
         memory,
         rag,
+      mkRouter(),
         { category: "decision", content: "rag fail fact for linkRelated", tags: "", confidence: 0.9 },
         "req-link-fail-1",
         log,

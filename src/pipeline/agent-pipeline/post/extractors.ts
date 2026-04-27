@@ -1,6 +1,7 @@
 import { randomUUID } from "crypto";
 import type { MemoryDB } from "../../../db";
 import type { RAGPipeline } from "../../../rag";
+import type { ModelRouter } from "../../../lib/model-router";
 import type { RequestLogger } from "../../../lib/logger";
 
 import {
@@ -18,6 +19,7 @@ import {
 } from "./extractors-helpers";
 // M-05 (mig 14): post-insert top-3 `relates` edges hook.
 // M-05.1: parseTagsCsv exported for caller-side CSV → string[] conversion.
+// M-05.2: linkRelated takes `router: ModelRouter` for contradiction detection.
 import { linkRelated, parseTagsCsv } from "./link-related";
 
 export type { WriteResult } from "./extractors-helpers";
@@ -36,6 +38,7 @@ export interface WriteContextArgs extends WriteSharedArgs {}
 export async function writeShared(
   memory: MemoryDB,
   rag: RAGPipeline,
+  router: ModelRouter,
   args: WriteSharedArgs,
   log: RequestLogger,
 ): Promise<WriteResult> {
@@ -151,7 +154,8 @@ export async function writeShared(
 
   // M-05: best-effort `relates` edges (non-blocking, post-commit).
   // M-05.1: pass inserted tags so neighbours can absorb novel attributes.
-  await linkRelated(memory, rag, id, "shared", args.content, parseTagsCsv(args.tags), log);
+  // M-05.2: router threaded for contradiction detection (default off).
+  await linkRelated(memory, rag, router, id, "shared", args.content, parseTagsCsv(args.tags), log);
 
   return { ok: true, id, status };
 }
@@ -159,6 +163,7 @@ export async function writeShared(
 export async function writeContext(
   memory: MemoryDB,
   rag: RAGPipeline,
+  router: ModelRouter,
   args: WriteContextArgs,
   requestId: string,
   log: RequestLogger,
@@ -268,7 +273,8 @@ export async function writeContext(
 
   // M-05: see writeShared.
   // M-05.1: pass inserted tags for neighbour evolution.
-  await linkRelated(memory, rag, id, "context", args.content, parseTagsCsv(args.tags), log);
+  // M-05.2: router threaded for contradiction detection.
+  await linkRelated(memory, rag, router, id, "context", args.content, parseTagsCsv(args.tags), log);
 
   return { ok: true, id, status };
 }

@@ -63,6 +63,7 @@ describe("writeShared — embed + transactional persistence (PR 24)", () => {
     const wr = await writeShared(
       memory,
       rag,
+      mkRouter(),
       { category: "skill", content: "fact X: SNMP uses UDP 161", tags: "snmp", confidence: 0.95 },
       log,
     );
@@ -88,6 +89,7 @@ describe("writeShared — embed + transactional persistence (PR 24)", () => {
     const wr = await writeShared(
       memory,
       rag,
+      mkRouter(),
       { category: "skill", content: "fact X extra content about SNMP discovery", tags: "", confidence: 0.9 },
       log,
     );
@@ -140,6 +142,7 @@ describe("writeShared — embed + transactional persistence (PR 24)", () => {
     const wr = await writeShared(
       memory,
       ragHang,
+      hangingRouter,
       { category: "skill", content: "should never persist", tags: "", confidence: 0.9 },
       log,
     );

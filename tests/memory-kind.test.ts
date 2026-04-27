@@ -251,6 +251,7 @@ describe("extractors.writeShared derives kind from category", () => {
     const r = await writeShared(
       memory,
       rag,
+      mkRouter(),
       {
         category: "profile",
         content: "loves caveman mode",
@@ -267,6 +268,7 @@ describe("extractors.writeShared derives kind from category", () => {
     const r = await writeShared(
       memory,
       rag,
+      mkRouter(),
       {
         category: "goal",
         content: "deliver M-07 tonight",

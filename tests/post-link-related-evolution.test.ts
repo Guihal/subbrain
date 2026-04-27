@@ -101,6 +101,7 @@ describe("M-05.1 evolveNeighbour — tag merge on linkRelated", () => {
     const r = await writeContext(
       memory,
       rag,
+      mkRouter(),
       {
         category: "decision",
         content: "alpha beta gamma test-empty plus delta",
@@ -119,6 +120,7 @@ describe("M-05.1 evolveNeighbour — tag merge on linkRelated", () => {
     const r = await writeContext(
       memory,
       rag,
+      mkRouter(),
       {
         category: "bug",
         content: "epsilon zeta eta test-pureadd plus theta",
@@ -138,6 +140,7 @@ describe("M-05.1 evolveNeighbour — tag merge on linkRelated", () => {
     const r = await writeContext(
       memory,
       rag,
+      mkRouter(),
       {
         category: "architecture",
         content: "iota kappa lambda test-dup plus mu",
@@ -158,6 +161,7 @@ describe("M-05.1 evolveNeighbour — tag merge on linkRelated", () => {
     const r = await writeContext(
       memory,
       rag,
+      mkRouter(),
       {
         category: "learning",
         content: "nu xi omicron test-cap plus pi",
@@ -188,6 +192,7 @@ describe("M-05.1 evolveNeighbour — tag merge on linkRelated", () => {
     const r = await writeContext(
       memory,
       rag,
+      mkRouter(),
       {
         category: "project",
         content: "rho sigma tau test-noop plus upsilon",
@@ -208,6 +213,7 @@ describe("M-05.1 evolveNeighbour — tag merge on linkRelated", () => {
     const r = await writeShared(
       memory,
       rag,
+      mkRouter(),
       {
         category: "skill",
         content: "phi chi psi test-shared-route plus omega",
@@ -227,6 +233,7 @@ describe("M-05.1 evolveNeighbour — tag merge on linkRelated", () => {
     const r = await writeContext(
       memory,
       rag,
+      mkRouter(),
       {
         category: "decision",
         content: "aa bb cc test-disabled plus dd",
@@ -254,6 +261,7 @@ describe("M-05.1 evolveNeighbour — tag merge on linkRelated", () => {
       const r = await writeContext(
         memory,
         rag,
+        mkRouter(),
         {
           category: "bug",
           content: "ee ff gg test-deleted plus hh",

@@ -68,6 +68,7 @@ describe("writeShared / writeContext — confidence → status mapping", () => {
     const wr = await writeShared(
       memory,
       rag,
+      mkRouter(),
       { category: "profile", content: "confirmed fact A", tags: "", confidence: 0.9 },
       log,
     );
@@ -82,6 +83,7 @@ describe("writeShared / writeContext — confidence → status mapping", () => {
     const wr = await writeShared(
       memory,
       rag,
+      mkRouter(),
       { category: "profile", content: "guess fact B", tags: "", confidence: 0.5 },
       log,
     );
@@ -96,6 +98,7 @@ describe("writeShared / writeContext — confidence → status mapping", () => {
     const wr = await writeContext(
       memory,
       rag,
+      mkRouter(),
       { category: "learning", content: "strong inference C", tags: "", confidence: 0.85 },
       "req-test-1",
       log,
@@ -110,6 +113,7 @@ describe("writeShared / writeContext — confidence → status mapping", () => {
     const wr = await writeContext(
       memory,
       rag,
+      mkRouter(),
       { category: "learning", content: "weak inference D", tags: "", confidence: 0.4 },
       "req-test-2",
       log,
@@ -125,6 +129,7 @@ describe("writeShared / writeContext — confidence → status mapping", () => {
       const wr = await writeShared(
         memory,
         rag,
+      mkRouter(),
         { category: "profile", content: "env-override fact E", tags: "", confidence: 0.65 },
         log,
       );

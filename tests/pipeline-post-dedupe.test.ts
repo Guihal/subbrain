@@ -64,6 +64,7 @@ describe("post/extractors dedupe-on-write (MEM-6)", () => {
     const r1 = await writeShared(
       memory,
       rag,
+      mkRouter(),
       {
         category: "preference",
         content: "Пользователь предпочитает Bun runtime для backend сервисов",
@@ -84,6 +85,7 @@ describe("post/extractors dedupe-on-write (MEM-6)", () => {
     const r2 = await writeShared(
       memory,
       rag,
+      mkRouter(),
       {
         category: "preference",
         content: "Пользователь предпочитает Bun runtime для backend сервисов и API",
@@ -115,12 +117,14 @@ describe("post/extractors dedupe-on-write (MEM-6)", () => {
     const r1 = await writeShared(
       memory,
       rag,
+      mkRouter(),
       { category: "preference", content: "Любит TypeScript строгий режим", tags: "ts", confidence: 0.9 },
       log,
     );
     const r2 = await writeShared(
       memory,
       rag,
+      mkRouter(),
       { category: "skill", content: "Любит TypeScript строгий режим", tags: "ts", confidence: 0.9 },
       log,
     );
@@ -135,6 +139,7 @@ describe("post/extractors dedupe-on-write (MEM-6)", () => {
     const r1 = await writeContext(
       memory,
       rag,
+      mkRouter(),
       {
         category: "decision",
         content: "Subbrain: pre-фаза фильтрует expired/superseded через notStale opt",
@@ -151,6 +156,7 @@ describe("post/extractors dedupe-on-write (MEM-6)", () => {
     const r2 = await writeContext(
       memory,
       rag,
+      mkRouter(),
       {
         category: "decision",
         content: "Subbrain: pre-фаза фильтрует expired/superseded через notStale opt (детально)",

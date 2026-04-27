@@ -1,77 +1,54 @@
 /**
- * M-05 (mig 14): post-insert hook that draws `relates` edges to the top-3
- * vec neighbours in the same layer. Cap configurable via LINK_RELATED_TOP_N.
- * Non-blocking — RAG failure logs at warn and returns silently so the
- * calling write keeps its OK status.
+ * M-05/M-05.1/M-05.2: post-insert edge hook.
+ *  - M-05 (mig 14): top-N `relates` edges to same-layer vec neighbours.
+ *  - M-05.1: merge inserted tags into drawn neighbours' CSV (no LLM).
+ *  - M-05.2: one LLM call; verdicts ≥ threshold draw `contradicts` edges
+ *    (weight = LLM confidence). Default OFF; best-effort.
  *
- * Self-skip: never link an inserted row to itself even if RAG surfaces it
- * (vector index is updated transactionally before this runs in some
- * call paths).
- *
- * M-05.1: A-MEM neighbour tag evolution. After each successful `linkEdge`,
- * call `evolveNeighbour` which merges `insertedTags` into the neighbour's
- * `tags` (CSV) — pure string-merge, no LLM, no schema change. Best-effort:
- * a throw is caught + warn-logged and never aborts `linkRelated`. Only
- * `tags` mutate; content / confidence / kind / status untouched.
- *
- * Env knobs (read at call-time per repo pattern):
- *   LINK_EVOLVE_TAGS_ENABLED  default "true" — disables the whole evolution
- *   LINK_EVOLVE_MAX_TAGS      default 10     — tail-truncate cap (drop oldest)
+ * Env (call-time): LINK_EVOLVE_TAGS_ENABLED (def "true"), LINK_EVOLVE_MAX_TAGS
+ * (10), LINK_CONTRADICT_ENABLED (def "false"), LINK_CONTRADICT_MIN_CONF (0.7),
+ * CONTRADICT_MODEL_ROLE (def "memory").
  */
 import type { MemoryDB } from "../../../db";
 import type { RAGPipeline } from "../../../rag";
+import type { ModelRouter } from "../../../lib/model-router";
 import type { RequestLogger } from "../../../lib/logger";
 
 export const LINK_RELATED_TOP_N = 3;
 
 const MAX_TAGS_DEFAULT = 10;
+const MIN_CONTRADICTION_CONF_DEFAULT = 0.7;
 
-function evolveEnabled(): boolean {
-  const v = process.env.LINK_EVOLVE_TAGS_ENABLED;
-  // Default true; only an explicit "false" (case-insensitive) disables.
-  return v == null || v.toLowerCase() !== "false";
-}
+// Default true; only explicit "false" (case-insensitive) disables.
+const evolveEnabled = (): boolean =>
+  process.env.LINK_EVOLVE_TAGS_ENABLED?.toLowerCase() !== "false";
 
 function maxTags(): number {
-  const raw = process.env.LINK_EVOLVE_MAX_TAGS;
-  if (!raw) return MAX_TAGS_DEFAULT;
-  const n = Number.parseInt(raw, 10);
+  const n = Number.parseInt(process.env.LINK_EVOLVE_MAX_TAGS ?? "", 10);
   return Number.isFinite(n) && n > 0 ? n : MAX_TAGS_DEFAULT;
 }
 
-/**
- * Exported sibling for `extractors.ts` — same logic as the module-private
- * `parseTags` below, just visible so callers don't reimplement the CSV
- * splitter. Returns [] for empty / whitespace-only input.
- */
-export function parseTagsCsv(csv: string): string[] {
-  if (!csv) return [];
-  return csv
-    .split(",")
-    .map((t) => t.trim())
-    .filter((t) => t.length > 0);
+const detectEnabled = (): boolean =>
+  process.env.LINK_CONTRADICT_ENABLED?.toLowerCase() === "true";
+
+function minConf(): number {
+  const n = Number.parseFloat(process.env.LINK_CONTRADICT_MIN_CONF ?? "");
+  return Number.isFinite(n) && n > 0 && n <= 1 ? n : MIN_CONTRADICTION_CONF_DEFAULT;
 }
 
-function parseTags(csv: string): string[] {
-  return parseTagsCsv(csv);
+const contradictModel = (): string => process.env.CONTRADICT_MODEL_ROLE ?? "memory";
+
+/** Exported CSV splitter — caller-side use in `extractors.ts`. */
+export function parseTagsCsv(csv: string): string[] {
+  if (!csv) return [];
+  return csv.split(",").map((t) => t.trim()).filter((t) => t.length > 0);
 }
 
 function mergeUnique(a: string[], b: string[], cap: number): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
-  for (const t of a) {
-    if (!seen.has(t)) {
-      seen.add(t);
-      out.push(t);
-    }
-  }
-  for (const t of b) {
-    if (!seen.has(t)) {
-      seen.add(t);
-      out.push(t);
-    }
-  }
-  // Tail-truncate: keep newest (drop from head) when over cap.
+  for (const t of [...a, ...b]) if (!seen.has(t)) { seen.add(t); out.push(t); }
+  // Tail-truncate: drop oldest when over cap.
   return out.length > cap ? out.slice(out.length - cap) : out;
 }
 
@@ -90,34 +67,96 @@ function evolveNeighbour(
   cap: number,
 ): void {
   if (insertedTags.length === 0) return;
-
   const row =
     neighbourLayer === "context"
       ? memory.getContext(neighbourId)
       : memory.getShared(neighbourId);
-  if (!row) return; // deleted mid-flight — nothing to evolve.
-
-  const currentTags = parseTags(row.tags ?? "");
+  if (!row) return; // deleted mid-flight.
+  const currentTags = parseTagsCsv(row.tags ?? "");
   const merged = mergeUnique(currentTags, insertedTags, cap);
-  if (sameSet(currentTags, merged)) return; // no-op: already covered.
+  if (sameSet(currentTags, merged)) return; // already covered.
+  const csv = merged.join(",");
+  if (neighbourLayer === "context") memory.updateContext(neighbourId, { tags: csv });
+  else memory.updateShared(neighbourId, { tags: csv });
+}
 
-  const newTagsCsv = merged.join(",");
-  if (neighbourLayer === "context") {
-    memory.updateContext(neighbourId, { tags: newTagsCsv });
-  } else {
-    memory.updateShared(neighbourId, { tags: newTagsCsv });
+interface ContradictionCandidate { id: string; layer: "context" | "shared"; content: string }
+interface ContradictionVerdict { id: string; confidence: number }
+
+/** Best-effort LLM call. Bad JSON / throw / non-array → `[]` + warn. */
+async function detectContradictions(
+  router: ModelRouter,
+  log: RequestLogger,
+  insertedContent: string,
+  candidates: ContradictionCandidate[],
+): Promise<ContradictionVerdict[]> {
+  const sys =
+    "You detect direct contradictions between memory snippets. " +
+    "Reply ONLY in JSON: {\"contradicts\":[{\"id\":\"<id>\",\"confidence\":0.0-1.0}]}. " +
+    "Empty array if no contradiction. Do NOT explain. " +
+    "A contradiction means the new fact directly negates a candidate (opposite preference, " +
+    "reversed decision, conflicting attribute). Loose-relatedness is NOT contradiction.";
+  const user =
+    `NEW: ${insertedContent.slice(0, 800)}\n\nCANDIDATES:\n` +
+    candidates.map((c) => `- id=${c.id}: ${c.content.slice(0, 400)}`).join("\n");
+
+  let raw = "";
+  try {
+    const resp = await router.chat(
+      contradictModel(),
+      {
+        messages: [{ role: "system", content: sys }, { role: "user", content: user }],
+        temperature: 0.0,
+        max_tokens: 256,
+      },
+      "low",
+    );
+    raw = resp.choices[0]?.message?.content ?? "";
+  } catch (err) {
+    log.warn("post.extractors", `detectContradictions LLM call failed: ${err instanceof Error ? err.message : String(err)}`);
+    return [];
   }
+
+  const first = raw.indexOf("{");
+  const last = raw.lastIndexOf("}");
+  if (first < 0 || last <= first) {
+    log.warn("post.extractors", `detectContradictions: no JSON object (head: ${raw.slice(0, 80)})`);
+    return [];
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw.slice(first, last + 1));
+  } catch (err) {
+    log.warn("post.extractors", `detectContradictions JSON.parse failed: ${err instanceof Error ? err.message : String(err)}`);
+    return [];
+  }
+  const arr = (parsed as { contradicts?: unknown })?.contradicts;
+  if (!Array.isArray(arr)) return [];
+  const out: ContradictionVerdict[] = [];
+  for (const item of arr) {
+    if (!item || typeof item !== "object") continue;
+    const id = (item as { id?: unknown }).id;
+    const conf = (item as { confidence?: unknown }).confidence;
+    if (typeof id !== "string" || typeof conf !== "number" || !Number.isFinite(conf)) continue;
+    out.push({ id, confidence: Math.min(1, Math.max(0, conf)) });
+  }
+  return out;
 }
 
 export async function linkRelated(
   memory: MemoryDB,
   rag: RAGPipeline,
+  router: ModelRouter,
   insertedId: string,
   layer: "context" | "shared",
   content: string,
   insertedTags: string[],
   log: RequestLogger,
 ): Promise<void> {
+  // M-05 weight is constant 1.0 (presence, not strength). RAG `score` with
+  // skipRerank is RRF-rank-derived, not similarity. Strength → M-05.1.
+  const drawnNeighbours: { id: string; layer: "context" | "shared" }[] = [];
+
   try {
     const neighbours = await rag.search({
       query: content,
@@ -130,23 +169,17 @@ export async function linkRelated(
       if (drawn >= LINK_RELATED_TOP_N) break;
       if (n.id === insertedId) continue;
       try {
-        // Edge weight is intentionally constant 1.0 in M-05: edges represent
-        // existence of a relation, not strength. With `skipRerank: true` the
-        // RAG result `score` is RRF-rank-derived (FTS+vec merge), not a
-        // calibrated similarity — using it here would invert intuition for
-        // downstream M-06 (reflect) / M-09 (cross-layer dedup) which read
-        // higher weight as stronger relation. Strength is M-05.1 (evolution).
         memory.linkEdge(insertedId, layer, n.id, n.layer, "relates", 1.0);
         drawn++;
+        if (n.layer === "context" || n.layer === "shared") {
+          drawnNeighbours.push({ id: n.id, layer: n.layer });
+        }
       } catch (err) {
-        const em = err instanceof Error ? err.message : String(err);
-        log.warn("post.extractors", `linkRelated edge insert failed: ${em}`);
-        continue; // skip evolution if edge insert failed.
+        log.warn("post.extractors", `linkRelated edge insert failed: ${err instanceof Error ? err.message : String(err)}`);
+        continue;
       }
-      // M-05.1: best-effort neighbour tag evolution (non-blocking). RAG
-      // search was scoped to `[layer]` above, so n.layer is guaranteed to
-      // be the same context|shared as the inserted row — narrow the type
-      // explicitly so TS doesn't see `string`.
+      // M-05.1: best-effort tag evolution. RAG scoped to `[layer]` → n.layer
+      // is guaranteed context|shared (narrow for TS).
       if (
         insertedTags.length > 0 &&
         evolveEnabled() &&
@@ -155,16 +188,38 @@ export async function linkRelated(
         try {
           evolveNeighbour(memory, n.id, n.layer, insertedTags, maxTags());
         } catch (err) {
-          const em = err instanceof Error ? err.message : String(err);
-          log.warn(
-            "post.extractors",
-            `evolveNeighbour failed for ${n.id}: ${em}`,
-          );
+          log.warn("post.extractors", `evolveNeighbour failed for ${n.id}: ${err instanceof Error ? err.message : String(err)}`);
         }
       }
     }
   } catch (err) {
-    const em = err instanceof Error ? err.message : String(err);
-    log.warn("post.extractors", `linkRelated failed for ${insertedId}: ${em}`);
+    log.warn("post.extractors", `linkRelated failed for ${insertedId}: ${err instanceof Error ? err.message : String(err)}`);
+  }
+
+  // M-05.2: contradiction detection (default off; one LLM call vs drawnNeighbours).
+  if (!detectEnabled() || drawnNeighbours.length === 0) return;
+  try {
+    const candidates: ContradictionCandidate[] = [];
+    for (const n of drawnNeighbours) {
+      const row =
+        n.layer === "context" ? memory.getContext(n.id) : memory.getShared(n.id);
+      if (!row) continue; // deleted mid-flight.
+      candidates.push({ id: n.id, layer: n.layer, content: row.content });
+    }
+    if (candidates.length === 0) return;
+    const verdicts = await detectContradictions(router, log, content, candidates);
+    const threshold = minConf();
+    for (const v of verdicts) {
+      if (v.confidence < threshold) continue;
+      const cand = candidates.find((c) => c.id === v.id);
+      if (!cand) continue; // hallucinated id.
+      try {
+        memory.linkEdge(insertedId, layer, cand.id, cand.layer, "contradicts", v.confidence);
+      } catch (err) {
+        log.warn("post.extractors", `contradiction edge insert failed for ${cand.id}: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
+  } catch (err) {
+    log.warn("post.extractors", `detectContradictions failed for ${insertedId}: ${err instanceof Error ? err.message : String(err)}`);
   }
 }

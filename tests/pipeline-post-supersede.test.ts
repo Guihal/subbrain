@@ -60,6 +60,7 @@ describe("memory_write supersedes (MEM-6)", () => {
     const r1 = await writeContext(
       memory,
       rag,
+      mkRouter(),
       { category: "decision", content: "Старый план: vpn через WireGuard", tags: "", confidence: 0.9 },
       "req-old-1",
       log,
@@ -70,6 +71,7 @@ describe("memory_write supersedes (MEM-6)", () => {
     const r2 = await writeContext(
       memory,
       rag,
+      mkRouter(),
       {
         category: "decision",
         content: "Новый план: vpn через V2Ray + cloak (заменяет WireGuard)",
@@ -92,6 +94,7 @@ describe("memory_write supersedes (MEM-6)", () => {
     const r = await writeContext(
       memory,
       rag,
+      mkRouter(),
       {
         category: "decision",
         content: "fresh fact",
@@ -110,12 +113,14 @@ describe("memory_write supersedes (MEM-6)", () => {
     const r1 = await writeContext(
       memory,
       rag,
+      mkRouter(),
       { category: "decision", content: "first ride 1", tags: "", confidence: 0.9 },
       "req-1", log,
     );
     const r2 = await writeContext(
       memory,
       rag,
+      mkRouter(),
       { category: "decision", content: "second ride 2 (replaces first)", tags: "", confidence: 0.9, supersedes: [r1.id!] },
       "req-2", log,
     );
@@ -123,6 +128,7 @@ describe("memory_write supersedes (MEM-6)", () => {
     const r3 = await writeContext(
       memory,
       rag,
+      mkRouter(),
       { category: "decision", content: "third ride 3 attempt to re-supersede", tags: "", confidence: 0.9, supersedes: [r1.id!] },
       "req-3", log,
     );
@@ -135,6 +141,7 @@ describe("memory_write supersedes (MEM-6)", () => {
     const r = await writeContext(
       memory,
       rag,
+      mkRouter(),
       { category: "decision", content: "many supersedes", tags: "", confidence: 0.9, supersedes: big },
       "req-cap", log,
     );

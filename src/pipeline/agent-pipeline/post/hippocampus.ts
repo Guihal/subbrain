@@ -211,8 +211,8 @@ export async function runHippocampus(args: {
           if (!parsed.ok) { result = JSON.stringify({ ok: false, error: parsed.error }); break; }
           const wr =
             parsed.layer === "shared"
-              ? await writeShared(memory, rag, parsed.args, log)
-              : await writeContext(memory, rag, parsed.args, requestId, log, agentId);
+              ? await writeShared(memory, rag, router, parsed.args, log)
+              : await writeContext(memory, rag, router, parsed.args, requestId, log, agentId);
           if (wr.ok) factsWritten++;
           result = JSON.stringify(wr);
           break;
