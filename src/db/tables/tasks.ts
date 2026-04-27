@@ -4,6 +4,15 @@ import { TERMINAL_STATUSES, InvalidTransitionError, canTransition } from "./task
 
 export { InvalidTransitionError };
 
+/** W2-2: weekly-digest row from `layer3_archive` filtered by `tasks,digest,*` tag. */
+export interface TaskDigestRow {
+  id: string;
+  title: string;
+  content: string;
+  tags: string;
+  created_at: number;
+}
+
 export interface UpsertResult {
   id: string;
   created: boolean;
@@ -255,5 +264,29 @@ export class TasksTable {
         .get(...params) as { c: number }
     ).c;
     return { items, total };
+  }
+
+  /** W2-2: weekly-digest rows in `layer3_archive` tagged `tasks,digest,*`.
+   * Cross-table read; cross-scope (digests aggregate multiple scopes/week). */
+  searchTaskDigests(sinceUnix: number, limit: number, offset: number): TaskDigestRow[] {
+    return this.db
+      .query(
+        `SELECT id, title, content, tags, created_at FROM layer3_archive
+         WHERE tags LIKE 'tasks,digest,%' AND created_at >= ?
+         ORDER BY created_at DESC LIMIT ? OFFSET ?`,
+      )
+      .all(sinceUnix, limit, offset) as TaskDigestRow[];
+  }
+
+  /** W2-2: count companion for `searchTaskDigests`. */
+  countTaskDigestsSince(sinceUnix: number): number {
+    return (
+      this.db
+        .query(
+          `SELECT COUNT(*) AS c FROM layer3_archive
+           WHERE tags LIKE 'tasks,digest,%' AND created_at >= ?`,
+        )
+        .get(sinceUnix) as { c: number }
+    ).c;
   }
 }

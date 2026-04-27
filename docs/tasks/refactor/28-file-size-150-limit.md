@@ -47,7 +47,7 @@
 ### Wave 2 — backend SoC smells (4 PR)
 
 - [ ] **W2-1** `src/routes/logs.ts` SQL → `repositories/log.repo.ts` методы (`listRecent`, `searchByLevel`, `getById`)
-- [ ] **W2-2** `src/routes/tasks.ts` SQL → `repositories/task.repo.ts` методы + split (228→≤150)
+- [x] **W2-2** `src/routes/tasks.ts` SQL → `repositories/task.repo.ts` методы + split (228→139) — 2026-04-28
 - [ ] **W2-3** `src/mcp/tools/memory-tools.ts` (472) → `mcp/tools/memory/{index,shared,context,archive,agent,log,embed}.ts`
 - [ ] **W2-4** `src/pipeline/night-cycle/prune/stray-tasks.ts` (164) → `stray-tasks/{index,fetch,classify,prune}.ts`
 

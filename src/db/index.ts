@@ -407,6 +407,10 @@ export class MemoryDB {
   transitionTask = (id: string, to: TaskStatus) =>
     this._tasks.transition(id, to);
   deleteTask = (id: string) => this._tasks.delete(id);
+  searchTaskDigests = (sinceUnix: number, limit: number, offset: number) =>
+    this._tasks.searchTaskDigests(sinceUnix, limit, offset);
+  countTaskDigestsSince = (sinceUnix: number) =>
+    this._tasks.countTaskDigestsSince(sinceUnix);
   listCompletedTasksSince = (opts: {
     scope?: TaskScope;
     sinceUnix: number;

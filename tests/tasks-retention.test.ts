@@ -21,7 +21,7 @@ import {
   _capFromTailForTest,
   pruneCompletedTasks,
 } from "../src/pipeline/night-cycle/prune/tasks";
-import { buildHistoryLoader } from "../src/routes/tasks";
+import { TaskRepository } from "../src/repositories/task.repo";
 
 const DB_PATH = "data/test-retention.db";
 
@@ -286,7 +286,7 @@ describe("history loader — strict phase pagination", () => {
     seedLiveDone(10, 3600);
     seedDigestRows(5);
     const since = Math.floor(Date.now() / 1000) - 30 * 86400;
-    const loader = buildHistoryLoader(memory, undefined, since);
+    const loader = new TaskRepository(memory).buildHistoryLoader(undefined, since);
     const res = loader(12, 0);
     expect(res.total).toBe(15);
     const taskItems = res.items.filter((x) => x.kind === "task");
@@ -300,7 +300,7 @@ describe("history loader — strict phase pagination", () => {
     seedLiveDone(10, 3600);
     seedDigestRows(5);
     const since = Math.floor(Date.now() / 1000) - 30 * 86400;
-    const loader = buildHistoryLoader(memory, undefined, since);
+    const loader = new TaskRepository(memory).buildHistoryLoader(undefined, since);
     const res = loader(5, 12);
     expect(res.total).toBe(15);
     const taskItems = res.items.filter((x) => x.kind === "task");
@@ -314,7 +314,7 @@ describe("history loader — strict phase pagination", () => {
     seedLiveDone(10, 3600);
     seedDigestRows(5);
     const since = Math.floor(Date.now() / 1000) - 30 * 86400;
-    const loader = buildHistoryLoader(memory, undefined, since);
+    const loader = new TaskRepository(memory).buildHistoryLoader(undefined, since);
     const res = loader(10, 15);
     expect(res.total).toBe(15);
     expect(res.items.length).toBe(0);
