@@ -75,7 +75,6 @@ export const TRANSITIONAL_WHITELIST: Record<string, number> = {
   "src/pipeline/night-cycle/steps/memory-dedup-utils.ts": 202,
   "src/scheduler/telegram-poller.ts": 202,
   "web/app/components/ChatSidebar.vue": 202,
-  "web/app/composables/useMemoryEditor.ts": 202,
   "src/mcp/tools/memory-curation-tools.ts": 201,
   "src/pipeline/night-cycle/prune/tasks.ts": 198,
   "src/app/schedulers.ts": 198,
