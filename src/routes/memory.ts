@@ -79,11 +79,16 @@ const STATUS_BODY = t.Object({
 // log/agent (no typed edges there).
 const EDGE_LAYER = t.Union([t.Literal("context"), t.Literal("shared"), t.Literal("archive")]);
 const EDGE_KINDS_ALLOWED: ReadonlySet<EdgeKind> = new Set(["relates", "derives", "supersedes", "contradicts"]);
+// M-14 fixup: if `raw` is non-empty but every item is rejected by the
+// allowlist (e.g. ?kinds=foo,bar), return `[]` so the service applies an
+// empty filter and yields 0 edges — NOT `undefined`, which would silently
+// fall through to "all kinds". Only an unset/empty CSV means "no filter".
 function parseKindsCsv(raw: unknown): EdgeKind[] | undefined {
   if (typeof raw !== "string" || raw.length === 0) return undefined;
-  const parsed = raw.split(",").map((s) => s.trim())
+  return raw
+    .split(",")
+    .map((s) => s.trim())
     .filter((k): k is EdgeKind => EDGE_KINDS_ALLOWED.has(k as EdgeKind));
-  return parsed.length > 0 ? parsed : undefined;
 }
 const EDGE_PAGE = {
   kinds: t.Optional(t.String()), page: t.Optional(t.String()), page_size: t.Optional(t.String()),
@@ -211,8 +216,14 @@ export function memoryRoute(svc: MemoryService) {
       "/edges",
       ({ query }) =>
         paginate((limit, offset) => {
+          const kinds = parseKindsCsv(query.kinds);
+          // M-14 fixup: explicit empty allowlist (kinds CSV provided but ALL
+          // values dropped by allowlist) → 0 results. Without this short-circuit
+          // EdgesTable.getEdgesFromSrc treats `[]` same as undefined and falls
+          // through to "all kinds" — silent semantic mismatch.
+          if (Array.isArray(kinds) && kinds.length === 0) return { items: [], total: 0 };
           const all = svc.getEdgesFromSrc(
-            query.from, query.fromLayer as EdgeLayer, parseKindsCsv(query.kinds),
+            query.from, query.fromLayer as EdgeLayer, kinds,
           );
           return { items: all.slice(offset, offset + limit), total: all.length };
         }, query),
@@ -222,8 +233,10 @@ export function memoryRoute(svc: MemoryService) {
       "/edges/related",
       ({ query }) =>
         paginate((limit, offset) => {
+          const kinds = parseKindsCsv(query.kinds);
+          if (Array.isArray(kinds) && kinds.length === 0) return { items: [], total: 0 };
           const all = svc.getRelatedDetailed(
-            query.id, query.layer as EdgeLayer, parseKindsCsv(query.kinds),
+            query.id, query.layer as EdgeLayer, kinds,
           );
           return { items: all.slice(offset, offset + limit), total: all.length };
         }, query),

@@ -98,6 +98,14 @@ beforeAll(() => {
   memory.linkEdge("src-1", "shared", "dst-1", "shared", "relates", 1.0);
   // src-1 -[contradicts]-> dst-2  (weight 0.85)
   memory.linkEdge("src-1", "shared", "dst-2", "shared", "contradicts", 0.85);
+
+  // M-14 fixup: archive layer regression seed. Use isolated `arc-target`
+  // shared row so the new edge doesn't inflate counts on the existing
+  // src-1/dst-* graph (production-shape: cross-layer-dedup writes
+  // archive→shared `derives` during night-cycle).
+  memory.insertShared("arc-target", "preference", "shared row linked from archive", "");
+  memory.insertArchive("arc-1", "archived row", "archived content", "", [], 0.7);
+  memory.linkEdge("arc-1", "archive", "arc-target", "shared", "derives", 1.0);
 });
 
 afterAll(() => {
@@ -223,5 +231,37 @@ describe("routes/memory edges (M-14) — list related", () => {
     const body = (await r.json()) as { items: { id: string }[]; total: number };
     expect(body.total).toBe(1);
     expect(body.items[0].id).toBe("dst-1");
+  });
+});
+
+describe("routes/memory edges (M-14 fixup)", () => {
+  test("?kinds=foo,bar (all-invalid) → empty envelope, NOT silently unfiltered", async () => {
+    // Pre-fixup bug: parseKindsCsv returned undefined → service treated as
+    // "no filter" → returned all 2 edges from src-1. After fixup: kinds=[]
+    // sentinel triggers route short-circuit → 0 results.
+    const r = await fetch(
+      `${base}/v1/memory/edges?from=src-1&fromLayer=shared&kinds=foo,bar`,
+      { headers: authHeaders },
+    );
+    expect(r.status).toBe(200);
+    const body = (await r.json()) as { items: unknown[]; total: number };
+    expect(body.total).toBe(0);
+    expect(body.items).toEqual([]);
+  });
+
+  test("archive layer: outbound derives edge surfaces", async () => {
+    const r = await fetch(
+      `${base}/v1/memory/edges?from=arc-1&fromLayer=archive`,
+      { headers: authHeaders },
+    );
+    expect(r.status).toBe(200);
+    const body = (await r.json()) as {
+      items: { src_id: string; dst_id: string; kind: string }[];
+      total: number;
+    };
+    expect(body.total).toBe(1);
+    expect(body.items[0].src_id).toBe("arc-1");
+    expect(body.items[0].dst_id).toBe("arc-target");
+    expect(body.items[0].kind).toBe("derives");
   });
 });
