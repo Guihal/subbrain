@@ -740,3 +740,14 @@ M-05 положил schema (`memory_edges` CHECK включает `'contradicts'
 Tests: `tests/post-link-related-contradictions.test.ts` (332 LOC, 8 cases — disabled-default, no-contradiction, single-above-threshold, below-threshold-filtered, malformed-JSON, hallucinated-id-ignored, drawnNeighbours-empty + bonus). Mock router counts invocations. `bun test` → 795 pass / 0 fail (787 baseline + 8 new). tsc 0. grep `detectContradictions|LINK_CONTRADICT` link-related.ts → 9 hits ≥3. grep `router: ModelRouter|ModelRouter,` → 2 hits ≥1.
 **Out of scope:** auto status flip (active→stale on contradiction), bidirectional contradicts edge (read via `getEdgesToDst`), UI conflict review (M-06.5 candidate), multi-step LLM, A/B benchmark, backfill existing memos.
 **Scope:** M-05.2.
+
+### Memory-v2 M-05.2 review (2026-04-27, inline audit)
+**Closed:** MEM-21 (M-05.2).
+**§1 Debug findings:** 0 real regressions. `db.insertShared` 1 hit `scripts/seed.ts:140` (pre-M-01 seed-script baseline). `'HIGH'/'LOW'` archive: 0 ✓. M-05.2 diff: 0 `as any` / 0 `@ts-ignore` / 0 `Promise.all` non-Settled / 0 single-arg logger / 0 raw `fetch(` / 0 `TODO M-05.2`. ✓ (`(parsed as { contradicts?: unknown })` — narrowing assertion, не `as any`.)
+**§2 File-cap:** `link-related.ts` 225 LOC (под self-cap 230 ✓, под repo cap 250 ✓; M-05.1 базис 170, M-05.2 +55). `extractors.ts` 280 LOC (over 250 cap; pre-existing 274 от M-05.1 + 6 net от M-05.2 — single import + router param × 2 + threading × 2). `tests/post-link-related-contradictions.test.ts` 332 LOC — test files обычно >250 OK (mocked router + per-test fresh DB seeding + per-test env scoping раздувает). Без natural splits.
+**§3 Test stability:** `bun test` × 2 на main → 795 / 0 / 2411 expects identical (37.91s, 34.30s). Stable.
+**§4 Schema:** unchanged — M-05.2 NO migration. `PRAGMA user_version = 16` (наследие M-11). `EdgeKind` уже включает `'contradicts'` (M-05). ✓
+**§5 Workflow exception:** Subagent работал в main workdir а не в worktree (harness isolation issue), и API call вернул usage-policy refusal на финальном summary — но артефакты intact. Parent finalized: verified gate (tsc/tests/grep), MEM-21 entry, commit `b9e6d32`. Critic ok:true round-1 (heavy-input/thin-output, 6s). Plan §Файлы scope-creep: hippocampus.ts (+2/-2, only other prod callsite — unavoidable cascade) + 7 test files (mechanical router stub pass-through) — judged acceptable: pure cascade, alternative (router optional) was worse design.
+**Open follow-ups:** M-06.5 (UI conflict review surface — read `kind='contradicts'` edges in admin /memory page), M-09 (cross-layer dedup использует contradiction-mass для merge priority). File-cap `extractors.ts` 280 LOC (M-FINAL3 candidate). M-08 supersedes-flip (active→stale on high-confidence contradiction).
+**Verdict:** M-05.2 закрыт чисто. 0 регрессов введено. Workflow caveat задокументирован.
+**Scope:** M-05.2 inline audit.
