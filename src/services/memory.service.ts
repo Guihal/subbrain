@@ -32,6 +32,15 @@ import type {
   MemoryKind,
 } from "../db";
 import type { MemoryDB } from "../db";
+import type { EdgeKind, EdgeRow } from "../db/types";
+
+export type EdgeLayer = "context" | "shared" | "archive";
+export interface RelatedEdge {
+  id: string;
+  layer: string;
+  kind: EdgeKind;
+  weight: number;
+}
 import type { MemoryRepository, LogRepository } from "../repositories";
 import type { RAGPipeline } from "../rag";
 import type { ModelRouter } from "../lib/model-router";
@@ -327,6 +336,16 @@ export class MemoryService {
     offset: number,
   ): PaginatedResult<SharedRow | ContextRow> {
     return this.repo.listByStatus(layer, status, limit, offset);
+  }
+
+  // ─── Edges (M-05 / M-14, read-only admin surface) ────────
+  // Pass-through to MemoryDB facade. 3-arg test/script ctor → memoryDb=null
+  // → returns []; routes still serve a valid empty envelope.
+  getEdgesFromSrc(srcId: string, srcLayer: EdgeLayer, kinds?: EdgeKind[]): EdgeRow[] {
+    return this.memoryDb ? this.memoryDb.getEdgesFromSrc(srcId, srcLayer, kinds) : [];
+  }
+  getRelatedDetailed(id: string, layer: EdgeLayer, kinds?: EdgeKind[]): RelatedEdge[] {
+    return this.memoryDb ? this.memoryDb.getRelated(id, layer, 1, kinds) : [];
   }
 
   /**

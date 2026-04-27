@@ -48,6 +48,8 @@ export type PendingLayer = "shared" | "context";
 export type PendingRow = (SharedRow | ContextRow) & {
   status?: "pending" | "active" | "rejected";
 };
+// M-14: shape from /v1/memory/edges/related — 1-hop neighbour + edge metadata.
+export interface EdgeInfo { id: string; layer: string; kind: "relates" | "derives" | "supersedes" | "contradicts"; weight: number; }
 
 export function useMemory() {
   const { api } = useApi();
@@ -165,6 +167,10 @@ export function useMemory() {
   const rejectMemory = (layer: PendingLayer, id: string) =>
     setPendingStatus(layer, id, "rejected");
 
+  // M-14: edges fetcher for MemoryRow.vue collapsible. 1-hop via /edges/related.
+  const fetchEdges = async (id: string, layer: string): Promise<EdgeInfo[]> =>
+    (await api<{ items: EdgeInfo[] }>(`/v1/memory/edges/related?id=${encodeURIComponent(id)}&layer=${encodeURIComponent(layer)}&page_size=100`))?.items ?? [];
+
   const totalForActive = computed(() => {
     switch (activeTab.value) {
       case "focus": return focus.value.length;
@@ -236,5 +242,7 @@ export function useMemory() {
     saveAgent: agentL.save,
     deleteAgent: agentL.remove,
     approveMemory, rejectMemory,
+    // M-14
+    fetchEdges,
   };
 }

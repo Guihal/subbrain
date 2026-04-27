@@ -1,6 +1,6 @@
 # M-14 · Admin REST + UI surface for memory_edges
 
-**Tier:** P2 · **Effort:** S · **Deps:** M-05 (edges API) — landed; M-13 (MemoryService linkRelated wiring) — recommended for full coverage but not blocking · **Status:** TODO
+**Tier:** P2 · **Effort:** S · **Deps:** M-05 (edges API) — landed; M-13 (MemoryService linkRelated wiring) — recommended for full coverage but not blocking · **Status:** DONE
 **Migration assignment:** **none** (no schema change, read-only surface).
 
 ## Цель
@@ -174,4 +174,21 @@ Test DB `data/test-mem14-edges.db`. App boot via existing test helper.
 
 ---
 
-**Status:** TODO
+**Status:** DONE (2026-04-27)
+
+## Реализация (заметки)
+
+- `MemoryService.getEdgesFromSrc` / `getRelatedDetailed` — pass-through на `memoryDb` facade (`getEdgesFromSrc`, `getRelated(id, layer, depth=1, kinds)`). 3-arg test ctor с `memoryDb=null` → возврат `[]`. Существующий `getRelated` уже отдаёт `{id, layer, kind, weight}[]` — `getRelatedDetailed` не понадобился в repo, just method-name alias on service.
+- `routes/memory.ts` — 2 GET под `authMiddleware` через `paginate(loader, query)`. Loader делает in-memory slice (edges per row ≤ O(10)), envelope `{items,total,page,page_size}`.
+- TypeBox enums: `EDGE_LAYER = context|shared|archive`, `EDGE_KINDS_ALLOWED` whitelist для `kinds` CSV. Bogus layer / missing required field → 422 через `code === "VALIDATION"` в central onError.
+- `useMemory.ts` — `fetchEdges(id, layer)` arrow, hits `/edges/related?page_size=100`. `EdgeInfo` exported.
+- `MemoryRow.vue` — collapsible "🔗 ▸/▾" toggle на rows с `__kind ∈ {context, shared, archive}` и валидным `id`. Lazy-load on first expand, cached в row-local `ref`. Contradicts highlighted `text-red-400`.
+- `tests/routes-memory-edges.test.ts` (227 LOC) — 10 кейсов: 2× auth-401, 2× 422 validation, list outbound + filter, empty envelope, 1-hop related (out + in), kind filter on related.
+
+## Acceptance run (2026-04-27)
+
+- `bunx tsc --noEmit` → exit 0
+- `bun test tests/routes-memory-edges.test.ts` → 10 pass / 0 fail
+- `bun test` → **810 pass / 0 fail** (800 baseline + 10 new)
+- `grep -n "/edges" src/routes/memory.ts` → 2 hits ✅
+- `grep -n "fetchEdges\|edges" web/app/components/MemoryRow.vue` → 21 hits ✅

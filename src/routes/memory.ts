@@ -5,8 +5,9 @@
 import { Elysia, t } from "elysia";
 import { paginate } from "../lib/api-envelope";
 import { NotFoundError } from "../lib/errors";
-import type { MemoryService } from "../services/memory.service";
+import type { MemoryService, EdgeLayer } from "../services/memory.service";
 import type { MemoryStatus, MemoryKind } from "../db";
+import type { EdgeKind } from "../db/types";
 
 const str = (v: unknown): string | undefined =>
   typeof v === "string" && v.length > 0 ? v : undefined;
@@ -73,6 +74,23 @@ const STATUS_PARAMS = t.Object({
 const STATUS_BODY = t.Object({
   status: t.Union([t.Literal("active"), t.Literal("rejected")]),
 });
+
+// M-14: read-only edges admin surface. Layer enum = M-05 schema minus
+// log/agent (no typed edges there).
+const EDGE_LAYER = t.Union([t.Literal("context"), t.Literal("shared"), t.Literal("archive")]);
+const EDGE_KINDS_ALLOWED: ReadonlySet<EdgeKind> = new Set(["relates", "derives", "supersedes", "contradicts"]);
+function parseKindsCsv(raw: unknown): EdgeKind[] | undefined {
+  if (typeof raw !== "string" || raw.length === 0) return undefined;
+  const parsed = raw.split(",").map((s) => s.trim())
+    .filter((k): k is EdgeKind => EDGE_KINDS_ALLOWED.has(k as EdgeKind));
+  return parsed.length > 0 ? parsed : undefined;
+}
+const EDGE_PAGE = {
+  kinds: t.Optional(t.String()), page: t.Optional(t.String()), page_size: t.Optional(t.String()),
+  limit: t.Optional(t.String()), offset: t.Optional(t.String()),
+};
+const EDGES_QUERY = t.Object({ from: t.String({ minLength: 1 }), fromLayer: EDGE_LAYER, ...EDGE_PAGE });
+const RELATED_QUERY = t.Object({ id: t.String({ minLength: 1 }), layer: EDGE_LAYER, ...EDGE_PAGE });
 
 export function memoryRoute(svc: MemoryService) {
   return new Elysia({ prefix: "/v1/memory" })
@@ -187,5 +205,28 @@ export function memoryRoute(svc: MemoryService) {
         return row;
       },
       { params: STATUS_PARAMS, body: STATUS_BODY },
+    )
+    // M-14: read-only edges admin surface.
+    .get(
+      "/edges",
+      ({ query }) =>
+        paginate((limit, offset) => {
+          const all = svc.getEdgesFromSrc(
+            query.from, query.fromLayer as EdgeLayer, parseKindsCsv(query.kinds),
+          );
+          return { items: all.slice(offset, offset + limit), total: all.length };
+        }, query),
+      { query: EDGES_QUERY },
+    )
+    .get(
+      "/edges/related",
+      ({ query }) =>
+        paginate((limit, offset) => {
+          const all = svc.getRelatedDetailed(
+            query.id, query.layer as EdgeLayer, parseKindsCsv(query.kinds),
+          );
+          return { items: all.slice(offset, offset + limit), total: all.length };
+        }, query),
+      { query: RELATED_QUERY },
     );
 }
