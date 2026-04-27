@@ -5,7 +5,7 @@
  * natural end.
  */
 import { describe, test, expect } from "bun:test";
-import { ArbitrationRoom } from "../src/pipeline/arbitration-room";
+import { ArbitrationRoom } from "../src/pipeline/arbitration";
 import type { ChatResponse, Message } from "../src/providers/types";
 import type { ModelRouter } from "../src/lib/model-router";
 

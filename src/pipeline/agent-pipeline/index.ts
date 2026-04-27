@@ -10,7 +10,7 @@ import type { Metrics } from "../../lib/metrics";
 import type { RAGPipeline } from "../../rag";
 import type { ToolExecutor } from "../../mcp";
 import type { ToolRegistry } from "../../mcp/registry";
-import type { ArbitrationRoom } from "../arbitration-room";
+import type { ArbitrationRoom } from "../arbitration";
 import { logger } from "../../lib/logger";
 
 import type { PipelineRequest, PipelineResult } from "./types";

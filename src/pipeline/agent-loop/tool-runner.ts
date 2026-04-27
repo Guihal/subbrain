@@ -10,7 +10,7 @@
 import type { ToolCall } from "../../providers/types";
 import type { ToolExecutor, ToolRegistry } from "../../mcp";
 import type { ModelRouter } from "../../lib/model-router";
-import type { ArbitrationRoom } from "../arbitration-room";
+import type { ArbitrationRoom } from "../arbitration";
 import type { logger } from "../../lib/logger";
 import type { DynamicToolDef, DynamicToolRegistry } from "./dynamic-tools";
 import type { CodeToolRegistry } from "./code-tools";

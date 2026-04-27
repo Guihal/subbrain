@@ -5,7 +5,7 @@
 import type { ChatResponse } from "../../../providers/types";
 import type { Metrics } from "../../../lib/metrics";
 import type { RequestLogger } from "../../../lib/logger";
-import type { ArbitrationRoom } from "../../arbitration-room";
+import type { ArbitrationRoom } from "../../arbitration";
 
 export interface RoomResult {
   response: ChatResponse;

@@ -15,7 +15,7 @@ import { MemoryCurationTools } from "./tools/memory-curation-tools";
 import * as tg from "./telegram-tools";
 import { sendReport } from "./tools/telegram-report";
 import type { CodeToolRegistry } from "../pipeline/agent-loop/code-tools";
-import type { ArbitrationRoom } from "../pipeline/arbitration-room";
+import type { ArbitrationRoom } from "../pipeline/arbitration";
 import type { MemoryService } from "../services/memory.service";
 
 export type { ToolResult } from "./types";
