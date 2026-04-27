@@ -82,7 +82,7 @@ export const TRANSITIONAL_WHITELIST: Record<string, number> = {
   "src/scheduler/freelance/index.ts": 188,
   "src/pipeline/night-cycle/prune/tasks-classify.ts": 184,
   "web/app/components/TaskFormModal.vue": 183,
-  "src/db/tables/log.ts": 180,
+  "src/db/tables/log.ts": 215,
   "src/pipeline/agent-pipeline/phases/post.ts": 179,
   "src/scheduler/telegram-commands.ts": 179,
   "src/lib/fts-utils.ts": 175,

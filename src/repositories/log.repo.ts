@@ -10,7 +10,7 @@ import {
   type UnembeddedLogRow,
   type LogVecHydrateRow,
 } from "../db/tables/log";
-import type { FtsResult, LogRow } from "../db/types";
+import type { FtsResult, LogRow, LogStatsRow } from "../db/types";
 
 export class LogRepository {
   private readonly logs: LogsTable;
@@ -71,4 +71,13 @@ export class LogRepository {
   /** M-04.1: batch-hydrate log rows by id for the RAG vec branch. */
   hydrateForVec = (ids: string[]): LogVecHydrateRow[] =>
     this.fts.hydrateForVec(ids);
+
+  /** W2-1: per-role aggregates for the `/v1/logs/stats` admin endpoint. */
+  statsByRole = (): LogStatsRow[] => this.fts.statsByRole();
+
+  /** W2-1: distinct session count across all log rows. */
+  countDistinctSessions = (): number => this.fts.countDistinctSessions();
+
+  /** W2-1: distinct request count, excluding the synthetic 'system' bucket. */
+  countDistinctRequests = (): number => this.fts.countDistinctRequests();
 }

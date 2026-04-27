@@ -20,7 +20,7 @@
  */
 import type { Database, SQLQueryBindings } from "bun:sqlite";
 import { sanitizeFtsQuery } from "../../lib/fts-utils";
-import type { FtsResult } from "../types";
+import type { FtsResult, LogStatsRow } from "../types";
 
 /** M-04.1: row shape returned by `selectUnembeddedRecent`. */
 export interface UnembeddedLogRow {
@@ -175,5 +175,37 @@ export class LogTable {
       .run(n);
     const after = this.countLogEmbeddings();
     return Math.max(0, before - after);
+  }
+
+  // W2-1: aggregates for `/v1/logs/stats` — moved out of the route per SoC.
+  statsByRole(): LogStatsRow[] {
+    return this.db
+      .query<LogStatsRow, []>(
+        `SELECT role, COUNT(*) as count,
+                SUM(token_count) as total_tokens,
+                MIN(created_at) as first_at,
+                MAX(created_at) as last_at
+           FROM layer4_log GROUP BY role ORDER BY count DESC`,
+      )
+      .all();
+  }
+
+  countDistinctSessions(): number {
+    const row = this.db
+      .query<{ count: number }, []>(
+        "SELECT COUNT(DISTINCT session_id) as count FROM layer4_log",
+      )
+      .get();
+    return row?.count ?? 0;
+  }
+
+  // 'system' is the synthetic bucket for non-request-scoped writes.
+  countDistinctRequests(): number {
+    const row = this.db
+      .query<{ count: number }, []>(
+        "SELECT COUNT(DISTINCT request_id) as count FROM layer4_log WHERE request_id != 'system'",
+      )
+      .get();
+    return row?.count ?? 0;
   }
 }

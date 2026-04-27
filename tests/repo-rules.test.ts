@@ -15,8 +15,8 @@ import { CANONICAL_WHITELIST } from "../scripts/check-file-size";
 const ROOT = new URL("..", import.meta.url).pathname.replace(/\/$/, "");
 const SKIP_DIRS = new Set(["node_modules", ".nuxt", ".output", "dist", "build"]);
 
-// SQL in routes — only these two are pre-existing W2-1/W2-2 (removed as those PRs ship).
-const TRANSITIONAL_SQL_ROUTES = new Set(["src/routes/tasks.ts", "src/routes/logs.ts"]);
+// SQL in routes — only these are pre-existing W2-* (removed as those PRs ship).
+const TRANSITIONAL_SQL_ROUTES = new Set(["src/routes/tasks.ts"]);
 
 function walk(dir: string, ext: RegExp, out: string[] = []): string[] {
   let entries: string[];

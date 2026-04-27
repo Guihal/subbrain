@@ -107,37 +107,11 @@ export function logsRoute(memory: MemoryDB) {
       },
     )
     .get("/v1/logs/stats", () => {
-      // Count totals per role
-      const stats = memory.db
-        .query(
-          `SELECT role, COUNT(*) as count, 
-           SUM(token_count) as total_tokens,
-           MIN(created_at) as first_at,
-           MAX(created_at) as last_at
-           FROM layer4_log GROUP BY role ORDER BY count DESC`,
-        )
-        .all() as {
-        role: string;
-        count: number;
-        total_tokens: number | null;
-        first_at: string;
-        last_at: string;
-      }[];
-
-      const sessions = memory.db
-        .query("SELECT COUNT(DISTINCT session_id) as count FROM layer4_log")
-        .get() as { count: number };
-
-      const requests = memory.db
-        .query(
-          "SELECT COUNT(DISTINCT request_id) as count FROM layer4_log WHERE request_id != 'system'",
-        )
-        .get() as { count: number };
-
+      // W2-1: SQL moved into LogRepository; route stays in view layer.
       return {
-        total_sessions: sessions.count,
-        total_requests: requests.count,
-        by_role: stats,
+        total_sessions: memory.logRepo.countDistinctSessions(),
+        total_requests: memory.logRepo.countDistinctRequests(),
+        by_role: memory.logRepo.statsByRole(),
       };
     });
 }

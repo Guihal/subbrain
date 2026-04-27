@@ -97,6 +97,17 @@ export interface LogRow {
   created_at: number;
 }
 
+// W2-1: per-role aggregate row for `/v1/logs/stats`. Shape mirrors the
+// hand-rolled SQL alias names the route used before the SoC migration so
+// the response contract stays byte-identical.
+export interface LogStatsRow {
+  role: string;
+  count: number;
+  total_tokens: number | null;
+  first_at: string;
+  last_at: string;
+}
+
 export interface SharedRow {
   id: string;
   category: string;
