@@ -31,10 +31,25 @@ import type {
   MemoryStatus,
   MemoryKind,
 } from "../db";
+import type { MemoryDB } from "../db";
 import type { MemoryRepository, LogRepository } from "../repositories";
 import type { RAGPipeline } from "../rag";
+import type { ModelRouter } from "../lib/model-router";
+import type { RequestLogger } from "../lib/logger";
+import { linkRelated, parseTagsCsv } from "../pipeline/agent-pipeline/post/link-related";
 
 const EMBED_TIMEOUT_MS = 5000;
+
+/**
+ * M-13: optional post-hook deps for `linkRelated`. When set on the service,
+ * every successful `insertShared`/`insertContext` schedules a best-effort
+ * `linkRelated(...)` call (relates edges + A-MEM tag evolution + optional
+ * contradiction detection). Test callers / scripts pass `null` to skip.
+ */
+export interface MemoryServiceLinkDeps {
+  router: ModelRouter;
+  log: RequestLogger;
+}
 
 export interface PaginatedResult<T> {
   items: T[];
@@ -124,6 +139,15 @@ export class MemoryService {
     private readonly repo: MemoryRepository,
     private readonly rag: RAGPipeline,
     private readonly logRepo: LogRepository,
+    // M-13: MemoryDB facade required by `linkRelated` (uses memory.linkEdge,
+    // memory.getContext/getShared, memory.updateContext/updateShared). Default
+    // null so existing 3-arg test/script callers continue to work — they just
+    // skip the post-hook.
+    private readonly memoryDb: MemoryDB | null = null,
+    // M-13: when both `linkDeps` and `memoryDb` are set, post-hook fires on
+    // every successful insertShared/insertContext. Throw is logged as warn,
+    // never aborts the write.
+    private readonly linkDeps: MemoryServiceLinkDeps | null = null,
   ) {}
 
   // ─── Focus (L1, KV) ───────────────────────────────────────
@@ -171,6 +195,7 @@ export class MemoryService {
       );
       this.repo.upsertEmbedding(id, "shared", vec);
     });
+    await this.runLinkRelated(id, "shared", input.content, input.tags ?? "");
     return id;
   }
   patchShared(id: string, patch: UpdateSharedPatch): SharedRow | null {
@@ -219,6 +244,7 @@ export class MemoryService {
       );
       this.repo.upsertEmbedding(id, "context", vec);
     });
+    await this.runLinkRelated(id, "context", input.content, input.tags ?? "");
     return id;
   }
   patchContext(id: string, patch: UpdateContextPatch): ContextRow | null {
@@ -301,5 +327,35 @@ export class MemoryService {
     offset: number,
   ): PaginatedResult<SharedRow | ContextRow> {
     return this.repo.listByStatus(layer, status, limit, offset);
+  }
+
+  /**
+   * M-13: best-effort post-hook calling `linkRelated` after a successful
+   * embed-first transactional insert. Skipped when either `memoryDb` or
+   * `linkDeps` is unset (test/script paths). Any throw is swallowed and
+   * logged — the row + embedding stay committed.
+   */
+  private async runLinkRelated(
+    id: string,
+    layer: "shared" | "context",
+    content: string,
+    tagsCsv: string,
+  ): Promise<void> {
+    if (!this.linkDeps || !this.memoryDb) return;
+    try {
+      await linkRelated(
+        this.memoryDb,
+        this.rag,
+        this.linkDeps.router,
+        id,
+        layer,
+        content,
+        parseTagsCsv(tagsCsv),
+        this.linkDeps.log,
+      );
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.linkDeps.log.warn("memory.svc", `linkRelated failed for ${id}: ${msg}`);
+    }
   }
 }

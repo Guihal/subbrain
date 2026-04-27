@@ -1,6 +1,6 @@
 # M-13 · Extend MemoryService writers to run linkRelated post-commit (close M-05 path gap)
 
-**Tier:** P1 (bug — feature gap) · **Effort:** S · **Deps:** M-05 (edges + linkRelated) + M-05.1 (tag evolution) + M-05.2 (contradiction detection) — all landed · **Status:** TODO
+**Tier:** P1 (bug — feature gap) · **Effort:** S · **Deps:** M-05 (edges + linkRelated) + M-05.1 (tag evolution) + M-05.2 (contradiction detection) — all landed · **Status:** DONE (2026-04-27)
 **Migration assignment:** **none** (no schema change).
 
 ## Цель
@@ -174,4 +174,23 @@ Test DB: `data/test-mem13-link.db`. Per-test cleanup.
 
 ---
 
-**Status:** TODO
+**Status:** DONE (2026-04-27)
+
+## Реализация
+
+- `src/services/memory.service.ts` — расширил ctor двумя optional аргументами (`memoryDb: MemoryDB | null = null`, `linkDeps: MemoryServiceLinkDeps | null = null`) после существующего `logRepo`. Добавил приватный `runLinkRelated()` помощник, который вызывается в обоих `insertShared` и `insertContext` сразу после `repo.transaction()`. Best-effort try/catch — throw логируется в `linkDeps.log.warn`, write остаётся коммитнутым.
+- `src/app/deps.ts` — production wiring: `new MemoryService(memory.memoryRepo, rag, memory.logRepo, memory, { router, log: logger.forRequest("memory-svc", "memory-svc") })`. Synthetic RequestLogger, т.к. сервис долгоживущий (не request-bound).
+- `tests/memory-service-link-related.test.ts` — 5 кейсов: legacy 3-arg ctor → 0 edges; full ctor → relates edge; M-05.1 tag evolution через сервис; throw в LLM-роутере не блокирует write; insertContext mirror.
+
+Existing 3-arg test callers (`tests/memory-kind.test.ts`, `tests/mcp-curation-tools.test.ts`, `tests/memory-routes-*.test.ts`, etc.) продолжают работать без правок — defaults `null` дают back-compat skip.
+
+Note: ctor сохранил `logRepo` как 3rd позиционный аргумент (вместо вытаскивания через `memoryDb.logRepo`) ради zero-touch back-compat для всех существующих 3-arg тест-вызовов. Plan §Memory access option A был ослаблен в этой части — итоговая сигнатура `(repo, rag, logRepo, memoryDb=null, linkDeps=null)`.
+
+Финальный размер `src/services/memory.service.ts`: 362 LOC (был 305; net +57). Pre-existing >250 violation унаследован — документировано в плане §Файлы.
+
+Приёмка:
+- `bunx tsc --noEmit` → exit 0 ✓
+- `bun test tests/memory-service-link-related.test.ts` → 5/5 pass ✓
+- `bun test` → 800 pass, 0 fail (795 baseline + 5 new) ✓
+- `grep -nE "linkDeps|linkRelated" src/services/memory.service.ts` → 13 hits ✓
+- `grep -n "linkDeps:" src/app/deps.ts` → 1 hit (комментарий) ✓

@@ -213,7 +213,17 @@ export async function initDeps(config: AppConfig = loadConfig()): Promise<AppDep
   tools.setRAG(rag);
   // PR 27: services consume repos; `MemoryDB` facade still hosts the
   // repos so scripts/seed.ts etc. keep working.
-  const memoryService = new MemoryService(memory.memoryRepo, rag, memory.logRepo);
+  // M-13: pass `memory` (MemoryDB facade) + linkDeps: { router, log } so
+  // insertShared/insertContext fire the linkRelated post-hook (relates edges
+  // + A-MEM tag evolution + optional contradiction detection). Service uses
+  // a synthetic RequestLogger ("memory-svc") since calls aren't request-bound.
+  const memoryService = new MemoryService(
+    memory.memoryRepo,
+    rag,
+    memory.logRepo,
+    memory,
+    { router, log: logger.forRequest("memory-svc", "memory-svc") },
+  );
   // M-FINAL2: thread MemoryService into MemoryTools so the MCP `memory_write`
   // shared-layer path delegates to the single embed-first + transactional
   // implementation (mirrors compressor + extractors). Without this, the MCP
