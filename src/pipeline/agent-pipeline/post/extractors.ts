@@ -17,7 +17,8 @@ import {
   type WriteResult,
 } from "./extractors-helpers";
 // M-05 (mig 14): post-insert top-3 `relates` edges hook.
-import { linkRelated } from "./link-related";
+// M-05.1: parseTagsCsv exported for caller-side CSV → string[] conversion.
+import { linkRelated, parseTagsCsv } from "./link-related";
 
 export type { WriteResult } from "./extractors-helpers";
 
@@ -149,7 +150,8 @@ export async function writeShared(
   );
 
   // M-05: best-effort `relates` edges (non-blocking, post-commit).
-  await linkRelated(memory, rag, id, "shared", args.content, log);
+  // M-05.1: pass inserted tags so neighbours can absorb novel attributes.
+  await linkRelated(memory, rag, id, "shared", args.content, parseTagsCsv(args.tags), log);
 
   return { ok: true, id, status };
 }
@@ -265,7 +267,8 @@ export async function writeContext(
   );
 
   // M-05: see writeShared.
-  await linkRelated(memory, rag, id, "context", args.content, log);
+  // M-05.1: pass inserted tags for neighbour evolution.
+  await linkRelated(memory, rag, id, "context", args.content, parseTagsCsv(args.tags), log);
 
   return { ok: true, id, status };
 }
