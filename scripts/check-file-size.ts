@@ -43,7 +43,6 @@ export const TRANSITIONAL_WHITELIST: Record<string, number> = {
   "src/rag/pipeline.ts": 700,
   "src/services/memory.service.ts": 381,
   "src/repositories/memory.repo.ts": 381,
-  "src/mcp/executor.ts": 362,
   "src/telegram/userbot.ts": 349,
   "src/telegram/bot.ts": 344,
   "src/services/chat.service.ts": 324,
