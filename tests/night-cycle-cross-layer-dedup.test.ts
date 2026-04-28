@@ -3,7 +3,7 @@ import { describe, test, expect, beforeEach, afterAll } from "bun:test";
 import { existsSync, unlinkSync } from "fs";
 import { MemoryDB } from "../src/db";
 import { RAGPipeline } from "../src/rag";
-import { MemoryService } from "../src/services/memory.service";
+import { MemoryService } from "../src/services/memory";
 import { runCrossLayerDedup } from "../src/pipeline/night-cycle/steps/cross-layer-dedup";
 
 const TEST_DB = "data/test-mem9-crosslayer.db";

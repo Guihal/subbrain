@@ -5,7 +5,7 @@
 import { Elysia, t } from "elysia";
 import { paginate } from "../lib/api-envelope";
 import { NotFoundError } from "../lib/errors";
-import type { MemoryService, EdgeLayer } from "../services/memory.service";
+import type { MemoryService, EdgeLayer } from "../services/memory";
 import type { MemoryStatus, MemoryKind } from "../db";
 import type { EdgeKind } from "../db/types";
 

@@ -14,7 +14,7 @@ import { unlinkSync } from "fs";
 import { MemoryDB } from "../src/db";
 import { RAGPipeline } from "../src/rag";
 import { writeShared } from "../src/pipeline/agent-pipeline/post/extractors";
-import { MemoryService } from "../src/services/memory.service";
+import { MemoryService } from "../src/services/memory";
 import { MemoryTools } from "../src/mcp/tools/memory";
 import { compressContext, type CompressorMemory } from "../src/pipeline/context-compressor";
 import type { Message } from "../src/providers/types";

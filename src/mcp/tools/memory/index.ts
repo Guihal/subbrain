@@ -23,7 +23,7 @@
  */
 import type { MemoryDB } from "../../../db";
 import type { RAGPipeline } from "../../../rag";
-import type { MemoryService } from "../../../services/memory.service";
+import type { MemoryService } from "../../../services/memory";
 import type { ToolResult } from "../../types";
 import { readMemory } from "./read";
 import { writeMemory, type WriteParams } from "./write";

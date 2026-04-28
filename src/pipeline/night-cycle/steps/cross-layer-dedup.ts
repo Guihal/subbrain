@@ -21,7 +21,7 @@
  * row. Errors swallowed + counted, never thrown.
  */
 import type { MemoryDB, SharedRow } from "../../../db";
-import type { MemoryService } from "../../../services/memory.service";
+import type { MemoryService } from "../../../services/memory";
 import { logger } from "../../../lib/logger";
 
 const log = logger.child("night.cross-layer");

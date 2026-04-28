@@ -12,7 +12,7 @@
  * errors → `llm_failures++`, never thrown.
  */
 import type { MemoryDB } from "../../../db";
-import type { MemoryService } from "../../../services/memory.service";
+import type { MemoryService } from "../../../services/memory";
 import type { ModelRouter } from "../../../lib/model-router";
 import type { RAGPipeline } from "../../../rag";
 import { findDuplicate } from "../../agent-pipeline/post/dedupe";

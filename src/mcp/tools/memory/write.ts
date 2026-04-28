@@ -6,7 +6,7 @@
 import { randomUUID } from "crypto";
 import type { MemoryDB } from "../../../db";
 import type { RAGPipeline } from "../../../rag";
-import type { MemoryService } from "../../../services/memory.service";
+import type { MemoryService } from "../../../services/memory";
 import type { ToolResult } from "../../types";
 import { writeShared } from "./write-shared";
 import { writeContextCase } from "./write-context";

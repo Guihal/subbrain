@@ -25,7 +25,7 @@ import {
 import { existsSync, unlinkSync } from "fs";
 import { MemoryDB } from "../src/db";
 import { RAGPipeline } from "../src/rag";
-import { MemoryService } from "../src/services/memory.service";
+import { MemoryService } from "../src/services/memory";
 
 const TEST_DB = "data/test-memory-service.db";
 

@@ -27,7 +27,7 @@ import { Elysia } from "elysia";
 import { migrate, openDatabase } from "../src/db/schema";
 import { MemoryDB } from "../src/db";
 import { RAGPipeline } from "../src/rag";
-import { MemoryService } from "../src/services/memory.service";
+import { MemoryService } from "../src/services/memory";
 import { AuthService } from "../src/services/auth.service";
 import { authMiddleware } from "../src/lib/auth";
 import { memoryRoute } from "../src/routes/memory";

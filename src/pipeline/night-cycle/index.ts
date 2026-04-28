@@ -10,7 +10,7 @@
 import type { MemoryDB } from "../../db";
 import type { ModelRouter } from "../../lib/model-router";
 import type { RAGPipeline } from "../../rag";
-import type { MemoryService } from "../../services/memory.service";
+import type { MemoryService } from "../../services/memory";
 import { logger } from "../../lib/logger";
 import {
   type NightCycleResult,

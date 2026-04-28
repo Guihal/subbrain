@@ -4,7 +4,7 @@ import type { RAGPipeline } from "../../rag";
 import type { Userbot } from "../../telegram/userbot";
 import type { CodeToolRegistry } from "../../pipeline/agent-loop/code-tools";
 import type { ArbitrationRoom } from "../../pipeline/arbitration";
-import type { MemoryService } from "../../services/memory.service";
+import type { MemoryService } from "../../services/memory";
 import type {
   MemoryTools,
   EmbedTools,

@@ -2,7 +2,7 @@ import { logger } from "../../lib/logger";
 import type { ChatRepository, MemoryRepository } from "../../repositories";
 import type { Message } from "../../providers/types";
 import type { CompressorMemory } from "../../pipeline/context-compressor";
-import type { MemoryService } from "../memory.service";
+import type { MemoryService } from "../memory";
 import type { ChatMeta } from "./meta";
 
 export function persistUser(

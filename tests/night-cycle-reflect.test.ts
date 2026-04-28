@@ -3,7 +3,7 @@ import { describe, test, expect, beforeAll, afterAll, beforeEach } from "bun:tes
 import { existsSync, unlinkSync } from "fs";
 import { MemoryDB } from "../src/db";
 import { RAGPipeline } from "../src/rag";
-import { MemoryService } from "../src/services/memory.service";
+import { MemoryService } from "../src/services/memory";
 import { runReflect } from "../src/pipeline/night-cycle/steps/reflect";
 
 const TEST_DB = "data/test-mem6-reflect.db";

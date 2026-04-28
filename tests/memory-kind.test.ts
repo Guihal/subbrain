@@ -22,7 +22,7 @@ import { existsSync, unlinkSync } from "fs";
 import { Elysia } from "elysia";
 import { MemoryDB } from "../src/db";
 import { RAGPipeline } from "../src/rag";
-import { MemoryService } from "../src/services/memory.service";
+import { MemoryService } from "../src/services/memory";
 import { memoryRoute } from "../src/routes/memory";
 import {
   categoryToKind,

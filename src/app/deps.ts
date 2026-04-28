@@ -17,7 +17,7 @@ import { FreelanceScout, type FreelanceScoutConfig } from "../scheduler/freelanc
 import { FREE_AGENT_TASK } from "../scheduler/free-agent";
 import { Metrics } from "../lib/metrics";
 import { AuthService } from "../services/auth.service";
-import { MemoryService } from "../services/memory.service";
+import { MemoryService } from "../services/memory";
 import { ChatService } from "../services/chat";
 import { AgentService } from "../services/agent.service";
 import { logger } from "../lib/logger";

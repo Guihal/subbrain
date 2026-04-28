@@ -14,7 +14,7 @@
  * `linkRelated` extractor hook.
  */
 import type { MemoryDB, EdgeKind } from "../../db";
-import type { MemoryService } from "../../services/memory.service";
+import type { MemoryService } from "../../services/memory";
 import type { RAGPipeline } from "../../rag";
 import type { ModelRouter } from "../../lib/model-router";
 import { runReflect, type ReflectResult } from "../../pipeline/night-cycle/steps";

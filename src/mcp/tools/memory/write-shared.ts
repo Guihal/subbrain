@@ -15,7 +15,7 @@
  */
 import type { MemoryDB, MemoryKind } from "../../../db";
 import type { RAGPipeline } from "../../../rag";
-import type { MemoryService } from "../../../services/memory.service";
+import type { MemoryService } from "../../../services/memory";
 import type { ToolResult } from "../../types";
 import { categoryToKind } from "../../../pipeline/agent-pipeline/post/validators";
 import { embedWithTimeout } from "./types";

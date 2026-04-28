@@ -9,7 +9,7 @@ import { MemoryCurationTools } from "../tools/memory-curation-tools";
 import { sendReport } from "../tools/telegram-report";
 import type { CodeToolRegistry } from "../../pipeline/agent-loop/code-tools";
 import type { ArbitrationRoom } from "../../pipeline/arbitration";
-import type { MemoryService } from "../../services/memory.service";
+import type { MemoryService } from "../../services/memory";
 import type { ExecutorState } from "./types";
 import * as mem from "./ops-memory";
 import * as data from "./ops-data";

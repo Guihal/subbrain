@@ -12,7 +12,7 @@ import { shouldCompress, compressContext } from "../../pipeline/context-compress
 import type { ModelRouter } from "../../lib/model-router";
 import type { AgentPipeline } from "../../pipeline";
 import type { ChatRepository, MemoryRepository } from "../../repositories";
-import type { MemoryService } from "../memory.service";
+import type { MemoryService } from "../memory";
 import type { Message } from "../../providers/types";
 import { logger } from "../../lib/logger";
 import { maskSecrets } from "../../lib/redact";
