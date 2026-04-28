@@ -66,7 +66,7 @@ Docker: `docker compose build && docker compose up -d`. **Never `docker compose 
 - **Prod VPS:** `ssh root@109.120.187.244`. Repo path: `/opt/subbrain` (NOT `/root/subbrain` — that path doesn't exist; creating it via rsync is a mistake). Caddy reverse-proxy terminates HTTPS and proxies to the Bun container on `:4000`. The SQLite volume lives inside the container — `docker compose down -v` on this box wipes real memory, not just dev data.
 - **Manual deploy procedure** (the only working path):
   1. `ssh root@109.120.187.244 && cd /opt/subbrain`
-  2. `git pull` — or, if `git` itself is blocked by GitHub auth, `rsync` changed files from workstation: `rsync -avz <files> root@109.120.187.244:/opt/subbrain/ --relative`.
+  2. `git pull` — or, if `git` itself is blocked by GitHub auth, `rsync` changed files from workstation: `rsync -avz <files> root@109.120.187.244:/opt/subbrain/ --relative`. ⚠️ **NEVER use `--delete`** (or any `--delete-*` variant). On prod live secrets NOT in git: `cliproxy/config.yaml`, `cliproxy/auths/` (Codex OAuth tokens, written by `--codex-device-login`), `.env*`. `--delete` wiped them on 2026-04-28 (twice in one session); recovery required interactive ChatGPT Pro re-login. If you need to remove stale prod files — `ssh root@... rm <path>` точечно.
   3. `docker compose build && docker compose up -d`
   4. `docker compose logs -f` to confirm boot.
 - **Night cycle:** two schedulers, both idempotent (the HTTP endpoint and the in-process trigger share the same `nightCycleRunning` guard):
