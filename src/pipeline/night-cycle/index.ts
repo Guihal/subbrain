@@ -37,6 +37,8 @@ function emptyResult(): NightCycleResult {
     contextPruned: 0,
     focusPruned: 0,
     tasksPruned: 0,
+    staleOpenDeleted: 0,
+    staleInProgressDeleted: 0,
     straysCollected: 0,
     sharedDeduped: 0,
     contextDeduped: 0,

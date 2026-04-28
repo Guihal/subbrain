@@ -238,6 +238,15 @@ export class TasksTable {
     return this.db.query(`DELETE FROM tasks WHERE id = ?`).run(id).changes > 0;
   }
 
+  /** Hard-delete tasks of given status whose updated_at is older than now-ageSec. */
+  deleteStaleByStatus(status: "open" | "in_progress", ageSec: number): number {
+    return this.db
+      .query(
+        `DELETE FROM tasks WHERE status = ? AND updated_at < unixepoch() - ?`,
+      )
+      .run(status, ageSec).changes;
+  }
+
   listCompletedSince(opts: {
     scope?: TaskScope;
     sinceUnix: number;

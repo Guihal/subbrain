@@ -22,6 +22,7 @@ import {
   pruneContext,
   pruneFocus,
   pruneCompletedTasks,
+  pruneStaleTasks,
   collectStrayTasks,
 } from "./prune";
 import type { NightCycleResult } from "./types";
@@ -66,6 +67,15 @@ export async function runPostBatchSteps(
     log.info(
       `focus-rewrite: rewritten=${r.rewritten} skipped=${r.skipped} errors=${r.errors}`,
     );
+  }, result);
+
+  // Stale-task DELETE pass runs BEFORE pruneCompletedTasks: open >30d and
+  // in_progress >7d are abandoned ingestion (autonomous/free-agent overflow);
+  // skip the soft-cancel + 1d wait and just drop them.
+  await runStep("Prune stale tasks", "Prune stale tasks", async () => {
+    const r = pruneStaleTasks(memory);
+    result.staleOpenDeleted = r.openDeleted;
+    result.staleInProgressDeleted = r.inProgressDeleted;
   }, result);
 
   await runStep("Prune completed tasks", "Prune tasks", async () => {
