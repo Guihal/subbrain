@@ -3,7 +3,7 @@
  * `app/deps.ts` import from here; routes/pipeline still go through the
  * `MemoryDB` facade for back-compat.
  */
-export { MemoryRepository } from "./memory.repo";
+export { MemoryRepository } from "./memory";
 export { ChatRepository } from "./chat.repo";
 export { LogRepository } from "./log.repo";
 export { TelegramRepository } from "./telegram.repo";

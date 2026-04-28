@@ -2,7 +2,7 @@ import { Database } from "bun:sqlite";
 import { openDatabase, migrate } from "./schema";
 import { TasksTable, type UpsertResult } from "./tables/tasks";
 import { SchedulerStateTable } from "./tables/scheduler-state";
-import { MemoryRepository } from "../repositories/memory.repo";
+import { MemoryRepository } from "../repositories/memory";
 import { ChatRepository } from "../repositories/chat.repo";
 import { LogRepository } from "../repositories/log.repo";
 import { TelegramRepository } from "../repositories/telegram.repo";

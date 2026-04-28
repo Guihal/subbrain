@@ -13,7 +13,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:tes
 import { existsSync, unlinkSync } from "fs";
 import { Database } from "bun:sqlite";
 import { openDatabase, migrate } from "../src/db/schema";
-import { MemoryRepository } from "../src/repositories/memory.repo";
+import { MemoryRepository } from "../src/repositories/memory";
 
 const TEST_DB = "data/test-memory-repo.db";
 
