@@ -56,24 +56,41 @@ describe("pruneStaleTasks", () => {
     memory.close();
   });
 
-  test("open <30d kept, open >30d deleted", () => {
+  test("open <3d kept, open >3d deleted (default threshold)", () => {
     const now = Math.floor(Date.now() / 1000);
-    seedTask(memory, "open", now - 29 * 86400);
-    seedTask(memory, "open", now - 31 * 86400);
-    seedTask(memory, "open", now - 60 * 86400);
+    seedTask(memory, "open", now - 2 * 86400);
+    seedTask(memory, "open", now - 4 * 86400);
+    seedTask(memory, "open", now - 30 * 86400);
     const r = pruneStaleTasks(memory);
     expect(r.openDeleted).toBe(2);
     expect(countTasks(memory)).toBe(1);
     memory.close();
   });
 
-  test("in_progress <7d kept, in_progress >7d deleted", () => {
+  test("in_progress <3d kept, in_progress >3d deleted (default threshold)", () => {
     const now = Math.floor(Date.now() / 1000);
-    seedTask(memory, "in_progress", now - 6 * 86400);
-    seedTask(memory, "in_progress", now - 8 * 86400);
+    seedTask(memory, "in_progress", now - 2 * 86400);
+    seedTask(memory, "in_progress", now - 4 * 86400);
     const r = pruneStaleTasks(memory);
     expect(r.inProgressDeleted).toBe(1);
     expect(countTasks(memory)).toBe(1);
+    memory.close();
+  });
+
+  test("env override raises threshold", () => {
+    const prev = process.env.NIGHT_CYCLE_STALE_OPEN_DAYS;
+    process.env.NIGHT_CYCLE_STALE_OPEN_DAYS = "30";
+    try {
+      const now = Math.floor(Date.now() / 1000);
+      seedTask(memory, "open", now - 5 * 86400);
+      seedTask(memory, "open", now - 31 * 86400);
+      const r = pruneStaleTasks(memory);
+      expect(r.openDeleted).toBe(1);
+      expect(countTasks(memory)).toBe(1);
+    } finally {
+      if (prev === undefined) delete process.env.NIGHT_CYCLE_STALE_OPEN_DAYS;
+      else process.env.NIGHT_CYCLE_STALE_OPEN_DAYS = prev;
+    }
     memory.close();
   });
 
