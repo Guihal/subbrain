@@ -18,36 +18,22 @@ export interface LogEntry {
   meta?: Record<string, unknown>;
 }
 
-const LEVEL_PRIORITY: Record<LogLevel, number> = {
-  debug: 0,
-  info: 1,
-  warn: 2,
-  error: 3,
-};
-
-const LEVEL_ICON: Record<LogLevel, string> = {
-  debug: "🔍",
-  info: "📝",
-  warn: "⚠️",
-  error: "❌",
-};
+const LEVEL_PRIORITY: Record<LogLevel, number> = { debug: 0, info: 1, warn: 2, error: 3 };
+const LEVEL_ICON: Record<LogLevel, string> = { debug: "🔍", info: "📝", warn: "⚠️", error: "❌" };
 
 // OBS-1: track which roles have already tripped the layer4_log CHECK so we
 // surface silent drops on first occurrence without spamming logs. Module-level
-// Set is fine: process-lifetime memory, never serialized, never persisted.
-// Export for test access only — do not mutate from other modules.
+// Set: process-lifetime memory, never serialized. Export for tests only —
+// do not mutate from other modules.
 export const _warnedRejectedRoles = new Set<string>();
 let _inLoggerCatch = false;
 
 // ─── Logger ──────────────────────────────────────────────
 
 export class Logger {
-  private minLevel: LogLevel;
   private memory: MemoryDB | null = null;
 
-  constructor(minLevel: LogLevel = "info") {
-    this.minLevel = minLevel;
-  }
+  constructor(private minLevel: LogLevel = "info") {}
 
   setMemory(memory: MemoryDB): void {
     this.memory = memory;
@@ -56,7 +42,6 @@ export class Logger {
   log(entry: LogEntry): void {
     if (LEVEL_PRIORITY[entry.level] < LEVEL_PRIORITY[this.minLevel]) return;
 
-    // Console output
     const ts = new Date().toISOString().slice(11, 23);
     const icon = LEVEL_ICON[entry.level];
     const reqTag = entry.requestId ? ` [${entry.requestId.slice(0, 8)}]` : "";
@@ -66,43 +51,33 @@ export class Logger {
       entry.tokensIn || entry.tokensOut
         ? ` [${entry.tokensIn ?? 0}→${entry.tokensOut ?? 0} tok]`
         : "";
-
     console.log(
       `${ts} ${icon} [${entry.stage}]${reqTag}${model}${dur}${tokens} ${entry.message}`,
     );
 
-    // DB logging — write to Layer 4 for detailed entries
+    // DB logging — write to Layer 4 for detailed entries.
     if (this.memory && entry.level !== "debug") {
       const role = `_log_${entry.level}`;
       try {
-        const content = this.formatForDb(entry);
         this.memory.appendLog(
           entry.requestId || "system",
           entry.sessionId || "system",
           entry.stage,
           role,
-          content,
+          this.formatForDb(entry),
         );
       } catch (err) {
-        // Never let logging break the app. But: a CHECK-constraint drop used to
-        // be completely silent — every logger write on an un-migrated DB
-        // vanished without trace (OBS-1). Surface the first violation per
-        // unique role via console.error so future role drift is visible; stay
-        // silent on repeats to avoid log spam.
-        //
-        // M-3: re-entrancy guard. Only console.* is allowed in here — anyone
-        // who edits this catch and reaches for `logger.warn(...)` would be
-        // calling Logger.log → this catch → infinite recursion. The boolean
-        // gate makes the recursion observable (one console line, then stop)
-        // instead of stack-overflowing.
+        // Never let logging break the app. Surface a CHECK-constraint drop
+        // (silent before OBS-1) once per unique role so future role drift is
+        // visible. M-3 re-entrancy guard: only console.* is safe in this
+        // catch — `logger.warn(...)` would re-enter Logger.log → recurse
+        // forever. The boolean gate makes the recursion observable (one
+        // console line, then stop) instead of stack-overflowing.
         if (_inLoggerCatch) return;
         _inLoggerCatch = true;
         try {
           const msg = err instanceof Error ? err.message : String(err);
-          if (
-            msg.includes("CHECK constraint failed") &&
-            !_warnedRejectedRoles.has(role)
-          ) {
+          if (msg.includes("CHECK constraint failed") && !_warnedRejectedRoles.has(role)) {
             _warnedRejectedRoles.add(role);
             console.error(
               `[logger] Layer4 role rejected by CHECK constraint: ${role} — entry dropped. Missing schema migration?`,
@@ -119,30 +94,25 @@ export class Logger {
   debug(stage: string, message: string, extra?: Partial<LogEntry>): void {
     this.log({ level: "debug", stage, message, ...extra });
   }
-
   info(stage: string, message: string, extra?: Partial<LogEntry>): void {
     this.log({ level: "info", stage, message, ...extra });
   }
-
   warn(stage: string, message: string, extra?: Partial<LogEntry>): void {
     this.log({ level: "warn", stage, message, ...extra });
   }
-
   error(stage: string, message: string, extra?: Partial<LogEntry>): void {
     this.log({ level: "error", stage, message, ...extra });
   }
 
-  /**
-   * Create a child logger with pre-bound request context.
-   */
+  /** Create a child logger with pre-bound request context. */
   forRequest(requestId: string, sessionId: string): RequestLogger {
     return new RequestLogger(this, requestId, sessionId);
   }
 
   /**
-   * Create a scoped logger that prefixes every call with `stage`.
-   * Nested scopes chain via `.`: `logger.child("copilot").child("stream")`
-   * writes stage `copilot.stream`.
+   * Create a scoped logger that prefixes every call with `stage`. Nested
+   * scopes chain via `.`: `logger.child("copilot").child("stream")` writes
+   * stage `copilot.stream`.
    */
   child(stage: string): ScopedLogger {
     return new ScopedLogger(this, stage);
@@ -151,23 +121,17 @@ export class Logger {
   private formatForDb(entry: LogEntry): string {
     const parts = [`[${entry.level.toUpperCase()}] ${entry.message}`];
     if (entry.model) parts.push(`model=${entry.model}`);
-    if (entry.durationMs !== undefined)
-      parts.push(`duration=${entry.durationMs}ms`);
+    if (entry.durationMs !== undefined) parts.push(`duration=${entry.durationMs}ms`);
     if (entry.tokensIn) parts.push(`tokens_in=${entry.tokensIn}`);
     if (entry.tokensOut) parts.push(`tokens_out=${entry.tokensOut}`);
     if (entry.meta) {
       for (const [k, v] of Object.entries(entry.meta)) {
         let val: string;
-        if (typeof v === "string") {
-          val = v;
-        } else {
-          try {
-            val = JSON.stringify(v ?? null);
-          } catch {
-            val = String(v);
-          }
+        if (typeof v === "string") val = v;
+        else {
+          try { val = JSON.stringify(v ?? null); }
+          catch { val = String(v); }
         }
-        // Truncate long values
         parts.push(`${k}=${val.length > 500 ? val.slice(0, 500) + "…" : val}`);
       }
     }
@@ -186,9 +150,9 @@ export class RequestLogger {
     private sessionId: string,
   ) {}
 
-  debug(stage: string, message: string, extra?: Partial<LogEntry>): void {
+  private emit(level: LogLevel, stage: string, message: string, extra?: Partial<LogEntry>): void {
     this.parent.log({
-      level: "debug",
+      level,
       stage,
       message,
       requestId: this.requestId,
@@ -197,66 +161,30 @@ export class RequestLogger {
     });
   }
 
-  info(stage: string, message: string, extra?: Partial<LogEntry>): void {
-    this.parent.log({
-      level: "info",
-      stage,
-      message,
-      requestId: this.requestId,
-      sessionId: this.sessionId,
-      ...extra,
-    });
-  }
-
-  warn(stage: string, message: string, extra?: Partial<LogEntry>): void {
-    this.parent.log({
-      level: "warn",
-      stage,
-      message,
-      requestId: this.requestId,
-      sessionId: this.sessionId,
-      ...extra,
-    });
-  }
-
-  error(stage: string, message: string, extra?: Partial<LogEntry>): void {
-    this.parent.log({
-      level: "error",
-      stage,
-      message,
-      requestId: this.requestId,
-      sessionId: this.sessionId,
-      ...extra,
-    });
-  }
+  debug = (stage: string, message: string, extra?: Partial<LogEntry>) => this.emit("debug", stage, message, extra);
+  info = (stage: string, message: string, extra?: Partial<LogEntry>) => this.emit("info", stage, message, extra);
+  warn = (stage: string, message: string, extra?: Partial<LogEntry>) => this.emit("warn", stage, message, extra);
+  error = (stage: string, message: string, extra?: Partial<LogEntry>) => this.emit("error", stage, message, extra);
 }
 
 // ─── Scoped Logger (stage-prefixed) ──────────────────────
 
 export class ScopedLogger {
-  constructor(
-    private parent: Logger,
-    private stage: string,
-  ) {}
+  constructor(private parent: Logger, private stage: string) {}
 
-  debug(message: string, extra?: Partial<LogEntry>): void {
-    this.parent.log({ level: "debug", stage: this.stage, message, ...extra });
+  private emit(level: LogLevel, message: string, extra?: Partial<LogEntry>): void {
+    this.parent.log({ level, stage: this.stage, message, ...extra });
   }
-  info(message: string, extra?: Partial<LogEntry>): void {
-    this.parent.log({ level: "info", stage: this.stage, message, ...extra });
-  }
-  warn(message: string, extra?: Partial<LogEntry>): void {
-    this.parent.log({ level: "warn", stage: this.stage, message, ...extra });
-  }
-  error(message: string, extra?: Partial<LogEntry>): void {
-    this.parent.log({ level: "error", stage: this.stage, message, ...extra });
-  }
+
+  debug = (message: string, extra?: Partial<LogEntry>) => this.emit("debug", message, extra);
+  info = (message: string, extra?: Partial<LogEntry>) => this.emit("info", message, extra);
+  warn = (message: string, extra?: Partial<LogEntry>) => this.emit("warn", message, extra);
+  error = (message: string, extra?: Partial<LogEntry>) => this.emit("error", message, extra);
+
   child(subStage: string): ScopedLogger {
     return new ScopedLogger(this.parent, `${this.stage}.${subStage}`);
   }
 }
 
 // Singleton
-export const logger = new Logger(
-  (process.env.LOG_LEVEL as LogLevel) || "debug",
-);
+export const logger = new Logger((process.env.LOG_LEVEL as LogLevel) || "debug");

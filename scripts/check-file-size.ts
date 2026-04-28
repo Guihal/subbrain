@@ -39,7 +39,6 @@ export const CANONICAL_GLOB_WHITELIST: Array<{ glob: RegExp; cap: number; label:
 // File не может расти; split / squeeze → удалить строку. Closes when empty.
 export const TRANSITIONAL_WHITELIST: Record<string, number> = {
   "scripts/check-file-size.ts": 170,
-  "src/lib/logger.ts": 263,
   "src/pipeline/context-compressor.ts": 300,
   "src/mcp/registry/agent-meta.tools.ts": 290,
   "src/pipeline/agent-pipeline/post/extractors.ts": 281,
