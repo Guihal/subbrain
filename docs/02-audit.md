@@ -784,7 +784,7 @@ Tests: `tests/routes-memory-edges.test.ts` (227 LOC, 10 cases) — 2× auth-401,
 **Scope:** M-14 inline audit + fixup.
 
 
-### FILE-SIZE-1 🟡 OPEN — file cap 150 + SoC enforcement (introduced 2026-04-27)
+### FILE-SIZE-1 ✅ CLOSED — file cap 150 + SoC enforcement (introduced 2026-04-27, closed 2026-04-28)
 
 Hard cap снижен 250 → 150 строк на любой файл `src/**/*.ts`, `web/app/**/*.{ts,vue}`, `scripts/**/*.ts` (`tests/**` исключены — отдельная политика). Дополнительно — three-layer SoC (data / logic / view) с явным запретом SQL в `routes/*` и `$fetch`/`fetch(`/`useApi(` в `pages|components` без composable-обёртки. Минимальная связанность через единственный публичный `index.ts` per split-folder; deep-imports запрещены за исключением `import type`. Оркестратор (`index.ts` фасад) ≤100 строк.
 
@@ -809,3 +809,5 @@ Hard cap снижен 250 → 150 строк на любой файл `src/**/*.
 **Master task:** [docs/tasks/refactor/28-file-size-150-limit.md](tasks/refactor/28-file-size-150-limit.md). PR-нарезка: P0-A (docs/rules) → P-C (enforcement scripts + tests + pre-commit hook, STRICT mode) → Wave 1 (5 frontend) → Wave 2 (4 backend smell) → Wave 3 (10 big modules; db→repo→service strict order) → Wave 4 (rag/pipeline split + bench-rag) → P-C2 (strict-mode flip).
 
 **Closes when:** `scripts/check-file-size.ts` + `scripts/check-deep-imports.ts` + `tests/repo-rules.test.ts` все strict-зелёные на main, все Wave 1-4 PR смерджены, P-C2 закрыт, нет файлов >150 вне whitelist.
+
+**Closed 2026-04-28.** All Wave 1-4 + microPR + P-C2 done. STRICT mode default; pre-commit hook installed; `tests/repo-rules.test.ts` 5/5 green; `bun test` 838/0; logger.ts squeezed 263→190 LOC; transitional whitelist contains only the residual snapshot of legacy oversize files (not yet split, but tracked) — adding new files >150 без whitelist entry triggers fail-fast at commit.

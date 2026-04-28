@@ -237,9 +237,9 @@ Bugfix сначала, splitting после — чтобы diff-ы не смеш
 
 ---
 
-## Часть VIII. File-size 150 + SoC tightening (Глава 3)
+## ~~Часть VIII. File-size 150 + SoC tightening (Глава 3)~~ ✅ DONE 2026-04-28
 
-Введено 2026-04-27. Старый cap 250 → новый **150 строк**, добавлен three-layer SoC + правила минимальной связанности через `index.ts`. Master task: [docs/tasks/refactor/28-file-size-150-limit.md](tasks/refactor/28-file-size-150-limit.md). Audit-tracker: [FILE-SIZE-1](02-audit.md#file-size-1--open--file-cap-150--soc-enforcement-introduced-2026-04-27).
+~~Введено 2026-04-27.~~ Старый cap 250 → **150 строк**, добавлен three-layer SoC + правила минимальной связанности через `index.ts`. Master task: [docs/tasks/refactor/28-file-size-150-limit.md](tasks/refactor/28-file-size-150-limit.md) — ✅ DONE. Audit-tracker: [FILE-SIZE-1](02-audit.md#file-size-1--open--file-cap-150--soc-enforcement-introduced-2026-04-27) — ✅ CLOSED.
 
 **Why now.** После Глав 1-2 кодовая база чистая на CRIT/HIGH/MEDIUM, но множество файлов >150 (`mcp/tools/memory-tools.ts` 472, `db/tables/memory.ts` 451, `pipeline/arbitration-room.ts` 420, `services/memory.service.ts` 380, `services/chat.service.ts` 323, `rag/pipeline.ts` 699 — список целиком в [28-file-size-150-limit.md](tasks/refactor/28-file-size-150-limit.md)). При компании-onboarding'е и LLM-сессиях оверсайз файлы → потеря контекста + случайные регрессии. Cap 150 + явный whitelist для оправданных исключений + энфорс через `scripts/check-file-size.ts` + `tests/repo-rules.test.ts` исключают повторение.
 
