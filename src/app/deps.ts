@@ -198,7 +198,7 @@ export function loadConfig(): AppConfig {
 
 export async function initDeps(config: AppConfig = loadConfig()): Promise<AppDeps> {
   const authService = new AuthService(config.authToken);
-  // Re-point teamlead/coder to gpt-5.5 via cliproxy when OPENAI_COMPAT_ENABLED.
+  // Re-point teamlead/coder to gpt-5.4-mini via cliproxy when OPENAI_COMPAT_ENABLED.
   // MUST run before createProviders() so collectRequiredProviders() sees the
   // openai-compat slot and instantiates the real provider.
   applyOpenAICompatOverrides();

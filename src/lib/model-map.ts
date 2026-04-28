@@ -6,7 +6,6 @@ export type Priority = "critical" | "normal" | "low";
 export type ProviderName =
   | "nvidia"
   | "openrouter"
-  | "copilot"
   | "minimax"
   | "openai-compat";
 
@@ -65,22 +64,19 @@ export const MODEL_MAP: Record<string, ModelRoute> = {
     fallback: "minimaxai/minimax-m2.7",
     fallbackProvider: "nvidia",
   },
-  // Memory subsystem (hippocampus + night-cycle). Primary GPT-5.1 via
-  // CLIProxyAPI bridge → ChatGPT Pro. Fallback MiniMax-M2.7 (instruct,
-  // reliable tool-calling). Used when OPENAI_COMPAT_ENABLED=true; if flag
-  // off, applyOpenAICompatOverrides keeps primary as-is — gpt-5.1 will
-  // route to copilot provider, which won't have it; rely on minimax fallback.
+  // Memory subsystem (hippocampus + night-cycle). MiniMax-M2.7 via dedicated
+  // minimax provider (platform.minimax.io). Reverted from gpt-5.1/openai-compat
+  // 2026-04-28 after ChatGPT Plus quota burned (67h cooldown on Codex
+  // credentials). No NVIDIA mirror — minimax provider is the single source.
   memory: {
-    primary: "gpt-5.1",
-    primaryProvider: "openai-compat",
-    fallback: "MiniMax-M2.7",
-    fallbackProvider: "minimax",
+    primary: "MiniMax-M2.7",
+    primaryProvider: "minimax",
   },
 };
 
 /**
  * Allowlist for openai-compat (CLIProxyAPI bridge → ChatGPT Pro). Matches
- * gpt-5*, gpt-5.5*, o3*, o4*, codex-*. Tighter regex breaks expected
+ * gpt-5*, gpt-5.4-mini*, o3*, o4*, codex-*. Tighter regex breaks expected
  * matches; looser breaks `gpt-4o → copilot`. Do NOT widen.
  */
 const OPENAI_COMPAT_PREFIXES =
@@ -110,8 +106,8 @@ function detectProvider(model: string): ProviderName {
   ) {
     return "nvidia";
   }
-  // Default: Copilot API (claude-*, gpt-*, gemini-*, etc.)
-  return "copilot";
+  // Default: OpenRouter (umbrella for claude-*, gpt-*, gemini-*, etc.)
+  return "openrouter";
 }
 
 export { applyOpenAICompatOverrides } from "./model-map/openai-compat-overrides";

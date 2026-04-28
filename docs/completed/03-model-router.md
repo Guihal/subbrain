@@ -28,12 +28,12 @@
 
 #### Effective на проде (`OPENAI_COMPAT_ENABLED=true`)
 
-`applyOpenAICompatOverrides` итерирует hard-coded `["teamlead","coder"]` и re-points primary на `gpt-5.5` через `openai-compat`; baseline primary становится fallback'ом (поверх original fallback'а который превращается в third-tier — но `MAX_FALLBACK_ATTEMPTS=1`, так что effective fallback chain = одно звено).
+`applyOpenAICompatOverrides` итерирует hard-coded `["teamlead","coder"]` и re-points primary на `gpt-5.4-mini` через `openai-compat`; baseline primary становится fallback'ом (поверх original fallback'а который превращается в third-tier — но `MAX_FALLBACK_ATTEMPTS=1`, так что effective fallback chain = одно звено).
 
 | Виртуальная роль | Primary (provider)            | Fallback (provider)         |
 | :--------------- | :---------------------------- | :-------------------------- |
-| `teamlead`       | `gpt-5.5` (openai-compat)     | `MiniMax-M2.7` (minimax)    |
-| `coder`          | `gpt-5.5` (openai-compat)     | `MiniMax-M2.7` (minimax)    |
+| `teamlead`       | `gpt-5.4-mini` (openai-compat) | `MiniMax-M2.7` (minimax)   |
+| `coder`          | `gpt-5.4-mini` (openai-compat) | `MiniMax-M2.7` (minimax)   |
 | `critic`         | `MiniMax-M2.7` (minimax)      | `moonshotai/kimi-k2-thinking` (nvidia) |
 | `flash`          | `MiniMax-M2.7` (minimax)      | `stepfun-ai/step-3.5-flash` (nvidia)   |
 | `chaos`          | `MiniMax-M2.7` (minimax)      | `mistralai/mistral-medium-3-instruct` (nvidia) |
@@ -160,7 +160,7 @@ standalone `@openai/codex` CLI. Auth lives in `/root/.cli-proxy-api/`, NOT
   Matches `gpt-5`, `gpt-5.5`, `gpt-5-codex`, `o3-mini`, `o4-...`, `codex-*`.
   `gpt-4o` stays on Copilot.
 - When enabled, `MODEL_MAP.teamlead` and `MODEL_MAP.coder` are re-pointed:
-  `primary = "gpt-5.5" / openai-compat`, `fallback = original primary /
+  `primary = "gpt-5.4-mini" / openai-compat`, `fallback = original primary /
   original primaryProvider` (i.e. MiniMax → NVIDIA chain stays intact).
 - Override is reversible (WeakMap snapshot) — flipping the flag back to
   `false` and re-running `applyOpenAICompatOverrides()` restores the

@@ -1,8 +1,8 @@
 /**
- * Re-points selected virtual roles (`teamlead`, `coder`) to `gpt-5.5` via the
- * openai-compat provider when `OPENAI_COMPAT_ENABLED=true`. Idempotent and
- * reversible: a WeakMap snapshot of the original route is restored when the
- * flag is off.
+ * Re-points selected virtual roles (`teamlead`, `coder`) to `gpt-5.4-mini`
+ * via the openai-compat provider when `OPENAI_COMPAT_ENABLED=true`.
+ * Idempotent and reversible: a WeakMap snapshot of the original route is
+ * restored when the flag is off.
  *
  * Called once at bootstrap (`src/app/deps.ts`) BEFORE `createProviders()` so
  * `collectRequiredProviders()` sees `openai-compat` and instantiates the real
@@ -38,7 +38,7 @@ export function applyOpenAICompatOverrides(
       }
       snapshots[role] = { ...cur };
       map[role] = {
-        primary: "gpt-5.5",
+        primary: "gpt-5.4-mini",
         primaryProvider: "openai-compat",
         fallback: cur.primary,
         fallbackProvider: cur.primaryProvider,
