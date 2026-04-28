@@ -46,4 +46,4 @@ web/node_modules
 
 # Continue config (contains auth tokens)
 .continue/
-.continue
+.continue.claude/scheduled_tasks.lock

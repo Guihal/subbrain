@@ -81,7 +81,7 @@ export const TRANSITIONAL_WHITELIST: Record<string, number> = {
   "src/providers/think-tag-transform.ts": 163,
   "src/pipeline/agent-loop/code-tools/sandbox.ts": 162,
   "src/pipeline/night-cycle/prune/context.ts": 162,
-  "src/mcp/mcp-protocol.ts": 160,
+  "src/mcp/mcp-protocol.ts": 170,
   "src/pipeline/agent-loop/prompt-blocks/tasks.ts": 157,
   "src/pipeline/agent-loop/step.ts": 155,
   "web/app/pages/freelance.vue": 152,

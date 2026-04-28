@@ -44,8 +44,14 @@ export function mcpProtocolRoute(
         const sessionId = crypto.randomUUID();
         const encoder = new TextEncoder();
 
-        const origin = new URL(request.url).origin;
-        const messagesUrl = `${origin}/mcp/messages?sessionId=${sessionId}`;
+        // Respect X-Forwarded-Proto from reverse proxies (Caddy sets it):
+        // request.url scheme is http inside the container even when the
+        // public URL is https, which makes Claude Code refuse to follow
+        // the messages endpoint due to mixed-content.
+        const url = new URL(request.url);
+        const forwardedProto = headers["x-forwarded-proto"];
+        const proto = forwardedProto?.split(",")[0]?.trim() || url.protocol.replace(":", "");
+        const messagesUrl = `${proto}://${url.host}/mcp/messages?sessionId=${sessionId}`;
 
         const stream = new ReadableStream<Uint8Array>({
           start(controller) {
