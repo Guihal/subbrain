@@ -2,7 +2,7 @@ import { Elysia, t } from "elysia";
 import type { AgentService } from "../services/agent.service";
 import type { MemoryDB } from "../db";
 import { sseResponse } from "../lib/sse";
-import { sanitizeAgentId } from "../services/chat.service";
+import { sanitizeAgentId } from "../services/chat";
 
 /**
  * `/v1/autonomous` — human-triggered interactive agent run (LAYER-4, PR 26b).

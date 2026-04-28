@@ -12,7 +12,7 @@ import { unlinkSync } from "fs";
 import { randomUUID } from "crypto";
 import { MemoryDB } from "../src/db";
 import { MemoryTools } from "../src/mcp/tools/memory";
-import { sanitizeAgentId } from "../src/services/chat.service";
+import { sanitizeAgentId } from "../src/services/chat";
 
 const TEST_DB = "data/test.db.b1";
 

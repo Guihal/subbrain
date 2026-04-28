@@ -7,7 +7,7 @@ import {
   extractChatMeta,
   wrapStreamForChat,
   type ChatCompletionRequest,
-} from "../services/chat.service";
+} from "../services/chat";
 
 // Re-export so legacy importers (e.g. tests/chat-stream.test.ts) keep working
 // after the PR 26a move into `services/chat.service.ts`.

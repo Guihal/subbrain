@@ -18,7 +18,7 @@ import { FREE_AGENT_TASK } from "../scheduler/free-agent";
 import { Metrics } from "../lib/metrics";
 import { AuthService } from "../services/auth.service";
 import { MemoryService } from "../services/memory.service";
-import { ChatService } from "../services/chat.service";
+import { ChatService } from "../services/chat";
 import { AgentService } from "../services/agent.service";
 import { logger } from "../lib/logger";
 

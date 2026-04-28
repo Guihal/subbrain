@@ -8,7 +8,7 @@
  * `tests/chat-direct-mode.test.ts` and `tests/chat-continuity.test.ts`.
  */
 import { describe, test, expect } from "bun:test";
-import { ChatService, extractChatMeta } from "../src/services/chat.service";
+import { ChatService, extractChatMeta } from "../src/services/chat";
 import type { ChatResponse } from "../src/providers/types";
 
 function makeRouter(overloaded: Record<string, boolean>) {
