@@ -111,8 +111,8 @@ export class Logger {
 
   /**
    * Create a scoped logger that prefixes every call with `stage`. Nested
-   * scopes chain via `.`: `logger.child("copilot").child("stream")` writes
-   * stage `copilot.stream`.
+   * scopes chain via `.`: `logger.child("minimax").child("stream")` writes
+   * stage `minimax.stream`.
    */
   child(stage: string): ScopedLogger {
     return new ScopedLogger(this, stage);

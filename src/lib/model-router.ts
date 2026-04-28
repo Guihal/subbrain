@@ -38,7 +38,6 @@ export class ModelRouter {
   get stats() {
     const nvidia = this.backends.nvidia;
     const or = this.backends.openrouter;
-    const copilot = this.backends.copilot;
     return {
       currentLoad: nvidia.limiter.currentLoad,
       queueLength: nvidia.limiter.queueLength,
@@ -48,13 +47,6 @@ export class ModelRouter {
             currentLoad: or.limiter.currentLoad,
             queueLength: or.limiter.queueLength,
             availableSlots: or.limiter.availableSlots,
-          }
-        : undefined,
-      copilot: copilot
-        ? {
-            currentLoad: copilot.limiter.currentLoad,
-            queueLength: copilot.limiter.queueLength,
-            availableSlots: copilot.limiter.availableSlots,
           }
         : undefined,
     };
@@ -75,7 +67,7 @@ export class ModelRouter {
   /**
    * @deprecated Use {@link isOverloadedFor} with a specific provider.
    * Alias preserved for back-compat; only queries the NVIDIA backend,
-   * which misleads callers when the actual target is MiniMax/Copilot.
+   * which misleads callers when the actual target is MiniMax/OpenRouter.
    */
   get isOverloaded(): boolean {
     return this.isOverloadedFor("nvidia");

@@ -16,8 +16,6 @@ const ENV_KEYS = [
   "NVIDIA_API_KEY",
   "OPENROUTER_API_KEY",
   "OPENROUTER_BASE_URL",
-  "GITHUB_COPILOT_TOKEN",
-  "GITHUB_TOKEN",
   "MINIMAX_API_KEY",
   "MINIMAX_BASE_URL",
 ];
@@ -47,21 +45,18 @@ describe("collectRequiredProviders", () => {
         primary: "m1",
         primaryProvider: "minimax",
         fallback: "m2",
-        fallbackProvider: "copilot",
+        fallbackProvider: "openrouter",
       },
     });
     expect(set.has("nvidia")).toBe(true);
     expect(set.has("minimax")).toBe(true);
-    expect(set.has("copilot")).toBe(true);
-    expect(set.has("openrouter")).toBe(false);
+    expect(set.has("openrouter")).toBe(true);
   });
 
   test("current MODEL_MAP references minimax + nvidia only", () => {
     const set = collectRequiredProviders(MODEL_MAP);
     expect(set.has("nvidia")).toBe(true);
     expect(set.has("minimax")).toBe(true);
-    // Current model-map does not name copilot/openrouter anywhere.
-    expect(set.has("copilot")).toBe(false);
     expect(set.has("openrouter")).toBe(false);
   });
 });
@@ -71,26 +66,20 @@ describe("createProviders — optional startup", () => {
 
   beforeEach(() => {
     snap = snapshotEnv();
-    // Minimal viable env: NVIDIA + MiniMax only. Copilot/OpenRouter absent.
+    // Minimal viable env: NVIDIA + MiniMax only. OpenRouter absent.
     process.env.NVIDIA_BASE_URL = "https://nvidia.invalid";
     process.env.NVIDIA_API_KEY = "test-nvidia";
     process.env.MINIMAX_API_KEY = "test-minimax";
     delete process.env.OPENROUTER_API_KEY;
-    delete process.env.GITHUB_COPILOT_TOKEN;
-    delete process.env.GITHUB_TOKEN;
   });
   afterEach(() => restoreEnv(snap));
 
-  test("succeeds without COPILOT / OPENROUTER keys when MODEL_MAP doesn't reference them", async () => {
+  test("succeeds without OPENROUTER key when MODEL_MAP doesn't reference it", async () => {
     // Current MODEL_MAP targets only minimax + nvidia. Should load cleanly.
     const providers = await createProviders();
     expect(providers.nvidia).toBeDefined();
     expect(providers.minimax).toBeDefined();
-    // Copilot + OpenRouter exist but are stubs that throw on call.
-    expect(providers.copilot).toBeDefined();
-    await expect(
-      providers.copilot.chat({ model: "x", messages: [] }),
-    ).rejects.toThrow(/not loaded/);
+    // OpenRouter exists but is a stub that throws on call.
     expect(providers.openrouter).toBeDefined();
     await expect(
       providers.openrouter.chat({ model: "x", messages: [] }),
@@ -98,19 +87,19 @@ describe("createProviders — optional startup", () => {
   });
 
   test("fail-fast when a referenced provider is missing its env key", async () => {
-    // Mutate MODEL_MAP at runtime to reference copilot as fallback, then
-    // ensure no Copilot env token exists. createProviders must throw.
+    // Mutate MODEL_MAP at runtime to reference openrouter as fallback, then
+    // ensure no OpenRouter env token exists. createProviders must throw.
     const originalRoute = MODEL_MAP.teamlead;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (MODEL_MAP as any).teamlead = {
       primary: "MiniMax-M2.7",
       primaryProvider: "minimax",
-      fallback: "claude-sonnet-4.6",
-      fallbackProvider: "copilot",
+      fallback: "anthropic/claude-sonnet-4.6",
+      fallbackProvider: "openrouter",
     };
     try {
       await expect(createProviders()).rejects.toThrow(
-        /GITHUB_COPILOT_TOKEN|GITHUB_TOKEN/,
+        /OPENROUTER_API_KEY/,
       );
     } finally {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

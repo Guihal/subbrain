@@ -37,7 +37,6 @@ describe("ModelRouter.isOverloadedFor — per-provider overload", () => {
     const router = new ModelRouter({
       nvidia: stub(),
       openrouter: stub(),
-      copilot: stub(),
       minimax: stub(),
     });
 
@@ -47,14 +46,12 @@ describe("ModelRouter.isOverloadedFor — per-provider overload", () => {
     expect(router.isOverloadedFor("nvidia")).toBe(true);
     expect(router.isOverloadedFor("minimax")).toBe(false);
     expect(router.isOverloadedFor("openrouter")).toBe(false);
-    expect(router.isOverloadedFor("copilot")).toBe(false);
   });
 
   test("deprecated isOverloaded alias delegates to NVIDIA check", () => {
     const router = new ModelRouter({
       nvidia: stub(),
       openrouter: stub(),
-      copilot: stub(),
       minimax: stub(),
     });
 
@@ -65,15 +62,14 @@ describe("ModelRouter.isOverloadedFor — per-provider overload", () => {
 
   test("unloaded provider reports not-overloaded (falsy by absence)", () => {
     // Construct with only nvidia present — simulate optional-provider startup
-    // where Copilot/OpenRouter were skipped entirely.
+    // where OpenRouter/MiniMax were skipped entirely.
     const router = new ModelRouter({
       nvidia: stub(),
-      // deliberate: no openrouter, copilot, minimax
+      // deliberate: no openrouter, minimax
     } as unknown as Record<"nvidia", LLMProvider>);
 
     expect(router.isOverloadedFor("nvidia")).toBe(false);
     expect(router.isOverloadedFor("openrouter")).toBe(false);
-    expect(router.isOverloadedFor("copilot")).toBe(false);
     expect(router.isOverloadedFor("minimax")).toBe(false);
 
     saturate(router, "nvidia", 33);

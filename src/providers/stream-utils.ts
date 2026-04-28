@@ -1,6 +1,6 @@
 /**
  * Shared streaming utilities for LLM providers.
- * Eliminates duplication between NvidiaProvider and CopilotProvider.
+ * Used by NvidiaProvider, MiniMaxProvider, OpenAICompatProvider.
  */
 import { logger } from "../lib/logger";
 

@@ -25,9 +25,9 @@ Before editing `src/`, `web/app/`, `scripts/`, `tests/` — invoke the `subbrain
 4. **Rate-limit** atomic `tryAcquire()` under `Mutex`. **Fallback** capped `MAX_FALLBACK_ATTEMPTS=1` → `UpstreamExhaustedError` → 502.
 5. **SSE:** `: ping\n\n` every 5s, `idleTimeout:255`. `wrapStreamForChat` honors `isClosed` — no DB writes after cancel. SSE chunk parsing = `providers/sse-parser.ts` (no reimplementation).
 6. **DB:** insert + embed/index wrapped in `db.transaction()`. Batch lookups `WHERE id IN (?,?,…)`. FTS input → `sanitizeFtsQuery`. Migrations in `db.transaction()` + per-statement `.run()`. Mutations via `updateRow(table, ALLOW, id, patch)`.
-7. **HTTP:** all outbound `fetch` via `src/lib/http-client.ts` (`fetchJson`/`fetchStream`). Default 60s, Copilot streams 180s. No raw `fetch` in new code.
+7. **HTTP:** all outbound `fetch` via `src/lib/http-client.ts` (`fetchJson`/`fetchStream`). Default 60s, MiniMax streams 180s. No raw `fetch` in new code.
 8. **Validation:** Elysia TypeBox for every route input; `role` via `t.Union([t.Literal(...)])`. Inbound → `normalizeMessages()`. No `(x as any)` / `ctx.router!` — `AgentContext` discriminated union. `ToolResult = {ok:true,data}|{ok:false,error:{code,message}}`.
-9. **Logger:** `logger.info(stage, message, extra?)` — single-arg call is a bug. Top of module: `const log = logger.child("copilot")`. Meta → `logger.formatForDb`.
+9. **Logger:** `logger.info(stage, message, extra?)` — single-arg call is a bug. Top of module: `const log = logger.child("minimax")`. Meta → `logger.formatForDb`.
 10. **Errors + envelopes:** central `onError` + domain errors (`AppError`, `UpstreamExhaustedError`, `ToolError`, `HttpError`). `{ items, total }` via `lib/api-envelope.ts` (`PaginatedResponse<T>` + `paginate()`). Echoed upstream bodies sliced ≤200 chars + regex-redact secrets.
 11. **Single sources of truth:** virtual roles / embed / rerank — only `lib/model-map.ts`. MCP tools — only `mcp/registry/*.tools.ts` + `mcp/tools/*` domain logic. Tool dispatcher = priority array of resolvers.
 12. **Tests:** `bun:test` with `describe/test/expect`. No top-level `process.exit`. Live tests = `*.live.ts`. Test DB = `data/test.db`.
@@ -73,8 +73,8 @@ Docker: `docker compose build && docker compose up -d`. **Never `docker compose 
   - **In-process** (primary): fires daily at `NIGHT_CYCLE_HOUR_UTC` (default `3` = 03:00 UTC). On startup, checks `night_cycle_last_processed_id` vs. current log count; if backlog ≥ `NIGHT_CYCLE_BACKLOG_TRIGGER` (default 10 — aggressive: favour fresh compression over token savings), runs a catch-up 2 min after boot. Disable with `NIGHT_CYCLE_SCHEDULER=false`.
   - **System cron** (safety net): `scripts/install-cron.sh` installs `0 3 * * * curl .../night-cycle` on the VPS. Harmless duplicate — if in-process fires first, cron's request gets a `409 already_running`. Cron log: `/var/log/subbrain-night-cycle.log`.
   - **Manual trigger:** `ssh root@109.120.187.244 'curl -X POST http://127.0.0.1:4000/night-cycle'`. Status: `curl http://127.0.0.1:4000/night-cycle/status`.
-  - **Post-processing extractor model:** `POST_EXTRACTOR_MODEL` env selects the virtual role used for agentic fact extraction after each chat/agent exchange (default `memory` since 2026-04-25 — gpt-5.1 via cliproxy + MiniMax-M2.7 fallback; previously `coder` = devstral-2; `flash` did not emit `tool_calls` in prod).
-  - **Night-cycle step model:** `NIGHT_CYCLE_MODEL` env selects the role used for PII-scrub / translate / compress / verify / dedup inside the cycle (default `memory` since 2026-04-25 — same gpt-5.1+MiniMax shape; previously `coder`; `flash`/stepfun was a reasoning model and spent ~25s/call on thinking, making a full cycle take 7+ hours).
+  - **Post-processing extractor model:** `POST_EXTRACTOR_MODEL` env selects the virtual role used for agentic fact extraction after each chat/agent exchange (default `memory` — MiniMax-M2.7 via dedicated minimax provider since 2026-04-28; previously gpt-5.1 via cliproxy until ChatGPT Plus quota cooldown; previously `coder`/devstral-2; `flash` did not emit `tool_calls` in prod).
+  - **Night-cycle step model:** `NIGHT_CYCLE_MODEL` env selects the role used for PII-scrub / translate / compress / verify / dedup inside the cycle (default `memory` — same MiniMax shape since 2026-04-28; previously gpt-5.1+MiniMax; previously `coder`; `flash`/stepfun was a reasoning model and spent ~25s/call on thinking, making a full cycle take 7+ hours).
 
 ## Architecture: things you can't see from one file
 
@@ -89,9 +89,9 @@ Inbound messages from any route go through `normalizeMessages()` in `src/lib/mes
 
 ### Virtual roles, never real model IDs
 
-`src/lib/model-map.ts` is the single source of truth: `teamlead`, `coder`, `critic`, `generalist`, `flash`, `chaos`, `memory` resolve to real model IDs + provider + fallback. `GET /v1/models` is generated from this map. **Never hardcode a model ID elsewhere** — change the map. `memory` (added 2026-04-25) is dedicated to hippocampus + night-cycle (gpt-5.1 via cliproxy + MiniMax-M2.7 fallback); `generalist` is the broad-purpose default for `dynamic_tools` (`create_tool`). Most LLM work goes to GitHub Copilot (`copilot` provider); NVIDIA NIM is only for embed + rerank; OpenRouter is the fallback overflow.
+`src/lib/model-map.ts` is the single source of truth: `teamlead`, `coder`, `critic`, `generalist`, `flash`, `chaos`, `memory` resolve to real model IDs + provider + fallback. `GET /v1/models` is generated from this map. **Never hardcode a model ID elsewhere** — change the map. `memory` (added 2026-04-25) is dedicated to hippocampus + night-cycle (MiniMax-M2.7 via dedicated minimax provider since 2026-04-28; was gpt-5.1 via cliproxy until Plus quota cooldown); `generalist` is the broad-purpose default for `dynamic_tools` (`create_tool`). Most LLM work goes to MiniMax (`minimax` provider, MiniMax-M2.7); NVIDIA NIM serves embed + rerank + most LLM fallbacks; OpenRouter is the resort fallback for unknown model IDs (e.g., `claude-*`, `gpt-*`, `gemini-*`).
 
-**Optional OpenAI-compat bridge.** When `OPENAI_COMPAT_ENABLED=true`, `teamlead`/`coder` re-point to `gpt-5.5` via a sidecar `cliproxy` container. Activation logic in `applyOpenAICompatOverrides` (called once at bootstrap before `createProviders`). Allowlist `gpt-5*/o3*/o4*/codex-*` only. See `docs/completed/03-model-router.md`.
+**Optional OpenAI-compat bridge.** When `OPENAI_COMPAT_ENABLED=true`, `teamlead`/`coder` re-point to `gpt-5.4-mini` via a sidecar `cliproxy` container. Activation logic in `applyOpenAICompatOverrides` (called once at bootstrap before `createProviders`). Allowlist `gpt-5*/o3*/o4*/codex-*` only. See `docs/completed/03-model-router.md`.
 
 ### Memory: 4 layers, lazy load only on new chat
 

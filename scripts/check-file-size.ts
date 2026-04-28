@@ -53,7 +53,6 @@ export const TRANSITIONAL_WHITELIST: Record<string, number> = {
   "src/pipeline/agent-loop/tool-runner.ts": 241,
   "src/pipeline/agent-pipeline/post/link-related.ts": 226,
   "src/pipeline/agent-loop/shared.ts": 224,
-  "src/providers/copilot/auth.ts": 217,
   "src/pipeline/agent-pipeline/post/validators.ts": 211,
   "src/rag/report-context.ts": 208,
   "src/pipeline/night-cycle/steps/memory-dedup-utils.ts": 202,

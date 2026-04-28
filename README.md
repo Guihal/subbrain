@@ -34,12 +34,13 @@ VS Code (Continue) / Telegram / Web
 
 | Роль | Виртуальное имя | Реальная модель | Fallback |
 | ---- | --------------- | --------------- | -------- |
-| Тимлид / Оркестратор | `teamlead` | `claude-sonnet-4.6` | `gpt-4o` |
-| Кодер / Разработчик | `coder` | `claude-sonnet-4.6` | `gpt-4o` |
-| Критик / Ревьюер | `critic` | `gemini-3.1-pro-preview` | `gpt-4o` |
-| Генералист / Универсал | `generalist` | `claude-sonnet-4.6` | `gpt-4o` |
-| Хаос (эксперимент) | `chaos` | `gpt-5.4-mini` | `gemini-3-flash-preview` |
-| Pre/Post/Память | `flash` | `gpt-5.4-mini` | `gpt-4o-mini` |
+| Тимлид / Оркестратор | `teamlead` | `MiniMax-M2.7` (minimax) | `minimaxai/minimax-m2.7` (nvidia) |
+| Кодер / Разработчик | `coder` | `MiniMax-M2.7` (minimax) | `mistralai/devstral-2-123b-instruct-2512` (nvidia) |
+| Критик / Ревьюер | `critic` | `MiniMax-M2.7` (minimax) | `moonshotai/kimi-k2-thinking` (nvidia) |
+| Генералист / Универсал | `generalist` | `MiniMax-M2.7` (minimax) | `minimaxai/minimax-m2.7` (nvidia) |
+| Хаос (эксперимент) | `chaos` | `MiniMax-M2.7` (minimax) | `mistralai/mistral-medium-3-instruct` (nvidia) |
+| Pre/Post/Flash | `flash` | `MiniMax-M2.7` (minimax) | `stepfun-ai/step-3.5-flash` (nvidia) |
+| Память (hippocampus + ночной цикл) | `memory` | `MiniMax-M2.7` (minimax) | — (no fallback) |
 
 Embeddings: `nvidia/llama-3.2-nemoretriever-300m-embed-v1` · Rerank: `nvidia/rerank-qa-mistral-4b`
 
@@ -53,8 +54,9 @@ Embeddings: `nvidia/llama-3.2-nemoretriever-300m-embed-v1` · Rerank: `nvidia/re
 
 - [Bun](https://bun.sh/) ≥ 1.3
 - Docker + Docker Compose (для продакшена)
-- `GITHUB_COPILOT_TOKEN` (токен `ghu_`) или `GITHUB_TOKEN` (PAT → device flow при первом старте)
-- `NVIDIA_API_KEY` — [build.nvidia.com](https://build.nvidia.com/) (бесплатно)
+- `MINIMAX_API_KEY` — [platform.minimax.io](https://platform.minimax.io/) (Token Plan)
+- `NVIDIA_API_KEY` — [build.nvidia.com](https://build.nvidia.com/) (бесплатно, для embed+rerank+fallback)
+- `OPENROUTER_API_KEY` — [openrouter.ai](https://openrouter.ai/) (резервный)
 
 ### Локальный запуск
 
@@ -85,9 +87,9 @@ docker compose logs -f subbrain
 | Переменная | Обязательная | Описание |
 | ---------- | :----------: | -------- |
 | `PROXY_AUTH_TOKEN` | ✅ | Bearer-токен для авторизации клиентов |
-| `GITHUB_COPILOT_TOKEN` | ✅ | OAuth-токен `ghu_` (Copilot API — все LLM-роли) |
-| `GITHUB_TOKEN` | — | GitHub PAT `ghp_` — фоллбэк, если нет `GITHUB_COPILOT_TOKEN` |
-| `NVIDIA_API_KEY` | ✅ | NVIDIA NIM (только embed + rerank) |
+| `MINIMAX_API_KEY` | ✅ | MiniMax Token Plan — основной LLM-провайдер |
+| `MINIMAX_BASE_URL` | — | По умолчанию `https://api.minimax.io/v1` |
+| `NVIDIA_API_KEY` | ✅ | NVIDIA NIM (embed + rerank + LLM fallback) |
 | `NVIDIA_BASE_URL` | ✅ | `https://integrate.api.nvidia.com/v1` |
 | `OPENROUTER_API_KEY` | ✅ | OpenRouter — резервный провайдер |
 | `DB_PATH` | — | Путь к SQLite (по умолчанию `data/subbrain.db`) |
@@ -260,18 +262,19 @@ SQLite (4 слоя памяти + FTS5 + sqlite-vec)
 
 ## Модели (виртуальные роли)
 
-> Все LLM-роли используют **GitHub Models (Copilot API)**. NVIDIA NIM — только embed + rerank.
+> Все LLM-роли используют **MiniMax-M2.7** через MiniMax provider (с 2026-04-28). NVIDIA NIM — embed + rerank + большинство fallback'ов.
 
 | Роль                 | Виртуальное имя | Реальная модель          |
 | -------------------- | --------------- | ------------------------ |
-| Тимлид / Оркестратор | `teamlead`      | `claude-sonnet-4.6`      |
-| Кодер                | `coder`         | `claude-sonnet-4.6`      |
-| Критик / Ревьюер     | `critic`        | `gemini-3.1-pro-preview` |
-| Генералист           | `generalist`    | `claude-sonnet-4.6`      |
-| Хаос (эксперимент)   | `chaos`         | `gpt-5.4-mini`           |
-| Pre/Post/Память      | `flash`         | `gpt-5.4-mini`           |
+| Тимлид / Оркестратор | `teamlead`      | `MiniMax-M2.7`           |
+| Кодер                | `coder`         | `MiniMax-M2.7`           |
+| Критик / Ревьюер     | `critic`        | `MiniMax-M2.7`           |
+| Генералист           | `generalist`    | `MiniMax-M2.7`           |
+| Хаос (эксперимент)   | `chaos`         | `MiniMax-M2.7`           |
+| Pre/Post/Flash       | `flash`         | `MiniMax-M2.7`           |
+| Память               | `memory`        | `MiniMax-M2.7`           |
 
-Все запросы проходят через `CopilotProvider` — GitHub Models API с авто-обновляемым сессионным токеном. Router разрешает виртуальное имя в реальную модель и управляет фоллбэками.
+Все LLM-запросы идут через `MiniMaxProvider` (api.minimax.io). Router разрешает виртуальное имя → real model → провайдер и управляет фоллбэками.
 
 ---
 
@@ -282,7 +285,7 @@ SQLite (4 слоя памяти + FTS5 + sqlite-vec)
 - [Bun](https://bun.sh/) ≥ 1.3
 - Docker + Docker Compose (для продакшена)
 - API ключ [NVIDIA NIM](https://build.nvidia.com/)
-- GitHub Copilot OAuth-токен (`ghu_`)
+- API ключ [MiniMax](https://platform.minimax.io/) (Token Plan)
 
 ### Локальный запуск
 
@@ -320,9 +323,9 @@ docker compose logs -f subbrain
 | Переменная                    | Обязательная | Описание                                           |
 | ----------------------------- | :----------: | -------------------------------------------------- |
 | `PROXY_AUTH_TOKEN`            |      ✅      | Bearer-токен для авторизации клиентов              |
-| `GITHUB_COPILOT_TOKEN`        |      ✅      | OAuth-токен `ghu_` (Copilot API — все LLM-роли)    |
-| `GITHUB_TOKEN`                |      —       | PAT `ghp_` — фоллбэк, если нет `GITHUB_COPILOT_TOKEN` |
-| `NVIDIA_API_KEY`              |      ✅      | NVIDIA NIM (embed + rerank)                        |
+| `MINIMAX_API_KEY`             |      ✅      | MiniMax Token Plan — основной LLM-провайдер        |
+| `MINIMAX_BASE_URL`            |      —       | По умолчанию `https://api.minimax.io/v1`           |
+| `NVIDIA_API_KEY`              |      ✅      | NVIDIA NIM (embed + rerank + LLM fallback)         |
 | `NVIDIA_BASE_URL`             |      ✅      | `https://integrate.api.nvidia.com/v1`              |
 | `OPENROUTER_API_KEY`          |      ✅      | OpenRouter — резервный провайдер                   |
 | `DB_PATH`                     |      —       | Путь к SQLite (по умолчанию `data/subbrain.db`)    |

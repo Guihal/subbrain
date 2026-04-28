@@ -67,10 +67,14 @@ export const MODEL_MAP: Record<string, ModelRoute> = {
   // Memory subsystem (hippocampus + night-cycle). MiniMax-M2.7 via dedicated
   // minimax provider (platform.minimax.io). Reverted from gpt-5.1/openai-compat
   // 2026-04-28 after ChatGPT Plus quota burned (67h cooldown on Codex
-  // credentials). No NVIDIA mirror — minimax provider is the single source.
+  // credentials). NVIDIA mirror as emergency fallback — without it, transient
+  // minimax 5xx/timeout breaks hippocampus and the chat falls back to a 35-char
+  // salvage summary ("память сломалась"). Same model, different upstream.
   memory: {
     primary: "MiniMax-M2.7",
     primaryProvider: "minimax",
+    fallback: "minimaxai/minimax-m2.7",
+    fallbackProvider: "nvidia",
   },
 };
 

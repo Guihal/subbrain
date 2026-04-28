@@ -8,7 +8,7 @@
  *   - Leading system messages + first user task are kept verbatim.
  *   - The last KEEP_RECENT_MESSAGES are kept verbatim, with boundary snapping
  *     so we never start the tail on a `tool` message or an `assistant` with
- *     dangling `tool_calls` (Copilot/NVIDIA reject both).
+ *     dangling `tool_calls` (most providers reject both).
  *   - `messages` identity is preserved (same array mutated in place) so callers
  *     holding references don't desync.
  */

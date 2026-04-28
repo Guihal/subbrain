@@ -112,7 +112,7 @@ export function registerAgentMetaTools(registry: ToolRegistry): void {
   registry.register({
     name: "consult_chaos",
     description:
-      "Chaos Advisor (NVIDIA Mistral, 0 Copilot RPM) — 3 unconventional action ideas. Quota: 5 per agent-loop session (env AGENT_CONSULT_CHAOS_MAX). Use at session start without explicit task or when stuck.",
+      "Chaos Advisor (NVIDIA Mistral) — 3 unconventional action ideas. Quota: 5 per agent-loop session (env AGENT_CONSULT_CHAOS_MAX). Use at session start without explicit task or when stuck.",
     scope: "agent-only",
     input: t.Object({
       context: t.String({

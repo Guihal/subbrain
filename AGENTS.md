@@ -23,26 +23,28 @@
 
 ## 🤖 Провайдеры и модели
 
-Система использует **три провайдера** через единый интерфейс `LLMProvider`:
+Система использует **четыре провайдера** через единый интерфейс `LLMProvider`:
 
 | Провайдер                     | Base URL                              | Лимит   | Auth                 |
 | :---------------------------- | :------------------------------------ | :------ | :------------------- |
-| **GitHub Copilot** (`copilot`) | `https://api.githubcopilot.com`       | 10 RPM  | `GITHUB_COPILOT_TOKEN` (ghu_) |
-| **NVIDIA NIM** (`nvidia`)      | `https://integrate.api.nvidia.com/v1` | 40 RPM  | `NVIDIA_API_KEY`               |
-| **OpenRouter** (`openrouter`)  | `https://openrouter.ai/api/v1`        | 200 RPM | `OPENROUTER_API_KEY`           |
+| **MiniMax** (`minimax`)       | `https://api.minimax.io/v1`           | 20 RPM  | `MINIMAX_API_KEY`              |
+| **NVIDIA NIM** (`nvidia`)     | `https://integrate.api.nvidia.com/v1` | 40 RPM  | `NVIDIA_API_KEY`               |
+| **OpenRouter** (`openrouter`) | `https://openrouter.ai/api/v1`        | 200 RPM | `OPENROUTER_API_KEY`           |
+| **OpenAI-compat** (`openai-compat`, optional) | `http://cliproxy:8317/v1` | 30 RPM | `OPENAI_COMPAT_API_KEY` |
 
 ### Карта виртуальных ролей → реальные модели
 
-> Все роли используют **Copilot (GitHub Models)** провайдер. NVIDIA NIM — только embed + rerank.
+> Все роли используют **MiniMax-M2.7** через MiniMax provider (с 2026-04-28). NVIDIA NIM — embed + rerank + большинство fallback'ов.
 
-| Роль                       | Виртуальное имя | Основная модель          | Fallback                  |
-| :------------------------- | :-------------- | :----------------------- | :------------------------ |
-| **Тимлид / Оркестратор**   | `teamlead`      | `claude-sonnet-4.6`      | `gpt-4o`                  |
-| **Кодер / Разработчик**    | `coder`         | `claude-sonnet-4.6`      | `gpt-4o`                  |
-| **Критик / Ревьюер**       | `critic`        | `gemini-3.1-pro-preview` | `gpt-4o`                  |
-| **Генералист / Универсал** | `generalist`    | `claude-sonnet-4.6`      | `gpt-4o`                  |
-| **Хаос (эксперимент)**     | `chaos`         | `gpt-5.4-mini`           | `gemini-3-flash-preview`  |
-| **Pre/Post/Memory**        | `flash`         | `gpt-5.4-mini`           | `gpt-4o-mini`             |
+| Роль                       | Виртуальное имя | Основная модель          | Fallback                          |
+| :------------------------- | :-------------- | :----------------------- | :-------------------------------- |
+| **Тимлид / Оркестратор**   | `teamlead`      | `MiniMax-M2.7`           | `minimaxai/minimax-m2.7` (nvidia) |
+| **Кодер / Разработчик**    | `coder`         | `MiniMax-M2.7`           | `mistralai/devstral-2-123b-instruct-2512` (nvidia) |
+| **Критик / Ревьюер**       | `critic`        | `MiniMax-M2.7`           | `moonshotai/kimi-k2-thinking` (nvidia) |
+| **Генералист / Универсал** | `generalist`    | `MiniMax-M2.7`           | `minimaxai/minimax-m2.7` (nvidia) |
+| **Хаос (эксперимент)**     | `chaos`         | `MiniMax-M2.7`           | `mistralai/mistral-medium-3-instruct` (nvidia) |
+| **Pre/Post/Flash**         | `flash`         | `MiniMax-M2.7`           | `stepfun-ai/step-3.5-flash` (nvidia) |
+| **Память (hippocampus + ночной цикл)** | `memory` | `MiniMax-M2.7` | — (без fallback)                  |
 
 ### Вспомогательные модели (NVIDIA NIM, не в MODEL_MAP)
 
@@ -56,9 +58,10 @@
 ### OpenAI-compat (optional)
 
 When `OPENAI_COMPAT_ENABLED=true`, virtual roles `teamlead` and `coder` route
-to `gpt-5.5` via a local CLIProxyAPI container (`http://cliproxy:8080/v1`),
-which forwards to chatgpt.com using a ChatGPT Pro OAuth token. Fallback
-remains MiniMax / NVIDIA. See `.env.example` and
+to `gpt-5.4-mini` via a local CLIProxyAPI container (`http://cliproxy:8317/v1`),
+which forwards to chatgpt.com using a ChatGPT Pro OAuth token. Fallback chain
+preserved (MiniMax → NVIDIA mirror). Subject to ChatGPT Plus quota cooldowns;
+keep flag off unless you need it. See `.env.example` and
 `docs/completed/03-model-router.md`.
 
 ---
@@ -91,7 +94,7 @@ remains MiniMax / NVIDIA. See `.env.example` and
 Запрос пользователя
       │
       ▼
-[1] Pre-processing: Гиппокамп (flash / gpt-5.4-mini) — агентный режим
+[1] Pre-processing: Гиппокамп (memory / MiniMax-M2.7) — агентный режим
     └─ Загрузка layer1_focus + shared_memory как seed-контекст
     └─ Tool-calling цикл (до 6 шагов, 25s бюджет):
          memory_search (FTS5, бесплатно)
@@ -105,7 +108,7 @@ remains MiniMax / NVIDIA. See `.env.example` and
     └─ Стриминг ответа пользователю
       │
       ▼
-[3] Post-processing (flash / gpt-5.4-mini)
+[3] Post-processing (memory / MiniMax-M2.7)
     └─ Анализирует «дельту знаний»
     └─ Записывает в raw_log (Layer 4) с request_id
 ```
@@ -173,12 +176,13 @@ Layer 4 (raw_log, RU Plain Text)
      │                       │                      │
      ▼                       ▼                      ▼
 ┌───────────────────┐   ┌─────────────────┐   ┌──────────────────┐
-│  GitHub Models    │   │   NVIDIA NIM    │   │   OpenRouter     │
-│   (copilot)       │   │  embed, rerank  │   │  (резервный)     │
-│ teamlead, coder   │   │  40 RPM         │   │  200 RPM         │
-│ critic, generalist│   └─────────────────┘   └──────────────────┘
-│ flash, chaos      │
-│ 10 RPM            │
+│  MiniMax API      │   │   NVIDIA NIM    │   │   OpenRouter     │
+│   (minimax)       │   │  embed, rerank  │   │  (резервный)     │
+│ teamlead, coder   │   │  + LLM fallback │   │  200 RPM         │
+│ critic, generalist│   │  40 RPM         │   └──────────────────┘
+│ flash, chaos,     │   └─────────────────┘
+│ memory            │
+│ 20 RPM            │
 └──────┬────────────┘
        │
        ▼

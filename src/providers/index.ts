@@ -7,7 +7,6 @@ import type {
   ModelInfo,
 } from "./types";
 import { NvidiaProvider } from "./nvidia";
-import { CopilotProvider } from "./copilot";
 import { MiniMaxProvider } from "./minimax";
 import { OpenAICompatProvider } from "./openai-compat";
 import { MODEL_MAP, type ProviderName } from "../lib/model-map";
@@ -71,10 +70,10 @@ function makeAbsentProvider(name: ProviderName): LLMProvider {
  * Create providers required by the current MODEL_MAP.
  *
  * - NVIDIA: always required (embed + rerank + fallback).
- * - MiniMax / Copilot / OpenRouter: loaded only when MODEL_MAP references
- *   them as primary or fallback. Missing env key for a referenced provider
- *   is fail-fast; unreferenced providers are replaced with a stub that
- *   throws on any call.
+ * - MiniMax / OpenRouter / OpenAI-compat: loaded only when MODEL_MAP
+ *   references them as primary or fallback. Missing env key for a referenced
+ *   provider is fail-fast; unreferenced providers are replaced with a stub
+ *   that throws on any call.
  */
 export async function createProviders(): Promise<
   Record<ProviderName, LLMProvider>
@@ -106,24 +105,6 @@ export async function createProviders(): Promise<
     });
   } else {
     openrouter = makeAbsentProvider("openrouter");
-  }
-
-  // Copilot — optional
-  let copilot: LLMProvider;
-  if (required.has("copilot")) {
-    // Prefer GITHUB_COPILOT_TOKEN (ghu_ OAuth), fallback to GITHUB_TOKEN (ghp_ PAT → device flow)
-    const copilotToken =
-      process.env.GITHUB_COPILOT_TOKEN || process.env.GITHUB_TOKEN;
-    if (!copilotToken) {
-      throw new Error(
-        "GITHUB_COPILOT_TOKEN or GITHUB_TOKEN must be set (Copilot referenced by MODEL_MAP)",
-      );
-    }
-    const copilotImpl = new CopilotProvider(copilotToken, 16384);
-    await copilotImpl.init();
-    copilot = copilotImpl;
-  } else {
-    copilot = makeAbsentProvider("copilot");
   }
 
   // MiniMax — optional. If referenced but key missing, fail fast rather than
@@ -164,7 +145,6 @@ export async function createProviders(): Promise<
   return {
     nvidia,
     openrouter,
-    copilot,
     minimax,
     "openai-compat": openaiCompat,
   };

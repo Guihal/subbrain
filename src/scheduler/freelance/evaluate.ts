@@ -20,7 +20,7 @@ export async function evaluateLead(
     .filter(Boolean)
     .join("\n");
 
-  // coder = Copilot (devstral), fast + reliable JSON. flash = reasoning model,
+  // coder = MiniMax (devstral fallback), fast + reliable JSON. flash = reasoning model,
   // slower, sometimes garbled. Try the cheap one first; fall back on
   // parse-fail only.
   const first = await safeEvaluate(router, "coder", user, signal);

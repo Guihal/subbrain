@@ -24,16 +24,16 @@ beforeAll(() => {
       if (url.pathname === "/v1/chat/completions") {
         if (body.includes('"stream":true')) {
           const sse =
-            'data: {"id":"x","object":"chat.completion.chunk","created":0,"model":"gpt-5.5","choices":[{"index":0,"delta":{"content":"hi"},"finish_reason":null}]}\n\ndata: [DONE]\n\n';
+            'data: {"id":"x","object":"chat.completion.chunk","created":0,"model":"gpt-5.4-mini","choices":[{"index":0,"delta":{"content":"hi"},"finish_reason":null}]}\n\ndata: [DONE]\n\n';
           return new Response(sse, { status: 200, headers: { "content-type": "text/event-stream" } });
         }
         return Response.json({
-          id: "r1", object: "chat.completion", created: 0, model: "gpt-5.5",
+          id: "r1", object: "chat.completion", created: 0, model: "gpt-5.4-mini",
           choices: [{ index: 0, message: { role: "assistant", content: "ok" }, finish_reason: "stop" }],
         });
       }
       if (url.pathname === "/v1/models") {
-        return Response.json({ data: [{ id: "gpt-5.5", object: "model", created: 0, owned_by: "openai" }] });
+        return Response.json({ data: [{ id: "gpt-5.4-mini", object: "model", created: 0, owned_by: "openai" }] });
       }
       return new Response("not found", { status: 404 });
     },
@@ -50,7 +50,7 @@ describe("OpenAICompatProvider", () => {
   test("chat: posts to configured base URL", async () => {
     reset();
     const p = new OpenAICompatProvider(baseUrl, "key");
-    await p.chat({ model: "gpt-5.5", messages: msg });
+    await p.chat({ model: "gpt-5.4-mini", messages: msg });
     expect(hits.length).toBe(1);
     expect(hits[0]!.url).toBe("/v1/chat/completions");
     expect(hits[0]!.method).toBe("POST");
@@ -59,14 +59,14 @@ describe("OpenAICompatProvider", () => {
   test("chat: Bearer auth header", async () => {
     reset();
     const p = new OpenAICompatProvider(baseUrl, "secret-token");
-    await p.chat({ model: "gpt-5.5", messages: msg });
+    await p.chat({ model: "gpt-5.4-mini", messages: msg });
     expect(hits[0]!.headers.get("authorization")).toBe("Bearer secret-token");
   });
 
   test("chat: X-Subbrain-Provider: openai-compat header", async () => {
     reset();
     const p = new OpenAICompatProvider(baseUrl, "k");
-    await p.chat({ model: "gpt-5.5", messages: msg });
+    await p.chat({ model: "gpt-5.4-mini", messages: msg });
     expect(hits[0]!.headers.get("x-subbrain-provider")).toBe("openai-compat");
   });
 
@@ -74,7 +74,7 @@ describe("OpenAICompatProvider", () => {
     reset();
     const p = new OpenAICompatProvider(baseUrl, "k");
     const stream = p.chatStream({
-      model: "gpt-5.5",
+      model: "gpt-5.4-mini",
       messages: msg,
       stream: true,
     });
@@ -97,7 +97,7 @@ describe("OpenAICompatProvider", () => {
     setTimeout(() => ctrl.abort(), 50);
     let caught: unknown;
     try {
-      await p.chat({ model: "gpt-5.5", messages: msg, signal: ctrl.signal });
+      await p.chat({ model: "gpt-5.4-mini", messages: msg, signal: ctrl.signal });
     } catch (e) {
       caught = e;
     }
@@ -111,7 +111,7 @@ describe("OpenAICompatProvider", () => {
     const p = new OpenAICompatProvider(baseUrl, "k");
     let caught: unknown;
     try {
-      await p.chat({ model: "gpt-5.5", messages: msg });
+      await p.chat({ model: "gpt-5.4-mini", messages: msg });
     } catch (e) {
       caught = e;
     }
@@ -127,7 +127,7 @@ describe("OpenAICompatProvider", () => {
     const p = new OpenAICompatProvider(baseUrl, "k");
     const out = await p.listModels();
     expect(out).toHaveLength(1);
-    expect(out[0]!.id).toBe("gpt-5.5");
+    expect(out[0]!.id).toBe("gpt-5.4-mini");
     expect(hits[0]!.url).toBe("/v1/models");
   });
 });
@@ -137,16 +137,18 @@ describe("model-map: detect + apply", () => {
     delete process.env.OPENAI_COMPAT_ENABLED;
   });
 
-  test("detect: gpt-5.5 → openai-compat when ENABLED=true", async () => {
+  test("detect: gpt-5.4-mini → openai-compat when ENABLED=true", async () => {
     process.env.OPENAI_COMPAT_ENABLED = "true";
     const { resolveModel } = await import("../../src/lib/model-map");
-    expect(resolveModel("gpt-5.5").provider).toBe("openai-compat");
+    expect(resolveModel("gpt-5.4-mini").provider).toBe("openai-compat");
   });
 
-  test("detect: gpt-4o stays on copilot when ENABLED=true", async () => {
+  test("detect: gpt-4o falls through to openrouter (not openai-compat) when ENABLED=true", async () => {
     process.env.OPENAI_COMPAT_ENABLED = "true";
     const { resolveModel } = await import("../../src/lib/model-map");
-    expect(resolveModel("gpt-4o").provider).toBe("copilot");
+    // gpt-4o doesn't match the openai-compat allowlist (gpt-5*/o3*/o4*/codex-*),
+    // and after copilot purge the default provider is openrouter.
+    expect(resolveModel("gpt-4o").provider).toBe("openrouter");
   });
 
   test("apply: idempotent on/off + WeakMap snapshot restore", async () => {
@@ -167,14 +169,14 @@ describe("model-map: detect + apply", () => {
     const original = JSON.parse(JSON.stringify(localMap));
 
     applyOpenAICompatOverrides(localMap, envOn);
-    expect(localMap.teamlead!.primary).toBe("gpt-5.5");
+    expect(localMap.teamlead!.primary).toBe("gpt-5.4-mini");
     expect(localMap.teamlead!.primaryProvider).toBe("openai-compat");
     expect(localMap.teamlead!.fallback).toBe("MiniMax-M2.7");
     expect(localMap.teamlead!.fallbackProvider).toBe("minimax");
 
     // idempotent: second apply enabled=true is no-op
     applyOpenAICompatOverrides(localMap, envOn);
-    expect(localMap.teamlead!.primary).toBe("gpt-5.5");
+    expect(localMap.teamlead!.primary).toBe("gpt-5.4-mini");
 
     // off → restore from snapshot
     applyOpenAICompatOverrides(localMap, envOff);
