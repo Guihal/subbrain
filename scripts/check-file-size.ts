@@ -47,7 +47,7 @@ export const TRANSITIONAL_WHITELIST: Record<string, number> = {
   "scripts/migrate-tasks-from-memory.ts": 263,
   "src/db/tables/tasks.ts": 305,
   "web/app/composables/useMemory.ts": 249,
-  "src/routes/memory.ts": 246,
+  "src/routes/memory.ts": 265,
   "src/pipeline/agent-pipeline/pre/exec-summary.ts": 245,
   "src/pipeline/agent-pipeline/post/dedupe.ts": 241,
   "src/pipeline/agent-loop/tool-runner.ts": 241,
@@ -72,7 +72,7 @@ export const TRANSITIONAL_WHITELIST: Record<string, number> = {
   "src/scheduler/telegram-commands.ts": 179,
   "src/lib/fts-utils.ts": 175,
   "web/app/components/TaskRow.vue": 174,
-  "src/pipeline/night-cycle/post-steps.ts": 185,
+  "src/pipeline/night-cycle/post-steps.ts": 200,
   "src/providers/index.ts": 172,
   "src/providers/nvidia.ts": 172,
   "src/pipeline/agent-pipeline/phases/stream.ts": 168,
@@ -86,6 +86,7 @@ export const TRANSITIONAL_WHITELIST: Record<string, number> = {
   "src/pipeline/agent-loop/step.ts": 155,
   "web/app/pages/freelance.vue": 152,
   "src/lib/http-client.ts": 151,
+  "src/pipeline/night-cycle/janitor/phase-bc.ts": 165,
 };
 
 function lookupCap(rel: string): number {

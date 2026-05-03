@@ -42,6 +42,11 @@ export interface NightCycleResult {
   focusRewritten: number;
   focusSkipped: number;
   focusErrors: number;
+  // PR-B: janitor counters (expire/dedup/legacy/task-done).
+  janitorExpiredDeleted: number;
+  janitorDedupArchived: number;
+  janitorLegacyArchived: number;
+  janitorDoneTasksDeleted: number;
   errors: string[];
   lastProcessedId: number;
 }

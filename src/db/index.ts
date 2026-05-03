@@ -156,6 +156,18 @@ export class MemoryDB {
     this.memoryRepo.listContextActive(limit, offset);
   countContext = () => this.memoryRepo.countContext();
   deleteContext = (id: string) => this.memoryRepo.deleteContext(id);
+  getAllContext = () => this.memoryRepo.getAllContext();
+  /** PR-B janitor Phase A: delete expired rows in bulk. COUNT-before avoids FTS shadow-table inflating .changes. */
+  deleteExpiredShared(nowSec: number): number {
+    const c = (this.db.query("SELECT COUNT(*) as c FROM shared_memory WHERE expires_at IS NOT NULL AND expires_at < ?").get(nowSec) as { c: number }).c;
+    if (c > 0) this.db.query("DELETE FROM shared_memory WHERE expires_at IS NOT NULL AND expires_at < ?").run(nowSec);
+    return c;
+  }
+  deleteExpiredContext(nowSec: number): number {
+    const c = (this.db.query("SELECT COUNT(*) as c FROM layer2_context WHERE expires_at IS NOT NULL AND expires_at < ?").get(nowSec) as { c: number }).c;
+    if (c > 0) this.db.query("DELETE FROM layer2_context WHERE expires_at IS NOT NULL AND expires_at < ?").run(nowSec);
+    return c;
+  }
 
   // ─── Layer 3: Archive ──────────────────────────────────────
   // M-12 (mig 15): archive confidence unified to REAL [0..1] | null.
@@ -411,6 +423,9 @@ export class MemoryDB {
     status: "open" | "in_progress",
     ageSec: number,
   ) => this._tasks.deleteStaleByStatus(status, ageSec);
+  /** PR-B janitor Phase D: delete done tasks whose completed_at is older than ageSec. */
+  deleteDoneTasksOlderThan = (ageSec: number): number =>
+    this.db.query("DELETE FROM tasks WHERE status = 'done' AND completed_at < unixepoch() - ?").run(ageSec).changes;
   searchTaskDigests = (sinceUnix: number, limit: number, offset: number) =>
     this._tasks.searchTaskDigests(sinceUnix, limit, offset);
   countTaskDigestsSince = (sinceUnix: number) =>

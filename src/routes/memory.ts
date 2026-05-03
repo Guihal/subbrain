@@ -6,8 +6,9 @@ import { Elysia, t } from "elysia";
 import { paginate } from "../lib/api-envelope";
 import { NotFoundError } from "../lib/errors";
 import type { MemoryService, EdgeLayer } from "../services/memory";
-import type { MemoryStatus, MemoryKind } from "../db";
+import type { MemoryStatus, MemoryKind, MemoryDB } from "../db";
 import type { EdgeKind } from "../db/types";
+import { restoreFromArchive } from "../services/memory";
 
 const str = (v: unknown): string | undefined =>
   typeof v === "string" && v.length > 0 ? v : undefined;
@@ -97,7 +98,7 @@ const EDGE_PAGE = {
 const EDGES_QUERY = t.Object({ from: t.String({ minLength: 1 }), fromLayer: EDGE_LAYER, ...EDGE_PAGE });
 const RELATED_QUERY = t.Object({ id: t.String({ minLength: 1 }), layer: EDGE_LAYER, ...EDGE_PAGE });
 
-export function memoryRoute(svc: MemoryService) {
+export function memoryRoute(svc: MemoryService, memoryDb?: MemoryDB) {
   return new Elysia({ prefix: "/v1/memory" })
     .get("/focus", () => svc.listFocus())
     .put("/focus/:key", ({ params, body }) => {
@@ -241,5 +242,21 @@ export function memoryRoute(svc: MemoryService) {
           return { items: all.slice(offset, offset + limit), total: all.length };
         }, query),
       { query: RELATED_QUERY },
+    )
+    // PR-B restore: move an archived janitor row back to its original layer.
+    .post(
+      "/restore",
+      ({ body }) => {
+        if (!memoryDb) throw new NotFoundError("memoryDb not wired");
+        const row = svc.getArchive(body.id);
+        if (!row) throw new NotFoundError("Archive entry");
+        const restored = restoreFromArchive(memoryDb, body.id, row);
+        return { ok: true as const, data: restored };
+      },
+      {
+        body: t.Object({
+          id: t.String({ minLength: 1 }),
+        }),
+      },
     );
 }
