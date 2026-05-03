@@ -1,11 +1,4 @@
-/**
- * Shared-layer write path. M-FINAL2 + MEM-2 (M-01) + M-07.1 + PR-A.
- *
- * PR-A enforcement (MEMORY_VALIDATORS_ENFORCE=warn|reject):
- *   1. validateCategoryAndContent + validateExpiresAt (whitelist + TIME_BOUND).
- *   2. defaultExpiresAt fills missing expires_at by category.
- *   3. checkDuplicate per-category dedup (strict/supersede modes).
- */
+/** Shared-layer write. PR-A: validate + dedup (strict/supersede) + MEMORY_VALIDATORS_ENFORCE. */
 import { logger } from "../../../lib/logger";
 import { incrementCounter } from "../../../lib/metrics";
 import type { MemoryDB, MemoryKind } from "../../../db";
@@ -37,7 +30,7 @@ function mode(): "warn" | "reject" {
 
 function maybeReject(reason: string, ctx: Record<string, unknown>): ToolResult | null {
   const m = mode();
-  incrementCounter("memory_write_rejected_total", { enforce_mode: m });
+  incrementCounter("memory_write_validator_triggered_total", { enforce_mode: m });
   if (m === "reject")
     return { success: false, error: { code: "validation_failed", message: reason } };
   log.warn(`would_reject: ${reason}`, { meta: ctx });
@@ -69,7 +62,6 @@ export function writeShared(
     { confidence: params.confidence, status: params.status, kind, expires_at: expiresAt });
   return { success: true, data: { id: params.id } };
 }
-
 async function writeWithDedupAsync(
   deps: SharedWriteDeps, svc: MemoryService | null, rag: RAGPipeline | null,
   params: SharedWriteParams, kind: MemoryKind, expiresAt: number | null,
@@ -92,21 +84,38 @@ async function writeWithDedupAsync(
   if (typeof result === "object") return result;
   return { success: true, data: { id: result } };
 }
-
-/** Embed content, then atomically insert new row + mark old row superseded. */
+/** Embed (async), then single transaction: insert new row + mark old row superseded. */
 async function insertAndSupersede(
   deps: SharedWriteDeps, svc: MemoryService | null, rag: RAGPipeline | null,
   params: SharedWriteParams, kind: MemoryKind, expiresAt: number | null, supersedesId: string,
 ): Promise<string | ToolResult> {
-  const newId = await doInsert(deps, svc, rag, params, kind, expiresAt);
-  if (typeof newId === "object") return newId;
-  // Both supersede-update and (for non-svc path) insert are now in DB; mark old row atomically.
-  deps.memory.transaction(() => {
-    deps.memory.updateShared(supersedesId, { superseded_by: newId });
-  });
-  return newId;
+  if (svc) {
+    let newId: string;
+    try {
+      newId = await svc.insertShared({ category: params.category, content: params.content,
+        tags: params.tags, confidence: params.confidence, status: params.status, kind, expires_at: expiresAt });
+    } catch (e) { return { success: false, error: { code: "insert_failed", message: e instanceof Error ? e.message : String(e) } }; }
+    try {
+      deps.memory.transaction(() => { deps.memory.updateShared(supersedesId, { superseded_by: newId }); });
+    } catch (e) { log.warn(`supersede_link_failed: ${String(e)}`); }
+    return newId;
+  }
+  if (!rag) return { success: false, error: { code: "no_insert_path", message: "no rag or svc" } };
+  // Pre-compute embed (async) outside transaction, then insert+link atomically.
+  let vec: Float32Array;
+  try { vec = await embedWithTimeout(rag, params.content); }
+  catch (e) { return { success: false, error: { code: "embed_failed", message: e instanceof Error ? e.message : String(e) } }; }
+  if (!vec || vec.length === 0) return { success: false, error: { code: "embed_empty", message: "embed returned empty vector" } };
+  try {
+    deps.memory.transaction(() => {
+      deps.memory.insertShared(params.id, params.category, params.content, params.tags, undefined,
+        { confidence: params.confidence, status: params.status, kind, expires_at: expiresAt });
+      deps.memory.upsertEmbedding(params.id, "shared", vec);
+      deps.memory.updateShared(supersedesId, { superseded_by: params.id });
+    });
+  } catch (e) { return { success: false, error: { code: "txn_failed", message: e instanceof Error ? e.message : String(e) } }; }
+  return params.id;
 }
-
 /** Insert via service (preferred) or embed-atomic (legacy). Returns new id or ToolResult error. */
 async function doInsert(
   deps: SharedWriteDeps, svc: MemoryService | null, rag: RAGPipeline | null,

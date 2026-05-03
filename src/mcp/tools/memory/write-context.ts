@@ -29,7 +29,7 @@ function mode(): "warn" | "reject" {
 
 function maybeReject(reason: string, ctx: Record<string, unknown>): ToolResult | null {
   const m = mode();
-  incrementCounter("memory_write_rejected_total", { enforce_mode: m });
+  incrementCounter("memory_write_validator_triggered_total", { enforce_mode: m });
   if (m === "reject")
     return { success: false, error: { code: "validation_failed", message: reason } };
   log.warn(`would_reject: ${reason}`, { meta: ctx });
@@ -97,7 +97,10 @@ async function insertWithDedupAsync(
       });
       return { success: true, data: { id, superseded: dd.supersedesId } } as ToolResult;
     }
-  } catch (e) { log.warn(`dedup_error: ${String(e)}`); }
+  } catch (e) {
+    log.warn(`dedup_error: ${String(e)}`);
+    return { success: false, error: { code: "supersede_failed", message: e instanceof Error ? e.message : String(e) } };
+  }
   memory.insertContext(id, params.title || "Untitled", params.content, params.tags || "",
     [], agentId ?? undefined, { confidence, status, expires_at: expiresAt ?? undefined });
   return null;
