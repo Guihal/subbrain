@@ -106,7 +106,7 @@ SELECT layer, category, COUNT(*) FROM memory GROUP BY layer, category ORDER BY 3
   - **Phase A — expired:** `DELETE FROM memory WHERE expires_at < now()`. Лог count.
   - **Phase B — duplicates:** для каждого layer/category, для каждой свежей пары (≤7d), проверить cosine; если ≥0.92 — оставить новейшую, остальных в archive с тегом `dedup-{batch_date}`.
   - **Phase C — legacy purge (one-time флаг `JANITOR_LEGACY_SWEEP=true`):** строки с `category` НЕ в whitelist ИЛИ длина > MAX_*_CONTENT — move в archive layer с тегом `legacy-cleanup-2026-05-03`. Revertable, не delete.
-  - **TG-confirm gate (premortem fail-mode-5 fix):** перед фактическим archive — TG-сообщение юзеру: `«About to archive N rows. Top reasons: bad-category=X, oversize=Y. Sample preview: <5 random rows>. Reply YES to proceed (1h timeout)».` Без YES — Phase C skip, log warn. После execution — `POST /v1/memory/restore?layer=archive&id=N` endpoint в [src/routes/memory.ts](../../src/routes/memory.ts) для отката.
+  - **Fully automated** (per user 2026-05-03 — Q2 closed): Phase C запускается без TG-confirm. Safety = `archive` (не delete), всегда revertable. После execution — TG-notify «archived N rows, top reasons: …, restore via POST /v1/memory/restore?layer=archive&id=N» (информационно, не блокирующее). Endpoint `POST /v1/memory/restore` в [src/routes/memory.ts](../../src/routes/memory.ts) — обязателен.
   - **Phase D — task hygiene:** `DELETE FROM tasks WHERE status='done' AND completed_at < now()-30d`. Уже частично есть в night-cycle stale-task pass — расширить до status-aware. **Применяется к существующей `tasks` table (не к `agent_tasks` из PR-C — у той свой retention в самой pool logic).**
 - Wire в `src/services/night-cycle/index.ts` после log-compression phase.
 - Новый env: `JANITOR_LEGACY_SWEEP=false` (default), `JANITOR_DEDUP_THRESHOLD=0.92`.
@@ -165,7 +165,7 @@ CREATE INDEX idx_agent_tasks_pending ON agent_tasks(status, scheduled_at) WHERE 
 - Все file-cap'ы — hard limits per CLAUDE.md §1; orchestrator-композиция, не business logic.
 - `runners/free.ts` — prompt + tool-allowlist для exploratory web/code-tool tasks (D1-D4 deliverables ниже).
 - `runners/clear.ts` — prompt для memory cleanup tasks (subsets PR-B janitor logic, инкрементально).
-- `runners/check-tg.ts` — prompt для TG inbox monitoring (новые сообщения юзеру в чатах ≥1 unread).
+- `runners/check-tg.ts` — prompt для TG inbox monitoring. **Scope (per user 2026-05-03 — Q5 closed):** auto-detect — runner вызывает `tg_list_chats` filter'ом «есть сообщение с `last_message_ts > now() - 1d`»; затем skip всё что в `CHECK_TG_EXCLUDE` env (csv chat IDs). НЕ allowlist — blocklist, default empty (= read all active chats).
 - `runners/research.ts` — focused research-by-topic, артефакт = ≤3 shared-facts с supersedes-aware writes.
 - `runners/find-new-task.ts` — runner-обёртка вокруг `pool/find-new.ts` meta logic: агент анализирует memory + recent activity + open backlog → `enqueue` 1-3 новых task в pool.
 - [src/db/tables/](../../src/db/tables/) — новый `agent-tasks.ts` table module (raw SQL + row mapping per repo-layer rule).
@@ -206,7 +206,7 @@ SAFETY: payments / irreversible / cookies — запрещено. SMS/email — 
   - **Dedup на enqueue:** прежде чем INSERT новой task, `memory_search` + проверка `agent_tasks WHERE prompt LIKE %snippet%` за последние 24h. Если уже есть pending/running/recent-done — пропустить (premortem fail-mode-3).
 
 **Concurrency:**
-- `maxConcurrent` env, default `2`. Поднять до 3 если NVIDIA RPM headroom (router exposes `freeRpm()`).
+- `maxConcurrent` env, default `3` (per user 2026-05-03 — Q3 closed). Router exposes `freeRpm()` — на overload пропускает тик.
 - Pool runner проверяет `router.isOverloaded` перед claim — если true, пропускает тик.
 - Per-type rate limit: `check-tg` — max 1 раз в 5 мин; `clear` — max 1 параллельно (DB-write contention); `free`/`research` — без ограничений сверх `maxConcurrent`.
 
@@ -445,7 +445,7 @@ Implementation:
 | `JANITOR_LEGACY_SWEEP` | `false` | PR-B | One-time. Enable → требует TG-confirm перед archive. |
 | `JANITOR_DEDUP_THRESHOLD` | `0.92` | PR-B | Cosine threshold для duplicate detection в Phase B. |
 | `AGENT_POOL_ENABLED` | `false` | PR-C2 | Master switch для нового pool. |
-| `AGENT_POOL_MAX_CONCURRENT` | `2` | PR-C4 | Max parallel runners. |
+| `AGENT_POOL_MAX_CONCURRENT` | `3` | PR-C4 | Max parallel runners (NVIDIA RPM headroom; router skip-tick на overload). |
 | `AGENT_POOL_INTERVAL_MS` | `60000` | PR-C2 | Pool tick interval. |
 | `AGENT_POOL_MAX_TOKENS_PER_TASK` | `60000` | PR-C2 | Hard cap → AbortController на breach (FM-6). |
 | `AGENT_POOL_MAX_TOKENS_FREE` | `60000` | PR-C2 | Per-type override (free runner). |
@@ -454,7 +454,7 @@ Implementation:
 | `AGENT_POOL_MAX_TOKENS_CLEAR` | `15000` | PR-C3 | Per-type override. |
 | `AGENT_POOL_MAX_TOKENS_FIND_NEW_TASK` | `10000` | PR-C2 | Per-type override (cheap meta). |
 | `AGENT_POOL_DIGEST_HOUR_LOCAL` | `21` | PR-C3 | Hour of day для daily rollup TG-message. |
-| `CHECK_TG_WATCHLIST` | (empty) | PR-C3 | csv chat IDs мониторящихся `check-tg` runner'ом. |
+| `CHECK_TG_EXCLUDE` | (empty) | PR-C3 | csv chat IDs **исключённых** из check-tg scan; default empty = read all active chats (auto-detect last_message_ts > now-1d). |
 | `CHECK_TG_KEYWORDS` | (empty) | PR-C3 | csv keywords для real-time alert на complete check-tg. |
 
 **`.env.example` diff** — добавить блок `# === memory-hygiene + agent-pool (spec 2026-05-03) ===` с теми же defaults, плюс комменты-ссылки на spec-section-anchor (`# see docs/superpowers/specs/2026-05-03-memory-hygiene-and-agent-usefulness.md#environment-variables`).
@@ -468,10 +468,10 @@ Implementation:
 - Replace `memory.service.ts` legacy paths.
 - ClawHub-style external skill registry.
 
-## Open questions (для юзера перед `/task` handoff)
+## Open questions — RESOLVED 2026-05-03
 
-1. **TTL granularity** — `context/project/bug` = 30d default. Не агрессивно? Альтернатива: 60d с явным `expires_at` от агента для коротких.
-2. **Legacy sweep mode** — env-flag `JANITOR_LEGACY_SWEEP=true` + TG-prompt «about to archive N rows, ok? [reply YES]» перед действием? Или fully automated? (lean — TG-prompt для one-time, потом автомат для свежих.)
-3. **`maxConcurrent`** для agent-pool — старт с 2 или 3? NVIDIA RPM зависит от текущей nагрузки чатов, лучше adaptive (`min(3, freeRpm/expectedRunCost)`).
-4. **`find-new-task` cooldown** — 10 мин достаточно, или гибче (e.g. exponential если pool пустеет несколько тиков подряд)?
-5. **`check-tg` scope** — какие TG-чаты watch'ить? Конфиг env var `CHECK_TG_WATCHLIST=chat_id1,chat_id2` или auto-detect по unread? (lean — env list для предсказуемости.)
+1. **TTL granularity** — keep defaults (30d для `context/project/bug`); revisit если prod telemetry покажет premature expiry.
+2. **Legacy sweep mode** — fully automated. Archive (revertable), TG-notify post-action не блокирующий.
+3. **`maxConcurrent`** — `3` (NVIDIA RPM headroom покрывает; router skip-tick на overload).
+4. **`find-new-task` cooldown** — 10 min фикс, не exponential.
+5. **`check-tg` scope** — auto-detect по `last_message_ts > now-1d`; `CHECK_TG_EXCLUDE` blocklist (default empty).
