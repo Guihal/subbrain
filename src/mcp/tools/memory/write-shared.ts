@@ -97,7 +97,12 @@ async function insertAndSupersede(
     } catch (e) { return { success: false, error: { code: "insert_failed", message: e instanceof Error ? e.message : String(e) } }; }
     try {
       deps.memory.transaction(() => { deps.memory.updateShared(supersedesId, { superseded_by: newId }); });
-    } catch (e) { log.warn(`supersede_link_failed: ${String(e)}`); }
+    } catch (e) {
+      log.warn("supersede_link_failed", { meta: { newId, supersedesId, error: String(e) } });
+      try { deps.memory.transaction(() => { deps.memory.deleteShared(newId); }); }
+      catch (re) { log.warn("supersede_rollback_failed: orphan row remains", { meta: { newId, error: String(re) } }); }
+      return { success: false, error: { code: "supersede_link_failed", message: e instanceof Error ? e.message : String(e) } };
+    }
     return newId;
   }
   if (!rag) return { success: false, error: { code: "no_insert_path", message: "no rag or svc" } };
