@@ -10,6 +10,8 @@ export const WHITELIST_SHARED = new Set<string>([
 
 export const WHITELIST_CONTEXT = new Set<string>([
   "project", "decision", "bug", "architecture", "learning",
+  // TIME_BOUND categories: time-scoped work belongs in context layer (spec §2.3).
+  "plan", "strategy", "priority", "urgent", "deadline",
 ]);
 
 // Substring prefix-matched against `category`. Blocked outright.

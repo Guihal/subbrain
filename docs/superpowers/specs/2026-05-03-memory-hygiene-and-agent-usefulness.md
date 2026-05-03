@@ -63,7 +63,9 @@ SELECT layer, category, COUNT(*) FROM memory GROUP BY layer, category ORDER BY 3
 ```
 Плюс grep `memory_write` calls в codebase + agent-prompts (`grep -rn 'category:' src/ scripts/ docs/tasks/`). Любая категория с ≥10 prod rows ИЛИ упоминанием в active prompt ДОЛЖНА попасть в whitelist (или явно в legacy-sweep allowlist для PR-B Phase C). Whitelist freeze — отдельный commit ПОСЛЕ ревью distribution-output юзером.
 
-**Rollout flag (premortem fail-mode-1 fix):** новый env `MEMORY_VALIDATORS_ENFORCE=warn|reject` (default `warn` на 48h после deploy). В `warn`-режиме невалидный write проходит, но логирует `logger.warn("memory.validators", "would_reject", {category, layer, reason})` + bumps counter `memory_write_rejected_total{enforce_mode="warn"}`. После 48h при <1% rejection rate — flip на `reject` через env (PR-A не deploy'ит сразу `reject`).
+**Rollout flag (premortem fail-mode-1 fix):** новый env `MEMORY_VALIDATORS_ENFORCE=warn|reject` (default `warn` на 48h после deploy). В `warn`-режиме невалидный write проходит, но логирует `logger.warn("memory.validators", "would_reject", {category, layer, reason})` + bumps counter `memory_write_validator_triggered_total{enforce_mode="warn"}`. После 48h при <1% rejection rate — flip на `reject` через env (PR-A не deploy'ит сразу `reject`).
+
+> **Counter name note (PR-A fix-round-2):** counter renamed `memory_write_rejected_total` → `memory_write_validator_triggered_total{enforce_mode="warn"|"reject"}`. Semantics: "validator fired" (warn = would-reject, reject = did-reject). No dashboards existed yet — name change low-risk.
 
 **Files:**
 - [src/mcp/registry/memory.tools.ts](../../src/mcp/registry/memory.tools.ts) — заменить `category: t.Optional(t.String(...))` на `t.Union([t.Literal("profile"), t.Literal("preference"), ...])` для shared, аналогично для context. Список — из `WHITELIST_SHARED`/`WHITELIST_CONTEXT` в `post/validators.ts`.
@@ -321,7 +323,7 @@ Implementation:
          SUM(CASE WHEN created_at > strftime('%s','now')-86400 THEN 1 ELSE 0 END) AS last_24h
     FROM memory WHERE layer IN ('shared','context');
   ```
-  PASS = `whitelist_hits / last_24h == 1.0` (100% — `reject`-mode after 48h flip; в `warn`-mode telemetry counter `memory_write_rejected_total` фиксирует would-rejects but не блокирует, acceptance измеряется по would-reject rate <5%).
+  PASS = `whitelist_hits / last_24h == 1.0` (100% — `reject`-mode after 48h flip; в `warn`-mode telemetry counter `memory_write_validator_triggered_total` фиксирует would-rejects but не блокирует, acceptance измеряется по would-reject rate <5%).
 - Telemetry: `hippocampus_writes_per_exchange` histogram. PASS = `p95 ≤ 3` over 7d rolling.
 - `cosine_distance_to_nearest_neighbor` per write — p50 ≥ 0.30 (если ниже — extraction просто переписывает existing facts).
 - Manual qual review (≥30 random writes из последних 24h): ≥80% «non-obvious / actionable» per CLAUDE.md memory criteria. Reviewer = юзер, results записываются в `~/vault/RLM/Daily/<date>.md` review-секцию.
@@ -381,7 +383,7 @@ Implementation:
 **Probability:** средняя.
 **Mitigation:**
 - В hippocampus prompt'е (PR-D) явно показать: «если ни одна whitelist-category не подходит — НЕ пиши, сообщи `done` со statement о том что забыл».
-- Telemetry: `memory_write_rejected_total` counter с `reason` label, alert если >20% writes reject'аются за час.
+- Telemetry: `memory_write_validator_triggered_total` counter с `enforce_mode` label, alert если >20% writes triggered за час (в `reject` mode = actual rejects).
 - Whitelist расширяется только через explicit PR + audit-log entry, не silent edit.
 
 ### Fail mode 2: On-write dedup затыкает legitimate обновления
