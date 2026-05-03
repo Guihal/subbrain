@@ -143,12 +143,14 @@ describe("model-map: detect + apply", () => {
     expect(resolveModel("gpt-5.4-mini").provider).toBe("openai-compat");
   });
 
-  test("detect: gpt-4o falls through to openrouter (not openai-compat) when ENABLED=true", async () => {
+  test("detect: gpt-4o falls through to nvidia (not openai-compat) when ENABLED=true", async () => {
     process.env.OPENAI_COMPAT_ENABLED = "true";
     const { resolveModel } = await import("../../src/lib/model-map");
-    // gpt-4o doesn't match the openai-compat allowlist (gpt-5*/o3*/o4*/codex-*),
-    // and after copilot purge the default provider is openrouter.
-    expect(resolveModel("gpt-4o").provider).toBe("openrouter");
+    // gpt-4o doesn't match openai-compat allowlist (gpt-5*/o3*/o4*/codex-*).
+    // Per 2026-05-03 default provider is nvidia (NIM only) — gpt-4o would 404
+    // at NIM by design; OpenRouter теперь только при explicit `openrouter/`
+    // или `:free` суффиксе.
+    expect(resolveModel("gpt-4o").provider).toBe("nvidia");
   });
 
   test("apply: idempotent on/off + WeakMap snapshot restore", async () => {
@@ -198,8 +200,11 @@ describe("model-map: detect + apply", () => {
       "../../src/lib/model-map"
     );
     applyOpenAICompatOverrides();
-    expect(MODEL_MAP.teamlead!.primaryProvider).toBe("minimax");
-    expect(MODEL_MAP.coder!.primaryProvider).toBe("minimax");
+    // Per-role NIM swap 2026-05-03: teamlead→K2 Thinking, coder→Qwen3-Coder
+    // (both nvidia). Pre-swap defaults were both minimax. Test asserts
+    // OPENAI_COMPAT=OFF leaves MODEL_MAP at compile-time defaults.
+    expect(MODEL_MAP.teamlead!.primaryProvider).toBe("nvidia");
+    expect(MODEL_MAP.coder!.primaryProvider).toBe("nvidia");
   });
 });
 

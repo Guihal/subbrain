@@ -73,10 +73,12 @@ function makeStubs(overloaded: Record<string, boolean>) {
 }
 
 describe("routes/chat direct-mode per-provider overload (ROUTE-1)", () => {
-  test("NVIDIA overloaded + model=teamlead (primary=minimax) stays in pipeline", async () => {
+  test("MiniMax overloaded + model=teamlead (primary=nvidia) stays in pipeline", async () => {
+    // Per-role NIM swap 2026-05-03: teamlead.primary now nvidia (k2-thinking).
+    // MiniMax saturation no longer drags teamlead into direct mode.
     const { router, pipeline, check } = makeStubs({
-      nvidia: true,
-      minimax: false,
+      nvidia: false,
+      minimax: true,
     });
     const app = new Elysia().use(chatRoute(router, pipeline));
 
@@ -99,8 +101,8 @@ describe("routes/chat direct-mode per-provider overload (ROUTE-1)", () => {
 
   test("target provider overloaded → direct-mode (bypasses pipeline)", async () => {
     const { router, pipeline, check } = makeStubs({
-      nvidia: false,
-      minimax: true, // MiniMax saturated — teamlead targets minimax
+      nvidia: true, // NVIDIA saturated — teamlead now targets nvidia (k2-thinking)
+      minimax: false,
     });
     const app = new Elysia().use(chatRoute(router, pipeline));
 

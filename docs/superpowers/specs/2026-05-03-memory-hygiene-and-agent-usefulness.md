@@ -232,6 +232,24 @@ SAFETY: payments / irreversible / cookies — запрещено. SMS/email — 
 
 D4 (PR/issue в репо юзера) ВСЕГДА проходит через TG-confirm flow в free-runner: агент готовит artefact → enqueues `check-tg`-style confirm-task → юзер reply YES → отдельный manual run submits. Не direct.
 
+#### runners/free.ts — consult policy
+
+Free-runner is the most open-ended runner type (D1-D4, exploratory) and therefore most likely to hit decision points where solo judgment is insufficient. The runner's system prompt **must** include explicit consult directives — not as a last resort, but as a default working posture:
+
+- **`consult_chaos` at least once per non-trivial subtask.** Before committing to an approach, the free-runner calls `consult_chaos` to surface what could go wrong or what it might be missing. Applies to: any D1 code-tool design, any D3 multi-step web flow, any architectural choice with downstream effects. Skip only for trivially reversible micro-steps (single `memory_search`, a single page navigation). Chaos backing model is now `nvidia/llama-3.1-nemotron-ultra-253b-v1` (CONSULT_TIMEOUT_MS=600s) — consult-chaos actually returns reliably; cost is negligible relative to the value of a contrarian perspective.
+
+- **`consult_specialists` when the runner senses architecturally-irreversible direction or a tradeoff it can't resolve solo.** Examples: picking a storage format for a new code-tool's output (affects future agents that read it), deciding whether to `memory_write` a discovered fact to `shared` vs `context`, choosing between two web-scraping strategies with different anti-bot exposure. CRITIC_TIMEOUT_MS=300s, so specialist consult is not a blocking luxury — call it.
+
+- **Quotas (5 chaos, 6 specialists per task) are safety ceilings against runaway consultation, not budgets to spend frugally.** The anti-economy principle (§ "NO TOKEN ECONOMY") applies here: a consult call is cheap relative to the cost of a wrong irreversible decision. Never reason "I'll skip consult to save quota." Spend quota readily; hit the ceiling only in pathological cases.
+
+Prompt wording (bake directly into `runners/free.ts` system prompt, do not soften):
+```
+Before committing to any non-trivial approach: call consult_chaos (what could go wrong?
+what are we missing?). Before any architecturally-irreversible decision or unresolvable
+tradeoff: call consult_specialists. Quotas (5 chaos / 6 specialists) are safety rails,
+not budgets — spend them freely.
+```
+
 **TG digest format + delivery policy (premortem fail-mode-9 fix lifted into PR-C body):**
 
 Default mode = **quiet** (per юзер-preference из FM-9). Поведение:

@@ -127,8 +127,8 @@ describe("ChatService.handle — direct vs pipeline", () => {
   });
 
   test("target provider overloaded → direct (PR 23: per-provider)", async () => {
-    // teamlead resolves to minimax; mark minimax overloaded → direct.
-    const { router, check: rc } = makeRouter({ nvidia: false, minimax: true });
+    // Per-role NIM swap 2026-05-03: teamlead.primary now nvidia (k2-thinking).
+    const { router, check: rc } = makeRouter({ nvidia: true, minimax: false });
     const { pipeline, check: pc } = makePipeline();
     const svc = new ChatService(router, pipeline, undefined);
     await svc.handle(
@@ -139,8 +139,8 @@ describe("ChatService.handle — direct vs pipeline", () => {
     expect(rc().directCalled).toBe(true);
   });
 
-  test("NVIDIA overload does not drag teamlead (minimax) into direct", async () => {
-    const { router, check: rc } = makeRouter({ nvidia: true, minimax: false });
+  test("MiniMax overload does not drag teamlead (nvidia) into direct", async () => {
+    const { router, check: rc } = makeRouter({ nvidia: false, minimax: true });
     const { pipeline, check: pc } = makePipeline();
     const svc = new ChatService(router, pipeline, undefined);
     await svc.handle(

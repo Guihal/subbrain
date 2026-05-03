@@ -20,11 +20,15 @@ import type {
   ModelInfo,
   Message,
 } from "./types";
-import { NvidiaProvider } from "./nvidia";
+import { NvidiaProvider, ProviderError } from "./nvidia";
 import {
   transformThinkTags,
   splitThinkTagsOnce,
 } from "./think-tag-transform";
+
+interface MiniMaxBaseResp {
+  base_resp?: { status_code?: number; status_msg?: string };
+}
 
 export class MiniMaxProvider implements LLMProvider {
   private inner: NvidiaProvider;
@@ -49,6 +53,18 @@ export class MiniMaxProvider implements LLMProvider {
       messages: rewrapHistoryForMinimax(params.messages),
     };
     const resp = await this.inner.chat(rewrapped);
+    // MiniMax returns HTTP 200 with `choices: null` + `base_resp.status_code != 0`
+    // for errors (quota exceeded = 2056, etc). Convert to ProviderError so the
+    // model-router fallback chain triggers instead of crashing on null.map().
+    const br = (resp as ChatResponse & MiniMaxBaseResp).base_resp;
+    if (!resp.choices || (br && br.status_code !== 0)) {
+      const code = br?.status_code ?? 0;
+      const httpStatus = code === 2056 ? 429 : 502;
+      throw new ProviderError(
+        httpStatus,
+        JSON.stringify(br ?? { error: "minimax: missing choices" }),
+      );
+    }
     return splitResponseThinkTags(resp);
   }
 

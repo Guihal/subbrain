@@ -43,12 +43,12 @@ describe("ModelRouter — HIGH-4 cap", () => {
   });
 
   test("primary 401 → throws ProviderError directly (no fallback wrap)", async () => {
-    // teamlead.primary = MiniMax-M2.7 / minimax → 401. Fallback nvidia would
-    // succeed but auth errors must short-circuit the chain.
+    // Per-role NIM swap 2026-05-03: teamlead.primary = k2-thinking / nvidia.
+    // 401 from primary must short-circuit even though minimax fallback is up.
     const router = new ModelRouter({
-      nvidia: mockProvider(200),
+      nvidia: mockProvider(401),
       openrouter: mockProvider(200),
-      minimax: mockProvider(401),
+      minimax: mockProvider(200),
     });
     let caught: unknown;
     try {

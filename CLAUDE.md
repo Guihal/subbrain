@@ -89,7 +89,17 @@ Inbound messages from any route go through `normalizeMessages()` in `src/lib/mes
 
 ### Virtual roles, never real model IDs
 
-`src/lib/model-map.ts` is the single source of truth: `teamlead`, `coder`, `critic`, `generalist`, `flash`, `chaos`, `memory` resolve to real model IDs + provider + fallback. `GET /v1/models` is generated from this map. **Never hardcode a model ID elsewhere** — change the map. `memory` (added 2026-04-25) is dedicated to hippocampus + night-cycle (MiniMax-M2.7 via dedicated minimax provider since 2026-04-28; was gpt-5.1 via cliproxy until Plus quota cooldown); `generalist` is the broad-purpose default for `dynamic_tools` (`create_tool`). Most LLM work goes to MiniMax (`minimax` provider, MiniMax-M2.7); NVIDIA NIM serves embed + rerank + most LLM fallbacks; OpenRouter is the resort fallback for unknown model IDs (e.g., `claude-*`, `gpt-*`, `gemini-*`).
+`src/lib/model-map.ts` is the single source of truth: `teamlead`, `coder`, `critic`, `generalist`, `flash`, `chaos`, `memory` resolve to real model IDs + provider + fallback. `GET /v1/models` is generated from this map. **Never hardcode a model ID elsewhere** — change the map.
+
+**Per-role NIM swap 2026-05-03** — differentiated primaries across the NVIDIA NIM preview pool (shared 40 RPM cap, MiniMax fallback везде):
+- `teamlead` → `moonshotai/kimi-k2-thinking` (1T MoE / 32B active, 256K ctx, 200-300 sequential tool-calls)
+- `coder` → `qwen/qwen3-coder-480b-a35b-instruct` (SWE-Bench Verified ~73, fallback `mistralai/devstral-2-123b-instruct-2512`)
+- `critic` → `z-ai/glm-4.7` (HumanEval 94.2 + LiveCodeBench 84.9, fallback k2-thinking)
+- `flash` → `meta/llama-4-maverick-17b-128e-instruct` (tool-calls работают, в отличие от прошлого stepfun reasoning-only flash)
+- `chaos` → `moonshotai/kimi-k2-thinking` (creative + Opus-flavored; same model as teamlead, differentiation через persona)
+- `generalist`, `memory` → `MiniMax-M2.7` (без изменений — broad-purpose + hippocampus tool-call reliability)
+
+`memory` (added 2026-04-25) is dedicated to hippocampus + night-cycle; `generalist` is the broad-purpose default for `dynamic_tools` (`create_tool`). NVIDIA NIM also serves embed + rerank. **`detectProvider` default = `nvidia`** (since 2026-05-03) — раньше был openrouter; других провайдеров пока не подключаем. OpenRouter only при explicit `openrouter/` prefix или `:free` suffix; raw `claude-*`/`gpt-*`/`gemini-*` пойдут в NIM и упадут с 404 — намеренно.
 
 **Optional OpenAI-compat bridge.** When `OPENAI_COMPAT_ENABLED=true`, `teamlead`/`coder` re-point to `gpt-5.4-mini` via a sidecar `cliproxy` container. Activation logic in `applyOpenAICompatOverrides` (called once at bootstrap before `createProviders`). Allowlist `gpt-5*/o3*/o4*/codex-*` only. See `docs/completed/03-model-router.md`.
 
