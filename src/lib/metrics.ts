@@ -9,6 +9,7 @@ import { buildSnapshot } from "./metrics/snapshot";
 import { pruneSlidingWindows } from "./metrics/percentile";
 
 export type { StatsProvider, RequestMetric, MetricsSnapshot } from "./metrics/types";
+export { incrementCounter, getCounters, resetCounters } from "./metrics/counters";
 
 export class Metrics {
   private state: MetricsState = {

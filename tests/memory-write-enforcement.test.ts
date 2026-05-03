@@ -79,7 +79,7 @@ describe("whitelist — reject mode", () => {
     const r = await writeShared(deps, { id: "x1", category: "free-agent-digest",
       content: "test content", tags: "", confidence: 0.9, status: "active" });
     expect(r.success).toBe(false);
-    expect((r as any).code).toBe("validation_failed");
+    expect((r as any).error?.code).toBe("validation_failed");
   });
 
   test("whitelist category passes", async () => {
@@ -108,13 +108,13 @@ describe("TIME_BOUND categories — reject mode", () => {
   beforeAll(() => { process.env.MEMORY_VALIDATORS_ENFORCE = "reject"; });
   afterAll(() => { delete process.env.MEMORY_VALIDATORS_ENFORCE; });
 
-  test("plan without expires_at → validation_failed", async () => {
+  test("plan without expires_at → validation_failed (fails whitelist on shared layer)", async () => {
     const deps = makeDeps();
     const r = await writeShared(deps, { id: "tb1", category: "plan",
       content: "some plan", tags: "", confidence: 0.9, status: "active" });
     // "plan" isn't in shared whitelist → fails whitelist first
     expect(r.success).toBe(false);
-    expect((r as any).code).toBe("validation_failed");
+    expect((r as any).error?.code).toBe("validation_failed");
   });
 
   test("context decision without expires_at gets default TTL (+90d)", async () => {
@@ -179,8 +179,8 @@ describe("dedup strict mode (profile category)", () => {
     const r2 = await writeShared(deps, { id: "dup2", category: "profile",
       content: "user is a developer same fact", tags: "", confidence: 0.9, status: "active" });
     expect(r2.success).toBe(false);
-    expect((r2 as any).code).toBe("validation_failed");
-    expect((r2 as any).error).toContain("duplicate");
+    expect((r2 as any).error?.code).toBe("validation_failed");
+    expect((r2 as any).error?.message).toContain("duplicate");
   });
 
   test("orthogonal vectors (cosine ≈ 0) → fresh insert", async () => {
@@ -207,13 +207,13 @@ describe("dedup supersede mode (preference category)", () => {
   beforeAll(() => { process.env.MEMORY_VALIDATORS_ENFORCE = "reject"; });
   afterAll(() => { delete process.env.MEMORY_VALIDATORS_ENFORCE; });
 
-  test("cosine 0.88 range → insert + supersedes_id set on old row", async () => {
-    // First write uses unitVec(5); second write uses slightly different
-    // vector that achieves cosine 0.85-0.95 range via controlled dot product.
-    // We simulate by: first write → vec A; dedup check re-embeds both → need
-    // cosine in the supersede band. Simplest: use same vector so cosine=1.0 → would reject.
-    // For "supersede between 0.85-0.95" we need to inject partial similarity.
-    // Use a real cosine-0.88 vector: v2 = 0.88*v1 + sqrt(1-0.88²)*orthogonal.
+  test("cosine 0.88 → insert new row, superseded_by set on old row", async () => {
+    // Deterministic vectors: base = e[0]; v2 = 0.88*e[0] + sqrt(1-0.88²)*e[1] → cosine(base,v2)=0.88.
+    // Actual embed call sequence (writeWithDedupAsync calls checkDuplicate THEN doInsert for each write):
+    //   call 0: write1 checkDuplicate → base (no existing rows yet, irrelevant)
+    //   call 1: write1 doInsert (atomicInsert) → base (stored as sup1's embedding)
+    //   call 2: write2 checkDuplicate → v2 (candidate); cosine(v2, base) = 0.88 → supersede
+    //   call 3: write2 doInsert (sup2) → v2
     const base = new Float32Array(2048);
     base[0] = 1;
     const v2 = new Float32Array(2048);
@@ -221,8 +221,10 @@ describe("dedup supersede mode (preference category)", () => {
     v2[1] = Math.sqrt(1 - 0.88 * 0.88);
 
     let embedCallIndex = 0;
-    const vecs = [base, v2, base, v2]; // write1, dedup-reembed-candidate, write2, dedup-reembed-candidate
-    const deps = makeDeps(() => vecs[embedCallIndex++ % vecs.length] ?? base);
+    // Calls 0,1 → base (write1 dedup check + write1 doInsert = stored for sup1).
+    // Calls 2+ → v2 (write2 dedup check candidate + write2 doInsert for sup2).
+    const embedFn = (_t: string) => embedCallIndex++ < 2 ? base : v2;
+    const deps = makeDeps(embedFn);
 
     const r1 = await writeShared(deps, { id: "sup1", category: "preference",
       content: "user prefers light mode", tags: "", confidence: 0.9, status: "active" });
@@ -230,9 +232,13 @@ describe("dedup supersede mode (preference category)", () => {
 
     const r2 = await writeShared(deps, { id: "sup2", category: "preference",
       content: "user prefers light theme (updated)", tags: "", confidence: 0.9, status: "active" });
-    // Should succeed as supersede (new row inserted, old row gets superseded_by).
-    // Note: may be "fresh" if cosine falls outside band due to vec order. Permissive assertion:
     expect(r2.success).toBe(true);
+    expect((r2 as any).data?.superseded).toBe("sup1");
+
+    // Critical: old row must have superseded_by = sup2.
+    const oldRow = memory.getShared("sup1");
+    expect(oldRow).not.toBeNull();
+    expect(oldRow!.superseded_by).toBe("sup2");
   });
 });
 
@@ -249,7 +255,7 @@ describe("writeContextCase enforcement", () => {
       null, 0.9, "active", rag);
     expect(r).not.toBeNull();
     expect(r!.success).toBe(false);
-    expect((r as any).code).toBe("validation_failed");
+    expect((r as any).error?.code).toBe("validation_failed");
   });
 
   test("valid context category inserts and returns null (no error)", async () => {

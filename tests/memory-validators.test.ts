@@ -70,6 +70,24 @@ describe("validateCategoryAndContent — context whitelist", () => {
     const r = validateCategoryAndContent("context", "project", "x".repeat(2001));
     expect(r.ok).toBe(false);
   });
+
+  test("TIME_BOUND categories are in context whitelist (not blocked by category check)", () => {
+    // plan/strategy/priority/urgent/deadline now in WHITELIST_CONTEXT.
+    // Category check must pass so validateExpiresAt is the blocking validator.
+    for (const cat of TIME_BOUND_CATEGORIES) {
+      const r = validateCategoryAndContent("context", cat, "some content");
+      expect(r.ok).toBe(true);
+    }
+  });
+
+  test("plan without expires_at fails validateExpiresAt (not whitelist)", () => {
+    // Whitelist check passes; expires_at check should fail.
+    const catR = validateCategoryAndContent("context", "plan", "some plan content");
+    expect(catR.ok).toBe(true); // passes whitelist
+    const expR = validateExpiresAt("plan", undefined, NOW);
+    expect(expR.ok).toBe(false);
+    expect((expR as any).reason).toContain("expires_at required");
+  });
 });
 
 // ─── validateExpiresAt ───────────────────────────────────────────────────────

@@ -11,6 +11,7 @@
  * when rag is present (dedup embed call required).
  */
 import { logger } from "../../../lib/logger";
+import { incrementCounter } from "../../../lib/metrics";
 import type { MemoryDB } from "../../../db";
 import type { RAGPipeline } from "../../../rag";
 import type { ToolResult } from "../../types";
@@ -27,9 +28,11 @@ function mode(): "warn" | "reject" {
 }
 
 function maybeReject(reason: string, ctx: Record<string, unknown>): ToolResult | null {
-  if (mode() === "reject")
-    return { success: false, error: `validation_failed: ${reason}`, code: "validation_failed" } as ToolResult;
-  log.warn(`would_reject: ${reason} ${JSON.stringify(ctx)}`);
+  const m = mode();
+  incrementCounter("memory_write_rejected_total", { enforce_mode: m });
+  if (m === "reject")
+    return { success: false, error: { code: "validation_failed", message: reason } };
+  log.warn(`would_reject: ${reason}`, { meta: ctx });
   return null;
 }
 
@@ -86,9 +89,12 @@ async function insertWithDedupAsync(
       const r = maybeReject(`duplicate (cosine=${dd.similarity?.toFixed(3)})`, { category });
       if (r) return r;
     } else if (dd.action === "supersede" && dd.supersedesId) {
-      memory.insertContext(id, params.title || "Untitled", params.content, params.tags || "",
-        [], agentId ?? undefined, { confidence, status, expires_at: expiresAt ?? undefined });
-      memory.updateContext(dd.supersedesId, { superseded_by: id });
+      // Atomic: insert new row + mark old row superseded in one transaction.
+      memory.transaction(() => {
+        memory.insertContext(id, params.title || "Untitled", params.content, params.tags || "",
+          [], agentId ?? undefined, { confidence, status, expires_at: expiresAt ?? undefined });
+        memory.updateContext(dd.supersedesId!, { superseded_by: id });
+      });
       return { success: true, data: { id, superseded: dd.supersedesId } } as ToolResult;
     }
   } catch (e) { log.warn(`dedup_error: ${String(e)}`); }

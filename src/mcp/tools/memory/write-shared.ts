@@ -7,6 +7,7 @@
  *   3. checkDuplicate per-category dedup (strict/supersede modes).
  */
 import { logger } from "../../../lib/logger";
+import { incrementCounter } from "../../../lib/metrics";
 import type { MemoryDB, MemoryKind } from "../../../db";
 import type { RAGPipeline } from "../../../rag";
 import type { MemoryService } from "../../../services/memory";
@@ -35,9 +36,11 @@ function mode(): "warn" | "reject" {
 }
 
 function maybeReject(reason: string, ctx: Record<string, unknown>): ToolResult | null {
-  if (mode() === "reject")
-    return { success: false, error: `validation_failed: ${reason}`, code: "validation_failed" } as ToolResult;
-  log.warn(`would_reject: ${reason} ${JSON.stringify(ctx)}`);
+  const m = mode();
+  incrementCounter("memory_write_rejected_total", { enforce_mode: m });
+  if (m === "reject")
+    return { success: false, error: { code: "validation_failed", message: reason } };
+  log.warn(`would_reject: ${reason}`, { meta: ctx });
   return null;
 }
 
@@ -71,7 +74,6 @@ async function writeWithDedupAsync(
   deps: SharedWriteDeps, svc: MemoryService | null, rag: RAGPipeline | null,
   params: SharedWriteParams, kind: MemoryKind, expiresAt: number | null,
 ): Promise<ToolResult> {
-  // PR-A dedup check (requires rag for embedding).
   if (rag) {
     try {
       const dd = await checkDuplicate(deps.memory, rag, "shared", params.category, params.content);
@@ -79,9 +81,9 @@ async function writeWithDedupAsync(
         const r = maybeReject(`duplicate (cosine=${dd.similarity?.toFixed(3)})`, { category: params.category });
         if (r) return r;
       } else if (dd.action === "supersede" && dd.supersedesId) {
-        const newId = await doInsert(deps, svc, rag, params, kind, expiresAt);
-        if (typeof newId === "object") return newId; // ToolResult error
-        deps.memory.updateShared(dd.supersedesId, { superseded_by: newId, status: "active" });
+        // Embed first (async/remote); then insert+supersede-update in one DB transaction.
+        const newId = await insertAndSupersede(deps, svc, rag, params, kind, expiresAt, dd.supersedesId);
+        if (typeof newId === "object") return newId;
         return { success: true, data: { id: newId, superseded: dd.supersedesId } };
       }
     } catch (e) { log.warn(`dedup_error: ${String(e)}`); }
@@ -91,7 +93,21 @@ async function writeWithDedupAsync(
   return { success: true, data: { id: result } };
 }
 
-/** Insert via service (preferred) or atomicWrite (legacy). Returns new id or ToolResult on error. */
+/** Embed content, then atomically insert new row + mark old row superseded. */
+async function insertAndSupersede(
+  deps: SharedWriteDeps, svc: MemoryService | null, rag: RAGPipeline | null,
+  params: SharedWriteParams, kind: MemoryKind, expiresAt: number | null, supersedesId: string,
+): Promise<string | ToolResult> {
+  const newId = await doInsert(deps, svc, rag, params, kind, expiresAt);
+  if (typeof newId === "object") return newId;
+  // Both supersede-update and (for non-svc path) insert are now in DB; mark old row atomically.
+  deps.memory.transaction(() => {
+    deps.memory.updateShared(supersedesId, { superseded_by: newId });
+  });
+  return newId;
+}
+
+/** Insert via service (preferred) or embed-atomic (legacy). Returns new id or ToolResult error. */
 async function doInsert(
   deps: SharedWriteDeps, svc: MemoryService | null, rag: RAGPipeline | null,
   params: SharedWriteParams, kind: MemoryKind, expiresAt: number | null,
@@ -102,22 +118,16 @@ async function doInsert(
         tags: params.tags, confidence: params.confidence, status: params.status, kind, expires_at: expiresAt });
     } catch (e) { return { success: false, error: e instanceof Error ? e.message : String(e) }; }
   }
-  if (rag) return atomicInsert(deps.memory, { ...params, kind, expires_at: expiresAt }, rag);
-  return { success: false, error: "no_insert_path" };
-}
-
-async function atomicInsert(
-  memory: MemoryDB, params: SharedWriteParams & { kind: MemoryKind }, rag: RAGPipeline,
-): Promise<string | ToolResult> {
+  if (!rag) return { success: false, error: "no_insert_path" };
   let vec: Float32Array;
   try { vec = await embedWithTimeout(rag, params.content); }
   catch (e) { return { success: false, error: `embed_failed: ${e instanceof Error ? e.message : String(e)}` }; }
   if (!vec || vec.length === 0) return { success: false, error: "embed_empty" };
   try {
-    memory.transaction(() => {
-      memory.insertShared(params.id, params.category, params.content, params.tags, undefined,
-        { confidence: params.confidence, status: params.status, kind: params.kind, expires_at: params.expires_at });
-      memory.upsertEmbedding(params.id, "shared", vec);
+    deps.memory.transaction(() => {
+      deps.memory.insertShared(params.id, params.category, params.content, params.tags, undefined,
+        { confidence: params.confidence, status: params.status, kind, expires_at: expiresAt });
+      deps.memory.upsertEmbedding(params.id, "shared", vec);
     });
   } catch (e) { return { success: false, error: e instanceof Error ? e.message : String(e) }; }
   return params.id;
