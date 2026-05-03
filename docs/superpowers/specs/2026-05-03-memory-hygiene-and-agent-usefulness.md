@@ -57,10 +57,18 @@ Non-goals:
 
 **Цель:** memory_write на ингесте отбрасывает мусор. Бьёт R1, R3, R4.
 
+**Precondition (premortem fail-mode-1 fix):** ДО заморозки whitelist собрать prod-distribution фактических `category` value'ов:
+```sql
+SELECT layer, category, COUNT(*) FROM memory GROUP BY layer, category ORDER BY 3 DESC;
+```
+Плюс grep `memory_write` calls в codebase + agent-prompts (`grep -rn 'category:' src/ scripts/ docs/tasks/`). Любая категория с ≥10 prod rows ИЛИ упоминанием в active prompt ДОЛЖНА попасть в whitelist (или явно в legacy-sweep allowlist для PR-B Phase C). Whitelist freeze — отдельный commit ПОСЛЕ ревью distribution-output юзером.
+
+**Rollout flag (premortem fail-mode-1 fix):** новый env `MEMORY_VALIDATORS_ENFORCE=warn|reject` (default `warn` на 48h после deploy). В `warn`-режиме невалидный write проходит, но логирует `logger.warn("memory.validators", "would_reject", {category, layer, reason})` + bumps counter `memory_write_rejected_total{enforce_mode="warn"}`. После 48h при <1% rejection rate — flip на `reject` через env (PR-A не deploy'ит сразу `reject`).
+
 **Files:**
 - [src/mcp/registry/memory.tools.ts](../../src/mcp/registry/memory.tools.ts) — заменить `category: t.Optional(t.String(...))` на `t.Union([t.Literal("profile"), t.Literal("preference"), ...])` для shared, аналогично для context. Список — из `WHITELIST_SHARED`/`WHITELIST_CONTEXT` в `post/validators.ts`.
 - [src/pipeline/agent-pipeline/post/validators.ts](../../src/pipeline/agent-pipeline/post/validators.ts) — экспортировать validators как чистый module (без post-pipeline dep), чтобы `mcp/tools/memory/write-shared.ts` и `write-context.ts` могли вызывать.
-- [src/mcp/tools/memory/write-shared.ts](../../src/mcp/tools/memory/write-shared.ts) + [write-context.ts](../../src/mcp/tools/memory/write-context.ts) — вызывать `validateForShared`/`validateForContext` ПЕРЕД `memoryService.insert*`. На fail → `ToolError{code:"validation_failed", message: ...}`.
+- [src/mcp/tools/memory/write-shared.ts](../../src/mcp/tools/memory/write-shared.ts) + [write-context.ts](../../src/mcp/tools/memory/write-context.ts) — вызывать `validateForShared`/`validateForContext` ПЕРЕД `memoryService.insert*`. На fail в `reject`-mode → `ToolError{code:"validation_failed", message: ...}`. В `warn`-mode → лог + insert как обычно.
 - **On-write dedup:** новый helper `src/services/memory/dedup.ts`:
   - Embed candidate → `rag_search` top-3 в той же layer/category.
   - **Per-category mode** (premortem fail-mode-2 fix):
@@ -147,16 +155,19 @@ CREATE TABLE agent_tasks (
 CREATE INDEX idx_agent_tasks_pending ON agent_tasks(status, scheduled_at) WHERE status='pending';
 ```
 
-**Files:**
-- Новый каталог `src/scheduler/agent-pool/`:
-  - `index.ts` (~80 lines) — `installAgentPoolScheduler({maxConcurrent, intervalMs})`. Polls pending tasks, dispatches до `maxConcurrent`. Уважает RPM router headroom.
-  - `pool.ts` (~120 lines) — `AgentTaskPool`: `claim()` (pending → running, atomic), `complete(id, artifact)`, `noop(id, reason)`, `fail(id, error)`, `findNew(type)` (genrates `find-new-task` если пусто), `enqueue({type,prompt,priority})`.
-  - `runners/free.ts` — prompt + tool-allowlist для exploratory web/code-tool tasks (D1-D4 deliverables ниже).
-  - `runners/clear.ts` — prompt для memory cleanup tasks (subsets PR-B janitor logic, инкрементально).
-  - `runners/check-tg.ts` — prompt для TG inbox monitoring (новые сообщения юзеру в чатах ≥1 unread).
-  - `runners/research.ts` — focused research-by-topic, артефакт = ≤3 shared-facts с supersedes-aware writes.
-  - `runners/find-new-task.ts` — мета-задача: агент анализирует memory + recent activity + open backlog → `enqueue` 1-3 новых task в pool.
-  - `types.ts` — `AgentTaskType`, `AgentTaskRecord`, `RunnerConfig {model, maxSteps, toolScope, prompt}`.
+**Files (subbrain-guardrails: file-cap 150, single index.ts ≤100 для orchestrator, F10 fix):** `src/scheduler/agent-pool/` декомпозирован сразу, не post-hoc:
+- `index.ts` (≤100 lines) — orchestrator only: `installAgentPoolScheduler({maxConcurrent, intervalMs})` + composition pool/queries/mutations/find-new. Polls pending tasks, dispatches до `maxConcurrent`. Уважает RPM router headroom.
+- `pool/index.ts` (≤100 lines) — публичный фасад `AgentTaskPool`, композирует queries/mutations/find-new.
+- `pool/queries.ts` (~80 lines) — `claim()` (pending → running, atomic via `UPDATE ... WHERE status='pending' RETURNING ...`), `listPending()`, `getRunningOlderThan(ms)`, distribution-rolling-24h query.
+- `pool/mutations.ts` (~80 lines) — `complete(id, artifact)`, `noop(id, reason)`, `fail(id, error, reason?)`, `enqueue({type,prompt,priority,scheduled_at?})`, `markZombiesFailed()`.
+- `pool/find-new.ts` (~120 lines) — `findNew()` meta-task: distribution-skew check, dedup-search, calls `enqueue` 1-3 times. Single responsibility, не путать с runner.
+- `pool/types.ts` — `AgentTaskRecord`, `RunnerConfig`, `EnqueueInput`.
+- Все file-cap'ы — hard limits per CLAUDE.md §1; orchestrator-композиция, не business logic.
+- `runners/free.ts` — prompt + tool-allowlist для exploratory web/code-tool tasks (D1-D4 deliverables ниже).
+- `runners/clear.ts` — prompt для memory cleanup tasks (subsets PR-B janitor logic, инкрементально).
+- `runners/check-tg.ts` — prompt для TG inbox monitoring (новые сообщения юзеру в чатах ≥1 unread).
+- `runners/research.ts` — focused research-by-topic, артефакт = ≤3 shared-facts с supersedes-aware writes.
+- `runners/find-new-task.ts` — runner-обёртка вокруг `pool/find-new.ts` meta logic: агент анализирует memory + recent activity + open backlog → `enqueue` 1-3 новых task в pool.
 - [src/db/tables/](../../src/db/tables/) — новый `agent-tasks.ts` table module (raw SQL + row mapping per repo-layer rule).
 - Новый repo `src/repositories/agent-tasks.repo.ts`.
 - [src/db/schema.ts](../../src/db/schema.ts) — migrations entry.
@@ -199,6 +210,8 @@ SAFETY: payments / irreversible / cookies — запрещено. SMS/email — 
 - Pool runner проверяет `router.isOverloaded` перед claim — если true, пропускает тик.
 - Per-type rate limit: `check-tg` — max 1 раз в 5 мин; `clear` — max 1 параллельно (DB-write contention); `free`/`research` — без ограничений сверх `maxConcurrent`.
 
+**Per-task token budget (premortem fail-mode-6 fix):** anti-economy ≠ unlimited. Каждый runner получает `AGENT_POOL_MAX_TOKENS_PER_TASK` (env, default `60000`). Counter в pool-runner суммирует `usage.total_tokens` по step'ам. На overflow → `AbortController.abort()` сигнал в текущий `ModelRouter.chat`, task → `status='failed', reason='token_budget_exceeded'`, finished_at = now(). Telemetry: `agent_pool_tokens_total{type, runner}` histogram + `agent_pool_token_aborts_total` counter. Это не KPI «экономии» — это safety-rail против runaway-loop, аналог `maxSteps`. Defaults подобраны так чтобы 99% normal complete-task'ов укладывались (free=60k, research=80k, check-tg=20k, clear=15k, find-new-task=10k — per-type override через `AGENT_POOL_MAX_TOKENS_<TYPE>` env).
+
 **Zombie-task recovery (premortem fail-mode-3 fix):**
 - На каждом pool-tick перед `claim()`: `UPDATE agent_tasks SET status='failed', reason='timeout', finished_at=now() WHERE status='running' AND started_at < now()-1800` (30 min hard cap).
 - В `find-new-task` skip-if-recent: `SELECT 1 FROM agent_tasks WHERE prompt LIKE ? AND created_at > now()-86400` — не дублирует за 24h.
@@ -208,14 +221,52 @@ SAFETY: payments / irreversible / cookies — запрещено. SMS/email — 
 - Server-side: `status==="complete"` requires `artifact`; `status==="noop"` requires `reason`.
 - Pool helper маппит → `pool.complete(id, artifact)` / `pool.noop(id, reason)`.
 
-**TG digest format:**
+**Scheduled-mode tool gating (CLAUDE.md §15 alignment):** runner'ы pool'а запускаются с `agentMode="scheduled"` (нет интерактивного юзера). Действует blacklist `STATEFUL_CLIENT_CODE_TOOLS` + spam-gate `tg_send_message`. Per-runner explicit allow/forbid:
+| Runner | Allowed tools | Forbidden |
+|--------|--------------|-----------|
+| `free` | `web_*`, `memory_*`, `embed_*`, `rag_*`, `create_code_tool`/`edit_code_tool` (с validators), `done_with_artifact` | `tg_send_message` (D4 — только TG-confirm, не direct send), payments, irreversible writes |
+| `research` | `web_*`, `memory_search`, `memory_write` (≤3, supersede-aware), `embed_*`, `rerank_*`, `done_with_artifact` | `create_code_tool`, `tg_send_message` |
+| `clear` | `memory_search`, `memory_archive`, batch `memory_write {layer:"archive"}`, `done_with_artifact` | `memory_delete` без `--confirm`, любой `web_*`, `tg_send_message` |
+| `check-tg` | `tg_list_chats`, `tg_read_chat`, `memory_write` (для значимых сообщений), `done_with_artifact` | `tg_send_message` (read-only!), `web_*`, `create_code_tool` |
+| `find-new-task` | `memory_search`, `agent_tasks` repo (enqueue only), `done_with_artifact` | всё остальное |
+
+D4 (PR/issue в репо юзера) ВСЕГДА проходит через TG-confirm flow в free-runner: агент готовит artefact → enqueues `check-tg`-style confirm-task → юзер reply YES → отдельный manual run submits. Не direct.
+
+**TG digest format + delivery policy (premortem fail-mode-9 fix lifted into PR-C body):**
+
+Default mode = **quiet** (per юзер-preference из FM-9). Поведение:
+- **Daily rollup** — один TG-message в 21:00 local (env `AGENT_POOL_DIGEST_HOUR_LOCAL=21`) с summary всех tasks за прошедшие 24h. Группировка по type, counts complete/noop/failed, top-3 artefakt'а.
+- **Real-time alerts** ТОЛЬКО для:
+  - `failed` task (любого типа) — instant TG message с reason.
+  - `complete` для `free` runner deliverable D3 (web-route ≥5 clicks) или D4 (PR/issue submitted) — это «real-world action», юзер должен знать сразу.
+  - `check-tg` complete с `unread_summary` содержащим keyword из `CHECK_TG_KEYWORDS` env (csv).
+- Все остальные complete (`research`, `clear`, `free`/D1, `free`/D2, `find-new-task`) — НЕ instant, только в daily rollup.
+- Команда `/digest_mode quiet|verbose` в боте: `verbose` → instant per-task TG message (старое поведение); `quiet` → правила выше. Default `quiet`.
+
+**Daily rollup format (21:00):**
 ```
-🤖 Agent pool — 2026-05-03 12:34
-✅ free#142 — D1 created code-tool `weather_check_kazan`, smoke pass
-⚪ check-tg#143 — noop (no unread в watched chats)
-✅ clear#144 — archived 12 dup rows (context/project)
-✅ research#145 — wrote 2 facts to shared (preference)
+🤖 Agent pool — 2026-05-03 daily rollup
+24h: 14 complete · 3 noop · 1 failed
+
+Top artefacts:
+✅ free#142 — D1 code-tool `weather_check_kazan`, smoke pass (12:34)
+✅ free#149 — D3 web-flow scraped fl.ru briefs to /vault/research/freelance-2026-05-03.md (15:02)
+✅ research#155 — 3 facts → shared (architecture, preference) (18:11)
+
+By type: free=5, research=4, clear=3, check-tg=2, find-new-task=4
+Failed: clear#152 — token_budget_exceeded (60k cap, see logs)
 ```
+
+**Real-time alert format:**
+```
+🚨 free#149 — failed
+reason: browser_crash on click step 3
+duration: 2m14s
+```
+
+Implementation:
+- `src/scheduler/agent-pool/digest.ts` (≤100 lines) — `composeDailyRollup(tasks)`, `composeInstantAlert(task)`, switch по `digest_mode` (хранится в `layer1_focus`, читается через `memoryService.getFocus("digest_mode")`, default `quiet`).
+- `/digest_mode` handled в [src/telegram/bot/](../../src/telegram/bot/) — single `setFocus("digest_mode", "<value>")` call.
 
 **Tests:**
 - `tests/agent-pool.test.ts`: claim atomicity (parallel claim не возвращает один и тот же row), `complete`/`noop`/`fail` lifecycle, `find-new-task` enqueue gate (10-min cooldown).
@@ -244,8 +295,18 @@ SAFETY: payments / irreversible / cookies — запрещено. SMS/email — 
 **Tests:**
 - `tests/hippocampus-extraction.test.ts` — обновить ожидания на ≤3 writes/exchange, dedup-aware.
 
-**Acceptance:**
-- Manual review: 24h после deploy → 90%+ writes по whitelist + non-trivial cosine distance к existing.
+**Acceptance (F5 hardening — measurable, не manual-only):**
+- 24h post-deploy SQL check:
+  ```sql
+  SELECT COUNT(*) AS total,
+         SUM(CASE WHEN category IN (<WHITELIST_SHARED>) THEN 1 ELSE 0 END) AS whitelist_hits,
+         SUM(CASE WHEN created_at > strftime('%s','now')-86400 THEN 1 ELSE 0 END) AS last_24h
+    FROM memory WHERE layer IN ('shared','context');
+  ```
+  PASS = `whitelist_hits / last_24h == 1.0` (100% — `reject`-mode after 48h flip; в `warn`-mode telemetry counter `memory_write_rejected_total` фиксирует would-rejects but не блокирует, acceptance измеряется по would-reject rate <5%).
+- Telemetry: `hippocampus_writes_per_exchange` histogram. PASS = `p95 ≤ 3` over 7d rolling.
+- `cosine_distance_to_nearest_neighbor` per write — p50 ≥ 0.30 (если ниже — extraction просто переписывает existing facts).
+- Manual qual review (≥30 random writes из последних 24h): ≥80% «non-obvious / actionable» per CLAUDE.md memory criteria. Reviewer = юзер, results записываются в `~/vault/RLM/Daily/<date>.md` review-секцию.
 
 ---
 
@@ -373,6 +434,32 @@ SAFETY: payments / irreversible / cookies — запрещено. SMS/email — 
 1. **Fail mode 2 (on-write dedup на legit updates)** — конкретный фикс в PR-A: per-category supersede vs strict mode.
 2. **Fail mode 4 (skew к research)** — фикс в PR-C: type-quota + find-new-task force-balance.
 3. **Fail mode 8 (PR-C overscoping)** — декомпозиция на C1-C4 ДО старта.
+
+## Environment variables (F6 — single-source summary)
+
+Все новые env'ы введённые этим spec'ом. PR-A/B/C/D/E добавляют дефолты в `.env.example`; deployment notes в матчинг task-файлы `docs/tasks/<pr>.md`.
+
+| Env | Default | PR | Purpose |
+|-----|---------|----|---------|
+| `MEMORY_VALIDATORS_ENFORCE` | `warn` | PR-A | `warn`\|`reject`. Flip на `reject` через 48h при <1% would-reject rate. |
+| `JANITOR_LEGACY_SWEEP` | `false` | PR-B | One-time. Enable → требует TG-confirm перед archive. |
+| `JANITOR_DEDUP_THRESHOLD` | `0.92` | PR-B | Cosine threshold для duplicate detection в Phase B. |
+| `AGENT_POOL_ENABLED` | `false` | PR-C2 | Master switch для нового pool. |
+| `AGENT_POOL_MAX_CONCURRENT` | `2` | PR-C4 | Max parallel runners. |
+| `AGENT_POOL_INTERVAL_MS` | `60000` | PR-C2 | Pool tick interval. |
+| `AGENT_POOL_MAX_TOKENS_PER_TASK` | `60000` | PR-C2 | Hard cap → AbortController на breach (FM-6). |
+| `AGENT_POOL_MAX_TOKENS_FREE` | `60000` | PR-C2 | Per-type override (free runner). |
+| `AGENT_POOL_MAX_TOKENS_RESEARCH` | `80000` | PR-C3 | Per-type override. |
+| `AGENT_POOL_MAX_TOKENS_CHECK_TG` | `20000` | PR-C3 | Per-type override. |
+| `AGENT_POOL_MAX_TOKENS_CLEAR` | `15000` | PR-C3 | Per-type override. |
+| `AGENT_POOL_MAX_TOKENS_FIND_NEW_TASK` | `10000` | PR-C2 | Per-type override (cheap meta). |
+| `AGENT_POOL_DIGEST_HOUR_LOCAL` | `21` | PR-C3 | Hour of day для daily rollup TG-message. |
+| `CHECK_TG_WATCHLIST` | (empty) | PR-C3 | csv chat IDs мониторящихся `check-tg` runner'ом. |
+| `CHECK_TG_KEYWORDS` | (empty) | PR-C3 | csv keywords для real-time alert на complete check-tg. |
+
+**`.env.example` diff** — добавить блок `# === memory-hygiene + agent-pool (spec 2026-05-03) ===` с теми же defaults, плюс комменты-ссылки на spec-section-anchor (`# see docs/superpowers/specs/2026-05-03-memory-hygiene-and-agent-usefulness.md#environment-variables`).
+
+`/digest_mode` — НЕ env, хранится в `layer1_focus[digest_mode]` (writable via TG-bot command), default `quiet` если ключ отсутствует.
 
 ## Out of scope (для будущих spec)
 
