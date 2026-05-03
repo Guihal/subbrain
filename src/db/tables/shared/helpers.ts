@@ -46,4 +46,6 @@ export interface InsertSharedOpts {
   // matches the SQL DEFAULT — callers pass 'persona' for identity facts via
   // `categoryToKind(category, 'shared')` in the post-hippocampus.
   kind?: MemoryKind;
+  // PR-A: differential TTL defaults by category.
+  expires_at?: number | null;
 }

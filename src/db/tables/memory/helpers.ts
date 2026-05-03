@@ -43,4 +43,6 @@ export function buildActiveFilter(
 export interface InsertContextOpts {
   confidence?: number | null;
   status?: MemoryStatus;
+  // PR-A: differential TTL defaults by category.
+  expires_at?: number | null;
 }

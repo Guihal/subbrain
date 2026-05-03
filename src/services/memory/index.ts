@@ -39,6 +39,9 @@ export type {
   UpdateSharedPatch, UpdateContextPatch, UpdateArchivePatch, UpdateAgentPatch,
   RelatedEdge,
 };
+// PR-A: on-write dedup helper (re-exported so tools/memory/* can import from index).
+export { checkDuplicate } from "./dedup";
+export type { DedupResult, DedupAction } from "./dedup";
 
 export class MemoryService {
   constructor(

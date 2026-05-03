@@ -52,6 +52,8 @@ export type InsertSharedInput = {
   status?: MemoryStatus;
   // M-07: optional kind override; default 'semantic' applies via SQL DEFAULT.
   kind?: MemoryKind;
+  // PR-A: differential TTL; null = immortal.
+  expires_at?: number | null;
 };
 
 export type InsertContextInput = {
@@ -62,6 +64,8 @@ export type InsertContextInput = {
   agentId?: string;
   confidence?: number | null;
   status?: MemoryStatus;
+  // PR-A: differential TTL; null = immortal.
+  expires_at?: number | null;
 };
 
 export type UpdateSharedPatch = {

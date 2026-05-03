@@ -53,7 +53,13 @@ export function registerMemoryTools(registry: ToolRegistry): void {
       title: t.Optional(t.String({ description: "Title (context/archive)" })),
       tags: t.Optional(t.String({ description: "Comma-separated tags" })),
       category: t.Optional(
-        t.String({ description: "Category (shared layer)" }),
+        t.String({ description: "Category (shared/context layer)" }),
+      ),
+      expires_at: t.Optional(
+        t.Number({
+          description:
+            "Unix seconds expiry. Required for time-bound categories (plan/strategy/priority/urgent/deadline). Default populated by category when omitted.",
+        }),
       ),
       agent_id: t.Optional(t.String({ description: "Agent ID (agent layer)" })),
       key: t.Optional(t.String({ description: "Key (focus layer)" })),

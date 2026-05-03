@@ -37,6 +37,8 @@ export interface WriteParams {
    */
   agent_id?: string;
   key?: string;
+  // PR-A: unix seconds expiry (optional; default populated by category).
+  expires_at?: number;
 }
 
 export function writeMemory(
@@ -59,8 +61,18 @@ export function writeMemory(
       return { success: true, data: { key: params.key } };
 
     case "context": {
-      const err = writeContextCase(deps.memory, id, params, agentId, confidence, status);
-      if (err) return err;
+      // PR-A: writeContextCase is async when rag present (dedup), sync otherwise.
+      const rag = deps.getRag();
+      const ctxResult = writeContextCase(deps.memory, id, params, agentId, confidence, status, rag);
+      if (ctxResult instanceof Promise) {
+        return ctxResult.then((err) => {
+          if (err) return err;
+          if (rag) rag.indexEntry(id, "context", params.content).catch(() => {});
+          return { success: true, data: { id } } as ToolResult;
+        });
+      }
+      if (ctxResult) return ctxResult;
+      if (rag) rag.indexEntry(id, "context", params.content).catch(() => {});
       break;
     }
 
@@ -79,6 +91,7 @@ export function writeMemory(
         tags: params.tags || "",
         confidence,
         status,
+        expires_at: params.expires_at,
       });
 
     case "agent":
@@ -97,8 +110,8 @@ export function writeMemory(
       return { success: false, error: `Unknown layer: ${params.layer}` };
   }
 
-  // Fire-and-forget: embed for RAG index. Reachable for context | archive
-  // | agent (focus + shared returned earlier).
+  // Fire-and-forget: embed for RAG index. Reachable for archive | agent
+  // (focus + shared returned earlier; context handled above).
   const rag = deps.getRag();
   if (rag) {
     rag.indexEntry(id, params.layer, params.content).catch(() => {});

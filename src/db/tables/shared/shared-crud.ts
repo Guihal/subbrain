@@ -19,9 +19,10 @@ export function insertShared(
   const conf = opts?.confidence ?? null;
   const status = opts?.status ?? "active";
   const kind: MemoryKind = opts?.kind ?? "semantic";
+  const expiresAt = opts?.expires_at ?? null;
   db.query(
-    "INSERT INTO shared_memory (id, category, content, tags, source, confidence, status, kind) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-  ).run(id, category, content, tags, source ?? null, conf, status, kind);
+    "INSERT INTO shared_memory (id, category, content, tags, source, confidence, status, kind, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+  ).run(id, category, content, tags, source ?? null, conf, status, kind, expiresAt);
 }
 
 export function getAllShared(db: Database): SharedRow[] {

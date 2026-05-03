@@ -19,8 +19,9 @@ export function insertContext(
 ): void {
   const conf = opts?.confidence ?? null;
   const status = opts?.status ?? "active";
+  const expiresAt = opts?.expires_at ?? null;
   db.query(
-    "INSERT INTO layer2_context (id, title, content, tags, derived_from, agent_id, confidence, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+    "INSERT INTO layer2_context (id, title, content, tags, derived_from, agent_id, confidence, status, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
   ).run(
     id,
     title,
@@ -30,6 +31,7 @@ export function insertContext(
     agentId ?? null,
     conf,
     status,
+    expiresAt,
   );
 }
 

@@ -1,12 +1,38 @@
+/**
+ * Context-layer write. B-1 ownership check on update. + PR-A enforcement.
+ *
+ * PR-A (MEMORY_VALIDATORS_ENFORCE=warn|reject):
+ *   1. validateCategoryAndContent + validateExpiresAt.
+ *   2. defaultExpiresAt fills missing expires_at.
+ *   3. checkDuplicate per-category dedup (async, only when rag available).
+ *
+ * Returns sync ToolResult|null when rag is absent (backward compat with
+ * existing tests that do not wire RAG). Returns Promise<ToolResult|null>
+ * when rag is present (dedup embed call required).
+ */
+import { logger } from "../../../lib/logger";
 import type { MemoryDB } from "../../../db";
+import type { RAGPipeline } from "../../../rag";
 import type { ToolResult } from "../../types";
 import type { WriteParams } from "./write";
+import {
+  validateCategoryAndContent, validateExpiresAt, defaultExpiresAt,
+} from "../../../pipeline/agent-pipeline/post/validators";
+import { checkDuplicate } from "../../../services/memory";
 
-/**
- * Context-layer write. B-1 ownership check on update: an agent can update
- * its own row OR a legacy NULL-agent_id row. Cross-agent overwrite is
- * rejected. Admin (`agentId === null`) bypasses.
- */
+const log = logger.child("memory.write-context");
+
+function mode(): "warn" | "reject" {
+  return process.env.MEMORY_VALIDATORS_ENFORCE === "reject" ? "reject" : "warn";
+}
+
+function maybeReject(reason: string, ctx: Record<string, unknown>): ToolResult | null {
+  if (mode() === "reject")
+    return { success: false, error: `validation_failed: ${reason}`, code: "validation_failed" } as ToolResult;
+  log.warn(`would_reject: ${reason} ${JSON.stringify(ctx)}`);
+  return null;
+}
+
 export function writeContextCase(
   memory: MemoryDB,
   id: string,
@@ -14,38 +40,59 @@ export function writeContextCase(
   agentId: string | null,
   confidence: number,
   status: "active" | "pending",
-): ToolResult | null {
+  rag?: RAGPipeline | null,
+): ToolResult | null | Promise<ToolResult | null> {
+  const category = params.category || params.title || "general";
+  const content = params.content;
   const existing = memory.getContext(id);
-  if (existing) {
-    if (
-      agentId !== null &&
-      existing.agent_id !== null &&
-      existing.agent_id !== agentId
-    ) {
-      return {
-        success: false,
-        error: `forbidden: layer2_context row ${id} owned by another agent`,
-      };
+
+  if (!existing) {
+    // Validate on insert.
+    const catR = validateCategoryAndContent("context", category, content);
+    if (!catR.ok) {
+      const r = maybeReject(catR.reason, { category, layer: "context" });
+      if (r) return r;
     }
-    memory.updateContext(id, {
-      title: params.title,
-      content: params.content,
-      tags: params.tags,
-      status,
-      confidence,
-    });
-  } else {
-    // B-1: agent_id from server-controlled `agentId`, NOT params.agent_id
-    // (would let an agent spoof another agent's private bucket).
-    memory.insertContext(
-      id,
-      params.title || "Untitled",
-      params.content,
-      params.tags || "",
-      [],
-      agentId ?? undefined,
-      { confidence, status },
-    );
+    const expiresAt = typeof params.expires_at === "number" ? params.expires_at
+      : defaultExpiresAt("context", category);
+    const expR = validateExpiresAt(category, expiresAt);
+    if (!expR.ok) {
+      const r = maybeReject(expR.reason, { category });
+      if (r) return r;
+    }
+    if (rag) return insertWithDedupAsync(memory, rag, id, params, agentId, confidence, status, category, expiresAt);
+    memory.insertContext(id, params.title || "Untitled", content, params.tags || "",
+      [], agentId ?? undefined, { confidence, status, expires_at: expiresAt ?? undefined });
+    return null;
   }
+
+  // Update path: B-1 ownership check.
+  if (agentId !== null && existing.agent_id !== null && existing.agent_id !== agentId) {
+    return { success: false, error: `forbidden: layer2_context row ${id} owned by another agent` };
+  }
+  memory.updateContext(id, { title: params.title, content, tags: params.tags, status, confidence });
+  return null;
+}
+
+async function insertWithDedupAsync(
+  memory: MemoryDB, rag: RAGPipeline,
+  id: string, params: WriteParams, agentId: string | null,
+  confidence: number, status: "active" | "pending",
+  category: string, expiresAt: number | null,
+): Promise<ToolResult | null> {
+  try {
+    const dd = await checkDuplicate(memory, rag, "context", category, params.content);
+    if (dd.action === "reject") {
+      const r = maybeReject(`duplicate (cosine=${dd.similarity?.toFixed(3)})`, { category });
+      if (r) return r;
+    } else if (dd.action === "supersede" && dd.supersedesId) {
+      memory.insertContext(id, params.title || "Untitled", params.content, params.tags || "",
+        [], agentId ?? undefined, { confidence, status, expires_at: expiresAt ?? undefined });
+      memory.updateContext(dd.supersedesId, { superseded_by: id });
+      return { success: true, data: { id, superseded: dd.supersedesId } } as ToolResult;
+    }
+  } catch (e) { log.warn(`dedup_error: ${String(e)}`); }
+  memory.insertContext(id, params.title || "Untitled", params.content, params.tags || "",
+    [], agentId ?? undefined, { confidence, status, expires_at: expiresAt ?? undefined });
   return null;
 }

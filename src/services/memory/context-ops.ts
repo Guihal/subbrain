@@ -46,7 +46,7 @@ export async function insertContext(deps: ContextDeps, input: InsertContextInput
   deps.repo.transaction(() => {
     deps.repo.insertContext(
       id, input.title, input.content, input.tags ?? "", input.derivedFrom ?? [], input.agentId,
-      { confidence: input.confidence ?? null, status: input.status },
+      { confidence: input.confidence ?? null, status: input.status, expires_at: input.expires_at ?? undefined },
     );
     deps.repo.upsertEmbedding(id, "context", vec);
   });

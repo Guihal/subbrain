@@ -53,6 +53,7 @@ export async function insertShared(deps: SharedDeps, input: InsertSharedInput): 
         confidence: input.confidence ?? null,
         status: input.status,
         kind: input.kind,
+        expires_at: input.expires_at ?? undefined,
       },
     );
     deps.repo.upsertEmbedding(id, "shared", vec);
