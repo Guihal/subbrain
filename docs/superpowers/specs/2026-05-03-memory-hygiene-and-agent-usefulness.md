@@ -18,6 +18,25 @@ Non-goals:
 - Не менять 4-layer схему БД.
 - Не вводить новые модели в `model-map.ts`.
 
+## Operational principle: NO TOKEN ECONOMY
+
+**Агент НЕ экономит ресурсы.** NVIDIA NIM, MiniMax, web search — у юзера unlimited / бесплатно. «Экономия» tool-calls / steps / context — это анти-паттерн который убивает usefulness.
+
+Конкретно — **запрещены** в любом prompt'е (free-agent, hippocampus, teamlead, runners):
+- «постарайся уложиться в N шагов»
+- «не используй tool если можно без него»
+- «минимизируй контекст / экономь токены»
+- «вызывай tool только если нужно»
+- любые вариации «be efficient / be concise / save resources» применительно к **выбору действий** (не путать с output formatting — там terse OK).
+
+**Поощряется в каждом runner-prompt'е:**
+- «используй tools агрессивно — embed/rerank/web/memory_search дешевле твоей нерешительности»
+- «лучше 50 шагов с артефактом чем 5 шагов "noop"»
+- «параллельные tool calls когда независимы — экономия времени, не токенов»
+- «`memory_search` перед write — cheap insurance, делай всегда»
+
+`maxSteps` — это safety ceiling против бесконечных циклов, не KPI. Артефакт за 80 шагов лучше «noop» за 10.
+
 ## Root causes (from prod inspection 2026-05-03)
 
 | ID | Cause | Evidence |
@@ -44,9 +63,11 @@ Non-goals:
 - [src/mcp/tools/memory/write-shared.ts](../../src/mcp/tools/memory/write-shared.ts) + [write-context.ts](../../src/mcp/tools/memory/write-context.ts) — вызывать `validateForShared`/`validateForContext` ПЕРЕД `memoryService.insert*`. На fail → `ToolError{code:"validation_failed", message: ...}`.
 - **On-write dedup:** новый helper `src/services/memory/dedup.ts`:
   - Embed candidate → `rag_search` top-3 в той же layer/category.
-  - Cosine ≥ 0.92 → `ToolError{code:"duplicate", message:"superseded by id=X"}` (агент видит и переносит дальше).
-  - Cosine 0.85-0.92 → insert + `supersedes_id` link на ближайшего.
-  - Cosine < 0.85 → fresh insert.
+  - **Per-category mode** (premortem fail-mode-2 fix):
+    - **Strict** (для стабильных: `profile/skill/architecture`): cosine ≥0.92 → reject как duplicate.
+    - **Supersede** (для динамичных: `preference/goal/relationship/style/constraint/decision/learning/project/bug`): cosine ≥0.95 → reject; 0.85-0.95 → insert + `supersedes_id` + soft-archive старого row; <0.85 → fresh.
+  - Cosine < 0.85 везде → fresh insert.
+  - `MEMORY_DEDUP_MODE_BY_CATEGORY` const в `validators.ts` (single source).
   - Используется в обоих write-shared/context.
 - **Differential TTL** при insert (если агент не выставил `expires_at`):
   - shared: `profile/preference/skill` = бессрочно; `goal/relationship/constraint/style` = +180 дней.
@@ -77,6 +98,7 @@ Non-goals:
   - **Phase A — expired:** `DELETE FROM memory WHERE expires_at < now()`. Лог count.
   - **Phase B — duplicates:** для каждого layer/category, для каждой свежей пары (≤7d), проверить cosine; если ≥0.92 — оставить новейшую, остальных в archive с тегом `dedup-{batch_date}`.
   - **Phase C — legacy purge (one-time флаг `JANITOR_LEGACY_SWEEP=true`):** строки с `category` НЕ в whitelist ИЛИ длина > MAX_*_CONTENT — move в archive layer с тегом `legacy-cleanup-2026-05-03`. Revertable, не delete.
+  - **TG-confirm gate (premortem fail-mode-5 fix):** перед фактическим archive — TG-сообщение юзеру: `«About to archive N rows. Top reasons: bad-category=X, oversize=Y. Sample preview: <5 random rows>. Reply YES to proceed (1h timeout)».` Без YES — Phase C skip, log warn. После execution — `POST /v1/memory/restore?layer=archive&id=N` endpoint в [src/routes/memory.ts](../../src/routes/memory.ts) для отката.
   - **Phase D — task hygiene:** `DELETE FROM tasks WHERE status='done' AND completed_at < now()-30d`. Уже частично есть в night-cycle stale-task pass — расширить до status-aware. **Применяется к существующей `tasks` table (не к `agent_tasks` из PR-C — у той свой retention в самой pool logic).**
 - Wire в `src/services/night-cycle/index.ts` после log-compression phase.
 - Новый env: `JANITOR_LEGACY_SWEEP=false` (default), `JANITOR_DEDUP_THRESHOLD=0.92`.
@@ -91,6 +113,16 @@ Non-goals:
 ---
 
 ### PR-C — Agent-pool: typed tasks + parallel runners (openclaw-style)
+
+**Декомпозиция (premortem fail-mode-8 fix):** PR-C сам разбивается на 4 mergeable PR:
+- **PR-C1** — `agent_tasks` table + migration + repo-layer (`src/db/tables/agent-tasks.ts`, `src/repositories/agent-tasks.repo.ts`). После merge — table есть, никто не пишет.
+- **PR-C2** — single-runner pool engine + `free` runner only + `done_with_artifact` tool. Заменяет старый free-agent. После merge — prod работает на одном runner type, можно фидбекать.
+- **PR-C3** — `clear` / `check-tg` / `research` / `find-new-task` runners. После merge — pool диверсифицирован, sequential.
+- **PR-C4** — parallel concurrency (`maxConcurrent>1`) + per-type rate limits + type-quota balance (premortem fail-mode-4 fix). После merge — pool на полной мощности.
+
+Если останавливаемся на C2 — система рабочая, free-agent заменён, типизация ждёт месяц.
+
+
 
 **Цель:** заменить single `free-agent` на **унифицированный pool engine** с typed tasks. Каждый тик — одна задача из пула, end-to-end, артефакт обязателен (или явный noop с reason). Parallel concurrency 2-3 через NVIDIA RPM headroom. Бьёт R5.
 
@@ -159,11 +191,17 @@ SAFETY: payments / irreversible / cookies — запрещено. SMS/email — 
   - artifact = `{type:"enqueued", count: N, types: [...]}`.
   - Не имеет smoking gun — успех = ≥1 enqueue.
   - Запускается когда `claim()` returns empty И прошло ≥10 min с последнего find-new-task.
+  - **Type-quota balance** (premortem fail-mode-4 fix): перед enqueue проверяет rolling 24h distribution `complete`-тасков. Если type=`research` >70% → принудительно enqueue D1/D3 prompts (free-runner, deliverable D1 или D3). Цель: за rolling 24h ≥30% complete-tasks ≠ research.
+  - **Dedup на enqueue:** прежде чем INSERT новой task, `memory_search` + проверка `agent_tasks WHERE prompt LIKE %snippet%` за последние 24h. Если уже есть pending/running/recent-done — пропустить (premortem fail-mode-3).
 
 **Concurrency:**
 - `maxConcurrent` env, default `2`. Поднять до 3 если NVIDIA RPM headroom (router exposes `freeRpm()`).
 - Pool runner проверяет `router.isOverloaded` перед claim — если true, пропускает тик.
 - Per-type rate limit: `check-tg` — max 1 раз в 5 мин; `clear` — max 1 параллельно (DB-write contention); `free`/`research` — без ограничений сверх `maxConcurrent`.
+
+**Zombie-task recovery (premortem fail-mode-3 fix):**
+- На каждом pool-tick перед `claim()`: `UPDATE agent_tasks SET status='failed', reason='timeout', finished_at=now() WHERE status='running' AND started_at < now()-1800` (30 min hard cap).
+- В `find-new-task` skip-if-recent: `SELECT 1 FROM agent_tasks WHERE prompt LIKE ? AND created_at > now()-86400` — не дублирует за 24h.
 
 **`done_with_artifact` tool** (новый, registry):
 - Input: `{ status: "complete" | "noop", artifact?: {type, content, url?}, reason?: string }`.
@@ -254,6 +292,87 @@ SAFETY: payments / irreversible / cookies — запрещено. SMS/email — 
 | `done_with_artifact` ломает existing autonomous scheduler | Старый `done` остаётся (dynamic_tools видит оба); free-agent prompt prefers new tool. |
 | Free-agent rewrite — слишком жёсткий, агент стопорится на «нет артефакта» | Anti-idle break + `noop` с reason — agent всегда может exit gracefully. |
 | Personality в teamlead меняет synthesis output → ломает downstream parsers | Никакой downstream не парсит synthesis text как structured — только finalAnswer string. Низкий риск. |
+
+## Premortem (план провалился через 3 мес — почему?)
+
+Представь: 2026-08-03. Юзер открывает `/memory` страницу — снова мусор. Free-agent в TG молчит неделю. Что пошло не так?
+
+### Fail mode 1: Whitelist оказался слишком узким
+**Сценарий:** Через месяц после PR-A агент пытается записать valid факт, validators reject ("category not in whitelist"). Агент сдаётся (не пытается в другой category) ИЛИ начинает spam'ить разрешённые категории неуместными фактами.
+**Probability:** средняя.
+**Mitigation:**
+- В hippocampus prompt'е (PR-D) явно показать: «если ни одна whitelist-category не подходит — НЕ пиши, сообщи `done` со statement о том что забыл».
+- Telemetry: `memory_write_rejected_total` counter с `reason` label, alert если >20% writes reject'аются за час.
+- Whitelist расширяется только через explicit PR + audit-log entry, не silent edit.
+
+### Fail mode 2: On-write dedup затыкает legitimate обновления
+**Сценарий:** Юзер сменил предпочтение («раньше любил X, теперь Y»). Cosine 0.93 к старому факту → reject как duplicate. Старая инфа остаётся, новая теряется.
+**Probability:** высокая (главный риск).
+**Mitigation:**
+- Threshold 0.92 — для `category=preference/goal` понижаем до 0.85, или: при cosine ≥0.92 НЕ reject, а помечаем `supersedes_id` + soft-archive старого.
+- Алгоритм: cosine ≥0.95 = true dup (reject), 0.85-0.95 = supersede (overwrite), <0.85 = fresh.
+- В PR-A явно: для категорий `preference/goal/relationship/style/constraint` (динамичные) — supersede mode дефолт; для `profile/skill/architecture` (стабильные) — strict reject mode.
+
+### Fail mode 3: Agent-pool zombie-tasks
+**Сценарий:** Task стартанул, runner упал (LLM timeout, browser crash), `status='running'` навсегда. Pool depth растёт, но claim никогда не возвращает их → пустые тики → `find-new-task` спамит дубликатами.
+**Probability:** высокая (любой long-running pool страдает).
+**Mitigation:**
+- `running` task с `started_at < now()-30min` → автоматически `status='failed'` + `reason='timeout'` при следующем pool-tick.
+- Per-task heartbeat? Нет — overkill. Достаточно timeout.
+- `find-new-task` перед enqueue делает `memory_search` по prompt-снippet — не дублирует если такая же уже pending/running/recently-done (последние 24h).
+
+### Fail mode 4: Free-agent выбирает только D2 (research) — никаких D1/D3/D4
+**Сценарий:** Research-задачи самые «безопасные» (read-only web + memory_write). Агент LLM-обучен предпочитать low-risk → 95% запусков = research, 0% = world-tasks/PR/code-tools. Юзер видит только «извлёк 2 факта», никаких real-world артефактов.
+**Probability:** высокая (LLM bias к safe actions).
+**Mitigation:**
+- Pool-level type quotas: за rolling 24h ≥30% complete-tasks должны быть type ≠ `research`. Если skew → `find-new-task` принудительно enqueue D1/D3 prompt.
+- Free-runner prompt: «приоритет D1 > D3 > D4 > D2. Research — fallback, не дефолт».
+- TG digest формат показывает type-distribution: «За день: 8 research / 1 free-D1 / 0 free-D3» — юзер сразу видит skew.
+
+### Fail mode 5: Night janitor (PR-B) удалил нужные facts
+**Сценарий:** Legacy sweep one-time прошёл, переехало 3000 rows в archive. Через 2 недели юзер задаёт вопрос → агент не знает важную деталь → копаемся → нашли в archive. Trust в системе упал.
+**Probability:** средняя.
+**Mitigation:**
+- One-time sweep ВСЕГДА требует TG-confirm с counter («about to archive 3142 rows. Sample preview: …»). YES от юзера обязательно.
+- Archive — не delete. Restoration: добавить `POST /v1/memory/restore?layer=archive&id=N` endpoint в PR-B.
+- Sample-preview показывает 5 случайных rows из тех что будут переехан — юзер ловит обвал заранее.
+
+### Fail mode 6: Anti-economy → бесконтрольный $$ / RPM crash
+**Сценарий:** Я написал «не экономь токены» — агент тратит 50k tokens на тривиальную задачу. NVIDIA RPM упирается в потолок, основные чаты юзера тормозят.
+**Probability:** низкая (NVIDIA лимиты бесплатные но RPM ≠ ∞).
+**Mitigation:**
+- `router.isOverloaded` уже есть — pool пропускает тики. Никогда не кладёт RPM на чат.
+- Per-runner `maxSteps` всё ещё есть как safety ceiling (default 50, не уменьшать).
+- Cost telemetry: `agent_pool_tokens_total` по типу runner. Если research-runner внезапно жрёт 100k/тик — bug, не feature.
+
+### Fail mode 7: Hippocampus стал слишком осторожным → ничего не пишет
+**Сценарий:** PR-D prompt «лучше не писать чем мусор» интернализован LLM-ом → 90% exchanges заканчиваются 0 writes. Memory не растёт. Через 2 мес `shared` имеет 50 rows, RAG бесполезен.
+**Probability:** средняя.
+**Mitigation:**
+- Prompt балансировка: «лучше не писать мусор, НО — каждое 3-е сообщение юзера содержит хоть один artefact-worthy факт. Если ты ничего не нашёл за 3 exchanges подряд — ты слишком осторожен».
+- Telemetry: `hippocampus_writes_per_exchange` rolling avg. Если <0.3 за неделю → alert.
+- A/B fallback: если hippocampus вернул 0 writes 5 раз подряд — следующий exchange использует более «liberal» prompt с lower bar.
+
+### Fail mode 8: PR-C потребовал больше работы чем оценено
+**Сценарий:** Новая `agent_tasks` table, repo-layer, 5 runners, claim atomicity, find-new-task gate, parallel concurrency — это 2 недели работы, не PR. Прерывается посередине. На prod часть кода без integration → ничего не работает.
+**Probability:** высокая.
+**Mitigation:**
+- PR-C декомпозируется ДО стартa: PR-C1 (table + repo), PR-C2 (single-runner pool, only `free` type), PR-C3 (multi-type runners), PR-C4 (parallel concurrency + find-new-task). Каждый mergeable independently, prod работает после каждого.
+- Если на C2 видно что не успеваем — стопаем там, free-agent old удаляем, single-runner pool в prod на месяц, потом продолжаем.
+
+### Fail mode 9: Юзер устал от TG digest spam
+**Сценарий:** Pool гонит 20 тасков/день, каждый — TG-сообщение. Юзер mute'ит бот → пропускает важные.
+**Probability:** средняя.
+**Mitigation:**
+- Один daily digest вечером (e.g. 21:00 local) с summary всех tasks за день, не per-task.
+- Real-time alert ТОЛЬКО для: failed task, complete D3/D4 (real-world action), check-tg unread с keyword юзера.
+- `/digest_mode quiet|verbose` команда в боте.
+
+### Severity-ranked top-3 (фокус mitigation):
+
+1. **Fail mode 2 (on-write dedup на legit updates)** — конкретный фикс в PR-A: per-category supersede vs strict mode.
+2. **Fail mode 4 (skew к research)** — фикс в PR-C: type-quota + find-new-task force-balance.
+3. **Fail mode 8 (PR-C overscoping)** — декомпозиция на C1-C4 ДО старта.
 
 ## Out of scope (для будущих spec)
 
