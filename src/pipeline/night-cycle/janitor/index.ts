@@ -59,7 +59,7 @@ export async function runJanitor(
         `🧹 Janitor legacy sweep: archived ${c.legacyArchived} rows. ` +
         `Restore via POST /v1/memory/restore. ` +
         `Tag prefix: legacy-cleanup-${date}`,
-      ).catch(() => {});
+      ).catch((e) => log.warn(`tg-notify-failed: ${String(e)}`));
     }
   } catch (err) {
     log.error(`phase-C failed: ${String(err)}`);

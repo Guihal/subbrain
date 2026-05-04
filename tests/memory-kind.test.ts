@@ -334,7 +334,7 @@ describe("GET /v1/memory/shared?kind=persona filters", () => {
     memory = new MemoryDB(TEST_DB);
     const rag = new RAGPipeline(memory, mkRouter());
     const svc = new MemoryService(memory.memoryRepo, rag, memory.logRepo);
-    app = new Elysia().use(memoryRoute(svc)).listen(0);
+    app = new Elysia().use(memoryRoute(svc, memory)).listen(0);
     base = `http://localhost:${app.server!.port}`;
     memory.insertShared("k-prof", "profile", "row prof", "", "test", { kind: "persona" });
     memory.insertShared("k-pref", "preference", "row pref", "", "test", { kind: "persona" });

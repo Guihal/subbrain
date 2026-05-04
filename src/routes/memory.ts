@@ -98,7 +98,7 @@ const EDGE_PAGE = {
 const EDGES_QUERY = t.Object({ from: t.String({ minLength: 1 }), fromLayer: EDGE_LAYER, ...EDGE_PAGE });
 const RELATED_QUERY = t.Object({ id: t.String({ minLength: 1 }), layer: EDGE_LAYER, ...EDGE_PAGE });
 
-export function memoryRoute(svc: MemoryService, memoryDb?: MemoryDB) {
+export function memoryRoute(svc: MemoryService, memoryDb: MemoryDB) {
   return new Elysia({ prefix: "/v1/memory" })
     .get("/focus", () => svc.listFocus())
     .put("/focus/:key", ({ params, body }) => {
@@ -247,7 +247,6 @@ export function memoryRoute(svc: MemoryService, memoryDb?: MemoryDB) {
     .post(
       "/restore",
       ({ body }) => {
-        if (!memoryDb) throw new NotFoundError("memoryDb not wired");
         const row = svc.getArchive(body.id);
         if (!row) throw new NotFoundError("Archive entry");
         const restored = restoreFromArchive(memoryDb, body.id, row);

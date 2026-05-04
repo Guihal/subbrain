@@ -73,7 +73,7 @@ function buildApp() {
       return { error: { message: "internal" } };
     })
     .use(authMiddleware(auth))
-    .use(memoryRoute(svc))
+    .use(memoryRoute(svc, memory))
     .listen(0);
   return a;
 }

@@ -6,9 +6,10 @@ import { describe, test, expect, beforeEach, afterEach } from "bun:test";
 import { unlinkSync, existsSync } from "node:fs";
 import { MemoryDB } from "../src/db";
 import { runPhaseA } from "../src/pipeline/night-cycle/janitor/phase-a";
-import { runPhaseC } from "../src/pipeline/night-cycle/janitor/phase-bc";
+import { runPhaseB, runPhaseC } from "../src/pipeline/night-cycle/janitor/phase-bc";
 import { runPhaseD } from "../src/pipeline/night-cycle/janitor/phase-d";
 import { restoreFromArchive } from "../src/services/memory/archive-restore";
+import type { RAGPipeline } from "../src/rag";
 
 const DB_PATH = "data/test-janitor.db";
 
@@ -87,6 +88,64 @@ describe("Phase A — expired rows", () => {
     expect(result.sharedDeleted).toBe(1);
     expect(result.contextDeleted).toBe(1);
     expect(result.sharedDeleted + result.contextDeleted).toBe(2);
+  });
+});
+
+// ─── Phase B: cosine dedup ────────────────────────────────
+
+/** Minimal RAGPipeline-shape stub: only embedContent is consumed by phase-B. */
+function mkRagStub(map: Record<string, Float32Array>): RAGPipeline {
+  return {
+    embedContent: async (content: string): Promise<Float32Array> => {
+      const v = map[content];
+      if (!v) throw new Error(`mkRagStub: no vector for content="${content}"`);
+      return v;
+    },
+  } as unknown as RAGPipeline;
+}
+
+describe("Phase B — cosine dedup", () => {
+  test("archives older row when cosine ≥ threshold", async () => {
+    // Two near-duplicate context rows, fresh (within 7d window). Newer kept.
+    memory.insertContext("ctx-new", "t-new", "alpha content", "");
+    // Force older created_at on the second row so sort+keep-newest is deterministic.
+    memory.db
+      .query("UPDATE layer2_context SET created_at = ? WHERE id = ?")
+      .run(Math.floor(Date.now() / 1000) - 3600, "ctx-old");
+    memory.insertContext("ctx-old", "t-old", "alpha content variant", "");
+    memory.db
+      .query("UPDATE layer2_context SET created_at = ? WHERE id = ?")
+      .run(Math.floor(Date.now() / 1000) - 7200, "ctx-old");
+
+    const rag = mkRagStub({
+      "alpha content": new Float32Array([1, 0, 0]),
+      "alpha content variant": new Float32Array([1, 0, 0.001]),
+    });
+
+    const result = await runPhaseB(memory, rag);
+    expect(result.dedupArchived).toBe(1);
+    expect(memory.getContext("ctx-old")).toBeNull();
+    expect(memory.getContext("ctx-new")).not.toBeNull();
+
+    const archived = memory.listArchive().find((a) =>
+      a.tags.includes("dedup-") && a.tags.includes("original_layer:context"),
+    );
+    expect(archived).toBeDefined();
+  });
+
+  test("no archive when below threshold", async () => {
+    memory.insertContext("ctx-a", "t-a", "topic alpha", "");
+    memory.insertContext("ctx-b", "t-b", "topic beta", "");
+
+    const rag = mkRagStub({
+      "topic alpha": new Float32Array([1, 0, 0]),
+      "topic beta": new Float32Array([0, 1, 0]),
+    });
+
+    const result = await runPhaseB(memory, rag);
+    expect(result.dedupArchived).toBe(0);
+    expect(memory.getContext("ctx-a")).not.toBeNull();
+    expect(memory.getContext("ctx-b")).not.toBeNull();
   });
 });
 
