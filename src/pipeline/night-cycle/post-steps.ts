@@ -7,6 +7,7 @@ import type { MemoryDB } from "../../db";
 import type { ModelRouter } from "../../lib/model-router";
 import type { RAGPipeline } from "../../rag";
 import type { MemoryService } from "../../services/memory";
+import type { Notifier } from "../../telegram/bot/notify";
 import { logger } from "../../lib/logger";
 import {
   resolveContradictions,
@@ -25,15 +26,16 @@ import {
   pruneStaleTasks,
   collectStrayTasks,
 } from "./prune";
+import { runJanitor } from "./janitor";
 import type { NightCycleResult } from "./types";
 
 const log = logger.child("night.post");
 
 export async function runPostBatchSteps(
-  deps: { memory: MemoryDB; router: ModelRouter; rag: RAGPipeline; memoryService?: MemoryService },
+  deps: { memory: MemoryDB; router: ModelRouter; rag: RAGPipeline; memoryService?: MemoryService; notifier?: Notifier },
   result: NightCycleResult,
 ): Promise<void> {
-  const { memory, router, rag, memoryService } = deps;
+  const { memory, router, rag, memoryService, notifier } = deps;
 
   await runStep("Resolve contradictions", "Resolve", async () => {
     result.contradictionsResolved = await resolveContradictions(memory, router, rag);
@@ -162,6 +164,15 @@ export async function runPostBatchSteps(
     log.info(
       `embed-log: embedded=${r.embedded} evicted=${r.evicted} errors=${r.errors}`,
     );
+  }, result);
+
+  // PR-B: memory janitor — expire/dedup/legacy/done-tasks cleanup.
+  await runStep("Memory janitor (PR-B)", "Janitor", async () => {
+    const r = await runJanitor(memory, rag, notifier);
+    result.janitorExpiredDeleted = r.expiredDeleted;
+    result.janitorDedupArchived = r.dedupArchived;
+    result.janitorLegacyArchived = r.legacyArchived;
+    result.janitorDoneTasksDeleted = r.doneTasksDeleted;
   }, result);
 }
 

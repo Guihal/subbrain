@@ -33,15 +33,11 @@ import type {
   PendingLayer, RelatedEdge,
 } from "./types";
 
-export type {
-  EdgeLayer, MemoryServiceLinkDeps, PaginatedResult, ListOpts,
-  InsertSharedInput, InsertContextInput,
-  UpdateSharedPatch, UpdateContextPatch, UpdateArchivePatch, UpdateAgentPatch,
-  RelatedEdge,
-};
-// PR-A: on-write dedup helper (re-exported so tools/memory/* can import from index).
+export type { EdgeLayer, MemoryServiceLinkDeps, PaginatedResult, ListOpts, InsertSharedInput, InsertContextInput, UpdateSharedPatch, UpdateContextPatch, UpdateArchivePatch, UpdateAgentPatch, RelatedEdge };
+// PR-A: on-write dedup helper. PR-B: archive restore helper (janitor restore endpoint).
 export { checkDuplicate } from "./dedup";
 export type { DedupResult, DedupAction } from "./dedup";
+export { restoreFromArchive } from "./archive-restore";
 
 export class MemoryService {
   constructor(

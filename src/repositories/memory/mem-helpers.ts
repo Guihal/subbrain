@@ -55,6 +55,7 @@ export function makeMemHelpers(mem: MemoryTable) {
     listContextActive: (limit?: number, offset?: number) =>
       mem.listContextActive(limit, offset),
     countContext: () => mem.countContext(),
+    getAllContext: () => mem.getAllContext(),
     deleteContext: (id: string) => mem.deleteContext(id),
 
     // Layer 3: archive (M-12 mig 15: confidence REAL [0..1] | null)

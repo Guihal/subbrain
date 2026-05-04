@@ -135,7 +135,7 @@ export function createApp(deps: AppDeps) {
     .use(mcpRoute(registry, tools))
     .use(autonomousRoute(agentService, memory))
     .use(chatsRoute(memory))
-    .use(memoryRoute(memoryService))
+    .use(memoryRoute(memoryService, memory))
     .use(freelanceRoute(memory, deps.freelanceScout))
     .use(tasksRoute(new TaskRepository(memory)));
 

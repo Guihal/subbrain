@@ -127,6 +127,11 @@ export function countContext(db: Database): number {
   return row.c;
 }
 
+/** PR-B: return all context rows (janitor bulk scan). */
+export function getAllContext(db: Database): ContextRow[] {
+  return db.query("SELECT * FROM layer2_context ORDER BY updated_at DESC").all() as ContextRow[];
+}
+
 export function deleteContext(db: Database, id: string): void {
   db.query("DELETE FROM layer2_context WHERE id = ?").run(id);
 }

@@ -80,6 +80,7 @@ export class MemoryTable {
   listContextActive = (limit?: number, offset?: number) =>
     context.listContextActive(this.db, limit, offset);
   countContext = (): number => context.countContext(this.db);
+  getAllContext = (): ContextRow[] => context.getAllContext(this.db);
   deleteContext = (id: string): void => context.deleteContext(this.db, id);
 
   // Layer 3 Archive

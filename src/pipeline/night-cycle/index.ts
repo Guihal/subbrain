@@ -58,6 +58,10 @@ function emptyResult(): NightCycleResult {
     focusRewritten: 0,
     focusSkipped: 0,
     focusErrors: 0,
+    janitorExpiredDeleted: 0,
+    janitorDedupArchived: 0,
+    janitorLegacyArchived: 0,
+    janitorDoneTasksDeleted: 0,
     errors: [],
     lastProcessedId: 0,
   };

@@ -53,7 +53,7 @@ let app: Elysia;
 beforeAll(() => {
   cleanup();
   memory = new MemoryDB(TEST_DB);
-  app = attachErrorHandler(new Elysia()).use(memoryRoute(memory));
+  app = attachErrorHandler(new Elysia()).use(memoryRoute(memory, memory));
 
   // Seed: 2 shared pending, 1 shared active, 1 context pending, 1 context active.
   memory.insertShared("sp-1", "user", "pending shared 1", "", undefined, {
