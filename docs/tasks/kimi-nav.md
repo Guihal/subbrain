@@ -85,13 +85,13 @@
 | P3-8 | rag/pipeline.ts → index.ts | `not_started` | — | blocks on P3-7 | CRITIC-PASSED |
 | P3-9 | Memory archive + TTL | `not_started` | — | blocks on P3-8 | CRITIC-PASSED |
 | P6-1 | A2A room init | `done` | `cp3` | — | CRITIC-PASSED. Commit 615920b. 26 LOC, no scope creep. |
-| P6-2 | A2A dispatch hook | `dispatched` | — | — | CRITIC-PASSED |
+| P6-2 | A2A dispatch hook | `dispatched` | — | — | CRITIC-PASSED. Redispatch: prev worker stuck in guard-bypass loop. Using node-write strategy. |
 | P6-3 | A2A transcripts schema | `not_started` | — | **STRONG-MODEL ONLY** (schema choice), blocks on P6-2 | CRITIC-PASSED |
 | P6-4 | A2A transport wiring | `not_started` | — | `<A2A_TRANSPORT>`, blocks on P6-3 | CRITIC-PASSED |
 | P6-5 | A2A synthesis loop | `not_started` | — | blocks on P6-3, P6-4 | CRITIC-PASSED |
 | P6-6 | A2A cleanup + docs | `not_started` | — | blocks on P6-5 | CRITIC-PASSED |
 | A2-1 | Plugin registry init | `done` | `cp3` | — | CRITIC-PASSED. Commit 31b3e84. Bundled with spec-cleanup. |
-| A2-2 | Plugin loader | `dispatched` | — | — | CRITIC-PASSED |
+| A2-2 | Plugin loader | `done` | `cp3` | — | CRITIC-PASSED. Commit e90a153. |
 | A2-3 | Plugin sandbox | `not_started` | — | blocks on A2-2 | CRITIC-PASSED |
 | A2-4 | Plugin hooks (pre/post) | `not_started` | — | blocks on A2-3 | CRITIC-PASSED |
 | A2-5 | ToolResult kind union | `not_started` | — | **STRONG-MODEL ONLY** | CRITIC-PASSED |
