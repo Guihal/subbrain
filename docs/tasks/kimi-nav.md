@@ -66,7 +66,7 @@
 
 | Phase | Packet | Status | Last CP | Blocker | Notes |
 |---|---|---|---|---|---|
-| P2-1 | Agent tasks schema (mig 19) | `not_started` | — | **STRONG-MODEL ONLY** | CRITIC-PASSED |
+| P2-1 | Agent tasks schema (mig 18) | `fail` | — | hook-blocks-subagents | CRITIC-PASSED. **SPEC BUG**: `DEFAULT (strftime('%s','now'))` not constant in SQLite → use `DEFAULT (unixepoch())`. Attempt #1: worker blocked by hook, left broken schema.ts (restored). |
 | P2-2 | Agent tasks repository | `not_started` | — | blocks on P2-1 | CRITIC-PASSED |
 | P2-3 | Agent pool runner | `not_started` | — | blocks on P2-1 | CRITIC-PASSED |
 | P2-4 | Terminate + artifact tool | `not_started` | — | blocks on P2-3 | CRITIC-PASSED |
@@ -97,7 +97,7 @@
 | A2-5 | ToolResult kind union | `not_started` | — | **STRONG-MODEL ONLY** | CRITIC-PASSED |
 | A2-6 | Code-tool guards | `not_started` | — | **SECURITY** — integration tests mandatory, blocks on A2-3, A2-5 | CRITIC-PASSED |
 | A2-7 | TG spam gates | `not_started` | — | **SECURITY** — integration tests mandatory, blocks on A2-3, A2-5 | CRITIC-PASSED |
-| A2-8 | Plugin config + reload | `not_started` | — | blocks on A2-3 | CRITIC-PASSED |
+| A2-8 | Plugin config + reload | `fail` | — | hook-blocks-subagents | CRITIC-PASSED. Attempt #1: worker blocked by hook. |
 | A2-9 | Plugin docs | `not_started` | — | blocks on A2-6, A2-7, A2-8 | CRITIC-PASSED |
 
 **Wave 2 merge gate:** Wave 1 merged + ALL Wave 2 `done` → unblocks Wave 3.
@@ -183,11 +183,10 @@
 
 | Packet | Worker | Status | Started |
 |---|---|---|---|
-| A2-8 | abbac4be590c25e79 | dispatched | 2026-05-05 20:45 |
-| P2-1 | ad43746a3a0a1aeba | dispatched | 2026-05-05 20:53 |
+| — | — | — | — |
 
 ---
 
 ## Last Updated
 
-2026-05-05 — A2-8 dispatched (worker abbac4be590c25e79). A2-4 + 8e-1 done. cp0/cp1/cp2/cp3 all green.
+2026-05-05 — A2-8 + P2-1 both FAIL (hook blocks subagents). Both workers stopped. Schema.ts restored. cp0/cp2/cp3 green. Biome 4 errors = untracked P2-1 artifacts only.
