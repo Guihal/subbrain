@@ -10,6 +10,7 @@ import { runPre } from "../agent-pipeline/phases/pre";
 import { renderActiveTasks, renderTgStatus } from "./prompt-blocks/tasks";
 import type { AgentMode, ScheduleContext } from "./types";
 import { getCurrentDate, MAX_CONTEXT_TOKENS, MAX_DYNAMIC_TOOLS, MAX_STEPS } from "./types";
+import type { HooksDispatcher } from "../../hooks";
 
 function deriveTaskScope(s?: ScheduleContext): TaskScope {
   if (s?.source === "autonomous") return "autonomous";
@@ -25,6 +26,7 @@ export async function buildAgentSystemPrompt(
   router?: ModelRouter,
   schedule?: ScheduleContext,
   agentMode: AgentMode = "interactive",
+  hooks?: HooksDispatcher,
 ): Promise<string> {
   // SCHED-1: hide Code Tools authoring from the model in scheduled mode.
   // Existing code_* tools remain callable (see registry.listForAgent);
@@ -218,6 +220,7 @@ Code tools creation disabled in scheduled mode. Use existing tools only (\`list_
         model,
         userMessage: task,
         firstMessage: true,
+        hooks,
       });
       const { preOutput } = preResult;
       if (preOutput.executiveSummary) {

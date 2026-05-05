@@ -137,11 +137,6 @@ export async function executeAgentTool(
 
   log.info("agent-loop", `Tool: ${name}(${JSON.stringify(args).slice(0, 200)})`, { meta: { tool: name } });
 
-  const allowed = await deps.hooks?.runPermissionAsk(name, args);
-  if (allowed === false) {
-    span.setAttribute("tool.ok", false); span.setAttribute("tool.error_code", "permission_denied"); span.setStatus({ code: 2 }); span.end();
-    return JSON.stringify({ error: "Permission denied" });
-  }
   const ctx = {
     executor: deps.tools, router: deps.router, room: deps.room,
     dynamicTools: deps.dynamicTools, persistDynamicTools: deps.persistDynamicTools,
@@ -150,6 +145,14 @@ export async function executeAgentTool(
   };
 
   try {
+    const allowed = await deps.hooks?.runPermissionAsk(name, args);
+    if (allowed === false) {
+      span.setAttribute("tool.ok", false);
+      span.setAttribute("tool.error_code", "permission_denied");
+      span.setStatus({ code: 2 });
+      return JSON.stringify({ error: "Permission denied" });
+    }
+
     const before = await deps.hooks?.runToolBefore(name, args, ctx);
     if (before && before.kind !== "success") {
       const legacy = JSON.stringify(toLegacy(before));
