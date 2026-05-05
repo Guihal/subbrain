@@ -14,6 +14,9 @@ import type { RAGResult } from "../types";
  * FTS-only (no vec branch — see RAGPipeline.search). `sessionId` filters
  * log rows by session; `agentId` filters by agent_id (NOT NULL on log rows,
  * so unlike context/archive/shared this is a hard equality match).
+ *
+ * P3-3: bi-temporal filter applied via buildActiveFilter:
+ * (valid_from IS NULL OR valid_from <= unixepoch()) AND (valid_to IS NULL OR valid_to > unixepoch())
  */
 export function ftsSearch(
   memory: MemoryDB,

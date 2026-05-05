@@ -87,7 +87,7 @@ export function recentActiveSharedForCrossLayer(
 ): { id: string; cat: string; updated_at: number }[] {
   return db
     .query<{ id: string; cat: string; updated_at: number }, [number]>(
-      "SELECT id, lower(category) AS cat, updated_at FROM shared_memory WHERE status='active' AND superseded_by IS NULL AND (expires_at IS NULL OR expires_at > unixepoch()) ORDER BY updated_at DESC LIMIT ?",
+      "SELECT id, lower(category) AS cat, updated_at FROM shared_memory WHERE status='active' AND superseded_by IS NULL AND (expires_at IS NULL OR expires_at > unixepoch()) AND (valid_from IS NULL OR valid_from <= unixepoch()) AND (valid_to IS NULL OR valid_to > unixepoch()) ORDER BY updated_at DESC LIMIT ?",
     )
     .all(limit);
 }

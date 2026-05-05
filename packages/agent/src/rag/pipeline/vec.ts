@@ -25,6 +25,9 @@ interface RowFields {
  * MEM-5 (PR 22a): vec search can return ids whose rows are pending /
  * rejected (vec_embeddings has no status column). `activeOnly` drops them
  * at hydrate time so they never enter RAG injection.
+ *
+ * P3-3: bi-temporal filter applied via buildActiveFilter:
+ * (valid_from IS NULL OR valid_from <= unixepoch()) AND (valid_to IS NULL OR valid_to > unixepoch())
  */
 export async function vecSearch(
   memory: MemoryDB,
