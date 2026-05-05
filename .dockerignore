@@ -1,5 +1,7 @@
 # Dockerfile build context ignores
 node_modules
+**/dist
+**/*.tsbuildinfo
 data
 .git
 .github
@@ -12,4 +14,6 @@ deploy
 .DS_Store
 .cache
 coverage
-*.tsbuildinfo
+web/.nuxt
+web/.output
+tmp

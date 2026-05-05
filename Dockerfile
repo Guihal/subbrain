@@ -5,10 +5,16 @@ WORKDIR /app
 
 # Install deps first (cache layer)
 COPY package.json bun.lock* ./
+COPY packages/core/package.json packages/core/
+COPY packages/providers/package.json packages/providers/
+COPY packages/plugin/package.json packages/plugin/
+COPY packages/agent/package.json packages/agent/
+COPY packages/server/package.json packages/server/
+COPY web/package.json web/
 RUN bun install --frozen-lockfile
 
 # Copy source
-COPY src/ src/
+COPY packages/ packages/
 COPY public/ public/
 COPY scripts/ scripts/
 COPY tsconfig.json ./
@@ -33,7 +39,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./
-COPY --from=builder /app/src ./src
+COPY --from=builder /app/packages ./packages
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/tsconfig.json ./
@@ -56,4 +62,4 @@ EXPOSE 4000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD bun -e "fetch('http://localhost:4000/health').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"
 
-CMD ["bun", "run", "src/index.ts"]
+CMD ["bun", "run", "packages/server/src/index.ts"]
