@@ -93,7 +93,7 @@
 | A2-1 | Plugin registry init | `done` | `cp3` | — | CRITIC-PASSED. Commit 31b3e84. Bundled with spec-cleanup. |
 | A2-2 | Plugin loader | `done` | `cp3` | — | CRITIC-PASSED. Commit e90a153. |
 | A2-3 | Plugin sandbox | `done` | `cp3` | — | CRITIC-PASSED. Commit 237d2a0. Hook wiring in tool-runner.ts + tests. |
-| A2-4 | Plugin hooks (pre/post) | `dispatched` | — | blocks on A2-3 | CRITIC-PASSED. Worker ad64329a. |
+| A2-4 | Plugin hooks (pre/post) | `dispatched` | — | blocks on A2-3 | CRITIC-PASSED. Attempt #1: worker went rogue (created VSCode ext + docs + old src/ changes). Discarded. Redispatching. |
 | A2-5 | ToolResult kind union | `not_started` | — | **STRONG-MODEL ONLY** | CRITIC-PASSED |
 | A2-6 | Code-tool guards | `not_started` | — | **SECURITY** — integration tests mandatory, blocks on A2-3, A2-5 | CRITIC-PASSED |
 | A2-7 | TG spam gates | `not_started` | — | **SECURITY** — integration tests mandatory, blocks on A2-3, A2-5 | CRITIC-PASSED |
