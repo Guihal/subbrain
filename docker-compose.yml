@@ -44,6 +44,8 @@ services:
     environment:
       - DB_PATH=/data/subbrain.db
       - LOG_DIR=/data/logs
+      - OTEL_ENABLED=${OTEL_ENABLED:-false}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-}
     healthcheck:
       test:
         [
