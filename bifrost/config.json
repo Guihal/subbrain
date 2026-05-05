@@ -1,6 +1,63 @@
 {
   "$schema": "https://www.getbifrost.ai/schema",
-  "providers": {},
+  "providers": {
+    "openai": {
+      "network_config": {
+        "base_url": "https://integrate.api.nvidia.com/v1"
+      },
+      "keys": [
+        {
+          "name": "nvidia-nim",
+          "value": "env.NVIDIA_API_KEY",
+          "models": [
+            "z-ai/glm-5.1",
+            "deepseek-ai/deepseek-v4-flash",
+            "qwen/qwen3-coder-480b-a35b-instruct",
+            "meta/llama-4-maverick-17b-128e-instruct",
+            "moonshotai/kimi-k2.6",
+            "nvidia/llama-3.3-nemotron-super-49b-v1.5"
+          ],
+          "weight": 1
+        }
+      ]
+    },
+    "minimax": {
+      "keys": [
+        {
+          "name": "minimax-key",
+          "value": "env.MINIMAX_API_KEY",
+          "models": ["MiniMax-M2.7"],
+          "weight": 1
+        }
+      ]
+    },
+    "openrouter": {
+      "keys": [
+        {
+          "name": "openrouter-key",
+          "value": "env.OPENROUTER_API_KEY",
+          "models": [],
+          "weight": 1
+        }
+      ]
+    },
+    "openai-compat": {
+      "custom_provider_config": {
+        "base_provider_type": "openai"
+      },
+      "network_config": {
+        "base_url": "http://cliproxy:8317/v1"
+      },
+      "keys": [
+        {
+          "name": "cliproxy-key",
+          "value": "env.OPENAI_COMPAT_API_KEY",
+          "models": ["gpt-5.4-mini"],
+          "weight": 1
+        }
+      ]
+    }
+  },
   "config_store": {
     "enabled": true,
     "type": "sqlite",

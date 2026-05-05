@@ -29,7 +29,7 @@
 | P1-2 | Bifrost provider config | `done` | `cp3` | — | CRITIC-PASSED |
 | P1-3 | Bifrost health + fallback | `done` | `cp3` | — | CRITIC-PASSED |
 | P1-4 | Bifrost rate-limiter reuse | `done` | `cp3` | — | CRITIC-PASSED |
-| P1-5 | Bifrost SSE proxy | `not_started` | — | — | CRITIC-PASSED |
+| P1-5 | Bifrost SSE proxy | `done` | `cp3` | — | CRITIC-PASSED |
 | P1-6 | Bifrost custom provider | `not_started` | — | custom-provider base_url shape | CRITIC-PASSED |
 | A1-1 | Workspace skeleton + guardrail scan roots | `done` | `cp3` | — | CRITIC-PASSED |
 | A1-2 | Shared types pre-split + AuthService -> packages/core | `done` | `cp3` | — | CRITIC-PASSED |

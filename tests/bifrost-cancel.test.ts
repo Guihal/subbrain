@@ -14,7 +14,9 @@ describe("BifrostProvider.chatStream mid-flight cancel", () => {
         return new Response(
           new ReadableStream({
             start(controller) {
-              controller.enqueue(encoder.encode('data: {"choices":[{"delta":{"content":"hi"}}]}\n\n'));
+              controller.enqueue(
+                encoder.encode('data: {"choices":[{"delta":{"content":"hi"}}]}\n\n'),
+              );
               // Keep stream open until client aborts
             },
           }),
