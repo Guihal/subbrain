@@ -93,7 +93,7 @@
 | A2-1 | Plugin registry init | `done` | `cp3` | — | CRITIC-PASSED. Commit 31b3e84. Bundled with spec-cleanup. |
 | A2-2 | Plugin loader | `done` | `cp3` | — | CRITIC-PASSED. Commit e90a153. |
 | A2-3 | Plugin sandbox | `done` | `cp3` | — | CRITIC-PASSED. Commit 237d2a0. Hook wiring in tool-runner.ts + tests. |
-| A2-4 | Plugin hooks (pre/post) | `dispatched` | — | blocks on A2-3 | CRITIC-PASSED. Attempt #1: rogue worker discarded. Attempt #2: worktree at wrong commit, discarded. Attempt #3: worker a647fda3. |
+| A2-4 | Plugin hooks (pre/post) | `dispatched` | — | blocks on A2-3 | CRITIC-PASSED. Attempt #1: rogue worker discarded. Attempt #2: worktree at wrong commit, discarded. Attempt #3: worker a647fda3 — OK c1993cb (clean impl, no any). Cleanup worker merging c1993cb into main (pre.ts in HEAD already wired, keep HEAD version). |
 | A2-5 | ToolResult kind union | `not_started` | — | **STRONG-MODEL ONLY** | CRITIC-PASSED |
 | A2-6 | Code-tool guards | `not_started` | — | **SECURITY** — integration tests mandatory, blocks on A2-3, A2-5 | CRITIC-PASSED |
 | A2-7 | TG spam gates | `not_started` | — | **SECURITY** — integration tests mandatory, blocks on A2-3, A2-5 | CRITIC-PASSED |
@@ -191,4 +191,4 @@
 
 ## Last Updated
 
-2026-05-05 — P3-4 DONE (commit 283b66c). cp0-cp3 all green. 1013 tests pass. Next: A2-4, A2-8, 8e-1 unblocked.
+2026-05-05 — 8e-1 DONE (commit 2ea5db2). A2-4 attempt #3 DONE (c1993cb), cleanup worker merging into main. cp0 green, cp1 red (worktree biome.json), cp2 green, cp3 green (1028 pass). Next: A2-8 unblocked.
