@@ -18,23 +18,14 @@ import type { ArbitrationRoom } from "../arbitration";
 import type { CodeToolRegistry } from "./code-tools";
 import { executeSandboxed } from "./code-tools/sandbox";
 import type { DynamicToolDef, DynamicToolRegistry } from "./dynamic-tools";
+import { HooksDispatcher } from "../../hooks";
+import { toLegacy, type ToolResult as PluginToolResult } from "@subbrain/plugin";
 
-/**
- * Per-scope timeout (ms) for tool execution. Timeouts DO NOT throw — they
- * surface as `{ error: { code: "timeout", name } }` in the tool_result so the
- * model can decide whether to retry or skip ahead.
- */
 const CRITIC_TIMEOUT_MS = Number(process.env.CRITIC_TIMEOUT_MS ?? 300_000);
-// consult: N specialists parallel (MiniMax thinking 60-90s) + teamlead
-// synthesis (60-120s). Bumped 180_000 → 600_000 (2026-05-03) — outer abort
-// cascaded and killed synthesis seconds before return. 10 min ceiling.
 const CONSULT_TIMEOUT_MS = Number(process.env.CONSULT_TIMEOUT_MS ?? 600_000);
 const TOOL_TIMEOUTS: { prefix: string; ms: number }[] = [
   { prefix: "critic_", ms: CRITIC_TIMEOUT_MS },
   { prefix: "web_", ms: 15_000 },
-  // M-10: more specific memory_* prefixes win because TOOL_TIMEOUTS is
-  // first-match. `memory_reflect` calls the LLM (~30s) and embed for the
-  // skip-guard; `memory_promote` does an embed + transactional insert.
   { prefix: "memory_reflect", ms: 60_000 },
   { prefix: "memory_promote", ms: 10_000 },
   { prefix: "memory_", ms: 3_000 },
@@ -53,15 +44,6 @@ export function toolTimeoutMs(name: string): number {
 
 const TIMEOUT_SENTINEL: unique symbol = Symbol("tool_timeout");
 
-/**
- * Race `exec` against the per-scope timeout. On timeout the internal
- * `AbortController` is fired so the handler (and any downstream fetch /
- * router.chat / PlaywrightClient call that honors AbortSignal) can abandon
- * the in-flight work instead of continuing in the background eating RPM.
- *
- * If `externalSignal` is provided, an `AbortSignal.any([external, internal])`
- * is passed to `exec` — external abort cancels the handler too.
- */
 export async function withToolTimeout<T>(
   name: string,
   exec: (signal: AbortSignal) => Promise<T>,
@@ -83,9 +65,7 @@ export async function withToolTimeout<T>(
   try {
     const res = await Promise.race([exec(effective), timeoutP]);
     if (res === TIMEOUT_SENTINEL) {
-      return JSON.stringify({
-        error: { code: "timeout", name, timeout_ms: ms },
-      });
+      return JSON.stringify({ error: { code: "timeout", name, timeout_ms: ms } });
     }
     return res as T;
   } finally {
@@ -102,11 +82,9 @@ export interface ToolRunnerDeps {
   persistDynamicTools: () => void;
   codeTools: CodeToolRegistry | null;
   session: AgentLoopSession;
-  /** B-1: per-agent identity for context-layer scoping; null = no scope. */
   agentId: string | null;
-  /** SCHED-1: passed to tool ctx so handlers (e.g. tg_send_message F-4) can
-   *  gate on scheduled-vs-interactive without sniffing agentId. */
   agentMode: AgentMode;
+  hooks?: HooksDispatcher;
 }
 
 type Log = ReturnType<typeof logger.forRequest>;
@@ -119,10 +97,25 @@ function parseOk(result: string): { ok: boolean; code?: string } {
       return { ok: false, code };
     }
     if (p.success === false) return { ok: false };
-  } catch {
-    /* non-JSON = success */
-  }
+  } catch { /* non-JSON = success */ }
   return { ok: true };
+}
+
+function stringToToolResult(result: string): PluginToolResult {
+  try {
+    const p = JSON.parse(result) as {
+      success?: boolean;
+      error?: { code: string; message: string; timeout_ms?: number } | string;
+      data?: unknown;
+    };
+    if (p.success === true) return { kind: "success", data: p.data };
+    if (p.error && typeof p.error === "object") {
+      if (p.error.code === "timeout") return { kind: "timeout", error: { code: p.error.code, message: p.error.message, timeout_ms: p.error.timeout_ms ?? 0 } };
+      return { kind: "failure", error: { code: p.error.code, message: p.error.message } };
+    }
+    if (p.error && typeof p.error === "string") return { kind: "failure", error: { code: "unknown", message: p.error } };
+  } catch { /* non-JSON = raw success (e.g. done) */ }
+  return { kind: "success", data: result };
 }
 
 export async function executeAgentTool(
@@ -142,53 +135,61 @@ export async function executeAgentTool(
     return JSON.stringify({ error: "Invalid JSON arguments" });
   }
 
-  log.info("agent-loop", `Tool: ${name}(${JSON.stringify(args).slice(0, 200)})`, {
-    meta: { tool: name },
-  });
+  log.info("agent-loop", `Tool: ${name}(${JSON.stringify(args).slice(0, 200)})`, { meta: { tool: name } });
+
+  const ctx = {
+    executor: deps.tools, router: deps.router, room: deps.room,
+    dynamicTools: deps.dynamicTools, persistDynamicTools: deps.persistDynamicTools,
+    codeTools: deps.codeTools, log, registry: deps.registry,
+    session: deps.session, agentId: deps.agentId, agentMode: deps.agentMode,
+  };
 
   try {
+    const before = await deps.hooks?.runToolBefore(name, args, ctx);
+    if (before && before.kind !== "success") {
+      const legacy = JSON.stringify(toLegacy(before));
+      await deps.hooks?.runToolAfter(name, args, before);
+      const { ok, code } = parseOk(legacy);
+      span.setAttribute("tool.ok", ok);
+      if (!ok) {
+        span.setStatus({ code: 2 });
+        if (code) span.setAttribute("tool.error_code", code);
+      }
+      return legacy;
+    }
+
     const result = await withToolTimeout(name, async (signal) => {
+      const runAfter = async (res: string): Promise<string> => {
+        await deps.hooks?.runToolAfter(name, args, stringToToolResult(res));
+        return res;
+      };
       if (deps.registry.has(name)) {
-        const r = await deps.registry.callAsAgent(
-          name,
-          args,
-          {
-            executor: deps.tools,
-            router: deps.router,
-            room: deps.room,
-            dynamicTools: deps.dynamicTools,
-            persistDynamicTools: deps.persistDynamicTools,
-            codeTools: deps.codeTools,
-            log,
-            registry: deps.registry,
-            session: deps.session,
-            agentId: deps.agentId,
-            agentMode: deps.agentMode,
-          },
-          signal,
-        );
-        if (name === "done" && r.success && typeof r.data === "string") return r.data;
-        return JSON.stringify(r);
+        const r = await deps.registry.callAsAgent(name, args, {
+          executor: deps.tools, router: deps.router, room: deps.room,
+          dynamicTools: deps.dynamicTools, persistDynamicTools: deps.persistDynamicTools,
+          codeTools: deps.codeTools, log, registry: deps.registry,
+          session: deps.session, agentId: deps.agentId, agentMode: deps.agentMode,
+        }, signal);
+        if (name === "done" && r.success && typeof r.data === "string") return await runAfter(r.data);
+        return await runAfter(JSON.stringify(r));
       }
       const dynTool = deps.dynamicTools.get(name);
-      if (dynTool) return await executeDynamicTool(dynTool, args, deps.router, log, signal);
+      if (dynTool) return await runAfter(await executeDynamicTool(dynTool, args, deps.router, log, signal));
       if (name.startsWith("code_") && deps.codeTools) {
         const toolName = name.slice(5);
         const codeTool = deps.codeTools.getByName(toolName);
         if (codeTool) {
           if (!codeTool.enabled)
-            return JSON.stringify({
-              error: `Code tool "${toolName}" is disabled (too many errors)`,
-            });
+            return await runAfter(JSON.stringify({ error: `Code tool "${toolName}" is disabled (too many errors)` }));
           const input = (args.input as string) || "";
           log.info("agent-loop", `Executing code tool: ${toolName}`);
           const res = await executeSandboxed(codeTool.code, input);
           deps.codeTools.recordRun(toolName, res.success, res.error);
-          if (res.success) return res.output || "";
-          return JSON.stringify({ error: res.error, durationMs: res.durationMs });
+          if (res.success) return await runAfter(res.output || "");
+          return await runAfter(JSON.stringify({ error: res.error, durationMs: res.durationMs }));
         }
       }
-      return JSON.stringify({ error: `Unknown tool: ${name}` });
+      return await runAfter(JSON.stringify({ error: `Unknown tool: ${name}` }));
     });
 
     const { ok, code } = parseOk(result as string);
@@ -219,9 +220,7 @@ async function executeDynamicTool(
 ): Promise<string> {
   const input = (args.input as string) || "";
   const systemPrompt = def.promptTemplate.replace(/\{\{input\}\}/g, input);
-
   log.info("agent-loop", `Dynamic tool ${def.name} → ${def.model} (${input.slice(0, 100)})`);
-
   try {
     const response = await router.chat(def.model, {
       messages: [
@@ -232,7 +231,6 @@ async function executeDynamicTool(
       temperature: 0.5,
       signal,
     });
-
     const content = response.choices[0]?.message?.content || "";
     return JSON.stringify({ success: true, data: content });
   } catch (err) {
