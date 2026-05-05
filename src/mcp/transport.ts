@@ -1,6 +1,6 @@
-import { Elysia } from "elysia";
 import type { ToolExecutor } from "@subbrain/agent/mcp/executor";
 import type { ToolRegistry } from "@subbrain/agent/mcp/registry";
+import { Elysia } from "elysia";
 
 /**
  * Exposes tools as REST endpoints for internal agent pipeline use.

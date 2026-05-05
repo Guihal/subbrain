@@ -276,6 +276,6 @@ export function memoryRoute(svc: MemoryService, memoryDb: MemoryDB) {
             id: t.String({ minLength: 1 }),
           }),
         },
-      )
-  ) as unknown as Elysia;
+      ) as unknown as Elysia
+  );
 }

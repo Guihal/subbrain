@@ -1,12 +1,12 @@
 import { staticPlugin } from "@elysiajs/static";
-import { mcpProtocolRoute } from "../mcp/mcp-protocol";
-import { mcpRoute } from "../mcp/transport";
 import { authMiddleware } from "@subbrain/core/lib/auth";
 import { AppError } from "@subbrain/core/lib/errors";
 import { logger } from "@subbrain/core/lib/logger";
 import { MetricsRepository } from "@subbrain/core/repositories/metrics.repo";
 import { TaskRepository } from "@subbrain/core/repositories/task.repo";
 import { Elysia } from "elysia";
+import { mcpProtocolRoute } from "../mcp/mcp-protocol";
+import { mcpRoute } from "../mcp/transport";
 import { autonomousRoute } from "../routes/autonomous";
 import { chatRoute } from "../routes/chat";
 import { chatsRoute } from "../routes/chats";

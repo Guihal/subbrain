@@ -20,11 +20,6 @@ import { randomUUID } from "node:crypto";
  * and the source row is already gone.
  */
 import { appendFileSync, mkdirSync } from "node:fs";
-import { MemoryDB } from "@subbrain/core/db";
-import { getMoscowDate } from "@subbrain/core/lib/clock";
-import { logger } from "@subbrain/core/lib/logger";
-import { createProviders } from "@subbrain/providers";
-import { ModelRouter } from "@subbrain/core/lib/model-router";
 import {
   type CandidateRow,
   type Classifier,
@@ -34,6 +29,11 @@ import {
   hasCompletedStatusTag,
   hasTaskTag,
 } from "@subbrain/agent/pipeline/night-cycle/prune/tasks-classify";
+import { MemoryDB } from "@subbrain/core/db";
+import { getMoscowDate } from "@subbrain/core/lib/clock";
+import { logger } from "@subbrain/core/lib/logger";
+import { ModelRouter } from "@subbrain/core/lib/model-router";
+import { createProviders } from "@subbrain/providers";
 
 const log = logger.child("migrate.tasks");
 
