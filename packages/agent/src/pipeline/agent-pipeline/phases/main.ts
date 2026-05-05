@@ -25,7 +25,7 @@ export async function runMain(args: {
   requestId?: string;
   hooks?: HooksDispatcher;
 }): Promise<MainResult> {
-  const { req, router, enrichedSystemPrompt, metrics, log, requestId = "", hooks } = args;
+  const { req, router, enrichedSystemPrompt, metrics, log, requestId = "" } = args;
 
   const tracer = getTracer();
   const span = tracer.startSpan("subbrain.pipeline.main", {
@@ -41,26 +41,25 @@ export async function runMain(args: {
   try {
     const messages = injectSystemPrompt(req.messages, enrichedSystemPrompt);
     const params = {
+      model: req.model,
       messages,
       temperature: req.temperature,
       max_tokens: req.max_tokens,
       top_p: req.top_p,
-      tools: req.tools,
+      tools: req.tools ?? [],
       tool_choice: req.tool_choice,
     };
 
-    let finalParams = params;
-    if (hooks) {
-      const transformed = await hooks.runChatParams({ model: req.model, ...params } as any);
+    if (args.hooks) {
+      const transformed = await args.hooks.runChatParams(params);
       if (transformed) {
-        const { model: _model, ...rest } = transformed;
-        finalParams = rest as typeof params;
+        Object.assign(params, transformed);
       }
     }
 
     log.info("main", `Non-stream call to ${req.model}`, { model: req.model });
     const start = Date.now();
-    const response = await router.chat(req.model, finalParams);
+    const response = await router.chat(req.model, params);
     const durationMs = Date.now() - start;
 
     const assistantMessage = response.choices[0]?.message?.content || "";

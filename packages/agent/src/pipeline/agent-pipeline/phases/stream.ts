@@ -36,7 +36,7 @@ export function buildPipelineStream(args: {
   deps: StreamDeps;
   hooks?: HooksDispatcher;
 }): ReadableStream<Uint8Array> {
-  const { req, requestId, sessionId, log, userMessage, firstMessage, deps, hooks } = args;
+  const { req, requestId, sessionId, log, userMessage, firstMessage, deps } = args;
   const encoder = new TextEncoder();
 
   const makeProgressChunk = (text: string): Uint8Array => {
@@ -75,7 +75,6 @@ export function buildPipelineStream(args: {
         const emit = (text: string) => controller.enqueue(makeProgressChunk(text));
 
         const agentId: string | null = req.agentId ?? null;
-
         const preStart = Date.now();
         log.info("pre", "Starting pre-processing");
         const pre = await runPre({
@@ -88,7 +87,7 @@ export function buildPipelineStream(args: {
           onProgress: firstMessage ? emit : undefined,
           agentId,
           requestId,
-          hooks,
+          hooks: args.hooks,
         });
         const preDur = Date.now() - preStart;
         log.info(
@@ -113,11 +112,18 @@ export function buildPipelineStream(args: {
         });
 
         emit(`💬 Отправка запроса к ${req.model}...\n`);
-
         const messages = injectSystemPrompt(req.messages, pre.enrichedSystemPrompt);
-        let params: any = { messages, temperature: req.temperature, max_tokens: req.max_tokens, top_p: req.top_p, tools: req.tools, tool_choice: req.tool_choice };
-        if (hooks) { const t = await hooks.runChatParams({ model: req.model, ...params }); if (t) { const { model: _m, ...r } = t; params = r; } }
+        const params = {
+          model: req.model,
+          messages,
+          temperature: req.temperature,
+          max_tokens: req.max_tokens,
+          top_p: req.top_p,
+          tools: req.tools ?? [],
+          tool_choice: req.tool_choice,
+        };
 
+        if (args.hooks) { const transformed = await args.hooks.runChatParams(params); if (transformed) Object.assign(params, transformed); }
         log.info("main", `Streaming via ${req.model}`, { model: req.model });
         const modelStream = await deps.router.chatStream(req.model, params);
 
