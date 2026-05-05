@@ -20,7 +20,7 @@ import type { TelegramBot } from "../telegram/bot";
 
 const log = logger.child("free-agent");
 
-interface FreeAgentDeps {
+export interface FreeAgentSchedulerDeps {
   agentService: AgentService;
   telegramBot: TelegramBot | null;
   config: {
@@ -58,7 +58,7 @@ export const FREE_AGENT_TASK = `Ты — автономный любопытны
 
 Завершай через done с резюме: что пробовал, что нашёл, какие code_tools написал, какие идеи сохранил. Резюме уйдёт в TG-дайджест пользователю.`;
 
-export function installFreeAgentScheduler(deps: FreeAgentDeps): { stop: () => void } {
+export function installFreeAgentScheduler(deps: FreeAgentSchedulerDeps): { stop: () => void } {
   const { config, agentService, telegramBot } = deps;
   const cfg = config.freeAgent;
   if (!cfg.enabled) {
