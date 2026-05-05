@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { buildRegistry } from "../src/mcp/registry";
+import { buildRegistry } from "@subbrain/agent/mcp/registry";
 
 describe("MCP registry smoke", () => {
   const registry = buildRegistry();

@@ -1,6 +1,6 @@
+import type { TelegramBot } from "@subbrain/agent/telegram";
 import { logger } from "@subbrain/core/lib/logger";
 import { Elysia } from "elysia";
-import type { TelegramBot } from "../telegram";
 
 /**
  * Public Telegram webhook route — mounted BEFORE authMiddleware.

@@ -1,6 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { SKIP_USER_PREFIXES, shouldRunHippocampus } from "../src/pipeline/agent-pipeline/post/gate";
-import { MIN_EXTRACTION_LENGTH } from "../src/pipeline/agent-pipeline/types";
+import {
+  SKIP_USER_PREFIXES,
+  shouldRunHippocampus,
+} from "@subbrain/agent/pipeline/agent-pipeline/post/gate";
+import { MIN_EXTRACTION_LENGTH } from "@subbrain/agent/pipeline/agent-pipeline/types";
 
 describe("post/gate.shouldRunHippocampus — length gate", () => {
   test("rejects below threshold", () => {

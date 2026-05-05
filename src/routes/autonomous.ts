@@ -1,8 +1,8 @@
+import type { AgentService } from "@subbrain/agent/services/agent.service";
+import { sanitizeAgentId } from "@subbrain/agent/services/chat";
 import type { MemoryDB } from "@subbrain/core/db";
 import { sseResponse } from "@subbrain/core/lib/sse";
 import { Elysia, t } from "elysia";
-import type { AgentService } from "../services/agent.service";
-import { sanitizeAgentId } from "../services/chat";
 
 /**
  * `/v1/autonomous` — human-triggered interactive agent run (LAYER-4, PR 26b).

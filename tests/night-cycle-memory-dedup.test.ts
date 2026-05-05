@@ -5,9 +5,9 @@
  */
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { existsSync, unlinkSync } from "node:fs";
+import { runMemoryDedup } from "@subbrain/agent/pipeline/night-cycle/steps/memory-dedup";
+import { RAGPipeline } from "@subbrain/agent/rag";
 import { MemoryDB } from "@subbrain/core/db";
-import { runMemoryDedup } from "../src/pipeline/night-cycle/steps/memory-dedup";
-import { RAGPipeline } from "../src/rag";
 
 const TEST_DB = "data/test-night-memory-dedup.db";
 

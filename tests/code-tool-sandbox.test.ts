@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { executeSandboxed } from "../src/pipeline/agent-loop/code-tools/sandbox";
+import { executeSandboxed } from "@subbrain/agent/pipeline/agent-loop/code-tools/sandbox";
 
 describe("code-tool sandbox", () => {
   test("handles template literals with interpolation", async () => {

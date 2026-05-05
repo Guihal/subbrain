@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { toolTimeoutMs } from "../src/pipeline/agent-loop/tool-runner";
+import { toolTimeoutMs } from "@subbrain/agent/pipeline/agent-loop/tool-runner";
 
 describe("toolTimeoutMs", () => {
   test("critic_* uses 300s by default (bumped 2026-05-03)", () => {

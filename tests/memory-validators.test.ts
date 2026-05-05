@@ -12,7 +12,7 @@ import {
   validateExpiresAt,
   WHITELIST_CONTEXT,
   WHITELIST_SHARED,
-} from "../src/pipeline/agent-pipeline/post/validators";
+} from "@subbrain/agent/pipeline/agent-pipeline/post/validators";
 
 const NOW = Math.floor(Date.now() / 1000);
 const FUTURE = NOW + 86400 * 30;

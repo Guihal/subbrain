@@ -4,8 +4,8 @@
  */
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { existsSync, unlinkSync } from "node:fs";
+import { RAGPipeline } from "@subbrain/agent/rag";
 import { MemoryDB } from "@subbrain/core/db";
-import { RAGPipeline } from "../src/rag";
 
 const TEST_DB = "data/test-rag-active-filter.db";
 

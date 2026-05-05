@@ -14,9 +14,9 @@
  */
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { existsSync, unlinkSync } from "node:fs";
+import { decaySalience } from "@subbrain/agent/pipeline/night-cycle/steps/decay-salience";
+import { RAGPipeline } from "@subbrain/agent/rag";
 import { MemoryDB } from "@subbrain/core/db";
-import { decaySalience } from "../src/pipeline/night-cycle/steps/decay-salience";
-import { RAGPipeline } from "../src/rag";
 
 const TEST_DB = "data/test-mem3-salience.db";
 
@@ -50,7 +50,7 @@ function mkRouter() {
       }),
     },
     scheduleRaw: async (_priority: string, fn: () => Promise<unknown>) => fn(),
-  } as unknown as import("../src/lib/model-router").ModelRouter;
+  } as unknown as import("@subbrain/core/lib/model-router").ModelRouter;
 }
 
 const flush = () => new Promise<void>((r) => setTimeout(r, 50));

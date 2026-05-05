@@ -5,9 +5,9 @@
  */
 import { afterAll, describe, expect, test } from "bun:test";
 import { unlinkSync } from "node:fs";
+import { buildAgentSystemPrompt } from "@subbrain/agent/pipeline/agent-loop/system-prompt";
+import type { RAGPipeline } from "@subbrain/agent/rag";
 import { MemoryDB } from "@subbrain/core/db";
-import { buildAgentSystemPrompt } from "../src/pipeline/agent-loop/system-prompt";
-import type { RAGPipeline } from "../src/rag";
 
 const TEST_DB = "data/test-system-prompt-mode.db";
 try {

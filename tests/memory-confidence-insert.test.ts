@@ -6,10 +6,10 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { existsSync, unlinkSync } from "node:fs";
 import { Value } from "@sinclair/typebox/value";
+import { buildRegistry } from "@subbrain/agent/mcp/registry";
+import { writeContext, writeShared } from "@subbrain/agent/pipeline/agent-pipeline/post/extractors";
+import { RAGPipeline } from "@subbrain/agent/rag";
 import { MemoryDB } from "@subbrain/core/db";
-import { buildRegistry } from "../src/mcp/registry";
-import { writeContext, writeShared } from "../src/pipeline/agent-pipeline/post/extractors";
-import { RAGPipeline } from "../src/rag";
 
 const TEST_DB = "data/test-memory-confidence.db";
 

@@ -11,14 +11,14 @@
  */
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { existsSync, unlinkSync } from "node:fs";
+import { RAGPipeline } from "@subbrain/agent/rag";
+import { MemoryService } from "@subbrain/agent/services/memory";
 import { MemoryDB } from "@subbrain/core/db";
 import { authMiddleware } from "@subbrain/core/lib/auth";
 import { AppError } from "@subbrain/core/lib/errors";
 import { AuthService } from "@subbrain/core/services/auth";
 import { Elysia } from "elysia";
-import { RAGPipeline } from "../src/rag";
 import { memoryRoute } from "../src/routes/memory";
-import { MemoryService } from "../src/services/memory";
 
 const TEST_DB = "data/test-memory-routes.db";
 const TOKEN = "test-memory-routes-token";

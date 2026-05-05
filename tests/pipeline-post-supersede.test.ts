@@ -5,9 +5,9 @@
  */
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { existsSync, unlinkSync } from "node:fs";
+import { writeContext } from "@subbrain/agent/pipeline/agent-pipeline/post/extractors";
+import { RAGPipeline } from "@subbrain/agent/rag";
 import { MemoryDB } from "@subbrain/core/db";
-import { writeContext } from "../src/pipeline/agent-pipeline/post/extractors";
-import { RAGPipeline } from "../src/rag";
 
 const TEST_DB = "data/test-post-supersede.db";
 

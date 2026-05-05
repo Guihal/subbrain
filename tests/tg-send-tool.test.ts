@@ -7,10 +7,10 @@
  * delivery as success. Success path stays `{ success: true }`.
  */
 import { describe, expect, test } from "bun:test";
+import { ToolExecutor } from "@subbrain/agent/mcp/executor";
+import { buildRegistry } from "@subbrain/agent/mcp/registry";
 import type { MemoryDB } from "@subbrain/core/db";
-import type { ModelRouter } from "../src/lib/model-router";
-import { ToolExecutor } from "../src/mcp/executor";
-import { buildRegistry } from "../src/mcp/registry";
+import type { ModelRouter } from "@subbrain/core/lib/model-router";
 
 function makeExecutor(botNotify: (text: string) => Promise<void>): ToolExecutor {
   const exec = new ToolExecutor({} as MemoryDB, {} as ModelRouter);

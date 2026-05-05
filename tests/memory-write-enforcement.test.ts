@@ -9,11 +9,11 @@
  */
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, unlinkSync } from "node:fs";
+import { writeContextCase } from "@subbrain/agent/mcp/tools/memory/write-context";
+import { type SharedWriteDeps, writeShared } from "@subbrain/agent/mcp/tools/memory/write-shared";
+import { defaultExpiresAt } from "@subbrain/agent/pipeline/agent-pipeline/post/validators";
+import { RAGPipeline } from "@subbrain/agent/rag";
 import { MemoryDB } from "@subbrain/core/db";
-import { writeContextCase } from "../src/mcp/tools/memory/write-context";
-import { type SharedWriteDeps, writeShared } from "../src/mcp/tools/memory/write-shared";
-import { defaultExpiresAt } from "../src/pipeline/agent-pipeline/post/validators";
-import { RAGPipeline } from "../src/rag";
 
 const TEST_DB = "data/test-write-enforcement.db";
 const NOW_SEC = () => Math.floor(Date.now() / 1000);

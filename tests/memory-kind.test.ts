@@ -13,14 +13,17 @@
  */
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { existsSync, unlinkSync } from "node:fs";
+import { writeShared } from "@subbrain/agent/pipeline/agent-pipeline/post/extractors";
+import {
+  categoryToKind,
+  type MemoryKind,
+} from "@subbrain/agent/pipeline/agent-pipeline/post/validators";
+import { RAGPipeline } from "@subbrain/agent/rag";
+import { MemoryService } from "@subbrain/agent/services/memory";
 import { MemoryDB } from "@subbrain/core/db";
 import { logger } from "@subbrain/core/lib/logger";
 import { Elysia } from "elysia";
-import { writeShared } from "../src/pipeline/agent-pipeline/post/extractors";
-import { categoryToKind, type MemoryKind } from "../src/pipeline/agent-pipeline/post/validators";
-import { RAGPipeline } from "../src/rag";
 import { memoryRoute } from "../src/routes/memory";
-import { MemoryService } from "../src/services/memory";
 
 const TEST_DB = "data/test-mem7-kind.db";
 const log = logger.child("test-mem7");
@@ -49,7 +52,7 @@ function mkRouter() {
       rerank: async () => ({ results: [] }),
     },
     scheduleRaw: async (_p: string, fn: () => Promise<unknown>) => fn(),
-  } as unknown as import("../src/lib/model-router").ModelRouter;
+  } as unknown as import("@subbrain/core/lib/model-router").ModelRouter;
 }
 
 function cleanup(): void {
@@ -391,7 +394,7 @@ describe("M-07.1: MemoryTools.write derives kind from category", () => {
   });
 
   test("layer='shared' category='profile' → kind='persona' (writeSharedAtomic path)", async () => {
-    const { MemoryTools } = await import("../src/mcp/tools/memory");
+    const { MemoryTools } = await import("@subbrain/agent/mcp/tools/memory");
     const tools = new MemoryTools(memory, () => rag);
     const r = await tools.write({
       layer: "shared",
@@ -405,7 +408,7 @@ describe("M-07.1: MemoryTools.write derives kind from category", () => {
   });
 
   test("layer='shared' category='goal' → kind='semantic'", async () => {
-    const { MemoryTools } = await import("../src/mcp/tools/memory");
+    const { MemoryTools } = await import("@subbrain/agent/mcp/tools/memory");
     const tools = new MemoryTools(memory, () => rag);
     const r = await tools.write({
       layer: "shared",
@@ -419,7 +422,7 @@ describe("M-07.1: MemoryTools.write derives kind from category", () => {
   });
 
   test("layer='shared' with injected MemoryService also derives kind='persona'", async () => {
-    const { MemoryTools } = await import("../src/mcp/tools/memory");
+    const { MemoryTools } = await import("@subbrain/agent/mcp/tools/memory");
     const svc = new MemoryService(memory.memoryRepo, rag, memory.logRepo);
     const tools = new MemoryTools(memory, () => rag);
     tools.setMemoryService(svc);
@@ -514,9 +517,9 @@ describe("M-07.1: context-compressor persists kind from category", () => {
   test("compressContext end-to-end: persona facts land with kind='persona'", async () => {
     // Full integration: stub router to return one preference + one finding
     // fact, run compressContext, verify both rows landed with correct kind.
-    const { compressContext } = await import("../src/pipeline/context-compressor");
+    const { compressContext } = await import("@subbrain/agent/pipeline/context-compressor");
     const svc = new MemoryService(memory.memoryRepo, rag, memory.logRepo);
-    const shim: import("../src/pipeline/context-compressor").CompressorMemory = {
+    const shim: import("@subbrain/agent/pipeline/context-compressor").CompressorMemory = {
       insertShared: (_id, category, content, tags, source, opts) =>
         svc.insertShared({
           category,
@@ -544,7 +547,7 @@ describe("M-07.1: context-compressor persists kind from category", () => {
           },
         ],
       }),
-    } as unknown as import("../src/lib/model-router").ModelRouter;
+    } as unknown as import("@subbrain/core/lib/model-router").ModelRouter;
     // Build messages over SOFT_LIMIT so compressContext fires.
     // Need head + middle + tail: system + first user + 5 middle msgs +
     // 10-msg tail. keepRecent=2 narrows the tail so middle is non-empty.

@@ -37,9 +37,9 @@
 | A1-4 | packages/providers | `done` | `cp3` | — | CRITIC-PASSED |
 | A1-5 | packages/plugin (types-only stub) | `done` | `cp3` | — | CRITIC-PASSED |
 | A1-6a | packages/agent: pipeline/ + services/ | `done` | `cp3` | — | CRITIC-PASSED |
-| A1-6b | packages/agent: mcp/ (registry+executor+tools, NOT transport) | `not_started` | — | — | CRITIC-PASSED |
-| A1-6c | packages/agent: scheduler/ + telegram/ | `not_started` | — | — | CRITIC-PASSED |
-| A1-6d | packages/agent: rag/ + personas | `not_started` | — | — | CRITIC-PASSED |
+| A1-6b | packages/agent: mcp/ (registry+executor+tools, NOT transport) | `done` | `cp3` | — | CRITIC-PASSED |
+| A1-6c | packages/agent: scheduler/ + telegram/ | `done` | `cp3` | — | CRITIC-PASSED |
+| A1-6d | packages/agent: rag/ + personas | `done` | `cp3` | — | CRITIC-PASSED |
 | A1-7 | packages/server: routes/, app/, mcp-transport/, src/index.ts | `not_started` | — | — | CRITIC-PASSED |
 | A1-7a | AppDeps cycle break (free-agent.ts -> FreeAgentSchedulerDeps) | `not_started` | — | — | CRITIC-PASSED |
 | A1-8 | Docker build update | `not_started` | — | — | CRITIC-PASSED |

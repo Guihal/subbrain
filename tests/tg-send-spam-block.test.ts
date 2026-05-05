@@ -7,10 +7,10 @@
  */
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, unlinkSync } from "node:fs";
+import { ToolExecutor } from "@subbrain/agent/mcp/executor";
+import { buildRegistry } from "@subbrain/agent/mcp/registry";
 import { MemoryDB } from "@subbrain/core/db";
-import type { ModelRouter } from "../src/lib/model-router";
-import { ToolExecutor } from "../src/mcp/executor";
-import { buildRegistry } from "../src/mcp/registry";
+import type { ModelRouter } from "@subbrain/core/lib/model-router";
 
 const TEST_DB = "data/test-tg-spam-block.db";
 

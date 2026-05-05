@@ -10,8 +10,8 @@
  * (src/mcp/registry/), общий с REST и агент-лупом.
  */
 import { Elysia, t } from "elysia";
-import type { ToolExecutor } from "./executor";
-import type { ToolRegistry } from "./registry";
+import type { ToolExecutor } from "@subbrain/agent/mcp/executor";
+import type { ToolRegistry } from "@subbrain/agent/mcp/registry";
 
 function jsonrpc(id: unknown, result: unknown) {
   return JSON.stringify({ jsonrpc: "2.0", id, result });

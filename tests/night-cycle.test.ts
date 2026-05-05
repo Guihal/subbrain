@@ -13,10 +13,10 @@
  */
 
 import { unlinkSync } from "node:fs";
+import { NightCycle } from "@subbrain/agent/pipeline/night-cycle";
+import { RAGPipeline } from "@subbrain/agent/rag";
 import { MemoryDB } from "@subbrain/core/db";
-import { NightCycle } from "../src/pipeline/night-cycle";
 import type { ChatResponse } from "../src/providers/types";
-import { RAGPipeline } from "../src/rag";
 
 const TEST_DB = "data/test-night-cycle.db";
 try {

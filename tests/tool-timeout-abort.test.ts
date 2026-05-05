@@ -4,7 +4,7 @@
  * resources instead of running to their natural end.
  */
 import { describe, expect, test } from "bun:test";
-import { withToolTimeout } from "../src/pipeline/agent-loop/tool-runner";
+import { withToolTimeout } from "@subbrain/agent/pipeline/agent-loop/tool-runner";
 
 describe("withToolTimeout", () => {
   test("timeout fires internal abort; handler sees signal.aborted=true", async () => {

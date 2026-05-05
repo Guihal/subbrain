@@ -8,9 +8,9 @@
 import { Database } from "bun:sqlite";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, unlinkSync } from "node:fs";
+import { CodeToolRegistry } from "@subbrain/agent/pipeline/agent-loop/code-tools";
 import { migrate } from "@subbrain/core/db/schema";
 import { CodeToolsRepository } from "@subbrain/core/repositories/code-tools.repo";
-import { CodeToolRegistry } from "../src/pipeline/agent-loop/code-tools";
 
 const TEST_DB = "data/test-scheduled-filter.db";
 

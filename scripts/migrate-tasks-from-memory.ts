@@ -24,7 +24,7 @@ import { MemoryDB } from "@subbrain/core/db";
 import { getMoscowDate } from "@subbrain/core/lib/clock";
 import { logger } from "@subbrain/core/lib/logger";
 import { createProviders } from "@subbrain/providers";
-import { ModelRouter } from "../src/lib/model-router";
+import { ModelRouter } from "@subbrain/core/lib/model-router";
 import {
   type CandidateRow,
   type Classifier,
@@ -33,7 +33,7 @@ import {
   hasBlacklistTag,
   hasCompletedStatusTag,
   hasTaskTag,
-} from "../src/pipeline/night-cycle/prune/tasks-classify";
+} from "@subbrain/agent/pipeline/night-cycle/prune/tasks-classify";
 
 const log = logger.child("migrate.tasks");
 

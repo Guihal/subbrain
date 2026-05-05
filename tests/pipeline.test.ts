@@ -12,10 +12,10 @@
  */
 
 import { unlinkSync } from "node:fs";
+import { AgentPipeline } from "@subbrain/agent/pipeline";
+import { RAGPipeline } from "@subbrain/agent/rag";
 import { MemoryDB } from "@subbrain/core/db";
-import { AgentPipeline } from "../src/pipeline";
 import type { ChatResponse, Message } from "../src/providers/types";
-import { RAGPipeline } from "../src/rag";
 
 const TEST_DB = "data/test-pipeline.db";
 try {

@@ -9,8 +9,8 @@
  */
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { existsSync, unlinkSync } from "node:fs";
+import { RAGPipeline } from "@subbrain/agent/rag";
 import { MemoryDB } from "@subbrain/core/db";
-import { RAGPipeline } from "../src/rag";
 
 const TEST_DB = "data/test-mem4-log.db";
 
@@ -34,7 +34,7 @@ function mkRouter() {
       }),
     },
     scheduleRaw: async (_priority: string, fn: () => Promise<unknown>) => fn(),
-  } as unknown as import("../src/lib/model-router").ModelRouter;
+  } as unknown as import("@subbrain/core/lib/model-router").ModelRouter;
 }
 
 function appendLog(

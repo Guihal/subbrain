@@ -11,7 +11,7 @@ import {
   validateExpiresAt,
   WHITELIST_CONTEXT,
   WHITELIST_SHARED,
-} from "../src/pipeline/agent-pipeline/post/validators";
+} from "@subbrain/agent/pipeline/agent-pipeline/post/validators";
 
 describe("validators.validateCategoryAndContent", () => {
   test("shared whitelist accepts each whitelisted category", () => {

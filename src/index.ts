@@ -1,3 +1,4 @@
+import { installFreeAgentScheduler } from "@subbrain/agent/scheduler/free-agent";
 import { initTelemetry } from "@subbrain/core/lib/telemetry";
 import { createApp } from "./app/bootstrap";
 import { initDeps } from "./app/deps";
@@ -9,7 +10,6 @@ import {
   installTelegramWebhook,
 } from "./app/schedulers";
 import { registerShutdown } from "./app/shutdown";
-import { installFreeAgentScheduler } from "./scheduler/free-agent";
 
 initTelemetry();
 const deps = await initDeps();

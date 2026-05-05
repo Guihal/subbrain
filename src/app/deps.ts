@@ -1,21 +1,21 @@
+import type { ToolRegistry } from "@subbrain/agent/mcp";
+import { buildRegistry, PlaywrightClient, ToolExecutor } from "@subbrain/agent/mcp";
+import { AgentLoop, AgentPipeline, ArbitrationRoom, NightCycle } from "@subbrain/agent/pipeline";
+import { RAGPipeline } from "@subbrain/agent/rag";
+import { FREE_AGENT_TASK } from "@subbrain/agent/scheduler/free-agent";
+import { FreelanceScout, type FreelanceScoutConfig } from "@subbrain/agent/scheduler/freelance";
+import { TelegramPoller } from "@subbrain/agent/scheduler/telegram-poller";
+import { AgentService } from "@subbrain/agent/services/agent.service";
+import { ChatService } from "@subbrain/agent/services/chat";
+import { MemoryService } from "@subbrain/agent/services/memory";
+import { TelegramBot, Userbot } from "@subbrain/agent/telegram";
 import { MemoryDB } from "@subbrain/core/db";
 import { logger } from "@subbrain/core/lib/logger";
 import { Metrics } from "@subbrain/core/lib/metrics";
 import { applyOpenAICompatOverrides } from "@subbrain/core/lib/model-map";
+import { ModelRouter } from "@subbrain/core/lib/model-router";
 import { AuthService } from "@subbrain/core/services/auth";
 import { createBifrostProvider, createProviders } from "@subbrain/providers";
-import { ModelRouter } from "../lib/model-router";
-import type { ToolRegistry } from "../mcp";
-import { buildRegistry, PlaywrightClient, ToolExecutor } from "../mcp";
-import { AgentLoop, AgentPipeline, ArbitrationRoom, NightCycle } from "../pipeline";
-import { RAGPipeline } from "../rag";
-import { FREE_AGENT_TASK } from "../scheduler/free-agent";
-import { FreelanceScout, type FreelanceScoutConfig } from "../scheduler/freelance";
-import { TelegramPoller } from "../scheduler/telegram-poller";
-import { AgentService } from "../services/agent.service";
-import { ChatService } from "../services/chat";
-import { MemoryService } from "../services/memory";
-import { TelegramBot, Userbot } from "../telegram";
 
 export interface AppConfig {
   port: number;

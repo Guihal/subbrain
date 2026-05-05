@@ -4,11 +4,11 @@
  */
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { existsSync, unlinkSync } from "node:fs";
+import { writeContext } from "@subbrain/agent/pipeline/agent-pipeline/post/extractors";
+import { RAGPipeline } from "@subbrain/agent/rag";
 import { MemoryDB } from "@subbrain/core/db";
 import { EdgesTable } from "@subbrain/core/db/tables/edges";
 import { EdgeRepository } from "@subbrain/core/repositories/edges.repo";
-import { writeContext } from "../src/pipeline/agent-pipeline/post/extractors";
-import { RAGPipeline } from "../src/rag";
 
 const TEST_DB = "data/test-mem5-edges.db";
 

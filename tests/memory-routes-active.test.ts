@@ -4,11 +4,11 @@
  */
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { existsSync, unlinkSync } from "node:fs";
+import { RAGPipeline } from "@subbrain/agent/rag";
+import { MemoryService } from "@subbrain/agent/services/memory";
 import { MemoryDB } from "@subbrain/core/db";
 import { Elysia } from "elysia";
-import { RAGPipeline } from "../src/rag";
 import { memoryRoute } from "../src/routes/memory";
-import { MemoryService } from "../src/services/memory";
 
 const TEST_DB = "data/test-mem-routes-active.db";
 

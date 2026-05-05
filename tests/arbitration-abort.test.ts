@@ -5,8 +5,8 @@
  * natural end.
  */
 import { describe, expect, test } from "bun:test";
-import type { ModelRouter } from "../src/lib/model-router";
-import { ArbitrationRoom } from "../src/pipeline/arbitration";
+import { ArbitrationRoom } from "@subbrain/agent/pipeline/arbitration";
+import type { ModelRouter } from "@subbrain/core/lib/model-router";
 import type { ChatResponse, Message } from "../src/providers/types";
 
 function makeResponse(content: string): ChatResponse {

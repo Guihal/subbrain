@@ -8,11 +8,11 @@
  *     botNotify throws (i.e. when wired to notifyOrThrow).
  */
 import { describe, expect, test } from "bun:test";
+import { ToolExecutor } from "@subbrain/agent/mcp/executor";
+import type { AgentPipeline } from "@subbrain/agent/pipeline";
+import { TelegramBot } from "@subbrain/agent/telegram/bot";
 import type { MemoryDB } from "@subbrain/core/db";
-import type { ModelRouter } from "../src/lib/model-router";
-import { ToolExecutor } from "../src/mcp/executor";
-import type { AgentPipeline } from "../src/pipeline";
-import { TelegramBot } from "../src/telegram/bot";
+import type { ModelRouter } from "@subbrain/core/lib/model-router";
 
 // Stub grammy Bot that never touches the network.
 function makeBot(opts: { throwOnSend?: Error } = {}): TelegramBot {

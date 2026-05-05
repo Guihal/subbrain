@@ -9,7 +9,7 @@ import { describe, expect, test } from "bun:test";
 import {
   applyCodeToolGuards,
   checkHardcodedFacts,
-} from "../src/pipeline/agent-loop/code-tools/code-tool-validators";
+} from "@subbrain/agent/pipeline/agent-loop/code-tools/code-tool-validators";
 
 const noopLog = {
   info: () => {},

@@ -9,7 +9,7 @@ import {
   tgListExcluded,
   tgReadChat,
   tgSearchMessages,
-} from "../src/mcp/telegram-tools";
+} from "@subbrain/agent/mcp/telegram-tools";
 
 // ─── Mock objects ─────────────────────────────────────────
 

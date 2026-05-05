@@ -6,9 +6,13 @@
  * priority=low), and forwards optional fields. Pure stubs — no real loop.
  */
 import { describe, expect, test } from "bun:test";
-import type { AgentLoop, AgentLoopRequest, AgentLoopResult } from "../src/pipeline/agent-loop";
+import type {
+  AgentLoop,
+  AgentLoopRequest,
+  AgentLoopResult,
+} from "@subbrain/agent/pipeline/agent-loop";
+import { AgentService } from "@subbrain/agent/services/agent.service";
 import type { ChatRepository } from "../src/repositories";
-import { AgentService } from "../src/services/agent.service";
 
 function makeMockLoop() {
   const runCalls: AgentLoopRequest[] = [];

@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { unlinkSync } from "node:fs";
+import { runPre } from "@subbrain/agent/pipeline/agent-pipeline/phases/pre";
+import { RAGPipeline } from "@subbrain/agent/rag";
 import { MemoryDB } from "@subbrain/core/db";
-import { runPre } from "../src/pipeline/agent-pipeline/phases/pre";
 import type { ChatResponse } from "../src/providers/types";
-import { RAGPipeline } from "../src/rag";
 
 const TEST_DB = "data/test-pre.db";
 try {

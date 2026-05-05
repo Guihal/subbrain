@@ -15,7 +15,7 @@
  * Dockerfile). On the host, if Chrome isn't present the test exits 0
  * with a SKIP notice — CI/prod smoke is expected inside the container.
  */
-import { PlaywrightClient } from "../src/mcp/playwright";
+import { PlaywrightClient } from "@subbrain/agent/mcp/playwright";
 
 const ITERATIONS = 5;
 const TARGET_URL = "https://example.com";

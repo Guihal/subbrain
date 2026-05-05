@@ -4,14 +4,14 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { randomUUID } from "node:crypto";
 import { existsSync, unlinkSync } from "node:fs";
-import { MemoryDB } from "@subbrain/core/db";
 import {
   fmtShortDate,
   renderActiveTasks,
   renderTgStatus,
   SCOPE_VISIBILITY,
   safeTitle,
-} from "../src/pipeline/agent-loop/prompt-blocks/tasks";
+} from "@subbrain/agent/pipeline/agent-loop/prompt-blocks/tasks";
+import { MemoryDB } from "@subbrain/core/db";
 
 const DB_PATH = "data/test-prompt-blocks.db";
 

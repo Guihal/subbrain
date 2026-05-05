@@ -1,7 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { unlinkSync } from "node:fs";
-import { MemoryDB } from "@subbrain/core/db";
-import type { ModelRouter } from "../src/lib/model-router";
 import {
   applyCommand,
   buildRemindPrompt,
@@ -9,14 +7,16 @@ import {
   emptyState,
   parseCommand,
   type TaskState,
-} from "../src/scheduler/telegram-commands";
+} from "@subbrain/agent/scheduler/telegram-commands";
 import {
   LAST_ID_FOCUS_KEY,
   TASK_STATE_FOCUS_KEY,
   TelegramPoller,
   type TelegramPollerDeps,
   type TgInboxMessage,
-} from "../src/scheduler/telegram-poller";
+} from "@subbrain/agent/scheduler/telegram-poller";
+import { MemoryDB } from "@subbrain/core/db";
+import type { ModelRouter } from "@subbrain/core/lib/model-router";
 
 const TEST_DB = "data/test-telegram-poller.db";
 

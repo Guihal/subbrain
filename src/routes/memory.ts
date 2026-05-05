@@ -1,11 +1,11 @@
 /** Memory admin routes — thin HTTP surface over `MemoryService`. No SQL here. */
 
+import type { EdgeLayer, MemoryService } from "@subbrain/agent/services/memory";
+import { restoreFromArchive } from "@subbrain/agent/services/memory";
 import type { EdgeKind, MemoryDB, MemoryKind, MemoryStatus } from "@subbrain/core/db";
 import { paginate } from "@subbrain/core/lib/api-envelope";
 import { NotFoundError } from "@subbrain/core/lib/errors";
 import { Elysia, t } from "elysia";
-import type { EdgeLayer, MemoryService } from "../services/memory";
-import { restoreFromArchive } from "../services/memory";
 
 const str = (v: unknown): string | undefined =>
   typeof v === "string" && v.length > 0 ? v : undefined;
@@ -277,5 +277,5 @@ export function memoryRoute(svc: MemoryService, memoryDb: MemoryDB) {
           }),
         },
       )
-  );
+  ) as unknown as Elysia;
 }

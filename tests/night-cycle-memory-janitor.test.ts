@@ -4,12 +4,12 @@
  */
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, unlinkSync } from "node:fs";
+import { runPhaseA } from "@subbrain/agent/pipeline/night-cycle/janitor/phase-a";
+import { runPhaseB, runPhaseC } from "@subbrain/agent/pipeline/night-cycle/janitor/phase-bc";
+import { runPhaseD } from "@subbrain/agent/pipeline/night-cycle/janitor/phase-d";
+import type { RAGPipeline } from "@subbrain/agent/rag";
+import { restoreFromArchive } from "@subbrain/agent/services/memory/archive-restore";
 import { MemoryDB } from "@subbrain/core/db";
-import { runPhaseA } from "../src/pipeline/night-cycle/janitor/phase-a";
-import { runPhaseB, runPhaseC } from "../src/pipeline/night-cycle/janitor/phase-bc";
-import { runPhaseD } from "../src/pipeline/night-cycle/janitor/phase-d";
-import type { RAGPipeline } from "../src/rag";
-import { restoreFromArchive } from "../src/services/memory/archive-restore";
 
 const DB_PATH = "data/test-janitor.db";
 

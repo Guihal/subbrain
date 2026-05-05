@@ -1,6 +1,6 @@
 import { MODEL_MAP } from "@subbrain/core/lib/model-map";
+import type { ModelRouter } from "@subbrain/core/lib/model-router";
 import { Elysia } from "elysia";
-import type { ModelRouter } from "../lib/model-router";
 
 const ROLE_LABELS: Record<string, string> = {
   teamlead: "Лид",

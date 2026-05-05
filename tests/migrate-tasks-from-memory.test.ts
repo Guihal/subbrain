@@ -7,19 +7,22 @@
 import { afterAll, beforeEach, describe, expect, test } from "bun:test";
 import { randomUUID } from "node:crypto";
 import { existsSync, readFileSync, rmSync, unlinkSync } from "node:fs";
-import { MemoryDB } from "@subbrain/core/db";
-import { type JsonlEntry, runMigration } from "../scripts/migrate-tasks-from-memory";
-import { runRollback } from "../scripts/rollback-migration";
 import {
   collectStrayTasks,
   LAST_RUN_FOCUS_KEY,
-} from "../src/pipeline/night-cycle/prune/stray-tasks";
-import type { Classifier, ClassifyResult } from "../src/pipeline/night-cycle/prune/tasks-classify";
+} from "@subbrain/agent/pipeline/night-cycle/prune/stray-tasks";
+import type {
+  Classifier,
+  ClassifyResult,
+} from "@subbrain/agent/pipeline/night-cycle/prune/tasks-classify";
 import {
   classifyCandidate,
   hasBlacklistTag,
   hasTaskTag,
-} from "../src/pipeline/night-cycle/prune/tasks-classify";
+} from "@subbrain/agent/pipeline/night-cycle/prune/tasks-classify";
+import { MemoryDB } from "@subbrain/core/db";
+import { type JsonlEntry, runMigration } from "../scripts/migrate-tasks-from-memory";
+import { runRollback } from "../scripts/rollback-migration";
 
 const DB_PATH = "data/test-migrate-tasks.db";
 const JSONL_DIR = "data/test-migrate-jsonl";

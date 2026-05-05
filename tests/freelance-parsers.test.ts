@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
-import { parseFl, parseFreelance, parseKwork } from "../src/scheduler/freelance/parsers";
+import { parseFl, parseFreelance, parseKwork } from "@subbrain/agent/scheduler/freelance/parsers";
 
 const FL = readFileSync("tests/fixtures/freelance/fl-snapshot.txt", "utf8");
 const KWORK = readFileSync("tests/fixtures/freelance/kwork-snapshot.txt", "utf8");

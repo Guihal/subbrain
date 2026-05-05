@@ -10,11 +10,11 @@
  * function`) and CI catches the regression.
  */
 import { describe, expect, test } from "bun:test";
+import type { AgentLoopResult } from "@subbrain/agent/pipeline/agent-loop";
+import { installFreeAgentScheduler } from "@subbrain/agent/scheduler/free-agent";
+import type { AgentRunOpts } from "@subbrain/agent/services/agent.service";
 import type { AppDeps } from "../src/app/deps";
 import { installAutonomousScheduler } from "../src/app/schedulers";
-import type { AgentLoopResult } from "../src/pipeline/agent-loop";
-import { installFreeAgentScheduler } from "../src/scheduler/free-agent";
-import type { AgentRunOpts } from "../src/services/agent.service";
 
 function makeMockAgentService() {
   const calls: AgentRunOpts[] = [];

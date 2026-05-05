@@ -9,10 +9,13 @@
 import { afterAll, beforeEach, describe, expect, test } from "bun:test";
 import { randomUUID } from "node:crypto";
 import { existsSync, unlinkSync } from "node:fs";
+import type { Embedder } from "@subbrain/agent/pipeline/night-cycle/prune/tasks";
+import {
+  _capFromTailForTest,
+  pruneCompletedTasks,
+} from "@subbrain/agent/pipeline/night-cycle/prune/tasks";
 import { MemoryDB } from "@subbrain/core/db";
 import { TaskRepository } from "@subbrain/core/repositories/task.repo";
-import type { Embedder } from "../src/pipeline/night-cycle/prune/tasks";
-import { _capFromTailForTest, pruneCompletedTasks } from "../src/pipeline/night-cycle/prune/tasks";
 
 const DB_PATH = "data/test-retention.db";
 

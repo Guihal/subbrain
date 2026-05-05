@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { unlinkSync } from "node:fs";
+import type { ToolContext } from "@subbrain/agent/mcp/registry/tool-registry";
+import { sendReport } from "@subbrain/agent/mcp/tools/telegram-report";
+import type { ToolResult } from "@subbrain/agent/mcp/types";
+import { buildReportContext, truncateReportContext } from "@subbrain/agent/rag/report-context";
 import { MemoryDB } from "@subbrain/core/db";
-import type { ToolContext } from "../src/mcp/registry/tool-registry";
-import { sendReport } from "../src/mcp/tools/telegram-report";
-import type { ToolResult } from "../src/mcp/types";
-import { buildReportContext, truncateReportContext } from "../src/rag/report-context";
 
 const TEST_DB = "data/test-report-context.db";
 

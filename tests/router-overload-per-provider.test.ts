@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
+import { ModelRouter } from "@subbrain/core/lib/model-router";
 import type { LLMProvider } from "@subbrain/providers/types";
-import { ModelRouter } from "../src/lib/model-router";
 
 /**
  * Stub provider — never actually called in these tests. isOverloadedFor

@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { UpstreamExhaustedError } from "@subbrain/core/lib/errors";
+import { ModelRouter } from "@subbrain/core/lib/model-router";
 import { ProviderError } from "@subbrain/providers/nvidia";
 import type { LLMProvider } from "@subbrain/providers/types";
-import { ModelRouter } from "../src/lib/model-router";
 
 function mockProvider(status: number): LLMProvider {
   const err = () => {

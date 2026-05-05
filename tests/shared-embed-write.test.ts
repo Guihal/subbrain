@@ -11,13 +11,16 @@
  */
 import { beforeAll, describe, expect, test } from "bun:test";
 import { unlinkSync } from "node:fs";
+import { MemoryTools } from "@subbrain/agent/mcp/tools/memory";
+import { writeShared } from "@subbrain/agent/pipeline/agent-pipeline/post/extractors";
+import {
+  type CompressorMemory,
+  compressContext,
+} from "@subbrain/agent/pipeline/context-compressor";
+import { RAGPipeline } from "@subbrain/agent/rag";
+import { MemoryService } from "@subbrain/agent/services/memory";
 import { MemoryDB } from "@subbrain/core/db";
-import { MemoryTools } from "../src/mcp/tools/memory";
-import { writeShared } from "../src/pipeline/agent-pipeline/post/extractors";
-import { type CompressorMemory, compressContext } from "../src/pipeline/context-compressor";
 import type { Message } from "../src/providers/types";
-import { RAGPipeline } from "../src/rag";
-import { MemoryService } from "../src/services/memory";
 
 const TEST_DB = "data/test-shared-embed.db";
 

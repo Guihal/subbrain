@@ -2,10 +2,10 @@
 // with identity reranker so reordering observed = forgetting curve only.
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, unlinkSync } from "node:fs";
+import { RAGPipeline } from "@subbrain/agent/rag";
+import type { RAGResult } from "@subbrain/agent/rag/types";
 import { MemoryDB } from "@subbrain/core/db";
 import { applyForgettingCurve, computeRecallScore } from "@subbrain/core/lib/memory-decay";
-import { RAGPipeline } from "../src/rag";
-import type { RAGResult } from "../src/rag/types";
 
 const TEST_DB = "data/test-mem8-forget.db";
 const DAY = 86400;
@@ -37,7 +37,7 @@ function mkRouter() {
       }),
     },
     scheduleRaw: async (_p: string, fn: () => Promise<unknown>) => fn(),
-  } as unknown as import("../src/lib/model-router").ModelRouter;
+  } as unknown as import("@subbrain/core/lib/model-router").ModelRouter;
 }
 
 const flush = () => new Promise<void>((r) => setTimeout(r, 50));

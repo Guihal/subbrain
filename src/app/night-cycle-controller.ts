@@ -1,5 +1,5 @@
+import type { NightCycle } from "@subbrain/agent/pipeline";
 import { logger } from "@subbrain/core/lib/logger";
-import type { NightCycle } from "../pipeline";
 
 const log = logger.child("night");
 

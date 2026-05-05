@@ -10,9 +10,9 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { randomUUID } from "node:crypto";
 import { unlinkSync } from "node:fs";
+import { MemoryTools } from "@subbrain/agent/mcp/tools/memory";
+import { sanitizeAgentId } from "@subbrain/agent/services/chat";
 import { MemoryDB } from "@subbrain/core/db";
-import { MemoryTools } from "../src/mcp/tools/memory";
-import { sanitizeAgentId } from "../src/services/chat";
 
 const TEST_DB = "data/test.db.b1";
 

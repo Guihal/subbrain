@@ -12,9 +12,9 @@
  */
 
 import { unlinkSync } from "node:fs";
+import { ToolExecutor } from "@subbrain/agent/mcp/executor";
+import { RAGPipeline } from "@subbrain/agent/rag";
 import { MemoryDB } from "@subbrain/core/db";
-import { ToolExecutor } from "../src/mcp/executor";
-import { RAGPipeline } from "../src/rag";
 
 const TEST_DB = "data/test-rag.db";
 

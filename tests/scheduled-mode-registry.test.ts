@@ -4,7 +4,7 @@
  * `SCHEDULED_ALLOW_CODE_TOOL_CREATE=1` opt-in.
  */
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { buildRegistry, SCHEDULED_HIDDEN_TOOLS } from "../src/mcp/registry";
+import { buildRegistry, SCHEDULED_HIDDEN_TOOLS } from "@subbrain/agent/mcp/registry";
 
 describe("ToolRegistry.listForAgent (SCHED-1)", () => {
   const savedEnv = process.env.SCHEDULED_ALLOW_CODE_TOOL_CREATE;

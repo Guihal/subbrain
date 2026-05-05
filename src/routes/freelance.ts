@@ -3,11 +3,11 @@
  * Mounted after authMiddleware. See docs/tasks/03-freelance-search-mode.md.
  */
 
+import type { FreelanceScout } from "@subbrain/agent/scheduler/freelance";
 import type { FreelanceStatus, MemoryDB } from "@subbrain/core/db";
 import { paginate } from "@subbrain/core/lib/api-envelope";
 import { NotFoundError } from "@subbrain/core/lib/errors";
 import { Elysia, t } from "elysia";
-import type { FreelanceScout } from "../scheduler/freelance";
 
 const STATUS_VALUES = t.Union([t.Literal("new"), t.Literal("taken"), t.Literal("rejected")]);
 
@@ -53,5 +53,5 @@ export function freelanceRoute(memory: MemoryDB, scout: FreelanceScout | null) {
         return memory.getFreelanceLead(params.id);
       },
       { body: t.Object({ status: STATUS_VALUES }) },
-    );
+    ) as unknown as Elysia;
 }

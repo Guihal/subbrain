@@ -1,10 +1,10 @@
 /** M-09 night-cycle cross-layer dedup + archive→shared promote. See plan §Тесты. */
 import { afterAll, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, unlinkSync } from "node:fs";
+import { runCrossLayerDedup } from "@subbrain/agent/pipeline/night-cycle/steps/cross-layer-dedup";
+import { RAGPipeline } from "@subbrain/agent/rag";
+import { MemoryService } from "@subbrain/agent/services/memory";
 import { MemoryDB } from "@subbrain/core/db";
-import { runCrossLayerDedup } from "../src/pipeline/night-cycle/steps/cross-layer-dedup";
-import { RAGPipeline } from "../src/rag";
-import { MemoryService } from "../src/services/memory";
 
 const TEST_DB = "data/test-mem9-crosslayer.db";
 const ENV_KEYS = [

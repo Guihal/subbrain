@@ -1,10 +1,10 @@
 /** M-06 reflect step — CoALA episodic→semantic. See plan §Тесты. */
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, unlinkSync } from "node:fs";
+import { runReflect } from "@subbrain/agent/pipeline/night-cycle/steps/reflect";
+import { RAGPipeline } from "@subbrain/agent/rag";
+import { MemoryService } from "@subbrain/agent/services/memory";
 import { MemoryDB } from "@subbrain/core/db";
-import { runReflect } from "../src/pipeline/night-cycle/steps/reflect";
-import { RAGPipeline } from "../src/rag";
-import { MemoryService } from "../src/services/memory";
 
 const TEST_DB = "data/test-mem6-reflect.db";
 const ENV_KEYS = [

@@ -27,9 +27,9 @@ Follow as checklist. If new code violates rule — rewrite before commit.
 | `src/app/deps.ts` | 500 | DI container |
 | `src/lib/model-map.ts` | 300 | virtual-roles single-source-of-truth |
 | `src/lib/logger.ts` | 200 | singleton + child + format helpers (squeeze from 262 in microPR; do not split) |
-| `src/pipeline/agent-loop/system-prompt.ts` | 300 | cohesive prompt; split = loss of instruction context |
-| `src/mcp/registry/*.tools.ts` | 250 each | schema + wiring declarations; split kills declarativity |
-| `src/rag/pipeline/index.ts` (post W4-1) | 200 | hybrid-search facade; everything splittable extracted to submodules |
+| `packages/agent/src/pipeline/agent-loop/system-prompt.ts` | 300 | cohesive prompt; split = loss of instruction context |
+| `packages/agent/src/mcp/registry/*.tools.ts` | 250 each | schema + wiring declarations; split kills declarativity |
+| `packages/agent/src/rag/pipeline/index.ts` (post W4-1) | 200 | hybrid-search facade; everything splittable extracted to submodules |
 
 `rag/pipeline.ts` (currently 699) is **not** in whitelist; tracked under FILE-SIZE-1 with temporary "≤700 OPEN" until W4-1 ships. Whitelist изменения только PR-ом с обоснованием в commit-message.
 

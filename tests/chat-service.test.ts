@@ -8,8 +8,8 @@
  * `tests/chat-direct-mode.test.ts` and `tests/chat-continuity.test.ts`.
  */
 import { describe, expect, test } from "bun:test";
+import { ChatService, extractChatMeta } from "@subbrain/agent/services/chat";
 import type { ChatResponse } from "../src/providers/types";
-import { ChatService, extractChatMeta } from "../src/services/chat";
 
 function makeRouter(overloaded: Record<string, boolean>) {
   let directCalled = false;

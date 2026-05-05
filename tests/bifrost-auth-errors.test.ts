@@ -1,8 +1,8 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { ModelRouter } from "@subbrain/core/lib/model-router";
 import { BifrostProvider } from "@subbrain/providers/bifrost";
 import { ProviderError } from "@subbrain/providers/nvidia";
 import type { LLMProvider } from "@subbrain/providers/types";
-import { ModelRouter } from "../src/lib/model-router";
 
 describe("Bifrost auth / rate / upstream errors through ModelRouter", () => {
   const oldEnv = process.env.BIFROST_ENABLED;

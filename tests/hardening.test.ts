@@ -3,8 +3,8 @@
  */
 
 import { unlinkSync } from "node:fs";
+import { RAGPipeline } from "@subbrain/agent/rag";
 import { MemoryDB } from "@subbrain/core/db";
-import { RAGPipeline } from "../src/rag";
 
 const TEST_DB = "data/test-hardening.db";
 try {

@@ -1,5 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { type NormalizedCall, normalizeToolCalls } from "../src/pipeline/agent-loop/tool-dispatch";
+import {
+  type NormalizedCall,
+  normalizeToolCalls,
+} from "@subbrain/agent/pipeline/agent-loop/tool-dispatch";
 
 describe("normalizeToolCalls", () => {
   test("OpenAI flavor: {id, function:{name, arguments}}", () => {

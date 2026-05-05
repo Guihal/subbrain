@@ -1,9 +1,9 @@
 /** M-04.1 night-cycle embed-log + RAG vec unblock for layer="log". §Тесты. */
 import { afterAll, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, unlinkSync } from "node:fs";
+import { runEmbedLog } from "@subbrain/agent/pipeline/night-cycle/steps/embed-log";
+import { RAGPipeline } from "@subbrain/agent/rag";
 import { MemoryDB } from "@subbrain/core/db";
-import { runEmbedLog } from "../src/pipeline/night-cycle/steps/embed-log";
-import { RAGPipeline } from "../src/rag";
 
 const TEST_DB = "data/test-mem4.1-embed-log.db";
 const ENV_KEYS = ["LOG_EMBED_ENABLED", "LOG_EMBED_CAP", "LOG_EMBED_BATCH"] as const;

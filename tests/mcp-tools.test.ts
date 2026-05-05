@@ -4,10 +4,10 @@
  */
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { existsSync, unlinkSync } from "node:fs";
+import { LogTools } from "@subbrain/agent/mcp/tools/log-tools";
+import { MemoryTools } from "@subbrain/agent/mcp/tools/memory";
+import { WebTools } from "@subbrain/agent/mcp/tools/web-tools";
 import { MemoryDB } from "@subbrain/core/db";
-import { LogTools } from "../src/mcp/tools/log-tools";
-import { MemoryTools } from "../src/mcp/tools/memory";
-import { WebTools } from "../src/mcp/tools/web-tools";
 
 const DB_PATH = "data/test-tools.db";
 let db: MemoryDB;

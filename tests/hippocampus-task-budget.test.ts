@@ -8,9 +8,14 @@
  */
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, unlinkSync } from "node:fs";
+import {
+  type AgentToolContext,
+  buildRegistry,
+  ToolExecutor,
+  type ToolRegistry,
+} from "@subbrain/agent/mcp";
+import type { TaskMutationBudget } from "@subbrain/agent/mcp/registry";
 import { MemoryDB } from "@subbrain/core/db";
-import { type AgentToolContext, buildRegistry, ToolExecutor, type ToolRegistry } from "../src/mcp";
-import type { TaskMutationBudget } from "../src/mcp/registry";
 
 const DB_PATH = "data/test-hippo-budget.db";
 

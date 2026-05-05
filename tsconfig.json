@@ -24,7 +24,15 @@
     "useUnknownInCatchVariables": true,
     "alwaysStrict": true,
     "isolatedModules": true,
-    "verbatimModuleSyntax": false
+    "verbatimModuleSyntax": false,
+    "paths": {
+      "@subbrain/agent": ["./packages/agent/src/index.ts"],
+      "@subbrain/agent/*": ["./packages/agent/src/*"],
+      "@subbrain/core": ["./packages/core/src/index.ts"],
+      "@subbrain/core/*": ["./packages/core/src/*"],
+      "@subbrain/providers": ["./packages/providers/src/index.ts"],
+      "@subbrain/providers/*": ["./packages/providers/src/*"]
+    }
   },
   "include": ["src/**/*.ts", "packages/*/src/**/*.ts", "tests/**/*.ts", "scripts/**/*.ts"],
   "exclude": ["node_modules", "web", "tests", "scripts"]

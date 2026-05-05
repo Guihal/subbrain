@@ -1,10 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import { unlinkSync } from "node:fs";
+import { buildRegistry, ToolExecutor } from "@subbrain/agent/mcp";
+import { runHippocampus } from "@subbrain/agent/pipeline/agent-pipeline/post/hippocampus";
+import { RAGPipeline } from "@subbrain/agent/rag";
 import { MemoryDB } from "@subbrain/core/db";
-import { buildRegistry, ToolExecutor } from "../src/mcp";
-import { runHippocampus } from "../src/pipeline/agent-pipeline/post/hippocampus";
 import type { ChatResponse } from "../src/providers/types";
-import { RAGPipeline } from "../src/rag";
 
 const TEST_DB = "data/test-post-hippo.db";
 try {

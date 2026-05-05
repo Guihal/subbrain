@@ -1,13 +1,13 @@
-import type { MemoryDB } from "@subbrain/core/db";
-import { Elysia, t } from "elysia";
-import type { ModelRouter } from "../lib/model-router";
-import type { AgentPipeline } from "../pipeline";
+import type { AgentPipeline } from "@subbrain/agent/pipeline";
 import {
   type ChatCompletionRequest,
   ChatService,
   extractChatMeta,
   wrapStreamForChat,
-} from "../services/chat";
+} from "@subbrain/agent/services/chat";
+import type { MemoryDB } from "@subbrain/core/db";
+import type { ModelRouter } from "@subbrain/core/lib/model-router";
+import { Elysia, t } from "elysia";
 
 // Re-export so legacy importers (e.g. tests/chat-stream.test.ts) keep working
 // after the PR 26a move into `services/chat.service.ts`.

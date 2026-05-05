@@ -1,10 +1,10 @@
 import { describe, expect, test } from "bun:test";
+import type { ToolRegistry } from "@subbrain/agent/mcp";
+import { executeStep } from "@subbrain/agent/pipeline/agent-loop/step";
+import type { ToolRunnerDeps } from "@subbrain/agent/pipeline/agent-loop/tool-runner";
 import type { MemoryDB } from "@subbrain/core/db";
 import { logger } from "@subbrain/core/lib/logger";
-import type { ModelRouter } from "../src/lib/model-router";
-import type { ToolRegistry } from "../src/mcp";
-import { executeStep } from "../src/pipeline/agent-loop/step";
-import type { ToolRunnerDeps } from "../src/pipeline/agent-loop/tool-runner";
+import type { ModelRouter } from "@subbrain/core/lib/model-router";
 import type { ChatResponse, Message, Tool } from "../src/providers/types";
 
 function mockRouter(response: Partial<ChatResponse>): ModelRouter {

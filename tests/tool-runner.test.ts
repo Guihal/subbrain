@@ -4,9 +4,9 @@
  */
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { existsSync, unlinkSync } from "node:fs";
+import { ToolExecutor } from "@subbrain/agent/mcp/executor";
+import { buildRegistry, type ToolRegistry } from "@subbrain/agent/mcp/registry";
 import { MemoryDB } from "@subbrain/core/db";
-import { ToolExecutor } from "../src/mcp/executor";
-import { buildRegistry, type ToolRegistry } from "../src/mcp/registry";
 
 const DB_PATH = "data/test-tool-runner.db";
 let db: MemoryDB;
@@ -77,7 +77,7 @@ beforeAll(async () => {
   db = new MemoryDB(DB_PATH);
   executor = new ToolExecutor(db, mockRouter);
   registry = buildRegistry();
-  const mod = await import("../src/pipeline/agent-loop/tool-runner");
+  const mod = await import("@subbrain/agent/pipeline/agent-loop/tool-runner");
   executeAgentTool = mod.executeAgentTool;
 });
 
@@ -211,7 +211,7 @@ describe("tool-runner handler dispatch", () => {
 
 describe("tool-runner per-scope timeouts", () => {
   test("scope→timeout map: web_/memory_/embed_/consult_/default", async () => {
-    const { toolTimeoutMs } = await import("../src/pipeline/agent-loop/tool-runner");
+    const { toolTimeoutMs } = await import("@subbrain/agent/pipeline/agent-loop/tool-runner");
     expect(toolTimeoutMs("web_navigate")).toBe(15000);
     expect(toolTimeoutMs("memory_search")).toBe(3000);
     expect(toolTimeoutMs("embed_text")).toBe(5000);

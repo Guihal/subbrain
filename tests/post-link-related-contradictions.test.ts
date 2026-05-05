@@ -13,9 +13,9 @@
  */
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, unlinkSync } from "node:fs";
+import { writeContext, writeShared } from "@subbrain/agent/pipeline/agent-pipeline/post/extractors";
+import { RAGPipeline } from "@subbrain/agent/rag";
 import { MemoryDB } from "@subbrain/core/db";
-import { writeContext, writeShared } from "../src/pipeline/agent-pipeline/post/extractors";
-import { RAGPipeline } from "../src/rag";
 
 const TEST_DB = "data/test-mem5.2-contradict.db";
 
