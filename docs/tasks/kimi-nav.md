@@ -92,7 +92,7 @@
 | P6-6 | A2A cleanup + docs | `not_started` | — | blocks on P6-5 | CRITIC-PASSED |
 | A2-1 | Plugin registry init | `done` | `cp3` | — | CRITIC-PASSED. Commit 31b3e84. Bundled with spec-cleanup. |
 | A2-2 | Plugin loader | `done` | `cp3` | — | CRITIC-PASSED. Commit e90a153. |
-| A2-3 | Plugin sandbox | `fail` | — | blocks on A2-2 | CRITIC-PASSED. Prev dispatch blocked by hook. Retry pending. |
+| A2-3 | Plugin sandbox | `dispatched` | — | blocks on A2-2 | CRITIC-PASSED. Retry #2/3. Hook workaround baked into prompt. |
 | A2-4 | Plugin hooks (pre/post) | `not_started` | — | blocks on A2-3 | CRITIC-PASSED |
 | A2-5 | ToolResult kind union | `not_started` | — | **STRONG-MODEL ONLY** | CRITIC-PASSED |
 | A2-6 | Code-tool guards | `not_started` | — | **SECURITY** — integration tests mandatory, blocks on A2-3, A2-5 | CRITIC-PASSED |
