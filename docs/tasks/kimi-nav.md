@@ -27,7 +27,7 @@
 | P0-3 | Docs stale-spot fix | `blocked` | — | permission denied mass delete | CRITIC-PASSED |
 | P1-1 | Bifrost gateway init | `done` | `cp3` | — | CRITIC-PASSED |
 | P1-2 | Bifrost provider config | `done` | `cp3` | — | CRITIC-PASSED |
-| P1-3 | Bifrost health + fallback | `not_started` | — | — | CRITIC-PASSED |
+| P1-3 | Bifrost health + fallback | `done` | `cp3` | — | CRITIC-PASSED |
 | P1-4 | Bifrost rate-limiter reuse | `not_started` | — | — | CRITIC-PASSED |
 | P1-5 | Bifrost SSE proxy | `not_started` | — | — | CRITIC-PASSED |
 | P1-6 | Bifrost custom provider | `not_started` | — | custom-provider base_url shape | CRITIC-PASSED |
