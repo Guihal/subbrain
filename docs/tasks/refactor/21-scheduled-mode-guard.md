@@ -26,7 +26,7 @@
 - [packages/agent/src/pipeline/agent-loop/system-prompt.ts](../../../packages/agent/src/pipeline/agent-loop/system-prompt.ts) — секция про code tools условная.
 - [packages/agent/src/scheduler/autonomous.ts](../../../packages/agent/src/scheduler/autonomous.ts), [packages/agent/src/scheduler/free-agent.ts](../../../packages/agent/src/scheduler/free-agent.ts) — передают `agentMode: "scheduled"`.
 - [packages/server/src/routes/autonomous.ts](../../../packages/server/src/routes/autonomous.ts) — передаёт `agentMode: "interactive"`.
-- [src/night-cycle/](../../../src/night-cycle/) — ревизия; если вызывает AgentLoop — `scheduled`.
+- [packages/agent/src/pipeline/night-cycle/](../../../packages/agent/src/pipeline/night-cycle/) — ревизия; если вызывает AgentLoop — `scheduled`.
 
 ## Изменение
 
