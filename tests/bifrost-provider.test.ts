@@ -3,75 +3,86 @@ import { BifrostProvider } from "../src/providers/bifrost";
 import { ProviderError } from "../src/providers/nvidia";
 
 describe("BifrostProvider", () => {
-  const baseUrl = "http://bifrost:8080";
   const apiKey = "sk-bifrost-test-key-very-long-12345";
-  let fetchCalls: { url: string; init: RequestInit }[];
-  let _originalFetch: typeof globalThis.fetch;
+  let server: ReturnType<typeof Bun.serve>;
+  let baseUrl = "";
+  type Hit = { url: string; method: string; headers: Headers; body: string };
+  const hits: Hit[] = [];
+  let nextStatus = 200;
+  let nextBody: string | null = null;
 
   beforeAll(() => {
-    _originalFetch = globalThis.fetch;
+    server = Bun.serve({
+      port: 0,
+      async fetch(req) {
+        const url = new URL(req.url);
+        const body = req.method === "POST" ? await req.text() : "";
+        hits.push({ url: url.pathname, method: req.method, headers: req.headers, body });
+        if (nextStatus !== 200) return new Response(nextBody ?? "boom", { status: nextStatus });
+        if (url.pathname === "/v1/chat/completions") {
+          if (body.includes('"stream":true')) {
+            const sse =
+              'data: {"id":"x","object":"chat.completion.chunk","created":0,"model":"gpt-4","choices":[{"index":0,"delta":{"content":"hi"},"finish_reason":null}]}\n\ndata: [DONE]\n\n';
+            return new Response(sse, {
+              status: 200,
+              headers: { "content-type": "text/event-stream" },
+            });
+          }
+          return Response.json({
+            id: "r1",
+            object: "chat.completion",
+            created: 0,
+            model: "gpt-4",
+            choices: [
+              { index: 0, message: { role: "assistant", content: "ok" }, finish_reason: "stop" },
+            ],
+          });
+        }
+        return new Response("not found", { status: 404 });
+      },
+    });
+    baseUrl = `http://localhost:${server.port}`;
   });
 
-  afterAll(() => {
-    globalThis.fetch = _originalFetch;
-  });
+  afterAll(() => server.stop(true));
 
-  function mockFetch(status: number, body: unknown) {
-    return async (_url: string | URL | Request, init?: RequestInit) => {
-      fetchCalls.push({ url: String(_url), init: init ?? {} });
-      return new Response(JSON.stringify(body), {
-        status,
-        headers: { "Content-Type": "application/json" },
-      });
-    };
-  }
-
-  function mockFetchError(status: number, bodyText: string) {
-    return async (_url: string | URL | Request, init?: RequestInit) => {
-      fetchCalls.push({ url: String(_url), init: init ?? {} });
-      return new Response(bodyText, { status, headers: { "Content-Type": "application/json" } });
-    };
+  function reset() {
+    hits.length = 0;
+    nextStatus = 200;
+    nextBody = null;
   }
 
   test("chat sends correct payload and headers", async () => {
-    fetchCalls = [];
-    globalThis.fetch = mockFetch(200, {
-      id: "1",
-      object: "chat.completion",
-      created: 1,
-      model: "gpt-4",
-      choices: [{ index: 0, message: { role: "assistant", content: "hi" }, finish_reason: "stop" }],
-    });
-
+    reset();
     const p = new BifrostProvider(baseUrl, apiKey);
     await p.chat({ model: "gpt-4", messages: [{ role: "user", content: "hello" }] });
 
-    expect(fetchCalls).toHaveLength(1);
-    const { url, init } = fetchCalls[0];
-    expect(url).toEndWith("/v1/chat/completions");
-    expect(init.method).toBe("POST");
-    const headers = init.headers as Headers;
+    expect(hits).toHaveLength(1);
+    expect(hits[0]?.url).toBe("/v1/chat/completions");
+    expect(hits[0]?.method).toBe("POST");
+    const headers = hits[0]?.headers as Headers;
     expect(headers.get("Authorization")).toBe(`Bearer ${apiKey}`);
     expect(headers.get("Content-Type")).toBe("application/json");
 
-    const body = JSON.parse(init.body as string);
+    const body = JSON.parse(hits[0]?.body ?? "{}");
     expect(body.model).toBe("gpt-4");
     expect(body.messages).toEqual([{ role: "user", content: "hello" }]);
     expect(body.stream).toBe(false);
   });
 
   test("chat throws ProviderError on 4xx/5xx", async () => {
-    fetchCalls = [];
-    globalThis.fetch = mockFetchError(429, JSON.stringify({ error: "rate limited" }));
+    reset();
+    nextStatus = 429;
+    nextBody = JSON.stringify({ error: "rate limited" });
 
     const p = new BifrostProvider(baseUrl, apiKey);
     await expect(p.chat({ model: "x", messages: [] })).rejects.toBeInstanceOf(ProviderError);
   });
 
   test("ProviderError redacts API key in body", async () => {
-    fetchCalls = [];
-    const errBody = JSON.stringify({ error: "bad key", key: apiKey });
-    globalThis.fetch = mockFetchError(401, errBody);
+    reset();
+    nextStatus = 401;
+    nextBody = JSON.stringify({ error: "bad key", key: apiKey });
 
     const p = new BifrostProvider(baseUrl, apiKey);
     try {
@@ -86,18 +97,15 @@ describe("BifrostProvider", () => {
   });
 
   test("pre-flight abort throws DOMException without fetch", async () => {
-    fetchCalls = [];
-    globalThis.fetch = async () => {
-      fetchCalls.push({ url: "should-not-run", init: {} });
-      return new Response("{}");
-    };
-
+    reset();
     const ctrl = new AbortController();
-    ctrl.abort();
+    ctrl.abort(new DOMException("Aborted", "AbortError"));
 
     const p = new BifrostProvider(baseUrl, apiKey);
-    await expect(p.chat({ model: "x", messages: [], signal: ctrl.signal })).rejects.toThrow();
-    expect(fetchCalls).toHaveLength(0);
+    await expect(p.chat({ model: "x", messages: [], signal: ctrl.signal })).rejects.toBeInstanceOf(
+      DOMException,
+    );
+    expect(hits).toHaveLength(0);
   });
 
   test("embed and rerank throw with clear message", () => {

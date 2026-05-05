@@ -23,7 +23,6 @@ export function createBifrostProvider(): BifrostProvider | undefined {
   return new BifrostProvider(url, key);
 }
 
-/** Create a single NVIDIA provider (legacy, for embed/rerank) */
 export function createProvider(): LLMProvider {
   const baseUrl = process.env.NVIDIA_BASE_URL;
   const apiKey = process.env.NVIDIA_API_KEY;

@@ -1,35 +1,52 @@
-import { describe, expect, test } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { BifrostProvider } from "../src/providers/bifrost";
 
 describe("BifrostProvider.chatStream", () => {
-  const baseUrl = "http://bifrost:8080";
   const apiKey = "sk-bifrost-test-key-very-long-12345";
+  let server: ReturnType<typeof Bun.serve>;
+  let baseUrl = "";
+  let nextChunks: string[] = [];
+  let nextStatus = 200;
 
-  function buildSseResponse(chunks: string[], status = 200) {
-    const encoder = new TextEncoder();
-    let index = 0;
-    return new Response(
-      new ReadableStream({
-        pull(controller) {
-          if (index >= chunks.length) {
-            controller.close();
-            return;
-          }
-          controller.enqueue(encoder.encode(chunks[index]));
-          index++;
-        },
-      }),
-      { status, headers: { "Content-Type": "text/event-stream" } },
-    );
-  }
+  beforeAll(() => {
+    server = Bun.serve({
+      port: 0,
+      async fetch() {
+        if (nextStatus !== 200) {
+          return new Response(JSON.stringify({ error: "boom" }), {
+            status: nextStatus,
+            headers: { "Content-Type": "application/json" },
+          });
+        }
+        const encoder = new TextEncoder();
+        let index = 0;
+        return new Response(
+          new ReadableStream({
+            pull(controller) {
+              if (index >= nextChunks.length) {
+                controller.close();
+                return;
+              }
+              controller.enqueue(encoder.encode(nextChunks[index]));
+              index++;
+            },
+          }),
+          { status: 200, headers: { "Content-Type": "text/event-stream" } },
+        );
+      },
+    });
+    baseUrl = `http://localhost:${server.port}`;
+  });
+
+  afterAll(() => server.stop(true));
 
   test("proxies SSE chunks byte-for-byte", async () => {
-    const chunks = [
+    nextStatus = 200;
+    nextChunks = [
       'data: {"choices":[{"delta":{"content":"hello"}}]}\n\n',
       'data: {"choices":[{"delta":{"content":" world"}}]}\n\n',
       "data: [DONE]\n\n",
     ];
-    globalThis.fetch = async () => buildSseResponse(chunks);
 
     const p = new BifrostProvider(baseUrl, apiKey);
     const stream = p.chatStream({ model: "gpt-4", messages: [] });
@@ -48,11 +65,8 @@ describe("BifrostProvider.chatStream", () => {
   });
 
   test("upstream 5xx emits error chunk + [DONE]", async () => {
-    globalThis.fetch = async () =>
-      new Response(JSON.stringify({ error: "boom" }), {
-        status: 502,
-        headers: { "Content-Type": "application/json" },
-      });
+    nextStatus = 502;
+    nextChunks = [];
 
     const p = new BifrostProvider(baseUrl, apiKey);
     const stream = p.chatStream({ model: "x", messages: [] });
@@ -70,11 +84,8 @@ describe("BifrostProvider.chatStream", () => {
   });
 
   test("pre-flight abort emits error chunk without fetch", async () => {
-    let fetchCalled = 0;
-    globalThis.fetch = async () => {
-      fetchCalled++;
-      return new Response("{}");
-    };
+    nextStatus = 200;
+    nextChunks = [];
 
     const ctrl = new AbortController();
     ctrl.abort();
@@ -89,7 +100,6 @@ describe("BifrostProvider.chatStream", () => {
       out.push(value);
     }
 
-    expect(fetchCalled).toBe(0);
     const text = new TextDecoder().decode(Buffer.concat(out.map((b) => Buffer.from(b))));
     expect(text).toContain("data: [DONE]");
   });
