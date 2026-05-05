@@ -9,7 +9,7 @@
  *
  * Run: `bun run scripts/check-file-size.ts`
  */
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 
 const ROOT = new URL("..", import.meta.url).pathname.replace(/\/$/, "");
@@ -64,7 +64,6 @@ export const TRANSITIONAL_WHITELIST: Record<string, number> = {
   "src/pipeline/agent-pipeline/post/hippocampus.ts": 272,
   "scripts/migrate-tasks-from-memory.ts": 263,
   "src/db/tables/tasks.ts": 305,
-  "web/app/composables/useMemory.ts": 249,
   "src/routes/memory.ts": 282,
   "web/app/composables/useMemory.ts": 279,
   "src/pipeline/night-cycle/post-steps.ts": 262,

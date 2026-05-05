@@ -259,7 +259,8 @@ export function migrate(db: Database): void {
 
   // ─── Migrations ─────────────────────────────────────────
   // Add 'telegram' to chats.source CHECK constraint (SQLite requires table rebuild)
-  const version = db.query<{ user_version: number },[]>("PRAGMA user_version").get()?.user_version ?? 0;
+  const version =
+    db.query<{ user_version: number }, []>("PRAGMA user_version").get()?.user_version ?? 0;
   if (version < 1) {
     db.exec(`
       CREATE TABLE IF NOT EXISTS chats_new (

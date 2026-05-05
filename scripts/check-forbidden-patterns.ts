@@ -84,7 +84,7 @@ for (const rule of rules) {
     const dir = join(ROOT, prefix);
     if (!existsSync(dir)) continue;
     for (const path of walk(dir)) {
-      const rel = path.replace(ROOT + "/", "");
+      const rel = path.replace(`${ROOT}/`, "");
       const text = readFileSync(path, "utf-8");
       const lines = text.split("\n");
       for (let i = 0; i < lines.length; i++) {

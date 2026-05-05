@@ -33,6 +33,7 @@
   "devDependencies": {
     "@biomejs/biome": "^2.4.14",
     "@boundaryml/baml": "0.222.0",
+    "@sinclair/typebox": "^0.34.0",
     "@types/bun": "latest",
     "lefthook": "^2.1.6"
   },

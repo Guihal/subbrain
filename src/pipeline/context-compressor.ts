@@ -48,6 +48,7 @@ export interface CompressorMemory {
       status?: import("../db").MemoryStatus;
       kind?: import("../db").MemoryKind;
     },
+  // biome-ignore lint/suspicious/noConfusingVoidType: void means sync fire-and-forget
   ) => void | Promise<unknown>;
 }
 

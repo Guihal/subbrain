@@ -56,6 +56,7 @@ export class Logger {
 
     // Console fallback when no memory DB attached (tests, early bootstrap).
     if (!this.memory) {
+      // biome-ignore lint/suspicious/noConsole: legitimate fallback when memory DB not attached
       console.log(line);
       return;
     }
