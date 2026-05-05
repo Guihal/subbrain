@@ -3,9 +3,9 @@ import {
   MiniMaxProvider,
   rewrapHistoryForMinimax,
   splitResponseThinkTags,
-} from "../src/providers/minimax";
-import { ProviderError } from "../src/providers/nvidia";
-import type { ChatResponse, Message } from "../src/providers/types";
+} from "@subbrain/providers/minimax";
+import { ProviderError } from "@subbrain/providers/nvidia";
+import type { ChatResponse, Message } from "@subbrain/providers/types";
 
 describe("rewrapHistoryForMinimax", () => {
   test("preserves non-assistant messages as-is", () => {

@@ -1,8 +1,8 @@
 import { afterAll, afterEach, beforeAll, describe, expect, test } from "bun:test";
 import type { ModelRoute } from "@subbrain/core/lib/model-map";
-import { ProviderError } from "../../src/providers/nvidia";
-import { OpenAICompatProvider } from "../../src/providers/openai-compat";
-import type { Message } from "../../src/providers/types";
+import { ProviderError } from "@subbrain/providers/nvidia";
+import { OpenAICompatProvider } from "@subbrain/providers/openai-compat";
+import type { Message } from "@subbrain/providers/types";
 
 let server: ReturnType<typeof Bun.serve>;
 let baseUrl = "";
@@ -239,7 +239,7 @@ describe("bootstrap integration (real createProviders)", () => {
     process.env.NVIDIA_API_KEY = process.env.NVIDIA_API_KEY || "nvapi-test";
     const { applyOpenAICompatOverrides } = await import("@subbrain/core/lib/model-map");
     applyOpenAICompatOverrides();
-    const { createProviders } = await import("../../src/providers");
+    const { createProviders } = await import("@subbrain/providers");
     const providers = await createProviders();
     expect(providers["openai-compat"]).toBeInstanceOf(OpenAICompatProvider);
   });

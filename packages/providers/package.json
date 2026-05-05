@@ -1,0 +1,18 @@
+{
+  "name": "@subbrain/providers",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./types": "./src/types.ts",
+    "./nvidia": "./src/nvidia.ts",
+    "./bifrost": "./src/bifrost.ts",
+    "./minimax": "./src/minimax.ts",
+    "./openai-compat": "./src/openai-compat.ts",
+    "./stream-utils": "./src/stream-utils.ts",
+    "./sse-parser": "./src/sse-parser.ts",
+    "./think-tag-transform": "./src/think-tag-transform.ts"
+  }
+}

@@ -5,8 +5,8 @@
 import type { RequestLogger } from "@subbrain/core/lib/logger";
 import type { Metrics } from "@subbrain/core/lib/metrics";
 import { getTracer } from "@subbrain/core/lib/telemetry";
+import type { ChatResponse } from "@subbrain/providers/types";
 import type { ModelRouter } from "../../../lib/model-router";
-import type { ChatResponse } from "../../../providers/types";
 import { injectSystemPrompt } from "../helpers";
 import type { PipelineRequest } from "../types";
 

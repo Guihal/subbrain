@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { BifrostProvider } from "../src/providers/bifrost";
+import { BifrostProvider } from "@subbrain/providers/bifrost";
 
 describe("BifrostProvider.chatStream", () => {
   const apiKey = "sk-bifrost-test-key-very-long-12345";

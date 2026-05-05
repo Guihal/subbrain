@@ -3,7 +3,7 @@ import {
   makeThinkSplitter,
   splitThinkTagsOnce,
   transformThinkTags,
-} from "../src/providers/think-tag-transform";
+} from "@subbrain/providers/think-tag-transform";
 
 describe("makeThinkSplitter — stateful incremental split", () => {
   test("full block in one feed", () => {

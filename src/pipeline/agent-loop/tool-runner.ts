@@ -10,10 +10,10 @@
 
 import type { logger } from "@subbrain/core/lib/logger";
 import { getTracer } from "@subbrain/core/lib/telemetry";
+import type { ToolCall } from "@subbrain/providers/types";
 import type { ModelRouter } from "../../lib/model-router";
 import type { ToolExecutor, ToolRegistry } from "../../mcp";
 import type { AgentLoopSession, AgentMode } from "../../mcp/registry/tool-registry";
-import type { ToolCall } from "../../providers/types";
 import type { ArbitrationRoom } from "../arbitration";
 import type { CodeToolRegistry } from "./code-tools";
 import { executeSandboxed } from "./code-tools/sandbox";

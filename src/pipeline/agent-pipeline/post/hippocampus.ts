@@ -6,10 +6,10 @@
  */
 import type { MemoryDB } from "@subbrain/core/db";
 import type { RequestLogger } from "@subbrain/core/lib/logger";
+import type { Message } from "@subbrain/providers/types";
 import type { ModelRouter } from "../../../lib/model-router";
 import type { ToolExecutor } from "../../../mcp";
 import type { TaskMutationBudget, ToolRegistry } from "../../../mcp/registry";
-import type { Message } from "../../../providers/types";
 import type { RAGPipeline } from "../../../rag";
 
 import { type WriteSharedArgs, writeContext, writeShared } from "./extractors";

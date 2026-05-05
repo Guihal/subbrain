@@ -2,7 +2,7 @@
  * Tests for createProxyStream (src/providers/stream-utils.ts).
  */
 import { describe, expect, test } from "bun:test";
-import { createProxyStream } from "../src/providers/stream-utils";
+import { createProxyStream } from "@subbrain/providers/stream-utils";
 
 /** Collect all chunks from a stream into a single string */
 async function drain(stream: ReadableStream<Uint8Array>): Promise<string> {

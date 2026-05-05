@@ -1,0 +1,24 @@
+{
+  "name": "@subbrain/agent",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./pipeline": "./src/pipeline/index.ts",
+    "./pipeline/agent-loop": "./src/pipeline/agent-loop/index.ts",
+    "./pipeline/agent-loop/code-tools": "./src/pipeline/agent-loop/code-tools/index.ts",
+    "./pipeline/agent-loop/code-tools/code-tool-validators": "./src/pipeline/agent-loop/code-tools/code-tool-validators.ts",
+    "./pipeline/agent-loop/code-tools/sandbox": "./src/pipeline/agent-loop/code-tools/sandbox.ts",
+    "./pipeline/agent-loop/dynamic-tools": "./src/pipeline/agent-loop/dynamic-tools.ts",
+    "./pipeline/agent-loop/types": "./src/pipeline/agent-loop/types.ts",
+    "./pipeline/arbitration": "./src/pipeline/arbitration/index.ts",
+    "./pipeline/night-cycle/steps": "./src/pipeline/night-cycle/steps/index.ts",
+    "./pipeline/agent-pipeline/post/validators": "./src/pipeline/agent-pipeline/post/validators/index.ts",
+    "./pipeline/context-compressor": "./src/pipeline/context-compressor.ts",
+    "./services/agent.service": "./src/services/agent.service.ts",
+    "./services/chat": "./src/services/chat/index.ts",
+    "./services/memory": "./src/services/memory/index.ts"
+  }
+}

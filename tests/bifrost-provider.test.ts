@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { BifrostProvider } from "../src/providers/bifrost";
-import { ProviderError } from "../src/providers/nvidia";
+import { BifrostProvider } from "@subbrain/providers/bifrost";
+import { ProviderError } from "@subbrain/providers/nvidia";
 
 describe("BifrostProvider", () => {
   const apiKey = "sk-bifrost-test-key-very-long-12345";

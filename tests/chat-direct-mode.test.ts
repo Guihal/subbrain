@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
+import type { ChatResponse } from "@subbrain/providers/types";
 import { Elysia } from "elysia";
-import type { ChatResponse } from "../src/providers/types";
 import { chatRoute } from "../src/routes/chat";
 
 /**

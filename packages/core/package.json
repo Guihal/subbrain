@@ -26,12 +26,20 @@
     "./lib/api-envelope": "./src/lib/api-envelope.ts",
     "./lib/messages": "./src/lib/messages.ts",
     "./lib/model-map": "./src/lib/model-map.ts",
+    "./lib/model-router": "./src/lib/model-router.ts",
+    "./lib/personas": "./src/lib/personas.ts",
     "./lib/clock": "./src/lib/clock.ts",
     "./lib/errors": "./src/lib/errors.ts",
     "./lib/memory-decay": "./src/lib/memory-decay.ts",
     "./lib/metrics": "./src/lib/metrics.ts",
     "./lib/redact": "./src/lib/redact.ts",
     "./lib/sse": "./src/lib/sse.ts",
-    "./lib/telemetry": "./src/lib/telemetry.ts"
+    "./lib/telemetry": "./src/lib/telemetry.ts",
+    "./rag": "./src/rag.ts",
+    "./mcp": "./src/mcp.ts",
+    "./mcp/registry": "./src/mcp-registry.ts",
+    "./mcp/registry/tool-registry": "./src/mcp-registry-tool-registry.ts",
+    "./lib/model-router": "./src/lib/model-router.ts",
+    "./telegram/bot/notify": "./src/telegram-bot-notify.ts"
   }
 }

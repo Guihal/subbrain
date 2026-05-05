@@ -2,8 +2,8 @@
  * Utility functions for the agent pipeline.
  */
 
+import type { Message } from "@subbrain/providers/types";
 import { getPersonaBio } from "../../lib/personas";
-import type { Message } from "../../providers/types";
 import type { PreProcessingOutput } from "./types";
 
 export function extractLastUserMessage(messages: Message[]): string {

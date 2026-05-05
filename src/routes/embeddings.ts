@@ -1,6 +1,6 @@
+import { ProviderError } from "@subbrain/providers";
 import { Elysia, t } from "elysia";
 import type { ModelRouter } from "../lib/model-router";
-import { ProviderError } from "../providers";
 
 export function embeddingsRoute(router: ModelRouter) {
   return new Elysia().post(

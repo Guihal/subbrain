@@ -14,8 +14,8 @@
  */
 import { randomUUID } from "node:crypto";
 import { logger } from "@subbrain/core/lib/logger";
+import type { Message } from "@subbrain/providers/types";
 import type { ModelRouter } from "../lib/model-router";
-import type { Message } from "../providers/types";
 import { estimateTokens } from "./agent-loop/types";
 import { categoryToKind } from "./agent-pipeline/post/validators";
 

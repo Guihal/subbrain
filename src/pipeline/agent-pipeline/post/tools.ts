@@ -7,7 +7,7 @@
  * through `registry.call("task_add", ...)`, so the registry validates at
  * runtime and remains the single source of truth for behavior.
  */
-import type { Tool } from "../../../providers/types";
+import type { Tool } from "@subbrain/providers/types";
 
 export const POST_TOOLS: Tool[] = [
   {

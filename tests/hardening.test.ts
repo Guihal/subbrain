@@ -126,7 +126,7 @@ console.log("✅ Test 4: isOverloaded property available");
 // ─── Test 5: withTimeout wraps provider calls ────────────
 
 // Import and test directly
-const { ProviderError } = await import("../src/providers/nvidia");
+const { ProviderError } = await import("@subbrain/providers/nvidia");
 
 // Simulate a slow provider
 const _slowRouter = {

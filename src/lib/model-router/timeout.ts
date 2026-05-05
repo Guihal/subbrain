@@ -1,4 +1,4 @@
-import { ProviderError } from "../../providers/nvidia";
+import { ProviderError } from "@subbrain/providers/nvidia";
 
 export function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
   return new Promise<T>((resolve, reject) => {

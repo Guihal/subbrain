@@ -3,7 +3,7 @@
  */
 
 import type { SharedRow } from "@subbrain/core/db";
-import type { ChatResponse, Message } from "../../providers/types";
+import type { ChatResponse, Message } from "@subbrain/providers/types";
 import type { RAGResult } from "../../rag";
 
 export interface PipelineRequest {

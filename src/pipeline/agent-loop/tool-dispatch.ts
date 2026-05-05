@@ -7,7 +7,7 @@
  */
 
 import type { logger } from "@subbrain/core/lib/logger";
-import type { ToolCall } from "../../providers/types";
+import type { ToolCall } from "@subbrain/providers/types";
 import { executeAgentTool, type ToolRunnerDeps } from "./tool-runner";
 
 export interface NormalizedCall {

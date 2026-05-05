@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { unlinkSync } from "node:fs";
 import { MemoryDB } from "@subbrain/core/db";
+import type { ChatResponse } from "@subbrain/providers/types";
 import { Elysia } from "elysia";
-import type { ChatResponse } from "../src/providers/types";
 import { chatRoute } from "../src/routes/chat";
 
 const TEST_DB = "data/test-chat-continuity.db";

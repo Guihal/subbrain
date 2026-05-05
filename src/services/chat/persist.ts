@@ -1,7 +1,7 @@
 import { logger } from "@subbrain/core/lib/logger";
 import type { ChatRepository, MemoryRepository } from "@subbrain/core/repositories";
+import type { Message } from "@subbrain/providers/types";
 import type { CompressorMemory } from "../../pipeline/context-compressor";
-import type { Message } from "../../providers/types";
 import type { MemoryService } from "../memory";
 import type { ChatMeta } from "./meta";
 

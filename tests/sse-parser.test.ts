@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { assembleMessage, parseSSEChunk } from "../src/providers/sse-parser";
+import { assembleMessage, parseSSEChunk } from "@subbrain/providers/sse-parser";
 
 describe("parseSSEChunk", () => {
   test("parses content delta", () => {

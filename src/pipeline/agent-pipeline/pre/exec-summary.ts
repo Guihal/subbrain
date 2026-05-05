@@ -6,8 +6,8 @@
 import type { MemoryDB } from "@subbrain/core/db";
 import { getMoscowNow } from "@subbrain/core/lib/clock";
 import { logger } from "@subbrain/core/lib/logger";
+import type { Message } from "@subbrain/providers/types";
 import type { ModelRouter } from "../../../lib/model-router";
-import type { Message } from "../../../providers/types";
 import type { RAGPipeline, RAGResult } from "../../../rag";
 
 import { executeHippoTool, HIPPO_TOOLS } from "./rag-inject";

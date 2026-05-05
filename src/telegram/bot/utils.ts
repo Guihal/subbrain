@@ -1,6 +1,6 @@
 import type { MemoryDB } from "@subbrain/core/db";
+import type { Message } from "@subbrain/providers/types";
 import type { Context } from "grammy";
-import type { Message } from "../../providers/types";
 
 export function escapeMarkdown(text: string): string {
   return text.replace(/[_*[\]()~`>#+\-=|{}.!]/g, "\\$&");

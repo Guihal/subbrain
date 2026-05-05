@@ -12,7 +12,7 @@
  * from NVIDIA's {rankings:[{index,logit}]} must happen inside the provider,
  * not at the call site.
  */
-import { NvidiaProvider } from "../src/providers/nvidia";
+import { NvidiaProvider } from "@subbrain/providers/nvidia";
 
 const apiKey = process.env.NVIDIA_API_KEY;
 const baseUrl = process.env.NVIDIA_BASE_URL || "https://integrate.api.nvidia.com/v1";

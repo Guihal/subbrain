@@ -2,7 +2,7 @@
  * Dynamic Tool Registry — runtime-created tools that agents can define
  * and reuse across sessions. Persisted to agent_memory.
  */
-import type { Tool } from "../../providers/types";
+import type { Tool } from "@subbrain/providers/types";
 import { MAX_DYNAMIC_TOOLS } from "./types";
 
 export interface DynamicToolDef {

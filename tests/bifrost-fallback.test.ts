@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
+import { BifrostProvider } from "@subbrain/providers/bifrost";
+import type { LLMProvider } from "@subbrain/providers/types";
 import { ModelRouter } from "../src/lib/model-router";
-import { BifrostProvider } from "../src/providers/bifrost";
-import type { LLMProvider } from "../src/providers/types";
 
 describe("Bifrost flag-on — no legacy fallback", () => {
   test("bifrost error surfaces directly; backends untouched", async () => {

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { MODEL_MAP } from "@subbrain/core/lib/model-map";
-import { collectRequiredProviders, createProviders } from "../src/providers";
+import { collectRequiredProviders, createProviders } from "@subbrain/providers";
 
 /**
  * Tests the optional-provider loader:

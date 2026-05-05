@@ -23,6 +23,7 @@ import { appendFileSync, mkdirSync } from "node:fs";
 import { MemoryDB } from "@subbrain/core/db";
 import { getMoscowDate } from "@subbrain/core/lib/clock";
 import { logger } from "@subbrain/core/lib/logger";
+import { createProviders } from "@subbrain/providers";
 import { ModelRouter } from "../src/lib/model-router";
 import {
   type CandidateRow,
@@ -33,7 +34,6 @@ import {
   hasCompletedStatusTag,
   hasTaskTag,
 } from "../src/pipeline/night-cycle/prune/tasks-classify";
-import { createProviders } from "../src/providers";
 
 const log = logger.child("migrate.tasks");
 

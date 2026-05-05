@@ -5,9 +5,9 @@
 import type { MemoryDB } from "@subbrain/core/db";
 import type { Metrics } from "@subbrain/core/lib/metrics";
 import { CodeToolsRepository } from "@subbrain/core/repositories/code-tools.repo";
+import type { Tool } from "@subbrain/providers/types";
 import type { ModelRouter } from "../../lib/model-router";
 import type { ToolExecutor, ToolRegistry } from "../../mcp";
-import type { Tool } from "../../providers/types";
 import type { RAGPipeline } from "../../rag";
 import type { ArbitrationRoom } from "../arbitration";
 import { CodeToolRegistry } from "./code-tools";

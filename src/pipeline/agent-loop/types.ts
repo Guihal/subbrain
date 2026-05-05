@@ -24,7 +24,7 @@ export interface ScheduleContext {
  */
 export type AgentMode = "scheduled" | "interactive";
 
-import type { Message } from "../../providers/types";
+import type { Message } from "@subbrain/providers/types";
 
 // ─── Constants ───────────────────────────────────────────
 
@@ -67,7 +67,7 @@ export interface AgentLoopStep {
   step: number;
   role: "assistant" | "tool";
   content: string | null;
-  toolCalls?: import("../../providers/types").ToolCall[];
+  toolCalls?: import("@subbrain/providers/types").ToolCall[];
   toolName?: string;
   toolResult?: string;
 }

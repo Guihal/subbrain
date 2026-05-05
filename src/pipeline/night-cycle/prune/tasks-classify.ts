@@ -13,7 +13,7 @@
 
 import type { TaskScope } from "@subbrain/core/db";
 import type { Priority } from "@subbrain/core/lib/model-map";
-import type { ChatParams, ChatResponse } from "../../../providers/types";
+import type { ChatParams, ChatResponse } from "@subbrain/providers/types";
 import { parseJson } from "../types";
 
 export const TASK_TAG_KEYWORDS = [
