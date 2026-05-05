@@ -7,9 +7,10 @@
  * ALLOW maps).
  */
 import type { Database } from "bun:sqlite";
-import type { ArchiveRow, ContextRow, FtsResult, MemoryStatus } from "../../types";
+import type { ArchiveRow, BlockRow, ContextRow, FtsResult, MemoryStatus } from "../../types";
 import * as agg from "./aggregations";
 import * as archive from "./archive";
+import * as blocks from "./blocks";
 import * as context from "./context";
 import * as focus from "./focus";
 import type { InsertContextOpts } from "./helpers";
@@ -106,6 +107,21 @@ export class MemoryTable {
     search.searchContext(this.db, query, limit, opts);
   searchArchive = (query: string, limit?: number): FtsResult[] =>
     search.searchArchive(this.db, query, limit);
+
+  // Memory blocks (P3-5, mig 18)
+  insertBlock = (id: string, ownerRole: string, label: string, body: string) =>
+    blocks.insertBlock(this.db, id, ownerRole, label, body);
+  updateBlock = (id: string, fields: { owner_role?: string; label?: string; body?: string }) =>
+    blocks.updateBlock(this.db, id, fields);
+  getBlock = (id: string): BlockRow | null => blocks.getBlock(this.db, id);
+  getBlockByLabel = (ownerRole: string, label: string): BlockRow | null =>
+    blocks.getBlockByLabel(this.db, ownerRole, label);
+  listBlocks = (limit?: number, offset?: number): BlockRow[] =>
+    blocks.listBlocks(this.db, limit, offset);
+  listBlocksByRole = (ownerRole: string): BlockRow[] =>
+    blocks.listBlocksByRole(this.db, ownerRole);
+  countBlocks = (): number => blocks.countBlocks(this.db);
+  deleteBlock = (id: string): void => blocks.deleteBlock(this.db, id);
 
   // Aggregations (night cycle)
   reflectGroups = (
