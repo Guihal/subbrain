@@ -187,7 +187,8 @@
 |---|---|---|---|
 | A2-5 | af0cd2b62c46b06b2 | **RUNNING** | in_progress |
 | P2-1 | a2ec0635510d230bc | **RUNNING** | in_progress |
-| A2-8 | a56d3f85ae9decdc1 | **RUNNING** | in_progress |
+| A2-8 | a56d3f85ae9decdc1 | **FAIL** | agent misread prerequisite (redispatch acfd3a760ca542c91) |
+| A2-8 | acfd3a760ca542c91 | **RUNNING** | retry #1 |
 
 ---
 
