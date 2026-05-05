@@ -8,8 +8,10 @@ import {
   installTelegramWebhook,
 } from "./app/schedulers";
 import { registerShutdown } from "./app/shutdown";
+import { initTelemetry } from "./lib/telemetry";
 import { installFreeAgentScheduler } from "./scheduler/free-agent";
 
+initTelemetry();
 const deps = await initDeps();
 const { app, nightCycleController } = createApp(deps);
 

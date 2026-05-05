@@ -10,6 +10,7 @@
         "@opentelemetry/api": "^1.9.1",
         "@opentelemetry/exporter-trace-otlp-http": "^0.216.0",
         "@opentelemetry/sdk-node": "^0.216.0",
+        "@opentelemetry/sdk-trace-base": "^2.7.1",
         "elysia": "^1.4.28",
         "grammy": "^1.42.0",
         "playwright": "^1.49.0",
