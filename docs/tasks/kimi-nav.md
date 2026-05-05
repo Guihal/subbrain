@@ -22,9 +22,9 @@
 
 | Phase | Packet | Status | Last CP | Blocker | Notes |
 |---|---|---|---|---|---|
-| P0-1 | AGENTS sync | `not_started` | — | — | CRITIC-PASSED |
+| P0-1 | AGENTS sync | `done` | `cp3` | — | CRITIC-PASSED |
 | P0-2 | README sync | `done` | `cp3` | — | CRITIC-PASSED |
-| P0-3 | Docs stale-spot fix | `not_started` | — | — | CRITIC-PASSED |
+| P0-3 | Docs stale-spot fix | `blocked` | — | permission denied mass delete | CRITIC-PASSED |
 | P1-1 | Bifrost gateway init | `not_started` | — | `<TBD-Bifrost-IMAGE>` | CRITIC-PASSED |
 | P1-2 | Bifrost provider config | `not_started` | — | `<TBD-Bifrost-URL>` | CRITIC-PASSED |
 | P1-3 | Bifrost health + fallback | `not_started` | — | — | CRITIC-PASSED |
@@ -44,8 +44,8 @@
 | A1-7a | AppDeps cycle break (free-agent.ts -> FreeAgentSchedulerDeps) | `not_started` | — | — | CRITIC-PASSED |
 | A1-8 | Docker build update | `not_started` | — | — | CRITIC-PASSED |
 | A1-9 | Cleanup, doc paths, root tsconfig narrowing | `not_started` | — | — | CRITIC-PASSED |
-| P4-0 | Pin BAML CLI version | `not_started` | — | — | CRITIC-PASSED |
-| P4-1 | BAML init + lockfile | `not_started` | — | `<BAML_VERSION>` (pinned 0.222.0) | CRITIC-PASSED |
+| P4-0 | Pin BAML CLI version | `done` | `cp3` | — | CRITIC-PASSED |
+| P4-1 | BAML init + lockfile | `done` | `cp3` | — | CRITIC-PASSED |
 | P4-2 | BAML ESM config | `not_started` | — | — | CRITIC-PASSED |
 | P4-3 | BAML promptfoo provider | `not_started` | — | — | CRITIC-PASSED |
 | P4-4 | BAML promptfoo eval | `not_started` | — | — | CRITIC-PASSED |
