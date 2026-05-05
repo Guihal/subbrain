@@ -933,6 +933,41 @@ export function migrate(db: Database): void {
       for (const sql of mig18Stmts) db.query(sql).run();
     })();
   }
+
+  // Migration 19 (P2-1): agent_tasks table.
+  // Typed background tasks for the pool engine. CHECK constraints on type/status.
+  // Partial indexes for pending claim, zombie scan, and distribution rollup.
+  if (version < 19) {
+    const mig19Stmts = [
+      `CREATE TABLE IF NOT EXISTS agent_tasks (
+        id           INTEGER PRIMARY KEY AUTOINCREMENT,
+        type         TEXT NOT NULL CHECK(type IN ('free','clear','check-tg','research','find-new-task')),
+        prompt       TEXT NOT NULL,
+        status       TEXT NOT NULL CHECK(status IN ('pending','running','done','noop','failed')) DEFAULT 'pending',
+        priority     INTEGER NOT NULL DEFAULT 0,
+        scheduled_at INTEGER,
+        started_at   INTEGER,
+        finished_at  INTEGER,
+        artifact     TEXT,
+        reason       TEXT,
+        created_by   TEXT NOT NULL,
+        created_at   INTEGER NOT NULL DEFAULT (unixepoch())
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_agent_tasks_pending
+         ON agent_tasks(priority DESC, scheduled_at, id)
+         WHERE status = 'pending'`,
+      `CREATE INDEX IF NOT EXISTS idx_agent_tasks_running
+         ON agent_tasks(status, started_at)
+         WHERE status = 'running'`,
+      `CREATE INDEX IF NOT EXISTS idx_agent_tasks_distribution
+         ON agent_tasks(type, status, finished_at)
+         WHERE status IN ('done','noop','failed')`,
+      `PRAGMA user_version = 19`,
+    ];
+    db.transaction(() => {
+      for (const sql of mig19Stmts) db.query(sql).run();
+    })();
+  }
 }
 
 export { EMBEDDING_DIM };

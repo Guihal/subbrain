@@ -1,4 +1,5 @@
 import type { Database } from "bun:sqlite";
+import { AgentTasksRepository } from "../repositories/agent-tasks.repo";
 import { ChatRepository } from "../repositories/chat.repo";
 import { EdgeRepository } from "../repositories/edges.repo";
 import { FreelanceRepository } from "../repositories/freelance.repo";
@@ -66,6 +67,7 @@ export class MemoryDB {
   readonly telegramRepo: TelegramRepository;
   readonly freelanceRepo: FreelanceRepository;
   readonly edgesRepo: EdgeRepository;
+  readonly agentTasksRepo: AgentTasksRepository;
   private _tasks: TasksTable;
   private _scheduler: SchedulerStateTable;
 
@@ -78,6 +80,7 @@ export class MemoryDB {
     this.telegramRepo = new TelegramRepository(this.db);
     this.freelanceRepo = new FreelanceRepository(this.db);
     this.edgesRepo = new EdgeRepository(this.db);
+    this.agentTasksRepo = new AgentTasksRepository(this.db);
     this._tasks = new TasksTable(this.db);
     this._scheduler = new SchedulerStateTable(this.db);
   }

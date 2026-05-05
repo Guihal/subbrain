@@ -109,7 +109,7 @@ describe("M-12 mig 15 — schema rebuild", () => {
     expect(typ?.t).toBe("real");
 
     const ver = opened.query<{ user_version: number }, []>("PRAGMA user_version").get();
-    expect(ver?.user_version).toBe(18);
+    expect(ver?.user_version).toBe(19);
     opened.close();
   });
 
@@ -120,7 +120,7 @@ describe("M-12 mig 15 — schema rebuild", () => {
     const db2 = openDatabase(TEST_DB);
     migrate(db2);
     const ver = db2.query<{ user_version: number }, []>("PRAGMA user_version").get();
-    expect(ver?.user_version).toBe(18);
+    expect(ver?.user_version).toBe(19);
     // typeof confidence is still REAL — no double-rebuild damage.
     const typ = db2
       .query<{ t: string }, []>("SELECT typeof(confidence) AS t FROM layer3_archive WHERE id='hi'")
