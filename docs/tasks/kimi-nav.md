@@ -68,37 +68,37 @@
 |---|---|---|---|---|---|
 | P2-1 | Agent tasks schema (mig 19) | `not_started` | — | **STRONG-MODEL ONLY** | CRITIC-PASSED |
 | P2-2 | Agent tasks repository | `not_started` | — | blocks on P2-1 | CRITIC-PASSED |
-| P2-3 | Agent pool runner | `not_started` | — | — | CRITIC-PASSED |
-| P2-4 | Terminate + artifact tool | `not_started` | — | — | CRITIC-PASSED |
-| P2-5 | Pool dispatch integration | `not_started` | — | blocks on P2-5a | CRITIC-PASSED |
+| P2-3 | Agent pool runner | `not_started` | — | blocks on P2-1 | CRITIC-PASSED |
+| P2-4 | Terminate + artifact tool | `not_started` | — | blocks on P2-3 | CRITIC-PASSED |
+| P2-5 | Pool dispatch integration | `not_started` | — | blocks on P2-5a, P2-4, P2-3 | CRITIC-PASSED |
 | P2-5a | AgentLoopRequest expansion | `not_started` | — | **STRONG-MODEL ONLY** | CRITIC-PASSED |
-| P2-6 | Memory service integration | `not_started` | — | — | CRITIC-PASSED |
-| P2-7 | Pool safety (rate-limit) | `not_started` | — | blocks on P2-7a | CRITIC-PASSED |
+| P2-6 | Memory service integration | `not_started` | — | blocks on P2-5 | CRITIC-PASSED |
+| P2-7 | Pool safety (rate-limit) | `not_started` | — | blocks on P2-7a, P2-6 | CRITIC-PASSED |
 | P2-7a | Mutex primitive | `not_started` | — | **STRONG-MODEL ONLY** | CRITIC-PASSED |
 | P3-1 | Memory bi-temporal verify | `not_started` | — | — | CRITIC-PASSED |
 | P3-2 | Bi-temporal nullable cols (mig 17) | `not_started` | — | **STRONG-MODEL ONLY** | CRITIC-PASSED |
-| P3-3 | Shared memory path fix | `not_started` | — | — | CRITIC-PASSED |
-| P3-4 | NIGHT_CYCLE_MODEL dedup | `not_started` | — | — | CRITIC-PASSED |
-| P3-5 | Memory blocks table (mig 18) | `not_started` | — | **STRONG-MODEL ONLY** | CRITIC-PASSED |
-| P3-6 | Metrics scope fix | `not_started` | — | — | CRITIC-PASSED |
-| P3-7 | Predicate parens fix | `not_started` | — | — | CRITIC-PASSED |
-| P3-8 | rag/pipeline.ts → index.ts | `not_started` | — | — | CRITIC-PASSED |
-| P3-9 | Memory archive + TTL | `not_started` | — | — | CRITIC-PASSED |
+| P3-3 | Shared memory path fix | `not_started` | — | blocks on P3-2 | CRITIC-PASSED |
+| P3-4 | NIGHT_CYCLE_MODEL dedup | `not_started` | — | blocks on P3-2 | CRITIC-PASSED |
+| P3-5 | Memory blocks table (mig 18) | `not_started` | — | **STRONG-MODEL ONLY**, blocks on P3-2 | CRITIC-PASSED |
+| P3-6 | Metrics scope fix | `not_started` | — | blocks on P3-5 | CRITIC-PASSED |
+| P3-7 | Predicate parens fix | `not_started` | — | blocks on P3-6 | CRITIC-PASSED |
+| P3-8 | rag/pipeline.ts → index.ts | `not_started` | — | blocks on P3-7 | CRITIC-PASSED |
+| P3-9 | Memory archive + TTL | `not_started` | — | blocks on P3-8 | CRITIC-PASSED |
 | P6-1 | A2A room init | `not_started` | — | — | CRITIC-PASSED |
-| P6-2 | A2A dispatch hook | `not_started` | — | — | CRITIC-PASSED |
-| P6-3 | A2A transcripts schema | `not_started` | — | **STRONG-MODEL ONLY** (schema choice) | CRITIC-PASSED |
-| P6-4 | A2A transport wiring | `not_started` | — | `<A2A_TRANSPORT>` | CRITIC-PASSED |
+| P6-2 | A2A dispatch hook | `not_started` | — | blocks on P6-1 | CRITIC-PASSED |
+| P6-3 | A2A transcripts schema | `not_started` | — | **STRONG-MODEL ONLY** (schema choice), blocks on P6-2 | CRITIC-PASSED |
+| P6-4 | A2A transport wiring | `not_started` | — | `<A2A_TRANSPORT>`, blocks on P6-3 | CRITIC-PASSED |
 | P6-5 | A2A synthesis loop | `not_started` | — | blocks on P6-3, P6-4 | CRITIC-PASSED |
 | P6-6 | A2A cleanup + docs | `not_started` | — | blocks on P6-5 | CRITIC-PASSED |
 | A2-1 | Plugin registry init | `not_started` | — | — | CRITIC-PASSED |
-| A2-2 | Plugin loader | `not_started` | — | — | CRITIC-PASSED |
-| A2-3 | Plugin sandbox | `not_started` | — | — | CRITIC-PASSED |
-| A2-4 | Plugin hooks (pre/post) | `not_started` | — | — | CRITIC-PASSED |
+| A2-2 | Plugin loader | `not_started` | — | blocks on A2-1 | CRITIC-PASSED |
+| A2-3 | Plugin sandbox | `not_started` | — | blocks on A2-2 | CRITIC-PASSED |
+| A2-4 | Plugin hooks (pre/post) | `not_started` | — | blocks on A2-3 | CRITIC-PASSED |
 | A2-5 | ToolResult kind union | `not_started` | — | **STRONG-MODEL ONLY** | CRITIC-PASSED |
-| A2-6 | Code-tool guards | `not_started` | — | **SECURITY** — integration tests mandatory | CRITIC-PASSED |
-| A2-7 | TG spam gates | `not_started` | — | **SECURITY** — integration tests mandatory | CRITIC-PASSED |
-| A2-8 | Plugin config + reload | `not_started` | — | — | CRITIC-PASSED |
-| A2-9 | Plugin docs | `not_started` | — | — | CRITIC-PASSED |
+| A2-6 | Code-tool guards | `not_started` | — | **SECURITY** — integration tests mandatory, blocks on A2-3, A2-5 | CRITIC-PASSED |
+| A2-7 | TG spam gates | `not_started` | — | **SECURITY** — integration tests mandatory, blocks on A2-3, A2-5 | CRITIC-PASSED |
+| A2-8 | Plugin config + reload | `not_started` | — | blocks on A2-3 | CRITIC-PASSED |
+| A2-9 | Plugin docs | `not_started` | — | blocks on A2-6, A2-7, A2-8 | CRITIC-PASSED |
 
 **Wave 2 merge gate:** Wave 1 merged + ALL Wave 2 `done` → unblocks Wave 3.
 
