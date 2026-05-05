@@ -15,12 +15,14 @@ import { runPre } from "./phases/pre";
 import { runRoom } from "./phases/room";
 import { buildPipelineStream } from "./phases/stream";
 import type { PipelineRequest, PipelineResult } from "./types";
+import type { HooksDispatcher } from "../../hooks";
 
 export type { PipelineRequest, PipelineResult } from "./types";
 
 export class AgentPipeline {
   private metrics: Metrics | null = null;
   private room: ArbitrationRoom | null = null;
+  private hooks: HooksDispatcher | null = null;
 
   constructor(
     private memory: MemoryDB,
@@ -36,6 +38,9 @@ export class AgentPipeline {
   setArbitrationRoom(room: ArbitrationRoom): void {
     this.room = room;
   }
+  setHooks(hooks: HooksDispatcher): void {
+    this.hooks = hooks;
+  }
 
   async execute(req: PipelineRequest): Promise<PipelineResult> {
     const requestId = randomUUID();
@@ -43,19 +48,8 @@ export class AgentPipeline {
     const userMessage = extractLastUserMessage(req.messages);
     const log = logger.forRequest(requestId, sessionId);
     const firstMsg = isFirstMessage(req.messages);
-    const deps = {
-      memory: this.memory,
-      router: this.router,
-      rag: this.rag,
-      executor: this.executor,
-      registry: this.registry,
-    };
 
-    log.info(
-      "pipeline",
-      `▶ model=${req.model} stream=${!!req.stream} msgs=${req.messages.length} first=${firstMsg}`,
-      { model: req.model, meta: { userMessage: userMessage.slice(0, 200) } },
-    );
+    log.info("pipeline", `▶ model=${req.model} stream=${!!req.stream} msgs=${req.messages.length} first=${firstMsg}`, { model: req.model, meta: { userMessage: userMessage.slice(0, 200) } });
 
     if (req.stream) {
       const stream = buildPipelineStream({
@@ -72,6 +66,7 @@ export class AgentPipeline {
           executor: this.executor,
           registry: this.registry,
           metrics: this.metrics,
+          hooks: this.hooks,
         },
       });
       return { requestId, sessionId, stream };
@@ -80,14 +75,7 @@ export class AgentPipeline {
     const agentId: string | null = req.agentId ?? null;
 
     const preStart = Date.now();
-    const pre = await runPre({
-      ...deps,
-      model: req.model,
-      userMessage,
-      firstMessage: firstMsg,
-      agentId,
-      requestId,
-    });
+    const pre = await runPre({ memory: this.memory, router: this.router, rag: this.rag, model: req.model, userMessage, firstMessage: firstMsg, agentId, requestId, hooks: this.hooks ?? undefined });
     if (firstMsg) {
       this.metrics?.record({
         model: "coder",
@@ -102,7 +90,11 @@ export class AgentPipeline {
 
     const fire = (assistantMessage: string, model: string, extras: Partial<RunPostArgs> = {}) =>
       runPost({
-        ...deps,
+        memory: this.memory,
+        router: this.router,
+        rag: this.rag,
+        executor: this.executor,
+        registry: this.registry,
         userMessage,
         assistantMessage,
         requestId,
@@ -136,6 +128,7 @@ export class AgentPipeline {
       metrics: this.metrics,
       log,
       requestId,
+      hooks: this.hooks ?? undefined,
     });
     const msg = main.response.choices[0]?.message;
     await fire(msg?.content || "", req.model, {

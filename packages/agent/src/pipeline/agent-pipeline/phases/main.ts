@@ -9,6 +9,7 @@ import type { ChatResponse } from "@subbrain/providers/types";
 import type { ModelRouter } from "@subbrain/core/lib/model-router";
 import { injectSystemPrompt } from "../helpers";
 import type { PipelineRequest } from "../types";
+import type { HooksDispatcher } from "../../../hooks";
 
 export interface MainResult {
   response: ChatResponse;
@@ -22,8 +23,9 @@ export async function runMain(args: {
   metrics: Metrics | null;
   log: RequestLogger;
   requestId?: string;
+  hooks?: HooksDispatcher;
 }): Promise<MainResult> {
-  const { req, router, enrichedSystemPrompt, metrics, log, requestId = "" } = args;
+  const { req, router, enrichedSystemPrompt, metrics, log, requestId = "", hooks } = args;
 
   const tracer = getTracer();
   const span = tracer.startSpan("subbrain.pipeline.main", {
@@ -39,17 +41,21 @@ export async function runMain(args: {
   try {
     const messages = injectSystemPrompt(req.messages, enrichedSystemPrompt);
     const params = {
+      model: req.model,
       messages,
+      tools: req.tools ?? [],
       temperature: req.temperature,
       max_tokens: req.max_tokens,
-      top_p: req.top_p,
-      tools: req.tools,
-      tool_choice: req.tool_choice,
     };
+    const merged = hooks ? await hooks.runChatParams(params) : undefined;
+    const { model: _m, ...baseParams } = params;
+    const chatParams = merged
+      ? { messages: merged.messages as typeof messages, tools: merged.tools as typeof params.tools, temperature: merged.temperature, max_tokens: merged.max_tokens }
+      : baseParams;
 
     log.info("main", `Non-stream call to ${req.model}`, { model: req.model });
     const start = Date.now();
-    const response = await router.chat(req.model, params);
+    const response = await router.chat(req.model, chatParams);
     const durationMs = Date.now() - start;
 
     const assistantMessage = response.choices[0]?.message?.content || "";

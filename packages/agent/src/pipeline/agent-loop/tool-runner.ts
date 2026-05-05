@@ -7,7 +7,6 @@
  *  2. Иначе fallback: dynamic-тулы (созданные через create_tool)
  *  3. Иначе fallback: code-тулы (исполняемые в sandbox через `code_*`-префикс)
  */
-
 import type { logger } from "@subbrain/core/lib/logger";
 import { getTracer } from "@subbrain/core/lib/telemetry";
 import type { ToolCall } from "@subbrain/providers/types";
@@ -136,6 +135,15 @@ export async function executeAgentTool(
   }
 
   log.info("agent-loop", `Tool: ${name}(${JSON.stringify(args).slice(0, 200)})`, { meta: { tool: name } });
+
+  const allowed = await deps.hooks?.runPermissionAsk(name, args);
+  if (allowed === false) {
+    span.setAttribute("tool.ok", false);
+    span.setAttribute("tool.error_code", "permission_denied");
+    span.setStatus({ code: 2 });
+    span.end();
+    return JSON.stringify({ error: "Permission denied" });
+  }
 
   const ctx = {
     executor: deps.tools, router: deps.router, room: deps.room,

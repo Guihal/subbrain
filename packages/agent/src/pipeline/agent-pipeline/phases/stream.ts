@@ -13,6 +13,7 @@ import { injectSystemPrompt } from "../helpers";
 import type { PipelineRequest } from "../types";
 import { runPostFromStream } from "./post";
 import { runPre } from "./pre";
+import type { HooksDispatcher } from "../../../hooks";
 
 const SSE_KEEPALIVE_MS = 8_000;
 
@@ -23,6 +24,7 @@ export interface StreamDeps {
   executor: ToolExecutor;
   registry: ToolRegistry;
   metrics: Metrics | null;
+  hooks: HooksDispatcher | null;
 }
 
 export function buildPipelineStream(args: {
@@ -88,17 +90,7 @@ export function buildPipelineStream(args: {
           requestId,
         });
         const preDur = Date.now() - preStart;
-        log.info(
-          "pre",
-          `Pre-processing complete: ${pre.stats.ragCount} RAG, ${pre.stats.summaryLen} chars`,
-          {
-            durationMs: preDur,
-            meta: {
-              ragCount: pre.stats.ragCount,
-              focusKeys: pre.stats.focusKeys,
-            },
-          },
-        );
+        log.info("pre", `Pre-processing complete: ${pre.stats.ragCount} RAG, ${pre.stats.summaryLen} chars`, { durationMs: preDur, meta: { ragCount: pre.stats.ragCount, focusKeys: pre.stats.focusKeys } });
         deps.metrics?.record({
           model: "coder",
           priority: "normal",
@@ -113,16 +105,20 @@ export function buildPipelineStream(args: {
 
         const messages = injectSystemPrompt(req.messages, pre.enrichedSystemPrompt);
         const params = {
+          model: req.model,
           messages,
+          tools: req.tools ?? [],
           temperature: req.temperature,
           max_tokens: req.max_tokens,
-          top_p: req.top_p,
-          tools: req.tools,
-          tool_choice: req.tool_choice,
         };
+        const merged = deps.hooks ? await deps.hooks.runChatParams(params) : undefined;
+        const { model: _m, ...baseParams } = params;
+        const chatParams = merged
+          ? { messages: merged.messages as typeof messages, tools: merged.tools as typeof params.tools, temperature: merged.temperature, max_tokens: merged.max_tokens }
+          : baseParams;
 
         log.info("main", `Streaming via ${req.model}`, { model: req.model });
-        const modelStream = await deps.router.chatStream(req.model, params);
+        const modelStream = await deps.router.chatStream(req.model, chatParams);
 
         const captured: Uint8Array[] = [];
         const reader = modelStream.getReader();
@@ -139,24 +135,8 @@ export function buildPipelineStream(args: {
             ctrl.close();
           },
         });
-        runPostFromStream({
-          memory: deps.memory,
-          router: deps.router,
-          rag: deps.rag,
-          executor: deps.executor,
-          registry: deps.registry,
-          stream: capturedStream,
-          userMessage,
-          requestId,
-          sessionId,
-          model: req.model,
-          log,
-          agentId,
-        }).catch((err) => {
-          log.error(
-            "post",
-            `Stream post-processing failed: ${err instanceof Error ? err.message : err}`,
-          );
+        runPostFromStream({ memory: deps.memory, router: deps.router, rag: deps.rag, executor: deps.executor, registry: deps.registry, stream: capturedStream, userMessage, requestId, sessionId, model: req.model, log, agentId }).catch((err) => {
+          log.error("post", `Stream post-processing failed: ${err instanceof Error ? err.message : err}`);
         });
 
         clearInterval(keepalive);
