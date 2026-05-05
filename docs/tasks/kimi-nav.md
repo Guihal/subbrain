@@ -75,7 +75,7 @@
 | P2-6 | Memory service integration | `not_started` | — | blocks on P2-5 | CRITIC-PASSED |
 | P2-7 | Pool safety (rate-limit) | `not_started` | — | blocks on P2-7a, P2-6 | CRITIC-PASSED |
 | P2-7a | Mutex primitive | `not_started` | — | **STRONG-MODEL ONLY** | CRITIC-PASSED |
-| P3-1 | Memory bi-temporal verify | `dispatched` | — | — | CRITIC-PASSED |
+| P3-1 | Memory bi-temporal verify | `done` | `cp3` | — | CRITIC-PASSED. Commit ed96d90. Extra doc cleanup bundled. |
 | P3-2 | Bi-temporal nullable cols (mig 17) | `not_started` | — | **STRONG-MODEL ONLY** | CRITIC-PASSED |
 | P3-3 | Shared memory path fix | `not_started` | — | blocks on P3-2 | CRITIC-PASSED |
 | P3-4 | NIGHT_CYCLE_MODEL dedup | `not_started` | — | blocks on P3-2 | CRITIC-PASSED |
@@ -84,7 +84,7 @@
 | P3-7 | Predicate parens fix | `not_started` | — | blocks on P3-6 | CRITIC-PASSED |
 | P3-8 | rag/pipeline.ts → index.ts | `not_started` | — | blocks on P3-7 | CRITIC-PASSED |
 | P3-9 | Memory archive + TTL | `not_started` | — | blocks on P3-8 | CRITIC-PASSED |
-| P6-1 | A2A room init | `dispatched` | — | — | CRITIC-PASSED |
+| P6-1 | A2A room init | `done` | `cp3` | — | CRITIC-PASSED. Commit 615920b. 26 LOC, no scope creep. |
 | P6-2 | A2A dispatch hook | `not_started` | — | blocks on P6-1 | CRITIC-PASSED |
 | P6-3 | A2A transcripts schema | `not_started` | — | **STRONG-MODEL ONLY** (schema choice), blocks on P6-2 | CRITIC-PASSED |
 | P6-4 | A2A transport wiring | `not_started` | — | `<A2A_TRANSPORT>`, blocks on P6-3 | CRITIC-PASSED |
