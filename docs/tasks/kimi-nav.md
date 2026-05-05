@@ -30,12 +30,12 @@
 | P1-3 | Bifrost health + fallback | `done` | `cp3` | — | CRITIC-PASSED |
 | P1-4 | Bifrost rate-limiter reuse | `done` | `cp3` | — | CRITIC-PASSED |
 | P1-5 | Bifrost SSE proxy | `done` | `cp3` | — | CRITIC-PASSED |
-| P1-6 | Bifrost custom provider | `not_started` | — | custom-provider base_url shape | CRITIC-PASSED |
+| P1-6 | Bifrost custom provider | `done` | `cp3` | — | CRITIC-PASSED |
 | A1-1 | Workspace skeleton + guardrail scan roots | `done` | `cp3` | — | CRITIC-PASSED |
 | A1-2 | Shared types pre-split + AuthService -> packages/core | `done` | `cp3` | — | CRITIC-PASSED |
 | A1-3 | packages/core: db/, repositories/, lib/* implementations | `not_started` | — | — | CRITIC-PASSED |
 | A1-4 | packages/providers | `not_started` | — | — | CRITIC-PASSED |
-| A1-5 | packages/plugin (types-only stub) | `not_started` | — | — | CRITIC-PASSED |
+| A1-5 | packages/plugin (types-only stub) | `done` | `cp3` | — | CRITIC-PASSED |
 | A1-6a | packages/agent: pipeline/ + services/ | `not_started` | — | — | CRITIC-PASSED |
 | A1-6b | packages/agent: mcp/ (registry+executor+tools, NOT transport) | `not_started` | — | — | CRITIC-PASSED |
 | A1-6c | packages/agent: scheduler/ + telegram/ | `not_started` | — | — | CRITIC-PASSED |
