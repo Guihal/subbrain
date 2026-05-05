@@ -9,6 +9,7 @@ import type { ChatResponse } from "@subbrain/providers/types";
 import type { ModelRouter } from "@subbrain/core/lib/model-router";
 import { injectSystemPrompt } from "../helpers";
 import type { PipelineRequest } from "../types";
+import type { HooksDispatcher } from "../../../hooks";
 
 export interface MainResult {
   response: ChatResponse;
@@ -22,8 +23,9 @@ export async function runMain(args: {
   metrics: Metrics | null;
   log: RequestLogger;
   requestId?: string;
+  hooks?: HooksDispatcher;
 }): Promise<MainResult> {
-  const { req, router, enrichedSystemPrompt, metrics, log, requestId = "" } = args;
+  const { req, router, enrichedSystemPrompt, metrics, log, requestId = "", hooks } = args;
 
   const tracer = getTracer();
   const span = tracer.startSpan("subbrain.pipeline.main", {
@@ -47,9 +49,18 @@ export async function runMain(args: {
       tool_choice: req.tool_choice,
     };
 
+    let finalParams = params;
+    if (hooks) {
+      const transformed = await hooks.runChatParams({ model: req.model, ...params } as any);
+      if (transformed) {
+        const { model: _model, ...rest } = transformed;
+        finalParams = rest as typeof params;
+      }
+    }
+
     log.info("main", `Non-stream call to ${req.model}`, { model: req.model });
     const start = Date.now();
-    const response = await router.chat(req.model, params);
+    const response = await router.chat(req.model, finalParams);
     const durationMs = Date.now() - start;
 
     const assistantMessage = response.choices[0]?.message?.content || "";

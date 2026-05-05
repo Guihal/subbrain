@@ -144,6 +144,14 @@ export async function executeAgentTool(
     session: deps.session, agentId: deps.agentId, agentMode: deps.agentMode,
   };
 
+  if ((await deps.hooks?.runPermissionAsk(name, args)) === false) {
+    span.setAttribute("tool.ok", false);
+    span.setAttribute("tool.error_code", "permission_denied");
+    span.setStatus({ code: 2 });
+    span.end();
+    return JSON.stringify({ error: "Permission denied" });
+  }
+
   try {
     const before = await deps.hooks?.runToolBefore(name, args, ctx);
     if (before && before.kind !== "success") {

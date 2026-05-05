@@ -13,6 +13,7 @@ import { injectSystemPrompt } from "../helpers";
 import type { PipelineRequest } from "../types";
 import { runPostFromStream } from "./post";
 import { runPre } from "./pre";
+import type { HooksDispatcher } from "../../../hooks";
 
 const SSE_KEEPALIVE_MS = 8_000;
 
@@ -33,8 +34,9 @@ export function buildPipelineStream(args: {
   userMessage: string;
   firstMessage: boolean;
   deps: StreamDeps;
+  hooks?: HooksDispatcher;
 }): ReadableStream<Uint8Array> {
-  const { req, requestId, sessionId, log, userMessage, firstMessage, deps } = args;
+  const { req, requestId, sessionId, log, userMessage, firstMessage, deps, hooks } = args;
   const encoder = new TextEncoder();
 
   const makeProgressChunk = (text: string): Uint8Array => {
@@ -86,6 +88,7 @@ export function buildPipelineStream(args: {
           onProgress: firstMessage ? emit : undefined,
           agentId,
           requestId,
+          hooks,
         });
         const preDur = Date.now() - preStart;
         log.info(
@@ -112,14 +115,8 @@ export function buildPipelineStream(args: {
         emit(`💬 Отправка запроса к ${req.model}...\n`);
 
         const messages = injectSystemPrompt(req.messages, pre.enrichedSystemPrompt);
-        const params = {
-          messages,
-          temperature: req.temperature,
-          max_tokens: req.max_tokens,
-          top_p: req.top_p,
-          tools: req.tools,
-          tool_choice: req.tool_choice,
-        };
+        let params: any = { messages, temperature: req.temperature, max_tokens: req.max_tokens, top_p: req.top_p, tools: req.tools, tool_choice: req.tool_choice };
+        if (hooks) { const t = await hooks.runChatParams({ model: req.model, ...params }); if (t) { const { model: _m, ...r } = t; params = r; } }
 
         log.info("main", `Streaming via ${req.model}`, { model: req.model });
         const modelStream = await deps.router.chatStream(req.model, params);
