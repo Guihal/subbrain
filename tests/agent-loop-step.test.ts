@@ -5,7 +5,7 @@ import type { ToolRunnerDeps } from "@subbrain/agent/pipeline/agent-loop/tool-ru
 import type { MemoryDB } from "@subbrain/core/db";
 import { logger } from "@subbrain/core/lib/logger";
 import type { ModelRouter } from "@subbrain/core/lib/model-router";
-import type { ChatResponse, Message, Tool } from "../src/providers/types";
+import type { ChatResponse, Message, Tool } from "@subbrain/core/types/providers";
 
 function mockRouter(response: Partial<ChatResponse>): ModelRouter {
   const full: ChatResponse = {

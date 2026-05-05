@@ -20,7 +20,7 @@ import {
 import { RAGPipeline } from "@subbrain/agent/rag";
 import { MemoryService } from "@subbrain/agent/services/memory";
 import { MemoryDB } from "@subbrain/core/db";
-import type { Message } from "../src/providers/types";
+import type { Message } from "@subbrain/core/types/providers";
 
 const TEST_DB = "data/test-shared-embed.db";
 

@@ -13,8 +13,8 @@ import { describe, expect, test } from "bun:test";
 import type { AgentLoopResult } from "@subbrain/agent/pipeline/agent-loop";
 import { installFreeAgentScheduler } from "@subbrain/agent/scheduler/free-agent";
 import type { AgentRunOpts } from "@subbrain/agent/services/agent.service";
-import type { AppDeps } from "../src/app/deps";
-import { installAutonomousScheduler } from "../src/app/schedulers";
+import type { AppDeps } from "@subbrain/server/app/deps";
+import { installAutonomousScheduler } from "@subbrain/server/app/schedulers";
 
 function makeMockAgentService() {
   const calls: AgentRunOpts[] = [];

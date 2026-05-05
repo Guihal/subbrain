@@ -12,7 +12,7 @@
  */
 
 import { ArbitrationRoom } from "@subbrain/agent/pipeline/arbitration";
-import type { ChatResponse, Message } from "../src/providers/types";
+import type { ChatResponse, Message } from "@subbrain/core/types/providers";
 
 // ─── Mock Router ─────────────────────────────────────────
 

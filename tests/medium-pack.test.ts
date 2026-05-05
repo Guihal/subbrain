@@ -5,7 +5,7 @@ import { executeSandboxed } from "@subbrain/agent/pipeline/agent-loop/code-tools
 import { MemoryDB } from "@subbrain/core/db";
 import { Logger } from "@subbrain/core/lib/logger";
 import { EMBED_MODEL, RERANK_MODEL } from "@subbrain/core/lib/model-map";
-import { logsRoute } from "../src/routes/logs";
+import { logsRoute } from "@subbrain/server/routes/logs";
 
 const TEST_DB = "data/test-medium-pack.db";
 

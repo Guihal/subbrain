@@ -3,7 +3,7 @@ import { unlinkSync } from "node:fs";
 import { runPre } from "@subbrain/agent/pipeline/agent-pipeline/phases/pre";
 import { RAGPipeline } from "@subbrain/agent/rag";
 import { MemoryDB } from "@subbrain/core/db";
-import type { ChatResponse } from "../src/providers/types";
+import type { ChatResponse } from "@subbrain/core/types/providers";
 
 const TEST_DB = "data/test-pre.db";
 try {

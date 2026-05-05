@@ -22,8 +22,8 @@ import { RAGPipeline } from "@subbrain/agent/rag";
 import { MemoryService } from "@subbrain/agent/services/memory";
 import { MemoryDB } from "@subbrain/core/db";
 import { logger } from "@subbrain/core/lib/logger";
+import { memoryRoute } from "@subbrain/server/routes/memory";
 import { Elysia } from "elysia";
-import { memoryRoute } from "../src/routes/memory";
 
 const TEST_DB = "data/test-mem7-kind.db";
 const log = logger.child("test-mem7");

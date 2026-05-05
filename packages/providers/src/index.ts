@@ -14,6 +14,8 @@ import type {
 
 export { ProviderError } from "./nvidia";
 export type { LLMProvider } from "./types";
+export { ModelRouter } from "./model-router";
+export { RateLimiter } from "./rate-limiter";
 
 export function createBifrostProvider(): BifrostProvider | undefined {
   if (process.env.BIFROST_ENABLED !== "true") return undefined;

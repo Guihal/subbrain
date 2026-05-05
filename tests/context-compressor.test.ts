@@ -6,7 +6,7 @@ import {
   shouldCompress,
 } from "@subbrain/agent/pipeline/context-compressor";
 import { MemoryDB } from "@subbrain/core/db";
-import type { ChatResponse, Message } from "../src/providers/types";
+import type { ChatResponse, Message } from "@subbrain/core/types/providers";
 
 const TEST_DB = "data/test-compressor.db";
 

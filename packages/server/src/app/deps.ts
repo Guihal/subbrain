@@ -81,7 +81,7 @@ export interface AppDeps {
 export function loadConfig(): AppConfig {
   const authToken = process.env.PROXY_AUTH_TOKEN;
   if (!authToken) {
-    console.error("PROXY_AUTH_TOKEN is required");
+    logger.error("config", "PROXY_AUTH_TOKEN is required");
     process.exit(1);
   }
   const autonomousEnabled =

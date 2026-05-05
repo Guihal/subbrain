@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { RateLimiter } from "../src/lib/rate-limiter";
+import { RateLimiter } from "@subbrain/providers/rate-limiter";
 
 describe("RateLimiter", () => {
   test("5 critical requests run immediately", async () => {

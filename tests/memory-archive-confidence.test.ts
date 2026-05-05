@@ -23,9 +23,9 @@ import { migrate, openDatabase } from "@subbrain/core/db/schema";
 import { authMiddleware } from "@subbrain/core/lib/auth";
 import { AppError } from "@subbrain/core/lib/errors";
 import { AuthService } from "@subbrain/core/services/auth";
+import { memoryRoute } from "@subbrain/server/routes/memory";
 import { Elysia } from "elysia";
 import * as sqliteVec from "sqlite-vec";
-import { memoryRoute } from "../src/routes/memory";
 
 const TEST_DB = "data/test-mem12-archive.db";
 const TOKEN = "test-mem12-archive-token";

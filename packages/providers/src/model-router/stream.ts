@@ -1,6 +1,6 @@
 import type { ModelTarget, ProviderName } from "@subbrain/core/lib/model-map";
-import { ProviderError } from "@subbrain/providers/nvidia";
-import type { ChatParams } from "@subbrain/providers/types";
+import { ProviderError } from "../nvidia";
+import type { ChatParams } from "../types";
 import type { Backend } from "./constants";
 
 export function createFallbackStream(

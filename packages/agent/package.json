@@ -37,12 +37,15 @@
     "./scheduler": "./src/scheduler/index.ts",
     "./scheduler/free-agent": "./src/scheduler/free-agent.ts",
     "./scheduler/freelance": "./src/scheduler/freelance/index.ts",
+    "./scheduler/freelance/parsers": "./src/scheduler/freelance/parsers/index.ts",
     "./scheduler/telegram-poller": "./src/scheduler/telegram-poller.ts",
     "./telegram": "./src/telegram/index.ts",
     "./telegram/bot": "./src/telegram/bot/index.ts",
     "./telegram/bot/notify": "./src/telegram/bot/notify.ts",
     "./telegram/userbot": "./src/telegram/userbot/index.ts",
     "./rag": "./src/rag/index.ts",
-    "./lib/personas": "./src/lib/personas.ts"
+    "./lib/personas": "./src/lib/personas.ts",
+    "./baml_client": "./src/baml_client/index.ts",
+    "./lib/structured-output": "./src/lib/structured-output/index.ts"
   }
 }

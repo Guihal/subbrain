@@ -1,7 +1,7 @@
 import { UpstreamExhaustedError } from "@subbrain/core/lib/errors";
 import type { ModelTarget, Priority, ProviderName } from "@subbrain/core/lib/model-map";
-import { ProviderError } from "@subbrain/providers/nvidia";
-import type { ChatParams, ChatResponse } from "@subbrain/providers/types";
+import { ProviderError } from "../nvidia";
+import type { ChatParams, ChatResponse } from "../types";
 import { type Backend, MAX_FALLBACK_ATTEMPTS, REQUEST_TIMEOUT } from "./constants";
 import { withTimeout } from "./timeout";
 

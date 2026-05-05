@@ -1,1 +1,1 @@
-export * from "../../../../src/lib/model-router";
+export * from "@subbrain/providers/model-router";

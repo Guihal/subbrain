@@ -42,8 +42,8 @@ const SEGMENT_THRESHOLD = 3;
 const TRANSITIONAL_DEEP_IMPORTS = new Set<string>([
   "scripts/freelance-probe.ts:../src/mcp/snapshot",
   "scripts/migrate-tasks-from-memory.ts:../src/pipeline/night-cycle/prune/tasks-classify",
-  "src/mcp/registry/code-mgmt.tools.ts:../../pipeline/agent-loop/code-tools/sandbox",
-  "src/mcp/registry/code-mgmt.tools.ts:../../pipeline/agent-loop/code-tools/code-tool-validators",
+  "packages/agent/src/mcp/registry/code-mgmt.tools.ts:../../pipeline/agent-loop/code-tools/sandbox",
+  "packages/agent/src/mcp/registry/code-mgmt.tools.ts:../../pipeline/agent-loop/code-tools/code-tool-validators",
 ]);
 const INDEX_FILES = ["index.ts", "index.tsx", "index.vue", "index.mts", "index.cts"];
 const TARGET_EXTS = [".ts", ".tsx", ".vue", ".mts", ".cts"];

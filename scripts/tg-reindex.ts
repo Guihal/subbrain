@@ -8,9 +8,10 @@
  *
  * Requires: TG_API_ID, TG_API_HASH, TG_SESSION, DB_PATH (optional).
  */
+
+import { Userbot } from "@subbrain/agent/telegram";
 import { MemoryDB } from "@subbrain/core/db";
 import { logger } from "@subbrain/core/lib/logger";
-import { Userbot } from "../src/telegram";
 
 const log = logger.child("tg-reindex");
 

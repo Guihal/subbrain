@@ -9,7 +9,7 @@
  */
 import { describe, expect, test } from "bun:test";
 import { ChatService, extractChatMeta } from "@subbrain/agent/services/chat";
-import type { ChatResponse } from "../src/providers/types";
+import type { ChatResponse } from "@subbrain/core/types/providers";
 
 function makeRouter(overloaded: Record<string, boolean>) {
   let directCalled = false;

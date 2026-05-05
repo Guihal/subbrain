@@ -7,7 +7,7 @@
 import { describe, expect, test } from "bun:test";
 import { ArbitrationRoom } from "@subbrain/agent/pipeline/arbitration";
 import type { ModelRouter } from "@subbrain/core/lib/model-router";
-import type { ChatResponse, Message } from "../src/providers/types";
+import type { ChatResponse, Message } from "@subbrain/core/types/providers";
 
 function makeResponse(content: string): ChatResponse {
   return {

@@ -1,4 +1,4 @@
-import { PlaywrightClient } from "../src/mcp";
+import { PlaywrightClient } from "@subbrain/agent/mcp";
 
 const pw = new PlaywrightClient();
 try {

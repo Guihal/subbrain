@@ -6,11 +6,10 @@
  */
 
 import { randomUUID } from "node:crypto";
+import { RAGPipeline } from "@subbrain/agent/rag";
+import { MemoryService } from "@subbrain/agent/services/memory";
 import { MemoryDB } from "@subbrain/core/db";
-import { ModelRouter } from "../src/lib/model-router";
-import { createProviders } from "../src/providers";
-import { RAGPipeline } from "../src/rag";
-import { MemoryService } from "../src/services/memory.service";
+import { createProviders, ModelRouter } from "@subbrain/providers";
 
 const dbPath = process.env.DB_PATH || "data/subbrain.db";
 const isProd = dbPath.endsWith("subbrain.db") && !dbPath.includes("test");

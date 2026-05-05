@@ -43,6 +43,9 @@
     "packages/providers": {
       "name": "@subbrain/providers",
     },
+    "packages/server": {
+      "name": "@subbrain/server",
+    },
     "web": {
       "name": "subbrain-web",
       "dependencies": {
@@ -1127,6 +1130,8 @@
     "@subbrain/plugin": ["@subbrain/plugin@workspace:packages/plugin"],
 
     "@subbrain/providers": ["@subbrain/providers@workspace:packages/providers"],
+
+    "@subbrain/server": ["@subbrain/server@workspace:packages/server"],
 
     "@swc/core": ["@swc/core@1.15.33", "", { "dependencies": { "@swc/counter": "^0.1.3", "@swc/types": "^0.1.26" }, "optionalDependencies": { "@swc/core-darwin-arm64": "1.15.33", "@swc/core-darwin-x64": "1.15.33", "@swc/core-linux-arm-gnueabihf": "1.15.33", "@swc/core-linux-arm64-gnu": "1.15.33", "@swc/core-linux-arm64-musl": "1.15.33", "@swc/core-linux-ppc64-gnu": "1.15.33", "@swc/core-linux-s390x-gnu": "1.15.33", "@swc/core-linux-x64-gnu": "1.15.33", "@swc/core-linux-x64-musl": "1.15.33", "@swc/core-win32-arm64-msvc": "1.15.33", "@swc/core-win32-ia32-msvc": "1.15.33", "@swc/core-win32-x64-msvc": "1.15.33" }, "peerDependencies": { "@swc/helpers": ">=0.5.17" }, "optionalPeers": ["@swc/helpers"] }, "sha512-jOlwnFV2xhuuZeAUILGFULeR6vDPfijEJ57evfocwznQldLU3w2cZ9bSDryY9ip+AsM3r1NJKzf47V2NXebkeQ=="],
 

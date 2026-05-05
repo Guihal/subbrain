@@ -1,0 +1,14 @@
+{
+  "name": "@subbrain/server",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./app/bootstrap": "./src/app/bootstrap.ts",
+    "./app/deps": "./src/app/deps.ts",
+    "./app/night-cycle-controller": "./src/app/night-cycle-controller.ts",
+    "./app/schedulers": "./src/app/schedulers.ts",
+    "./app/shutdown": "./src/app/shutdown.ts"
+  }
+}

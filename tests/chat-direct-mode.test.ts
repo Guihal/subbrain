@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { ChatResponse } from "@subbrain/providers/types";
+import { chatRoute } from "@subbrain/server/routes/chat";
 import { Elysia } from "elysia";
-import { chatRoute } from "../src/routes/chat";
 
 /**
  * Stub router where isOverloadedFor answers per-provider. We track whether

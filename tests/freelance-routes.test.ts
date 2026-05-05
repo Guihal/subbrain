@@ -1,8 +1,8 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { existsSync, unlinkSync } from "node:fs";
 import { MemoryDB } from "@subbrain/core/db";
+import { freelanceRoute } from "@subbrain/server/routes/freelance";
 import { Elysia } from "elysia";
-import { freelanceRoute } from "../src/routes/freelance";
 
 const TEST_DB = "data/test-freelance-routes.db";
 let memory: MemoryDB;

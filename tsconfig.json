@@ -31,7 +31,9 @@
       "@subbrain/core": ["./packages/core/src/index.ts"],
       "@subbrain/core/*": ["./packages/core/src/*"],
       "@subbrain/providers": ["./packages/providers/src/index.ts"],
-      "@subbrain/providers/*": ["./packages/providers/src/*"]
+      "@subbrain/providers/*": ["./packages/providers/src/*"],
+      "@subbrain/server": ["./packages/server/src/index.ts"],
+      "@subbrain/server/*": ["./packages/server/src/*"]
     }
   },
   "include": ["src/**/*.ts", "packages/*/src/**/*.ts", "tests/**/*.ts", "scripts/**/*.ts"],

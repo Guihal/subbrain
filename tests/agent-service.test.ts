@@ -12,7 +12,7 @@ import type {
   AgentLoopResult,
 } from "@subbrain/agent/pipeline/agent-loop";
 import { AgentService } from "@subbrain/agent/services/agent.service";
-import type { ChatRepository } from "../src/repositories";
+import type { ChatRepository } from "@subbrain/core/repositories";
 
 function makeMockLoop() {
   const runCalls: AgentLoopRequest[] = [];

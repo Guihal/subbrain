@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { MemoryDB } from "@subbrain/core/db";
 import { MetricsRepository } from "@subbrain/core/repositories/metrics.repo";
+import { metricsRunsRoute } from "@subbrain/server/routes/metrics";
 import { Elysia } from "elysia";
-import { metricsRunsRoute } from "../src/routes/metrics";
 
 describe("GET /v1/metrics/runs", () => {
   let db: MemoryDB;

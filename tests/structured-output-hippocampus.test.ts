@@ -3,7 +3,7 @@ import {
   parseHippocampusWrite,
   parseTaskAdd,
   taskAddPriorityInt,
-} from "../src/lib/structured-output";
+} from "@subbrain/agent/lib/structured-output";
 
 describe("parseHippocampusWrite", () => {
   test("valid shared write", () => {

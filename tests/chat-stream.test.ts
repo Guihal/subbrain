@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { MemoryDB } from "@subbrain/core/db";
-import { wrapStreamForChat } from "../src/routes/chat";
+import { wrapStreamForChat } from "@subbrain/server/routes/chat";
 
 function sseChunk(content: string): Uint8Array {
   const payload = JSON.stringify({

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { parseArbitrationSynthesis } from "../src/lib/structured-output";
+import { parseArbitrationSynthesis } from "@subbrain/agent/lib/structured-output";
 
 describe("parseArbitrationSynthesis", () => {
   test("single fenced block", () => {

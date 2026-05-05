@@ -13,6 +13,9 @@
     "./openai-compat": "./src/openai-compat.ts",
     "./stream-utils": "./src/stream-utils.ts",
     "./sse-parser": "./src/sse-parser.ts",
-    "./think-tag-transform": "./src/think-tag-transform.ts"
+    "./think-tag-transform": "./src/think-tag-transform.ts",
+    "./model-router": "./src/model-router.ts",
+    "./model-router/sse-parser": "./src/model-router/sse-parser.ts",
+    "./rate-limiter": "./src/rate-limiter.ts"
   }
 }

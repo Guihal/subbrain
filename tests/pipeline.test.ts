@@ -15,7 +15,7 @@ import { unlinkSync } from "node:fs";
 import { AgentPipeline } from "@subbrain/agent/pipeline";
 import { RAGPipeline } from "@subbrain/agent/rag";
 import { MemoryDB } from "@subbrain/core/db";
-import type { ChatResponse, Message } from "../src/providers/types";
+import type { ChatResponse, Message } from "@subbrain/core/types/providers";
 
 const TEST_DB = "data/test-pipeline.db";
 try {

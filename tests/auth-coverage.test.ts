@@ -24,8 +24,8 @@ import type { TelegramBot } from "@subbrain/agent/telegram";
 import { MemoryDB } from "@subbrain/core/db";
 import { Metrics } from "@subbrain/core/lib/metrics";
 import { AuthService } from "@subbrain/core/services/auth";
-import { createApp } from "../src/app/bootstrap";
-import type { AppConfig, AppDeps } from "../src/app/deps";
+import { createApp } from "@subbrain/server/app/bootstrap";
+import type { AppConfig, AppDeps } from "@subbrain/server/app/deps";
 
 const TEST_DB = "data/test-auth-coverage.db";
 const TOKEN = "test-auth-token";

@@ -4,9 +4,9 @@ import {
   type ProviderName,
   resolveModel,
 } from "@subbrain/core/lib/model-map";
-import type { BifrostProvider } from "@subbrain/providers/bifrost";
-import type { ProviderError } from "@subbrain/providers/nvidia";
-import type { ChatParams, ChatResponse, LLMProvider } from "@subbrain/providers/types";
+import type { BifrostProvider } from "./bifrost";
+import type { ProviderError } from "./nvidia";
+import type { ChatParams, ChatResponse, LLMProvider } from "./types";
 import { type Backend, PROVIDER_RPM } from "./model-router/constants";
 import { runChatDispatch } from "./model-router/dispatch";
 import { createFallbackStream } from "./model-router/stream";

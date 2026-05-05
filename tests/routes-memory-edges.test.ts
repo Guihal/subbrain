@@ -19,8 +19,8 @@ import { MemoryDB } from "@subbrain/core/db";
 import { authMiddleware } from "@subbrain/core/lib/auth";
 import { AppError } from "@subbrain/core/lib/errors";
 import { AuthService } from "@subbrain/core/services/auth";
+import { memoryRoute } from "@subbrain/server/routes/memory";
 import { Elysia } from "elysia";
-import { memoryRoute } from "../src/routes/memory";
 
 const TEST_DB = "data/test-mem14-edges.db";
 const TOKEN = "test-mem14-edges-token";

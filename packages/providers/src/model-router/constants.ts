@@ -1,5 +1,5 @@
 import type { ProviderName } from "@subbrain/core/lib/model-map";
-import type { LLMProvider } from "@subbrain/providers/types";
+import type { LLMProvider } from "../types";
 import type { RateLimiter } from "../rate-limiter";
 
 /** Hard timeout for any single provider call (ms). Must accommodate reasoning

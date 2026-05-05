@@ -7,8 +7,8 @@ import { existsSync, unlinkSync } from "node:fs";
 import { RAGPipeline } from "@subbrain/agent/rag";
 import { MemoryService } from "@subbrain/agent/services/memory";
 import { MemoryDB } from "@subbrain/core/db";
+import { memoryRoute } from "@subbrain/server/routes/memory";
 import { Elysia } from "elysia";
-import { memoryRoute } from "../src/routes/memory";
 
 const TEST_DB = "data/test-mem-routes-active.db";
 

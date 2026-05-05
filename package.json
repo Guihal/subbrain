@@ -1,6 +1,6 @@
 {
   "name": "subbrain",
-  "module": "index.ts",
+  "module": "packages/server/src/index.ts",
   "type": "module",
   "private": true,
   "workspaces": [
