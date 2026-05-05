@@ -14,7 +14,9 @@ function makeMemoryDB(relations: Map<string, Neighbour[]>): MemoryDB {
   } as unknown as MemoryDB;
 }
 
-function makeResult(p: Partial<RAGResult> & { id: string; layer: string; score: number }): RAGResult {
+function makeResult(
+  p: Partial<RAGResult> & { id: string; layer: string; score: number },
+): RAGResult {
   return {
     title: "t",
     snippet: "s",

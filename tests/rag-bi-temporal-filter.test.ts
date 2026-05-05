@@ -1,4 +1,4 @@
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { MemoryDB } from "../packages/core/src/db";
 
 describe("P3-3 bi-temporal active filter in retrieval", () => {
@@ -10,7 +10,11 @@ describe("P3-3 bi-temporal active filter in retrieval", () => {
       valid_from: now + 10_000,
       valid_to: now + 20_000,
     });
-    const rows = db.getContextMany(["c-future"], { activeOnly: true, notStale: true, agentId: "agent" });
+    const rows = db.getContextMany(["c-future"], {
+      activeOnly: true,
+      notStale: true,
+      agentId: "agent",
+    });
     expect(rows.length).toBe(0);
   });
 
@@ -20,7 +24,11 @@ describe("P3-3 bi-temporal active filter in retrieval", () => {
       valid_from: now - 20_000,
       valid_to: now - 10_000,
     });
-    const rows = db.getContextMany(["c-expired"], { activeOnly: true, notStale: true, agentId: "agent" });
+    const rows = db.getContextMany(["c-expired"], {
+      activeOnly: true,
+      notStale: true,
+      agentId: "agent",
+    });
     expect(rows.length).toBe(0);
   });
 
@@ -30,7 +38,11 @@ describe("P3-3 bi-temporal active filter in retrieval", () => {
       valid_from: now - 10_000,
       valid_to: now + 10_000,
     });
-    const rows = db.getContextMany(["c-now"], { activeOnly: true, notStale: true, agentId: "agent" });
+    const rows = db.getContextMany(["c-now"], {
+      activeOnly: true,
+      notStale: true,
+      agentId: "agent",
+    });
     expect(rows.length).toBe(1);
     expect(rows[0].id).toBe("c-now");
   });
@@ -38,7 +50,11 @@ describe("P3-3 bi-temporal active filter in retrieval", () => {
   test("getContextMany includes null-temporal rows", () => {
     const db = new MemoryDB(":memory:");
     db.insertContext("c-null", "title", "content", "", [], "agent");
-    const rows = db.getContextMany(["c-null"], { activeOnly: true, notStale: true, agentId: "agent" });
+    const rows = db.getContextMany(["c-null"], {
+      activeOnly: true,
+      notStale: true,
+      agentId: "agent",
+    });
     expect(rows.length).toBe(1);
     expect(rows[0].id).toBe("c-null");
   });
@@ -121,7 +137,11 @@ describe("P3-3 bi-temporal active filter in retrieval", () => {
       valid_to: now - 10_000,
     });
     // FTS index is rebuilt on insert via trigger; small delay not needed in :memory:
-    const rows = db.searchContext("hello", 10, { activeOnly: true, notStale: true, agentId: "agent" });
+    const rows = db.searchContext("hello", 10, {
+      activeOnly: true,
+      notStale: true,
+      agentId: "agent",
+    });
     expect(rows.length).toBe(0);
   });
 
@@ -144,7 +164,11 @@ describe("P3-3 bi-temporal active filter in retrieval", () => {
       valid_to: now - 10_000,
     });
     // If precedence leaked (no parens around temporal), this row might return
-    const rows = db.getContextMany(["c-precedence"], { activeOnly: true, notStale: true, agentId: "agent" });
+    const rows = db.getContextMany(["c-precedence"], {
+      activeOnly: true,
+      notStale: true,
+      agentId: "agent",
+    });
     expect(rows.length).toBe(0);
   });
 });

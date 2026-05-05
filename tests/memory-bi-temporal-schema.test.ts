@@ -1,4 +1,4 @@
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { MemoryDB } from "../packages/core/src/db";
 
 describe("P3-2 Migration 17 bi-temporal schema", () => {
