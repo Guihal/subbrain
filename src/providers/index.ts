@@ -1,4 +1,5 @@
 import { MODEL_MAP, type ProviderName } from "../lib/model-map";
+import { BifrostProvider } from "./bifrost";
 import { MiniMaxProvider } from "./minimax";
 import { NvidiaProvider } from "./nvidia";
 import { OpenAICompatProvider } from "./openai-compat";
@@ -13,6 +14,14 @@ import type {
 
 export { ProviderError } from "./nvidia";
 export type { LLMProvider } from "./types";
+
+export function createBifrostProvider(): BifrostProvider | undefined {
+  if (process.env.BIFROST_ENABLED !== "true") return undefined;
+  const url = process.env.BIFROST_BASE_URL;
+  const key = process.env.BIFROST_API_KEY;
+  if (!url || !key) return undefined;
+  return new BifrostProvider(url, key);
+}
 
 /** Create a single NVIDIA provider (legacy, for embed/rerank) */
 export function createProvider(): LLMProvider {

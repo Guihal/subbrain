@@ -1,3 +1,4 @@
+import type { BifrostProvider } from "../providers/bifrost";
 import type { ProviderError } from "../providers/nvidia";
 import type { ChatParams, ChatResponse, LLMProvider } from "../providers/types";
 import { getFallback, type Priority, type ProviderName, resolveModel } from "./model-map";
@@ -18,8 +19,9 @@ const RESERVED_SLOTS = 8;
  */
 export class ModelRouter {
   private backends: Record<ProviderName, Backend>;
+  private bifrost?: BifrostProvider;
 
-  constructor(providers: Record<ProviderName, LLMProvider>) {
+  constructor(providers: Record<ProviderName, LLMProvider>, bifrost?: BifrostProvider) {
     this.backends = {} as Record<ProviderName, Backend>;
     for (const [name, provider] of Object.entries(providers)) {
       const pName = name as ProviderName;
@@ -28,6 +30,7 @@ export class ModelRouter {
         limiter: new RateLimiter(PROVIDER_RPM[pName] ?? 40),
       };
     }
+    this.bifrost = bifrost;
   }
 
   get stats() {
@@ -90,6 +93,9 @@ export class ModelRouter {
     priority: Priority = "critical",
   ): Promise<ChatResponse> {
     const primary = resolveModel(virtualModel);
+    if (this.bifrost && process.env.BIFROST_ENABLED === "true") {
+      return this.bifrost.chat({ ...params, model: primary.model, signal: params.signal });
+    }
     const fallback = getFallback(virtualModel);
     const backend = this.getBackend(primary.provider);
     return backend.limiter.schedule(priority, () =>
@@ -107,6 +113,11 @@ export class ModelRouter {
     priority: Priority = "critical",
   ): Promise<ReadableStream<Uint8Array>> {
     const primary = resolveModel(virtualModel);
+    if (this.bifrost && process.env.BIFROST_ENABLED === "true") {
+      return Promise.resolve(
+        this.bifrost.chatStream({ ...params, model: primary.model, signal: params.signal }),
+      );
+    }
     const fallback = getFallback(virtualModel);
     const backend = this.getBackend(primary.provider);
     return backend.limiter.schedule(priority, async () =>

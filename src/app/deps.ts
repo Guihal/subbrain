@@ -7,7 +7,7 @@ import { ModelRouter } from "../lib/model-router";
 import type { ToolRegistry } from "../mcp";
 import { buildRegistry, PlaywrightClient, ToolExecutor } from "../mcp";
 import { AgentLoop, AgentPipeline, ArbitrationRoom, NightCycle } from "../pipeline";
-import { createProviders } from "../providers";
+import { createBifrostProvider, createProviders } from "../providers";
 import { RAGPipeline } from "../rag";
 import { FREE_AGENT_TASK } from "../scheduler/free-agent";
 import { FreelanceScout, type FreelanceScoutConfig } from "../scheduler/freelance";
@@ -164,7 +164,7 @@ export async function initDeps(config: AppConfig = loadConfig()): Promise<AppDep
   // openai-compat slot and instantiates the real provider.
   applyOpenAICompatOverrides();
   const providers = await createProviders();
-  const router = new ModelRouter(providers);
+  const router = new ModelRouter(providers, createBifrostProvider());
   const memory = new MemoryDB(config.dbPath);
   logger.setMemory(memory);
 
