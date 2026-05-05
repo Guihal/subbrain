@@ -14,7 +14,25 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
 
 const ROOT = new URL("..", import.meta.url).pathname.replace(/\/$/, "");
-const SCAN = ["src", "web/app", "scripts"];
+function globPackagesSrc(): string[] {
+  try {
+    const dirs = readdirSync(join(ROOT, "packages"));
+    return dirs
+      .filter((d) => {
+        const p = join(ROOT, "packages", d);
+        try {
+          return statSync(p).isDirectory() && existsSync(join(p, "src"));
+        } catch {
+          return false;
+        }
+      })
+      .map((d) => `packages/${d}/src`);
+  } catch {
+    return [];
+  }
+}
+
+const SCAN = ["src", "web/app", "scripts", ...globPackagesSrc()];
 const SKIP_DIRS = new Set(["node_modules", ".nuxt", ".output", "dist", "build"]);
 const EXT = /\.(ts|tsx|vue|mts|cts)$/;
 const SEGMENT_THRESHOLD = 3;

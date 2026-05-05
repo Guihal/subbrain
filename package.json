@@ -3,6 +3,10 @@
   "module": "index.ts",
   "type": "module",
   "private": true,
+  "workspaces": [
+    "packages/*",
+    "web"
+  ],
   "scripts": {
     "setup": "bun install --frozen-lockfile",
     "doctor": "bun --version && bunx tsc --version",
@@ -17,13 +21,14 @@
     "smoke": "bun run tests/browser-smoke.ts",
     "guardrails": "STRICT_FILE_RULES=1 bun run scripts/check-file-size.ts && STRICT_FILE_RULES=1 bun run scripts/check-deep-imports.ts && STRICT_FILE_RULES=1 bun run scripts/check-forbidden-patterns.ts",
     "rails": "bun run guardrails && bun run lint && bun run typecheck",
-    "rails:full": "bun run rails && bun test --bail",
+    "rails:full": "bun run rails && bun run test --bail",
     "install-hooks": "bash scripts/install-hooks.sh",
     "cp0": "STRICT_FILE_RULES=1 bun run scripts/check-file-size.ts && STRICT_FILE_RULES=1 bun run scripts/check-deep-imports.ts && STRICT_FILE_RULES=1 bun run scripts/check-forbidden-patterns.ts",
     "cp1": "bun run lint",
     "cp2": "bun run typecheck",
     "cp3": "bun test --bail",
-    "cp-all": "bun run cp0 && bun run cp1 && bun run cp2 && bun run cp3"
+    "cp-all": "bun run cp0 && bun run cp1 && bun run cp2 && bun run cp3",
+    "baml:generate": "baml-cli generate"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.14",
@@ -37,6 +42,9 @@
   "dependencies": {
     "@elysiajs/static": "^1.4.9",
     "@modelcontextprotocol/sdk": "^1.29.0",
+    "@opentelemetry/api": "^1.9.1",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.216.0",
+    "@opentelemetry/sdk-node": "^0.216.0",
     "elysia": "^1.4.28",
     "grammy": "^1.42.0",
     "playwright": "^1.49.0",

@@ -2,10 +2,10 @@
  * Guardrail: forbid dangerous patterns in source code.
  * Exit 0 = clean, exit 1 = violations found.
  */
-import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
-const ROOT = join(import.meta.dirname, "..", "src");
+const ROOT = join(import.meta.dirname, "..");
 const STRICT = process.env.STRICT_FILE_RULES === "1";
 
 interface Rule {
@@ -22,18 +22,36 @@ const consoleAllowlist = new Set([
   "src/providers/index.ts",
 ]);
 
+function globPackagesSrc(): string[] {
+  try {
+    const dirs = readdirSync(join(ROOT, "packages"));
+    return dirs
+      .filter((d) => {
+        const p = join(ROOT, "packages", d);
+        try {
+          return statSync(p).isDirectory() && existsSync(join(p, "src"));
+        } catch {
+          return false;
+        }
+      })
+      .map((d) => `packages/${d}/src/`);
+  } catch {
+    return [];
+  }
+}
+
 const rules: Rule[] = [
   {
     name: "no-console-in-src",
     pattern: /\bconsole\.(log|warn|error|info)\s*\(/,
-    paths: ["src/"],
+    paths: ["src/", ...globPackagesSrc()],
     severity: STRICT ? "error" : "warn",
     message: "Use logger.* instead of console.*",
   },
   {
     name: "no-raw-sql-in-routes",
     pattern: /\b(SELECT|INSERT\s+INTO|UPDATE\s+.*SET|DELETE\s+FROM)\b/i,
-    paths: ["src/routes/", "src/app/"],
+    paths: ["src/routes/", "src/app/", "packages/server/src/routes/", "packages/server/src/app/"],
     severity: "error",
     message: "Raw SQL must not appear in routes or app layer",
   },
@@ -63,10 +81,10 @@ let warnings = 0;
 
 for (const rule of rules) {
   for (const prefix of rule.paths) {
-    const dir = join(import.meta.dirname, "..", prefix);
+    const dir = join(ROOT, prefix);
     if (!existsSync(dir)) continue;
     for (const path of walk(dir)) {
-      const rel = path.replace(join(import.meta.dirname, "..") + "/", "");
+      const rel = path.replace(ROOT + "/", "");
       const text = readFileSync(path, "utf-8");
       const lines = text.split("\n");
       for (let i = 0; i < lines.length; i++) {
