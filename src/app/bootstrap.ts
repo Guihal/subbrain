@@ -4,6 +4,7 @@ import { authMiddleware } from "../lib/auth";
 import { AppError } from "../lib/errors";
 import { logger } from "../lib/logger";
 import { mcpProtocolRoute, mcpRoute } from "../mcp";
+import { MetricsRepository } from "../repositories/metrics.repo";
 import { TaskRepository } from "../repositories/task.repo";
 import { autonomousRoute } from "../routes/autonomous";
 import { chatRoute } from "../routes/chat";
@@ -12,6 +13,7 @@ import { embeddingsRoute } from "../routes/embeddings";
 import { freelanceRoute } from "../routes/freelance";
 import { logsRoute } from "../routes/logs";
 import { memoryRoute } from "../routes/memory";
+import { metricsRunsRoute } from "../routes/metrics";
 import { modelsRoute } from "../routes/models";
 import { tasksRoute } from "../routes/tasks";
 import { telegramAdminRoute, telegramPublicRoute } from "../routes/telegram";
@@ -135,6 +137,7 @@ export function createApp(deps: AppDeps) {
     .use(chatsRoute(memory))
     .use(memoryRoute(memoryService, memory))
     .use(freelanceRoute(memory, deps.freelanceScout))
+    .use(metricsRunsRoute(new MetricsRepository(memory.db)))
     .use(tasksRoute(new TaskRepository(memory)));
 
   return { app, nightCycleController } as const;

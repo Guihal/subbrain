@@ -11,6 +11,7 @@ import type { logger } from "../../lib/logger";
 import type { Priority } from "../../lib/model-map";
 import type { ModelRouter } from "../../lib/model-router";
 import type { Message, Tool, ToolCall } from "../../providers/types";
+import { getTracer } from "../../lib/telemetry";
 import { maybeCompress } from "./compressor-hook";
 import { runToolCall } from "./tool-dispatch";
 import type { ToolRunnerDeps } from "./tool-runner";
@@ -61,91 +62,67 @@ export async function executeStep(
   log: Log,
   hooks: StepHooks = {},
 ): Promise<StepResult> {
-  const { step, maxSteps, model, priority, messages, getAllTools } = input;
-
-  // Compress before the call if we crossed the soft limit.
-  const tokensBefore = estimateTokens(messages);
-  const compressed = await maybeCompress(messages, deps.router, deps.memory);
-  if (compressed) {
-    hooks.onCompress?.(tokensBefore, estimateTokens(messages));
-  }
-
-  // Budget note as a user message (system-after-tool is invalid for some providers).
-  const budgetNote: Message = {
-    role: "user",
-    content: `[Системная метка: Шаг ${step}/${maxSteps} | Осталось вызовов: ${maxSteps - step + 1} | Контекст: ~${estimateTokens(messages)}/${MAX_CONTEXT_TOKENS} токенов]`,
-  };
-  messages.push(budgetNote);
-
-  let response;
+  const span = getTracer().startSpan("subbrain.agent.step", {
+    attributes: {
+      "agent.step": input.step,
+      "agent.max_steps": input.maxSteps,
+      "agent.model": input.model,
+      "agent.priority": input.priority,
+    },
+  });
   try {
-    response = await deps.router.chat(
-      model,
-      {
-        messages,
-        tools: getAllTools(),
-        tool_choice: "auto",
-        max_tokens: 128_000,
-        temperature: 0.7,
-      },
-      priority,
-    );
-  } finally {
-    messages.pop(); // remove budget note regardless of outcome
-  }
-
-  const choice = response.choices[0];
-  if (!choice) return { kind: "error", error: "Empty response from model" };
-
-  const msg = choice.message;
-  const reasoning = msg.reasoning_content || "";
-  if (reasoning) hooks.onThinking?.(reasoning);
-
-  // Case 1: tool_calls
-  if (msg.tool_calls && msg.tool_calls.length > 0) {
-    const assistantMsg: Message = {
-      role: "assistant",
-      content: msg.content,
-      tool_calls: msg.tool_calls,
-      ...(reasoning ? { reasoning_content: reasoning } : {}),
+    const { step, maxSteps, model, priority, messages, getAllTools } = input;
+    const tokensBefore = estimateTokens(messages);
+    const compressed = await maybeCompress(messages, deps.router, deps.memory);
+    if (compressed) hooks.onCompress?.(tokensBefore, estimateTokens(messages));
+    const budgetNote: Message = {
+      role: "user",
+      content: `[Системная метка: Шаг ${step}/${maxSteps} | Осталось вызовов: ${maxSteps - step + 1} | Контекст: ~${estimateTokens(messages)}/${MAX_CONTEXT_TOKENS} токенов]`,
     };
-    hooks.onAssistantWithTools?.(assistantMsg);
-    messages.push(assistantMsg);
-
-    for (const tc of msg.tool_calls) {
-      hooks.onToolCallStart?.(tc);
-      const { toolResult, isDone, doneSummary } = await runToolCall(tc, deps.tools, log);
-      hooks.onToolCallResult?.(tc, toolResult);
-
-      messages.push({
-        role: "tool",
-        content: toolResult,
-        tool_call_id: tc.id,
-      });
-
-      if (isDone) {
-        return { kind: "done", summary: doneSummary ?? toolResult };
-      }
+    messages.push(budgetNote);
+    let response;
+    try {
+      response = await deps.router.chat(
+        model,
+        { messages, tools: getAllTools(), tool_choice: "auto", max_tokens: 128_000, temperature: 0.7 },
+        priority,
+      );
+    } finally {
+      messages.pop();
     }
-    return { kind: "tools" };
+    const choice = response.choices[0];
+    if (!choice) { span.setStatus({ code: 2 }); return { kind: "error", error: "Empty response from model" }; }
+    const msg = choice.message;
+    const reasoning = msg.reasoning_content || "";
+    if (reasoning) hooks.onThinking?.(reasoning);
+    if (msg.tool_calls && msg.tool_calls.length > 0) {
+      const assistantMsg: Message = { role: "assistant", content: msg.content, tool_calls: msg.tool_calls, ...(reasoning ? { reasoning_content: reasoning } : {}) };
+      hooks.onAssistantWithTools?.(assistantMsg);
+      messages.push(assistantMsg);
+      for (const tc of msg.tool_calls) {
+        hooks.onToolCallStart?.(tc);
+        const { toolResult, isDone, doneSummary } = await runToolCall(tc, deps.tools, log);
+        hooks.onToolCallResult?.(tc, toolResult);
+        messages.push({ role: "tool", content: toolResult, tool_call_id: tc.id });
+        if (isDone) return { kind: "done", summary: doneSummary ?? toolResult };
+      }
+      return { kind: "tools" };
+    }
+    const visible = msg.content?.trim() ?? "";
+    const content = visible || reasoning;
+    if (content) {
+      hooks.onAssistantContent?.(content);
+      messages.push({ role: "assistant", content: msg.content, ...(reasoning ? { reasoning_content: reasoning } : {}) });
+      messages.push({ role: "user", content: NUDGE_AFTER_CONTENT });
+      return { kind: "assistant", content };
+    }
+    hooks.onWarn?.("empty response");
+    messages.push({ role: "user", content: NUDGE_AFTER_EMPTY });
+    return { kind: "empty" };
+  } catch (err) {
+    span.setStatus({ code: 2 });
+    throw err;
+  } finally {
+    span.end();
   }
-
-  // Case 2: plain content → nudge to keep iterating
-  const visible = msg.content?.trim() ?? "";
-  const content = visible || reasoning;
-  if (content) {
-    hooks.onAssistantContent?.(content);
-    messages.push({
-      role: "assistant",
-      content: msg.content,
-      ...(reasoning ? { reasoning_content: reasoning } : {}),
-    });
-    messages.push({ role: "user", content: NUDGE_AFTER_CONTENT });
-    return { kind: "assistant", content };
-  }
-
-  // Case 3: empty response → nudge harder
-  hooks.onWarn?.("empty response");
-  messages.push({ role: "user", content: NUDGE_AFTER_EMPTY });
-  return { kind: "empty" };
 }

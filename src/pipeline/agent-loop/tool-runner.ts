@@ -10,6 +10,7 @@
 
 import type { logger } from "../../lib/logger";
 import type { ModelRouter } from "../../lib/model-router";
+import { getTracer } from "../../lib/telemetry";
 import type { ToolExecutor, ToolRegistry } from "../../mcp";
 import type { AgentLoopSession, AgentMode } from "../../mcp/registry/tool-registry";
 import type { ToolCall } from "../../providers/types";
@@ -110,90 +111,83 @@ export interface ToolRunnerDeps {
 
 type Log = ReturnType<typeof logger.forRequest>;
 
+function parseOk(result: string): { ok: boolean; code?: string } {
+  try {
+    const p = JSON.parse(result) as { error?: unknown; success?: boolean };
+    if (p.error !== undefined) {
+      const code = typeof p.error === "string" ? p.error : (p.error as { code?: string })?.code;
+      return { ok: false, code };
+    }
+    if (p.success === false) return { ok: false };
+  } catch { /* non-JSON = success */ }
+  return { ok: true };
+}
+
 export async function executeAgentTool(
   tc: ToolCall,
   deps: ToolRunnerDeps,
   log: Log,
 ): Promise<string> {
   const name = tc.function.name;
+  const span = getTracer().startSpan("subbrain.tool.call", { attributes: { "tool.name": name } });
+
   let args: Record<string, unknown>;
   try {
     args = JSON.parse(tc.function.arguments);
   } catch {
+    span.setStatus({ code: 2 });
+    span.end();
     return JSON.stringify({ error: "Invalid JSON arguments" });
   }
 
-  log.info("agent-loop", `Tool: ${name}(${JSON.stringify(args).slice(0, 200)})`, {
-    meta: { tool: name },
-  });
+  log.info("agent-loop", `Tool: ${name}(${JSON.stringify(args).slice(0, 200)})`, { meta: { tool: name } });
 
   try {
     const result = await withToolTimeout(name, async (signal) => {
-      // 1) Статический реестр — покрывает все public + agent-only тулы.
       if (deps.registry.has(name)) {
-        const r = await deps.registry.callAsAgent(
-          name,
-          args,
-          {
-            executor: deps.tools,
-            router: deps.router,
-            room: deps.room,
-            dynamicTools: deps.dynamicTools,
-            persistDynamicTools: deps.persistDynamicTools,
-            codeTools: deps.codeTools,
-            log,
-            registry: deps.registry,
-            session: deps.session,
-            agentId: deps.agentId,
-            agentMode: deps.agentMode,
-          },
-          signal,
-        );
-
-        // `done` — управляющий сигнал агента, возвращаем сырую строку summary,
-        // чтобы не ломать существующий fallback в agent-loop/index.ts.
-        if (name === "done" && r.success && typeof r.data === "string") {
-          return r.data;
-        }
-
+        const r = await deps.registry.callAsAgent(name, args, {
+          executor: deps.tools, router: deps.router, room: deps.room,
+          dynamicTools: deps.dynamicTools, persistDynamicTools: deps.persistDynamicTools,
+          codeTools: deps.codeTools, log, registry: deps.registry, session: deps.session,
+          agentId: deps.agentId, agentMode: deps.agentMode,
+        }, signal);
+        if (name === "done" && r.success && typeof r.data === "string") return r.data;
         return JSON.stringify(r);
       }
-
-      // 2) Dynamic tools (созданы агентом через create_tool)
       const dynTool = deps.dynamicTools.get(name);
-      if (dynTool) {
-        return await executeDynamicTool(dynTool, args, deps.router, log, signal);
-      }
-
-      // 3) Code tools — исполняемые через префикс `code_`
+      if (dynTool) return await executeDynamicTool(dynTool, args, deps.router, log, signal);
       if (name.startsWith("code_") && deps.codeTools) {
         const toolName = name.slice(5);
         const codeTool = deps.codeTools.getByName(toolName);
         if (codeTool) {
-          if (!codeTool.enabled) {
-            return JSON.stringify({
-              error: `Code tool "${toolName}" is disabled (too many errors)`,
-            });
-          }
+          if (!codeTool.enabled) return JSON.stringify({ error: `Code tool "${toolName}" is disabled (too many errors)` });
           const input = (args.input as string) || "";
           log.info("agent-loop", `Executing code tool: ${toolName}`);
           const res = await executeSandboxed(codeTool.code, input);
           deps.codeTools.recordRun(toolName, res.success, res.error);
           if (res.success) return res.output || "";
-          return JSON.stringify({
-            error: res.error,
-            durationMs: res.durationMs,
-          });
+          return JSON.stringify({ error: res.error, durationMs: res.durationMs });
         }
       }
-
       return JSON.stringify({ error: `Unknown tool: ${name}` });
     });
+
+    const { ok, code } = parseOk(result as string);
+    span.setAttribute("tool.ok", ok);
+    if (!ok) {
+      span.setStatus({ code: 2 });
+      if (code) span.setAttribute("tool.error_code", code);
+    }
     return result as string;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     log.error("agent-loop", `Tool ${name} failed: ${msg}`);
+    span.setAttribute("tool.ok", false);
+    span.setAttribute("tool.error_code", msg);
+    span.setStatus({ code: 2 });
     return JSON.stringify({ error: msg });
+  } finally {
+    span.end();
   }
 }
 

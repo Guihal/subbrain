@@ -51,11 +51,11 @@
 | P4-4 | BAML promptfoo eval | `done` | `cp3` | — | CRITIC-PASSED |
 | P4-5 | CI gate promptfoo:ci | `done` | `cp3` | — | CRITIC-PASSED |
 | P4-6 | BAML pool artifact (deferred) | `not_started` | — | blocks on Phase 2 | CRITIC-PASSED |
-| P5-1 | Observability decision | `not_started` | — | **STRONG-MODEL ONLY** | CRITIC-PASSED |
+| P5-1 | Observability decision | `done` | `cp3` | — | CRITIC-PASSED |
 | P5-2 | OTel SDK init | `done` | `cp3` | — | CRITIC-PASSED |
-| P5-3 | Pipeline phase spans | `not_started` | — | — | CRITIC-PASSED |
-| P5-4 | Agent-loop spans | `not_started` | — | — | CRITIC-PASSED |
-| P5-5 | Metrics endpoint | `not_started` | — | — | CRITIC-PASSED |
+| P5-3 | Pipeline phase spans | `dispatched` | — | — | CRITIC-PASSED |
+| P5-4 | Agent-loop spans | `dispatched` | — | — | CRITIC-PASSED |
+| P5-5 | Metrics endpoint | `dispatched` | — | — | CRITIC-PASSED |
 | P5-6 | OTLP exporter wiring | `not_started` | — | — | CRITIC-PASSED |
 
 **Wave 1 merge gate:** ALL above `done` → unblocks Wave 2.
