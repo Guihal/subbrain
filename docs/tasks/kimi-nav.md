@@ -40,7 +40,7 @@
 | A1-6b | packages/agent: mcp/ (registry+executor+tools, NOT transport) | `done` | `cp3` | — | CRITIC-PASSED |
 | A1-6c | packages/agent: scheduler/ + telegram/ | `done` | `cp3` | — | CRITIC-PASSED |
 | A1-6d | packages/agent: rag/ + personas | `done` | `cp3` | — | CRITIC-PASSED |
-| A1-7 | packages/server: routes/, app/, mcp-transport/, packages/server/packages/server/src/index.ts | `done` | `cp3` | — | CRITIC-PASSED |
+| A1-7 | packages/server: routes/, app/, mcp-transport/, packages/server/src/index.ts | `done` | `cp3` | — | CRITIC-PASSED |
 | A1-7a | AppDeps cycle break (free-agent.ts -> FreeAgentSchedulerDeps) | `done` | `cp3` | — | CRITIC-PASSED |
 | A1-8 | Docker build update | `done` | `cp3` | — | CRITIC-PASSED |
 | A1-9 | Cleanup, doc paths, root tsconfig narrowing | `done` | `cp3` | — | CRITIC-PASSED. Worker a4b961e56c9573ccb. Commit 5a7fd40. ORCHESTRATOR RULE-BREAK: committed staged code files from previous worker (34331d3). |
@@ -90,7 +90,7 @@
 | P6-4 | A2A transport wiring | `not_started` | — | `<A2A_TRANSPORT>`, blocks on P6-3 | CRITIC-PASSED |
 | P6-5 | A2A synthesis loop | `not_started` | — | blocks on P6-3, P6-4 | CRITIC-PASSED |
 | P6-6 | A2A cleanup + docs | `not_started` | — | blocks on P6-5 | CRITIC-PASSED |
-| A2-1 | Plugin registry init | `dispatched` | — | — | CRITIC-PASSED |
+| A2-1 | Plugin registry init | `done` | `cp3` | — | CRITIC-PASSED. Commit 31b3e84. Bundled with spec-cleanup. |
 | A2-2 | Plugin loader | `not_started` | — | blocks on A2-1 | CRITIC-PASSED |
 | A2-3 | Plugin sandbox | `not_started` | — | blocks on A2-2 | CRITIC-PASSED |
 | A2-4 | Plugin hooks (pre/post) | `not_started` | — | blocks on A2-3 | CRITIC-PASSED |
@@ -168,4 +168,4 @@
 
 ## Last Updated
 
-2026-05-05 — all docs CRITIC-PASSED mechanically. 2 strong-model agents running (Phase 3 memory + Phase 8a approval fix). A2 plugin runtime CRITIC-PASSED. Awaiting remaining 2 agents.
+2026-05-05 — Wave 1 ALL done. Spec cleanup + A2-1 merged in commit 31b3e84. cp0-cp3 green. 23 historical src/ refs remain in docs (intentional). Next dispatch: P3-1 + P6-1.
