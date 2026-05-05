@@ -1,6 +1,8 @@
 {
   "compilerOptions": {
-    "lib": ["ESNext"],
+    "lib": [
+      "ESNext"
+    ],
     "module": "esnext",
     "target": "esnext",
     "moduleResolution": "bundler",
@@ -14,7 +16,6 @@
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
     "allowJs": true,
-
     "strict": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
@@ -26,16 +27,47 @@
     "isolatedModules": true,
     "verbatimModuleSyntax": false,
     "paths": {
-      "@subbrain/agent": ["./packages/agent/src/index.ts"],
-      "@subbrain/agent/*": ["./packages/agent/src/*"],
-      "@subbrain/core": ["./packages/core/src/index.ts"],
-      "@subbrain/core/*": ["./packages/core/src/*"],
-      "@subbrain/providers": ["./packages/providers/src/index.ts"],
-      "@subbrain/providers/*": ["./packages/providers/src/*"],
-      "@subbrain/server": ["./packages/server/src/index.ts"],
-      "@subbrain/server/*": ["./packages/server/src/*"]
+      "@subbrain/agent": [
+        "./packages/agent/src/index.ts"
+      ],
+      "@subbrain/agent/*": [
+        "./packages/agent/src/*"
+      ],
+      "@subbrain/core": [
+        "./packages/core/src/index.ts"
+      ],
+      "@subbrain/core/*": [
+        "./packages/core/src/*"
+      ],
+      "@subbrain/providers": [
+        "./packages/providers/src/index.ts"
+      ],
+      "@subbrain/providers/*": [
+        "./packages/providers/src/*"
+      ],
+      "@subbrain/server": [
+        "./packages/server/src/index.ts"
+      ],
+      "@subbrain/server/*": [
+        "./packages/server/src/*"
+      ],
+      "@subbrain/plugin": [
+        "./packages/plugin/src/index.ts"
+      ],
+      "@subbrain/plugin/*": [
+        "./packages/plugin/src/*"
+      ]
     }
   },
-  "include": ["packages/*/src/**/*.ts", "scripts/**/*.ts", "tests/**/*.ts"],
-  "exclude": ["node_modules", "web", "tests", "scripts"]
+  "include": [
+    "packages/*/src/**/*.ts",
+    "scripts/**/*.ts",
+    "tests/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "web",
+    "tests",
+    "scripts"
+  ]
 }
