@@ -1,1 +1,8 @@
-{"layer":"context","category":"decision","content":"Chosen PostgreSQL over MySQL for new service","tags":"db,architecture","confidence":0.88,"expires_at":1715000000}
+{
+  "layer": "context",
+  "category": "decision",
+  "content": "Chosen PostgreSQL over MySQL for new service",
+  "tags": "db,architecture",
+  "confidence": 0.88,
+  "expires_at": 1715000000
+}

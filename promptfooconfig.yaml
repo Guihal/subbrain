@@ -1,5 +1,8 @@
 description: Subbrain structured-output regression suites
 prompts:
-  - 'file://tests/prompts/*.yaml'
+  - "{{fixture_path}}"
 providers:
-  - javascript:tests/prompts/providers/fixture-provider.js
+  - tests/prompts/providers/fixture-provider.js
+tests:
+  - tests/prompts/hippocampus.yaml
+  - tests/prompts/arbitration.yaml
