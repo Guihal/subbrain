@@ -71,7 +71,7 @@
 | P2-3 | Agent pool runner | `not_started` | — | blocks on P2-1 | CRITIC-PASSED |
 | P2-4 | Terminate + artifact tool | `not_started` | — | blocks on P2-3 | CRITIC-PASSED |
 | P2-5 | Pool dispatch integration | `not_started` | — | blocks on P2-5a, P2-4, P2-3 | CRITIC-PASSED |
-| P2-5a | AgentLoopRequest expansion | `dispatched` | — | **STRONG-MODEL ONLY** | CRITIC-PASSED. Retry with bun-e workaround. |
+| P2-5a | AgentLoopRequest expansion | `done` | `cp3` | — | CRITIC-PASSED. Commit 051fb30. |
 | P2-6 | Memory service integration | `not_started` | — | blocks on P2-5 | CRITIC-PASSED |
 | P2-7 | Pool safety (rate-limit) | `not_started` | — | blocks on P2-7a, P2-6 | CRITIC-PASSED |
 | P2-7a | Mutex primitive | `done` | `cp3` | — | CRITIC-PASSED. Commit 06ef49b. Worker ac668624. |
@@ -158,7 +158,7 @@
 | P5-1 Langfuse-vs-Laminar | P5-1 | **RESOLVED** | Langfuse chosen; `docs/specs/observability-choice.md` written |
 | `<PERMISSION_ASK_UX>` | A2 | open | default sync return-true |
 | P5-1 Langfuse-vs-Laminar | P5-1 | open | **STRONG-MODEL ONLY** |
-| P2-5a AgentLoopRequest | P2-5a | open | **STRONG-MODEL ONLY** |
+| P2-5a AgentLoopRequest | P2-5a | **RESOLVED** | Commit 051fb30 |
 | P2-7a Mutex | P2-7a | open | **STRONG-MODEL ONLY** |
 | P6-3 schema choice | P6-3 | open | transcripts table vs artifact_payload |
 | 8a-1 migration number | 8a-1 | open | next free ≥20 |
