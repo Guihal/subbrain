@@ -49,7 +49,7 @@
 | P4-2 | BAML ESM config | `done` | `cp3` | — | CRITIC-PASSED |
 | P4-3 | BAML promptfoo provider | `done` | `cp3` | — | CRITIC-PASSED |
 | P4-4 | BAML promptfoo eval | `done` | `cp3` | — | CRITIC-PASSED |
-| P4-5 | CI gate promptfoo:ci | `not_started` | — | — | CRITIC-PASSED |
+| P4-5 | CI gate promptfoo:ci | `done` | `cp3` | — | CRITIC-PASSED |
 | P4-6 | BAML pool artifact (deferred) | `not_started` | — | blocks on Phase 2 | CRITIC-PASSED |
 | P5-1 | Observability decision | `not_started` | — | **STRONG-MODEL ONLY** | CRITIC-PASSED |
 | P5-2 | OTel SDK init | `done` | `cp3` | — | CRITIC-PASSED |
