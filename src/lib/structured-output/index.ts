@@ -1,3 +1,7 @@
+export {
+  type ArbitrationSynthesis,
+  parseArbitrationSynthesis,
+} from "./arbitration";
 export type { Result } from "./hippocampus";
 export {
   type HippocampusWrite,

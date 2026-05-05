@@ -46,8 +46,8 @@
 | A1-9 | Cleanup, doc paths, root tsconfig narrowing | `not_started` | — | — | CRITIC-PASSED |
 | P4-0 | Pin BAML CLI version | `done` | `cp3` | — | CRITIC-PASSED |
 | P4-1 | BAML init + lockfile | `done` | `cp3` | — | CRITIC-PASSED |
-| P4-2 | BAML ESM config | `not_started` | — | — | CRITIC-PASSED |
-| P4-3 | BAML promptfoo provider | `not_started` | — | — | CRITIC-PASSED |
+| P4-2 | BAML ESM config | `done` | `cp3` | — | CRITIC-PASSED |
+| P4-3 | BAML promptfoo provider | `done` | `cp3` | — | CRITIC-PASSED |
 | P4-4 | BAML promptfoo eval | `not_started` | — | — | CRITIC-PASSED |
 | P4-5 | CI gate promptfoo:ci | `not_started` | — | — | CRITIC-PASSED |
 | P4-6 | BAML pool artifact (deferred) | `not_started` | — | blocks on Phase 2 | CRITIC-PASSED |
