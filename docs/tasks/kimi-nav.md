@@ -93,7 +93,7 @@
 | A2-1 | Plugin registry init | `done` | `cp3` | — | CRITIC-PASSED. Commit 31b3e84. Bundled with spec-cleanup. |
 | A2-2 | Plugin loader | `done` | `cp3` | — | CRITIC-PASSED. Commit e90a153. |
 | A2-3 | Plugin sandbox | `done` | `cp3` | — | CRITIC-PASSED. Commit 237d2a0. Hook wiring in tool-runner.ts + tests. |
-| A2-4 | Plugin hooks (pre/post) | `cp3_passed` | `cp3` | **cp1 red** (biome packages/** inclusion exposes generated + source issues) | CRITIC-PASSED. Commits: 0e9677d squeeze index.ts, d07cf0e hook wiring. cp0/cp2/cp3 green. |
+| A2-4 | Plugin hooks (pre/post) | `done` | `cp3` | — | CRITIC-PASSED. Commits: 0e9677d squeeze index.ts, d07cf0e hook wiring, 2be6c85 biome cleanup. cp0/cp1/cp2/cp3 green. NOTE: tests/agent-pipeline.test.ts written but uncommitted (worker oversight). |
 | A2-5 | ToolResult kind union | `not_started` | — | **STRONG-MODEL ONLY** | CRITIC-PASSED |
 | A2-6 | Code-tool guards | `not_started` | — | **SECURITY** — integration tests mandatory, blocks on A2-3, A2-5 | CRITIC-PASSED |
 | A2-7 | TG spam gates | `not_started` | — | **SECURITY** — integration tests mandatory, blocks on A2-3, A2-5 | CRITIC-PASSED |
@@ -183,12 +183,10 @@
 
 | Packet | Worker | Status | Started |
 |---|---|---|---|
-| A2-3 | aff87e3a89b0420c1 | **DONE** | commit 237d2a0 |
-| P3-3 | a4f1ad165aa3fd294 | **DONE** | commit e8727a7 |
-| P3-4 | a270dc9d06a8ef641 | **DONE** | commit 283b66c |
+| A2-8 | — | pending dispatch | — |
 
 ---
 
 ## Last Updated
 
-2026-05-05 — A2-4 cp3_passed (commits 0e9677d + d07cf0e). cp0/cp2/cp3 green, cp1 red (149 errors: baml_client generated files + source formatting). Biome cleanup worker dispatching. Next: A2-8 unblocked once cp1 green.
+2026-05-05 — A2-4 done (commits 0e9677d + d07cf0e + 2be6c85 biome). cp0/cp1/cp2/cp3 all green. A2-8 unblocked. 8e-1 worker stalled (no active process), needs redispatch.
