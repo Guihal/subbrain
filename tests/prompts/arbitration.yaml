@@ -1,0 +1,79 @@
+description: Arbitration synthesis + pool artifact placeholder
+
+# ── arbitration_synthesis ──
+tests:
+  - name: arb-single
+    vars:
+      fixture_path: tests/prompts/fixtures/arb-single.txt
+    assert:
+      - type: javascript
+        value: |
+          const fence = output.match(/```json\s*([\s\S]*?)\s*```/);
+          const jsonText = fence ? fence[1].trim() : output.trim();
+          let parsed;
+          try { parsed = JSON.parse(jsonText); } catch (e) { throw new Error("no json block: " + e.message); }
+          if (!parsed || typeof parsed !== "object") throw new Error("expected object");
+          if (typeof parsed.synthesis !== "string" || parsed.synthesis.length === 0) throw new Error("synthesis required");
+          if (!Array.isArray(parsed.top_roles) || parsed.top_roles.length !== 1) throw new Error("top_roles");
+          return true;
+
+  - name: arb-prose
+    vars:
+      fixture_path: tests/prompts/fixtures/arb-prose.txt
+    assert:
+      - type: javascript
+        value: |
+          const fence = output.match(/```json\s*([\s\S]*?)\s*```/);
+          const jsonText = fence ? fence[1].trim() : output.trim();
+          let parsed;
+          try { parsed = JSON.parse(jsonText); } catch (e) { throw new Error("no json block: " + e.message); }
+          if (typeof parsed.synthesis !== "string" || parsed.synthesis.length === 0) throw new Error("synthesis required");
+          if (!Array.isArray(parsed.top_roles) || parsed.top_roles.length !== 2) throw new Error("top_roles count");
+          return true;
+
+  - name: arb-3roles
+    vars:
+      fixture_path: tests/prompts/fixtures/arb-3roles.txt
+    assert:
+      - type: javascript
+        value: |
+          const fence = output.match(/```json\s*([\s\S]*?)\s*```/);
+          const jsonText = fence ? fence[1].trim() : output.trim();
+          let parsed;
+          try { parsed = JSON.parse(jsonText); } catch (e) { throw new Error("no json block: " + e.message); }
+          if (typeof parsed.synthesis !== "string" || parsed.synthesis.length === 0) throw new Error("synthesis required");
+          if (!Array.isArray(parsed.top_roles) || parsed.top_roles.length !== 3) throw new Error("top_roles count");
+          return true;
+
+  - name: arb-nofence
+    vars:
+      fixture_path: tests/prompts/fixtures/arb-nofence.txt
+    assert:
+      - type: javascript
+        value: |
+          const fence = output.match(/```json\s*([\s\S]*?)\s*```/);
+          if (fence) throw new Error("expected no fence → parse failure");
+          return true;
+
+  - name: arb-broken
+    vars:
+      fixture_path: tests/prompts/fixtures/arb-broken.txt
+    assert:
+      - type: javascript
+        value: |
+          const fence = output.match(/```json\s*([\s\S]*?)\s*```/);
+          const jsonText = fence ? fence[1].trim() : output.trim();
+          try { JSON.parse(jsonText); throw new Error("expected broken JSON to fail"); } catch (e) {
+            if (e.message === "expected broken JSON to fail") throw e;
+          }
+          return true;
+
+# ── pool_artifact_placeholder ──
+  - name: pool-artifact-placeholder
+    vars:
+      fixture_path: tests/prompts/fixtures/hw-shared-preference.json
+    assert:
+      - type: javascript
+        value: |
+          // BLOCKED ON PHASE 2 — agent-pool artifact contract not yet defined
+          return true;

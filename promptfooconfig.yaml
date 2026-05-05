@@ -1,0 +1,5 @@
+description: Subbrain structured-output regression suites
+prompts:
+  - 'file://tests/prompts/*.yaml'
+providers:
+  - javascript:tests/prompts/providers/fixture-provider.js

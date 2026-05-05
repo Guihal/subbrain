@@ -1,0 +1,3 @@
+```json
+{"synthesis":"mixed approach","rationale":"combines strengths","top_roles":["coder","critic","chaos"]}
+```

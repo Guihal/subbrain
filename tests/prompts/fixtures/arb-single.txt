@@ -1,0 +1,3 @@
+```json
+{"synthesis":"use REST","rationale":"simple and standard","top_roles":["coder"]}
+```

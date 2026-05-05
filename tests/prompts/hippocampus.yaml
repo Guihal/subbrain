@@ -1,0 +1,116 @@
+description: Hippocampus write + task_add parser regression
+
+# ── hippocampus_write ──
+tests:
+  - name: hw-shared-preference
+    vars:
+      fixture_path: tests/prompts/fixtures/hw-shared-preference.json
+    assert:
+      - type: javascript
+        value: |
+          const raw = JSON.parse(output);
+          if (raw.layer !== "shared") throw new Error("layer");
+          if (raw.category !== "preference") throw new Error("category");
+          if (typeof raw.content !== "string" || raw.content.length === 0) throw new Error("content");
+          if (raw.content.length > 600) throw new Error("content too long");
+          if (typeof raw.confidence !== "number") throw new Error("confidence");
+          return true;
+
+  - name: hw-context-expires
+    vars:
+      fixture_path: tests/prompts/fixtures/hw-context-expires.json
+    assert:
+      - type: javascript
+        value: |
+          const raw = JSON.parse(output);
+          if (raw.layer !== "context") throw new Error("layer");
+          if (typeof raw.content !== "string" || raw.content.length === 0) throw new Error("content");
+          if (typeof raw.confidence !== "number") throw new Error("confidence");
+          if (typeof raw.expires_at !== "number") throw new Error("expires_at");
+          return true;
+
+  - name: hw-context-supersedes
+    vars:
+      fixture_path: tests/prompts/fixtures/hw-context-supersedes.json
+    assert:
+      - type: javascript
+        value: |
+          const raw = JSON.parse(output);
+          if (raw.layer !== "context") throw new Error("layer");
+          if (!Array.isArray(raw.supersedes) || raw.supersedes.some(s => typeof s !== "string")) throw new Error("supersedes");
+          if (typeof raw.confidence !== "number") throw new Error("confidence");
+          return true;
+
+  - name: hw-missing-confidence
+    vars:
+      fixture_path: tests/prompts/fixtures/hw-missing-confidence.json
+    assert:
+      - type: javascript
+        value: |
+          const raw = JSON.parse(output);
+          const ok = typeof raw.confidence === "number" && ["shared","context"].includes(raw.layer) && typeof raw.content === "string" && raw.content.length <= 600;
+          if (ok) throw new Error("expected parse failure due to missing confidence");
+          return true;
+
+  - name: hw-content-over
+    vars:
+      fixture_path: tests/prompts/fixtures/hw-content-over.json
+    assert:
+      - type: javascript
+        value: |
+          const raw = JSON.parse(output);
+          if (typeof raw.content !== "string" || raw.content.length <= 600) throw new Error("expected content > 600 chars");
+          return true;
+
+  - name: hw-invalid-layer
+    vars:
+      fixture_path: tests/prompts/fixtures/hw-invalid-layer.json
+    assert:
+      - type: javascript
+        value: |
+          const raw = JSON.parse(output);
+          if (["shared","context"].includes(raw.layer)) throw new Error("expected invalid layer to fail");
+          return true;
+
+# ── task_add ──
+  - name: ta-normal
+    vars:
+      fixture_path: tests/prompts/fixtures/ta-normal.json
+    assert:
+      - type: javascript
+        value: |
+          const raw = JSON.parse(output);
+          if (typeof raw.title !== "string" || raw.title.length === 0) throw new Error("title");
+          if (!["low","normal","high"].includes(raw.priority)) throw new Error("priority");
+          return true;
+
+  - name: ta-high
+    vars:
+      fixture_path: tests/prompts/fixtures/ta-high.json
+    assert:
+      - type: javascript
+        value: |
+          const raw = JSON.parse(output);
+          if (typeof raw.title !== "string" || raw.title.length === 0) throw new Error("title");
+          if (raw.priority !== "high") throw new Error("priority");
+          return true;
+
+  - name: ta-missing-title
+    vars:
+      fixture_path: tests/prompts/fixtures/ta-missing-title.json
+    assert:
+      - type: javascript
+        value: |
+          const raw = JSON.parse(output);
+          if (typeof raw.title === "string" && raw.title.length > 0) throw new Error("expected missing title to fail");
+          return true;
+
+  - name: ta-invalid-priority
+    vars:
+      fixture_path: tests/prompts/fixtures/ta-invalid-priority.json
+    assert:
+      - type: javascript
+        value: |
+          const raw = JSON.parse(output);
+          if (["low","normal","high"].includes(raw.priority)) throw new Error("expected invalid priority to fail");
+          return true;

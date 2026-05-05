@@ -1,0 +1,5 @@
+After considering all options, the teamlead decides:
+```json
+{"synthesis":"pick A","rationale":"fastest implementation","top_roles":["coder","generalist"]}
+```
+Hope this helps.
