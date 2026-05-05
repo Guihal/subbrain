@@ -185,7 +185,7 @@
 |---|---|---|---|
 | A2-3 | aff87e3a89b0420c1 | **DONE** | commit 237d2a0 |
 | P3-3 | a4f1ad165aa3fd294 | **DONE** | commit e8727a7 |
-| P3-4 | af63beafa5e750ad2 | **FAIL** | hook blocked Edit |
+| P3-4 | aef09b5f092c012fa | `dispatched` | bypass /tmp script |
 
 ---
 
