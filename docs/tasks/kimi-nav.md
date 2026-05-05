@@ -184,11 +184,11 @@
 | Packet | Worker | Status | Started |
 |---|---|---|---|
 | A2-3 | aff87e3a89b0420c1 | **DONE** | commit 237d2a0 |
-| P3-3 | acc1b1f1cce6970b4 | `dispatched` | Wave A parallel |
-| P3-4 | a7f9c300f48c51a4b | `dispatched` | Wave A parallel |
+| P3-3 | a4f1ad165aa3fd294 | `dispatched` | Wave A |
+| P3-4 | — | `not_started` | — |
 
 ---
 
 ## Last Updated
 
-2026-05-05 — A2-3 done (commit 237d2a0). P3-3 + P3-4 dispatched in parallel (Wave A). P4-1..5 flagged FALSE SIGNAL (types-only, runtime not wired). Cleanup gaps C1-C4 added post owner audit.
+2026-05-05 — P3-3 redispatched (worker a4f1ad165aa3fd294, sequential, no isolation). P3-4 reset to not_started (awaiting P3-3 merge). P4-1..5 FALSE SIGNAL flagged. C1-C4 cleanup gaps open.
