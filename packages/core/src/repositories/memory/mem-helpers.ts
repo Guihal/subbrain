@@ -47,6 +47,10 @@ export function makeMemHelpers(mem: MemoryTable) {
         expires_at?: number | null;
         superseded_by?: string | null;
         derived_from?: string;
+        // P3-2 (mig 17): bi-temporal columns.
+        valid_from?: number | null;
+        valid_to?: number | null;
+        observed_at?: number | null;
       },
     ) => mem.updateContext(id, fields),
     getContext: (id: string) => mem.getContext(id),

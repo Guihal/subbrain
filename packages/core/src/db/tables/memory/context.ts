@@ -16,8 +16,11 @@ export function insertContext(
   const conf = opts?.confidence ?? null;
   const status = opts?.status ?? "active";
   const expiresAt = opts?.expires_at ?? null;
+  const validFrom = opts?.valid_from ?? null;
+  const validTo = opts?.valid_to ?? null;
+  const observedAt = opts?.observed_at ?? null;
   db.query(
-    "INSERT INTO layer2_context (id, title, content, tags, derived_from, agent_id, confidence, status, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    "INSERT INTO layer2_context (id, title, content, tags, derived_from, agent_id, confidence, status, expires_at, valid_from, valid_to, observed_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
   ).run(
     id,
     title,
@@ -28,6 +31,9 @@ export function insertContext(
     conf,
     status,
     expiresAt,
+    validFrom,
+    validTo,
+    observedAt,
   );
 }
 
@@ -43,6 +49,9 @@ export function updateContext(
     expires_at?: number | null;
     superseded_by?: string | null;
     derived_from?: string;
+    valid_from?: number | null;
+    valid_to?: number | null;
+    observed_at?: number | null;
   },
 ): void {
   updateRow(db, "layer2_context", CONTEXT_UPDATABLE, id, fields);

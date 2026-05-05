@@ -18,6 +18,9 @@ export const SHARED_UPDATABLE = new Set([
   "expires_at",
   "superseded_by",
   "kind",
+  "valid_from",
+  "valid_to",
+  "observed_at",
 ]);
 export const AGENT_MEM_UPDATABLE = new Set(["content", "tags"]);
 
@@ -46,4 +49,8 @@ export interface InsertSharedOpts {
   kind?: MemoryKind;
   // PR-A: differential TTL defaults by category.
   expires_at?: number | null;
+  // P3-2 (mig 17): bi-temporal columns on insert.
+  valid_from?: number | null;
+  valid_to?: number | null;
+  observed_at?: number | null;
 }

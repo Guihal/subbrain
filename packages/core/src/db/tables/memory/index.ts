@@ -26,6 +26,9 @@ type CtxFields = {
   expires_at?: number | null;
   superseded_by?: string | null;
   derived_from?: string;
+  valid_from?: number | null;
+  valid_to?: number | null;
+  observed_at?: number | null;
 };
 type ArcFields = {
   title?: string;

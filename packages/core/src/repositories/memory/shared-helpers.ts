@@ -40,6 +40,10 @@ export function makeSharedHelpers(shared: SharedTable) {
         superseded_by?: string | null;
         // M-07: persona/semantic re-classification on merge-update.
         kind?: MemoryKind;
+        // P3-2 (mig 17): bi-temporal columns.
+        valid_from?: number | null;
+        valid_to?: number | null;
+        observed_at?: number | null;
       },
     ) => shared.updateShared(id, fields),
     deleteShared: (id: string) => shared.deleteShared(id),

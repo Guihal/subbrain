@@ -14,6 +14,9 @@ export const CONTEXT_UPDATABLE = new Set([
   "expires_at",
   "superseded_by",
   "derived_from",
+  "valid_from",
+  "valid_to",
+  "observed_at",
 ]);
 export const ARCHIVE_UPDATABLE = new Set(["title", "content", "tags", "confidence"]);
 
@@ -38,4 +41,8 @@ export interface InsertContextOpts {
   status?: MemoryStatus;
   // PR-A: differential TTL defaults by category.
   expires_at?: number | null;
+  // P3-2 (mig 17): bi-temporal columns on insert.
+  valid_from?: number | null;
+  valid_to?: number | null;
+  observed_at?: number | null;
 }

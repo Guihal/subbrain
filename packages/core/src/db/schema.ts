@@ -883,6 +883,31 @@ export function migrate(db: Database): void {
       for (const sql of mig16Stmts) db.query(sql).run();
     })();
   }
+
+  // Migration 17 (P3-2): bi-temporal nullable columns on shared_memory + layer2_context.
+  // valid_from / valid_to = user-world validity window; observed_at = when Subbrain learned it.
+  // All INTEGER unix-seconds, nullable, no defaults — callers / extractors set them.
+  if (version < 17) {
+    const mig17Stmts = [
+      `ALTER TABLE shared_memory ADD COLUMN valid_from INTEGER DEFAULT NULL`,
+      `ALTER TABLE shared_memory ADD COLUMN valid_to INTEGER DEFAULT NULL`,
+      `ALTER TABLE shared_memory ADD COLUMN observed_at INTEGER DEFAULT NULL`,
+      `ALTER TABLE layer2_context ADD COLUMN valid_from INTEGER DEFAULT NULL`,
+      `ALTER TABLE layer2_context ADD COLUMN valid_to INTEGER DEFAULT NULL`,
+      `ALTER TABLE layer2_context ADD COLUMN observed_at INTEGER DEFAULT NULL`,
+      `PRAGMA user_version = 17`,
+    ];
+    db.transaction(() => {
+      for (const sql of mig17Stmts) {
+        try {
+          db.query(sql).run();
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          if (!/duplicate column name/i.test(msg)) throw err;
+        }
+      }
+    })();
+  }
 }
 
 export { EMBEDDING_DIM };

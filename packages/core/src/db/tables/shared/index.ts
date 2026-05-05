@@ -29,6 +29,9 @@ type SharedFields = {
   expires_at?: number | null;
   superseded_by?: string | null;
   kind?: MemoryKind;
+  valid_from?: number | null;
+  valid_to?: number | null;
+  observed_at?: number | null;
 };
 
 export class SharedTable {

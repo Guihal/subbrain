@@ -64,6 +64,10 @@ export interface ContextRow {
   // decay step. NULL on legacy rows; first decay run uses last_accessed_at
   // as proxy and then writes `now` here.
   last_decayed_at?: number | null;
+  // P3-2 (mig 17): bi-temporal columns — user-world validity window + observation time.
+  valid_from?: number | null;
+  valid_to?: number | null;
+  observed_at?: number | null;
 }
 
 export interface ArchiveRow {
@@ -133,6 +137,10 @@ export interface SharedRow {
   // M-07 (mig 12): closed enum. NOT NULL DEFAULT 'semantic' in SQL — required
   // here. Persona rows get +10% boost in RAG rerank (`rag/pipeline.ts`).
   kind: MemoryKind;
+  // P3-2 (mig 17): bi-temporal columns — user-world validity window + observation time.
+  valid_from?: number | null;
+  valid_to?: number | null;
+  observed_at?: number | null;
 }
 
 export interface AgentMemRow {

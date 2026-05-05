@@ -16,9 +16,12 @@ export function insertShared(
   const status = opts?.status ?? "active";
   const kind: MemoryKind = opts?.kind ?? "semantic";
   const expiresAt = opts?.expires_at ?? null;
+  const validFrom = opts?.valid_from ?? null;
+  const validTo = opts?.valid_to ?? null;
+  const observedAt = opts?.observed_at ?? null;
   db.query(
-    "INSERT INTO shared_memory (id, category, content, tags, source, confidence, status, kind, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-  ).run(id, category, content, tags, source ?? null, conf, status, kind, expiresAt);
+    "INSERT INTO shared_memory (id, category, content, tags, source, confidence, status, kind, expires_at, valid_from, valid_to, observed_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+  ).run(id, category, content, tags, source ?? null, conf, status, kind, expiresAt, validFrom, validTo, observedAt);
 }
 
 export function getAllShared(db: Database): SharedRow[] {
@@ -132,6 +135,9 @@ export function updateShared(
     expires_at?: number | null;
     superseded_by?: string | null;
     kind?: MemoryKind;
+    valid_from?: number | null;
+    valid_to?: number | null;
+    observed_at?: number | null;
   },
 ): void {
   updateRow(db, "shared_memory", SHARED_UPDATABLE, id, fields);
