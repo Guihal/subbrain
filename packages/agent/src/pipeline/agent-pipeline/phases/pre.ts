@@ -14,6 +14,7 @@ import { buildSystemPrompt } from "../helpers";
 import { buildExecutiveSummary } from "../pre/exec-summary";
 import { buildSeedContext, loadFocusSeed } from "../pre/focus-inject";
 import type { PreProcessingOutput } from "../types";
+import type { HooksDispatcher } from "../../../hooks";
 
 export interface PreStats {
   ragCount: number;
@@ -36,9 +37,9 @@ export async function runPre(args: {
   userMessage: string;
   firstMessage: boolean;
   onProgress?: (msg: string) => void;
-  /** B-1: per-agent identity for context-layer scoping; null = unscoped. */
   agentId?: string | null;
   requestId?: string;
+  hooks?: HooksDispatcher;
 }): Promise<PreResult> {
   const {
     memory,
@@ -50,6 +51,7 @@ export async function runPre(args: {
     onProgress,
     agentId = null,
     requestId = "",
+    hooks,
   } = args;
   const tracer = getTracer();
   const span = tracer.startSpan("subbrain.pipeline.pre", {
@@ -71,8 +73,12 @@ export async function runPre(args: {
         sharedMemory: seed.sharedMemory,
         rawMemoryBlock: "",
       };
+      const basePrompt = buildSystemPrompt(preOutput, model);
+      const enrichedSystemPrompt = hooks
+        ? await hooks.runChatSystemTransform(basePrompt, { requestId, agentId, model })
+        : basePrompt;
       return {
-        enrichedSystemPrompt: buildSystemPrompt(preOutput, model),
+        enrichedSystemPrompt,
         preOutput,
         stats: { ragCount: 0, focusKeys: Object.keys(seed.focusEntries), summaryLen: 0, steps: 0 },
       };
@@ -89,8 +95,12 @@ export async function runPre(args: {
         sharedMemory: [],
         rawMemoryBlock: "",
       };
+      const basePrompt = buildSystemPrompt(preOutput, model);
+      const enrichedSystemPrompt = hooks
+        ? await hooks.runChatSystemTransform(basePrompt, { requestId, agentId, model })
+        : basePrompt;
       return {
-        enrichedSystemPrompt: buildSystemPrompt(preOutput, model),
+        enrichedSystemPrompt,
         preOutput,
         stats: { ragCount: 0, focusKeys: [], summaryLen: 0, steps: 0 },
       };
@@ -114,8 +124,12 @@ export async function runPre(args: {
       sharedMemory: seed.sharedMemory,
       rawMemoryBlock,
     };
+    const basePrompt = buildSystemPrompt(preOutput, model);
+    const enrichedSystemPrompt = hooks
+      ? await hooks.runChatSystemTransform(basePrompt, { requestId, agentId, model })
+      : basePrompt;
     return {
-      enrichedSystemPrompt: buildSystemPrompt(preOutput, model),
+      enrichedSystemPrompt,
       preOutput,
       stats: {
         ragCount: exec.ragResults.length,

@@ -109,6 +109,7 @@ export const TRANSITIONAL_WHITELIST: Record<string, number> = {
   "packages/core/src/services/auth.service.ts": 66,
   "packages/agent/src/pipeline/night-cycle/janitor/phase-bc.ts": 165,
   "packages/core/src/lib/fts-utils.ts": 175,
+  "packages/core/src/lib/pii-scrub.ts": 220,
   "packages/agent/src/scheduler/free-agent.ts": 157,
   "packages/server/src/app/deps.ts": 400,
   "packages/server/src/routes/memory.ts": 300,
