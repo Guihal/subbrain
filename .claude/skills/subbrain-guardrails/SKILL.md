@@ -21,12 +21,10 @@ Follow as checklist. If new code violates rule — rewrite before commit.
 
 | Path / glob | Cap | Rationale |
 |---|---|---|
-| `src/db/schema.ts` | 1500 | DDL registry, append-only on migrations |
-| `src/db/index.ts` | 500 | DI facade: repositories + configuration |
-| `src/db/types.ts` | 300 | type-registry for all tables |
-| `src/app/deps.ts` | 500 | DI container |
-| `src/lib/model-map.ts` | 300 | virtual-roles single-source-of-truth |
-| `src/lib/logger.ts` | 200 | singleton + child + format helpers (squeeze from 262 in microPR; do not split) |
+| `packages/core/src/db/schema.ts` | 1500 | DDL registry, append-only on migrations |
+| `packages/core/src/db/index.ts` | 500 | DI facade: repositories + configuration |
+| `packages/core/src/db/types.ts` | 300 | type-registry for all tables |
+| `packages/core/src/lib/model-map.ts` | 300 | virtual-roles single-source-of-truth |
 | `packages/agent/src/pipeline/agent-loop/system-prompt.ts` | 300 | cohesive prompt; split = loss of instruction context |
 | `packages/agent/src/mcp/registry/*.tools.ts` | 250 each | schema + wiring declarations; split kills declarativity |
 | `packages/agent/src/rag/pipeline/index.ts` (post W4-1) | 200 | hybrid-search facade; everything splittable extracted to submodules |

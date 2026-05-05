@@ -40,6 +40,10 @@ const DEFAULT_CAP = 150;
 export const CANONICAL_WHITELIST: Record<string, number> = {
   "packages/agent/src/pipeline/agent-loop/system-prompt.ts": 300,
   "packages/agent/src/rag/pipeline/index.ts": 200,
+  "packages/core/src/db/schema.ts": 1500,
+  "packages/core/src/db/index.ts": 500,
+  "packages/core/src/db/types.ts": 300,
+  "packages/core/src/lib/model-map.ts": 300,
 };
 
 // Glob-whitelist (path glob → cap). Keep small, justified.
@@ -56,11 +60,6 @@ export const CANONICAL_GLOB_WHITELIST: Array<{ glob: RegExp; cap: number; label:
 export const TRANSITIONAL_WHITELIST: Record<string, number> = {
   "scripts/check-file-size.ts": 200,
   "packages/agent/src/pipeline/context-compressor.ts": 300,
-  "packages/server/src/app/deps.ts": 500,
-  "packages/core/src/db/schema.ts": 1500,
-  "packages/core/src/db/index.ts": 500,
-  "packages/core/src/db/types.ts": 300,
-  "packages/core/src/lib/model-map.ts": 300,
   "packages/core/src/lib/logger.ts": 210,
   "packages/agent/src/mcp/registry/agent-meta.tools.ts": 290,
   "packages/agent/src/pipeline/agent-pipeline/post/extractors.ts": 281,
