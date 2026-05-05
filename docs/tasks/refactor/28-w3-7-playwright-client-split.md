@@ -6,23 +6,23 @@
 
 ## Цель
 
-Разбить `packages/agent/packages/agent/src/mcp/playwright/index.ts` (314 LOC) на split-folder. Public API = `PlaywrightClient` class (`callTool(name, args)` остаётся главной точкой входа).
+Разбить `packages/agent/src/mcp/playwright/index.ts` (314 LOC) на split-folder. Public API = `PlaywrightClient` class (`callTool(name, args)` остаётся главной точкой входа).
 
 ## Файлы
 
 **Удалить**:
-- `packages/agent/packages/agent/src/mcp/playwright/index.ts`
+- `packages/agent/src/mcp/playwright/index.ts`
 
 **Создать**:
-- `packages/agent/packages/agent/packages/agent/src/mcp/playwright/index.ts` — `PlaywrightClient` class (≤120 LOC). Lifecycle (browser singleton + scoped contexts) + публичный `callTool(name, args)` диспатч.
-- `packages/agent/packages/agent/packages/agent/src/mcp/playwright/lifecycle.ts` — `launchBrowser`, `getScopePage`, `close`. Browser channel `chrome` headless + `--no-sandbox`.
+- `packages/agent/src/mcp/playwright/index.ts` — `PlaywrightClient` class (≤120 LOC). Lifecycle (browser singleton + scoped contexts) + публичный `callTool(name, args)` диспатч.
+- `packages/agent/src/mcp/playwright/lifecycle.ts` — `launchBrowser`, `getScopePage`, `close`. Browser channel `chrome` headless + `--no-sandbox`.
 - `packages/agent/src/mcp/playwright/actions/click.ts` — click handler (resolves `data-pw-ref`).
 - `packages/agent/src/mcp/playwright/actions/type.ts` — type/fill handler.
 - `packages/agent/src/mcp/playwright/actions/navigate.ts` — navigate + back/forward.
 - `packages/agent/src/mcp/playwright/actions/snapshot.ts` — accessibility snapshot tagger (assigns `data-pw-ref="N"`).
 - `packages/agent/src/mcp/playwright/actions/evaluate.ts` — evaluate / run_code helpers.
 
-**Trigger**: `scripts/check-file-size.ts` `"packages/agent/packages/agent/src/mcp/playwright/index.ts": 315` → удалить.
+**Trigger**: `scripts/check-file-size.ts` `"packages/agent/src/mcp/playwright/index.ts": 315` → удалить.
 
 ## Изменение
 

@@ -15,7 +15,7 @@
 
 ### 1. AppError + central `onError`
 
-**Файлы:** `packages/core/packages/core/src/lib/errors.ts`, `packages/server/packages/server/packages/server/src/app/bootstrap.ts` (после PR 07).
+**Файлы:** `packages/core/src/lib/errors.ts`, `packages/server/src/app/bootstrap.ts` (после PR 07).
 
 ```ts
 // packages/core/src/lib/errors.ts
@@ -96,7 +96,7 @@ export const logger = createLogger("root");
 
 ### 3. `lib/api-envelope.ts`
 
-**Файл:** `packages/core/packages/core/src/lib/api-envelope.ts` (новый), `packages/server/packages/server/packages/server/src/routes/memory.ts`, потенциально `routes/chats.ts`, `routes/logs.ts`.
+**Файл:** `packages/core/src/lib/api-envelope.ts` (новый), `packages/server/src/routes/memory.ts`, потенциально `routes/chats.ts`, `routes/logs.ts`.
 
 ```ts
 export interface PaginatedResponse<T> {
@@ -144,10 +144,10 @@ export async function paginate<T>(
 
 ## Файлы
 
-- `packages/core/packages/core/src/lib/errors.ts` (новый/расширить)
-- `packages/core/packages/core/src/lib/logger.ts` (расширить)
-- `packages/core/packages/core/src/lib/api-envelope.ts` (новый)
-- `packages/server/packages/server/packages/server/src/app/bootstrap.ts` (central onError)
+- `packages/core/src/lib/errors.ts` (новый/расширить)
+- `packages/core/src/lib/logger.ts` (расширить)
+- `packages/core/src/lib/api-envelope.ts` (новый)
+- `packages/server/src/app/bootstrap.ts` (central onError)
 - `packages/server/src/routes/*.ts` — удалить локальные `.onError`, переключить на envelope.
 - Все файлы где сейчас `logger.info("stage", ...)` повторяется ≥3 раз → завести `const log = logger.child("stage")`.
 - Тесты выше.

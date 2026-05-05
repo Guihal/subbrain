@@ -13,9 +13,9 @@
 Места с повторным `fetch`:
 - [packages/providers/src/nvidia.ts](../../../packages/providers/src/nvidia.ts) — 2 места (JSON + stream).
 - [packages/providers/src/nvidia.ts](../../../packages/providers/src/nvidia.ts).
-- [packages/agent/packages/agent/src/rag/pipeline/index.ts](../../../packages/agent/packages/agent/src/rag/pipeline/index.ts) — NVIDIA rerank.
-- [packages/agent/packages/agent/src/telegram/bot/index.ts](../../../packages/agent/packages/agent/src/telegram/bot/index.ts) — Bot API.
-- [packages/agent/packages/agent/src/telegram/userbot/index.ts](../../../packages/agent/packages/agent/src/telegram/userbot/index.ts) — MTProto-specific, если там есть чистый `fetch` — тоже.
+- [packages/agent/src/rag/pipeline/index.ts](../../../packages/agent/src/rag/pipeline/index.ts) — NVIDIA rerank.
+- [packages/agent/src/telegram/bot/index.ts](../../../packages/agent/src/telegram/bot/index.ts) — Bot API.
+- [packages/agent/src/telegram/userbot/index.ts](../../../packages/agent/src/telegram/userbot/index.ts) — MTProto-specific, если там есть чистый `fetch` — тоже.
 - Возможно [packages/providers/src/bifrost.ts](../../../packages/providers/src/bifrost.ts).
 
 У каждого — свой timeout, свой способ разобрать ошибку, своя обработка 4xx vs 5xx.

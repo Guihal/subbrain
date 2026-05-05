@@ -13,12 +13,12 @@
 
 ## Файлы (scope-lock — изменять ТОЛЬКО эти)
 
-- `packages/core/packages/core/packages/core/src/db/schema.ts` — Migration **10** (additive `ALTER TABLE`, идемпотентная — паттерн как мигр. 8/9 в файле). Три таблицы × два столбца + три индекса.
+- `packages/core/src/db/schema.ts` — Migration **10** (additive `ALTER TABLE`, идемпотентная — паттерн как мигр. 8/9 в файле). Три таблицы × два столбца + три индекса.
 - `packages/core/src/db/tables/shared.ts` — расширить `SharedRow` SELECT-ями + добавить новые поля в `ALLOW_SHARED_PATCH` allow-list (если есть, проверить).
 - `packages/core/src/db/tables/memory.ts` — то же для `layer2_context` (`ContextRow`) и `layer3_archive` (`ArchiveRow`).
-- `packages/core/packages/core/packages/core/src/db/types.ts` — добавить `last_accessed_at?: number | null`, `access_count?: number` на `SharedRow`, `ContextRow`, `ArchiveRow` интерфейсы.
+- `packages/core/src/db/types.ts` — добавить `last_accessed_at?: number | null`, `access_count?: number` на `SharedRow`, `ContextRow`, `ArchiveRow` интерфейсы.
 - `packages/core/src/repositories/memory.repo.ts` — новый метод `bumpAccess(layer: "shared"|"context"|"archive", ids: string[])` — единый batched UPDATE с `last_accessed_at = ?, access_count = access_count + 1 WHERE id IN (?,?,…)`. Один SQL вызов на (layer × вызов RAG); если ids пустой — no-op.
-- `packages/agent/packages/agent/src/rag/pipeline/index.ts` — после успешного rerank (в `searchHybrid`, перед `return`), сгруппировать результаты по `layer` и вызвать `repo.bumpAccess(layer, ids)`. **Не блокировать ответ:** обернуть в `Promise.allSettled` и не `await`-ить (или `await` под `Promise.race([..., timeout(50ms)])` — ускорит lazy-write, но don't-care result). Любая ошибка bump'а — `log.warn` и тишина, retrieval продолжается.
+- `packages/agent/src/rag/pipeline/index.ts` — после успешного rerank (в `searchHybrid`, перед `return`), сгруппировать результаты по `layer` и вызвать `repo.bumpAccess(layer, ids)`. **Не блокировать ответ:** обернуть в `Promise.allSettled` и не `await`-ить (или `await` под `Promise.race([..., timeout(50ms)])` — ускорит lazy-write, но don't-care result). Любая ошибка bump'а — `log.warn` и тишина, retrieval продолжается.
 - `tests/memory-access-tracking.test.ts` — **NEW** файл.
 - `docs/02-audit.md` — добавить новую секцию `### MEM-7 ✅ access tracking (закрыто M-02)` ИЛИ ссылку в roadmap-block; не открывать новый аудит-айтем сегодня (M-02 — не fix аудита, а foundation для M-03/M-08).
 - `docs/tasks/memory-v2/M-02-access-tracking.md` (этот файл) — `Status: DONE (PR <sha>)` в конце.
@@ -26,14 +26,14 @@
 **НЕ трогать:**
 - Существующие миграции (1-9) — additive only.
 - `packages/agent/src/services/memory.service.ts` — bump-логика чисто RAG-side, не Service.
-- `packages/agent/packages/agent/src/pipeline/agent-pipeline/post/*` — extraction не зависит от access (это про reading, не writing).
-- `packages/core/packages/core/packages/core/src/db/tables/log.ts` (если такой будет создан в M-04) — пересечения нет.
+- `packages/agent/src/pipeline/agent-pipeline/post/*` — extraction не зависит от access (это про reading, не writing).
+- `packages/core/src/db/tables/log.ts` (если такой будет создан в M-04) — пересечения нет.
 
 ## Изменение
 
 ### Migration 10
 
-Дописать в `migrate()` в `packages/core/packages/core/packages/core/src/db/schema.ts` block по паттерну мигр. 8/9 (additive `ALTER TABLE … ADD COLUMN` под `db.transaction()` + per-statement `.run()`):
+Дописать в `migrate()` в `packages/core/src/db/schema.ts` block по паттерну мигр. 8/9 (additive `ALTER TABLE … ADD COLUMN` под `db.transaction()` + per-statement `.run()`):
 
 ```sql
 ALTER TABLE shared_memory   ADD COLUMN last_accessed_at INTEGER DEFAULT NULL;
@@ -84,7 +84,7 @@ void Promise.allSettled(
 
 Проверить `db/tables/{shared,memory}.ts` — есть ли `ALLOW_*_PATCH` константы для `updateRow`-helper'а. Если есть — добавить `last_accessed_at`, `access_count` в массив (но реально через `updateRow` их не должны патчить, доступ только через `bumpAccess` репо). Лучше **не добавлять** в allow-list — закрыть от случайных PATCH'ей через `/v1/memory/*` admin endpoints.
 
-`SharedRow`/`ContextRow`/`ArchiveRow` в `packages/core/packages/core/packages/core/src/db/types.ts` — добавить optional поля. SELECT-list в helper-функциях `getShared`/`getContext`/`getArchive` — добавить два новых столбца, иначе они придут как `undefined` через `*` запросы (зависит от текущего стиля; если используется `SELECT *` — ничего не делать; если явный список — расширить).
+`SharedRow`/`ContextRow`/`ArchiveRow` в `packages/core/src/db/types.ts` — добавить optional поля. SELECT-list в helper-функциях `getShared`/`getContext`/`getArchive` — добавить два новых столбца, иначе они придут как `undefined` через `*` запросы (зависит от текущего стиля; если используется `SELECT *` — ничего не делать; если явный список — расширить).
 
 ## Тесты
 
@@ -104,7 +104,7 @@ void Promise.allSettled(
 3. `bun test` (полный suite) → exit 0, ≥639 pass, 0 fail (baseline до M-02 = 639 после M-01).
 4. `sqlite3 <test-db> "PRAGMA table_info(shared_memory);"` → выдаёт 2 новых колонки `last_accessed_at` (INTEGER, default null) и `access_count` (INTEGER, NOT NULL, default 0). Идентично для `layer2_context` и `layer3_archive`.
 5. `sqlite3 <test-db> "SELECT name FROM sqlite_master WHERE type='index' AND name LIKE 'idx_%_access';"` → 3 строки.
-6. `grep -n "bumpAccess" packages/agent/packages/agent/src/rag/pipeline/index.ts` → ≥1 hit; вызов после rerank, не до.
+6. `grep -n "bumpAccess" packages/agent/src/rag/pipeline/index.ts` → ≥1 hit; вызов после rerank, не до.
 7. `docs/tasks/memory-v2/M-02-access-tracking.md` — `Status: DONE (PR <sha>)`.
 
 ## Риск + mitigations

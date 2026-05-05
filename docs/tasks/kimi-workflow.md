@@ -87,7 +87,7 @@ These scripts make the pyramid **physical** — not a convention, but enforced b
 1. **Run CP0-CP3 after EVERY edit batch** — not just at the end. If you edit 3 files → run CP0-CP2 immediately. If you edit tests → run CP3. Use `bun run cp-all` to run the full stack once when batch is done.
 2. **CP0 is the cheapest** — run it first after any file change. It catches file-cap and deep-import violations before typecheck waste.
 3. **CP1 before CP2** — biome catches syntax faster than tsc. Don't run tsc on broken syntax.
-4. **CP3 scope** — if packet adds `packages/server/packages/server/packages/server/src/routes/metrics.ts`, run `bun test tests/metrics-runs.test.ts` (narrow), not full suite.
+4. **CP3 scope** — if packet adds `packages/server/src/routes/metrics.ts`, run `bun test tests/metrics-runs.test.ts` (narrow), not full suite.
 5. **3-strike rule** — if same checkpoint fails 3 times with same root cause → STOP, return decision packet with blocker. Don't loop.
 
 ## Execution Protocol (Per Packet)

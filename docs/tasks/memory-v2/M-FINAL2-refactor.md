@@ -17,7 +17,7 @@ Memory-v2 wave-1/2/3 закрыта (8 P1 тикетов, MEM-2/7/8/9/10/11/12/1
    - `packages/core/src/db/tables/memory.ts` 330 LOC.
    - `packages/agent/src/services/chat.service.ts` 318 LOC.
    - `packages/agent/src/services/memory.service.ts` 302 LOC.
-   - `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/extractors.ts` 271 LOC.
+   - `packages/agent/src/pipeline/agent-pipeline/post/extractors.ts` 271 LOC.
 
    Cap = 250 LOC per guardrail §1 (exceptions: `system-prompt.ts, model-map.ts, rag/pipeline.ts, MCP registry, telegram modules`). Tests de-facto exempt.
 
@@ -44,7 +44,7 @@ Regression test: extend `tests/memory-kind.test.ts` или `tests/shared-embed-w
 Thread `MemoryService` в `MemoryTools` constructor. Wave-1 pattern существует — просто extend его:
 - `MemoryTools` constructor: `new MemoryTools(memory: MemoryDB, getRag: () => RAGPipeline | null, memoryService?: MemoryService)`.
 - В `case "shared"` → если `this.memoryService` есть → делегировать в `this.memoryService.insertShared({...})`. Иначе fallback на текущий `writeSharedAtomic` (back-compat для legacy tests).
-- Wire-up в `packages/server/packages/server/packages/server/src/app/deps.ts` ИЛИ `packages/agent/packages/agent/src/mcp/executor/index.ts` (где конструируется `MemoryTools`).
+- Wire-up в `packages/server/src/app/deps.ts` ИЛИ `packages/agent/src/mcp/executor/index.ts` (где конструируется `MemoryTools`).
 
 После шага 2: `writeSharedAtomic` либо целиком удалён (если legacy callers все мигрированы), либо оставлен как private fallback с TODO-комментом для finally rip-out. Subagent волен выбрать.
 
@@ -64,7 +64,7 @@ d. **NOT split** (single-responsibility intact, или exemption):
 - `packages/core/src/repositories/memory.repo.ts` 355 LOC — repo layer is by-design fan-out, splitting hurts cohesion.
 - `packages/agent/src/services/memory.service.ts` 302 LOC — same.
 - `packages/agent/src/services/chat.service.ts` 318 LOC — chat orchestrator.
-- `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/extractors.ts` 271 LOC — close to cap, tolerable.
+- `packages/agent/src/pipeline/agent-pipeline/post/extractors.ts` 271 LOC — close to cap, tolerable.
 
 If subagent splits anything → regression-test (existing test still pass). Move-only commits (no logic change) preferred.
 
@@ -84,8 +84,8 @@ If subagent splits anything → regression-test (existing test still pass). Move
 
 - `packages/agent/src/mcp/tools/memory-tools.ts` (M-07.1 wire + DI-cleanup).
 - `packages/agent/src/services/chat.service.ts` (M-07.1 wire).
-- `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/context-compressor.ts` (M-07.1 wire — alternative to chat.service.ts).
-- `packages/server/packages/server/packages/server/src/app/deps.ts` ИЛИ `packages/agent/packages/agent/src/mcp/executor/index.ts` (DI threading).
+- `packages/agent/src/pipeline/context-compressor.ts` (M-07.1 wire — alternative to chat.service.ts).
+- `packages/server/src/app/deps.ts` ИЛИ `packages/agent/src/mcp/executor/index.ts` (DI threading).
 - Optional: `packages/core/src/db/tables/shared.ts` split.
 - Optional: `packages/core/src/db/tables/memory.ts` split.
 - Optional: `packages/agent/src/mcp/tools/memory-write.ts` / `memory-read.ts` etc (if split).
@@ -96,8 +96,8 @@ If subagent splits anything → regression-test (existing test still pass). Move
 **НЕ трогать:**
 - Existing migrations 1-14.
 - Wave-1/2/3 tests (memory-{access-tracking,kind,salience}.test.ts, shared-embed-write.test.ts, fts-log.test.ts, memory-edges.test.ts, night-cycle-{memory-dedup,reflect}.test.ts, memory-forgetting-curve.test.ts, etc) — не "improve" то что зелено.
-- `packages/agent/packages/agent/src/rag/pipeline/index.ts` (>250 LOC, but exempt per guardrail §1).
-- `packages/core/packages/core/packages/core/src/db/schema.ts` (exempt).
+- `packages/agent/src/rag/pipeline/index.ts` (>250 LOC, but exempt per guardrail §1).
+- `packages/core/src/db/schema.ts` (exempt).
 - ANY file in `tests/` if its tests are passing.
 
 ## Тесты

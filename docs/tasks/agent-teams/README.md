@@ -36,7 +36,7 @@ Hard bans for every worker:
 - no `.env` reads;
 - no broad refactors outside the contract;
 - no `as any`;
-- no raw `fetch` when `packages/core/packages/core/src/lib/http-client.ts` is applicable;
+- no raw `fetch` when `packages/core/src/lib/http-client.ts` is applicable;
 - no `Promise.all` for fan-out; use `Promise.allSettled`.
 
 ## Suggested Waves

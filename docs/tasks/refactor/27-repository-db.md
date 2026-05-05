@@ -21,8 +21,8 @@
   - `telegram.repo.ts` (`db/tables/tg-*`)
   - `freelance.repo.ts` (`db/tables/freelance.ts` если есть)
 - [packages/agent/src/services/memory.service.ts](../../../packages/agent/src/services/memory.service.ts) и т.д. — ctor принимает repos.
-- [packages/server/packages/server/src/app/deps.ts](../../../packages/server/packages/server/src/app/deps.ts) — инстанцирует repos.
-- [packages/core/packages/core/src/db/index.ts](../../../packages/core/packages/core/src/db/index.ts) — `MemoryDB` остаётся тонким facade для back-compat переходного периода.
+- [packages/server/src/app/deps.ts](../../../packages/server/src/app/deps.ts) — инстанцирует repos.
+- [packages/core/src/db/index.ts](../../../packages/core/src/db/index.ts) — `MemoryDB` остаётся тонким facade для back-compat переходного периода.
 
 ## Изменение
 
@@ -68,7 +68,7 @@ constructor(
 
 ### 3. `MemoryDB` facade
 
-`packages/core/packages/core/packages/core/src/db/index.ts` — сохраняется, **но** все методы делегируют в repo instances внутри. Back-compat: старый код (`scripts/seed.ts`, `scripts/audit-db.ts` и т.д.) продолжает работать.
+`packages/core/src/db/index.ts` — сохраняется, **но** все методы делегируют в repo instances внутри. Back-compat: старый код (`scripts/seed.ts`, `scripts/audit-db.ts` и т.д.) продолжает работать.
 
 ### 4. Grep-guardrail
 

@@ -12,14 +12,14 @@
 
 ## Файлы
 
-- [packages/core/packages/agent/src/services/auth.service.ts](../../../packages/core/packages/agent/src/services/auth.service.ts) — новый файл.
+- [packages/agent/src/services/auth.service.ts](../../../packages/agent/src/services/auth.service.ts) — новый файл.
 - [packages/core/src/lib/auth.ts](../../../packages/core/src/lib/auth.ts) — становится тонкий: middleware делегирует.
-- [packages/server/packages/server/src/app/deps.ts](../../../packages/server/packages/server/src/app/deps.ts) — инстанцирует `AuthService` и пробрасывает в middleware + decoration.
-- [packages/server/packages/server/src/app/bootstrap.ts](../../../packages/server/packages/server/src/app/bootstrap.ts) — middleware получает `authService` вместо raw `token`.
+- [packages/server/src/app/deps.ts](../../../packages/server/src/app/deps.ts) — инстанцирует `AuthService` и пробрасывает в middleware + decoration.
+- [packages/server/src/app/bootstrap.ts](../../../packages/server/src/app/bootstrap.ts) — middleware получает `authService` вместо raw `token`.
 
 ## Изменение
 
-### 1. `packages/core/packages/core/packages/agent/src/services/auth.service.ts`
+### 1. `packages/agent/src/services/auth.service.ts`
 
 ```
 export class AuthService {
@@ -93,7 +93,7 @@ return { ..., authService };
 
 - [ ] `bunx tsc --noEmit` = 0.
 - [ ] Тесты зелёные.
-- [ ] `grep -n 'createHash\|timingSafeEqual' packages/core/src/lib/auth.ts packages/server/packages/server/src/app/bootstrap.ts packages/server/src/routes/*.ts` — 0 совпадений (только в `services/auth.service.ts`).
+- [ ] `grep -n 'createHash\|timingSafeEqual' packages/core/src/lib/auth.ts packages/server/src/app/bootstrap.ts packages/server/src/routes/*.ts` — 0 совпадений (только в `services/auth.service.ts`).
 - [ ] Все тесты `auth-coverage.test.ts` (из PR 17) остаются зелёными.
 - [ ] LAYER-1 вычеркнут в [docs/02-audit.md](../../02-audit.md).
 

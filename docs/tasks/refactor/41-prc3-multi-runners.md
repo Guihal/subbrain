@@ -21,7 +21,7 @@ Pool диверсифицирован — 5 типов runner'ов. `find-new-ta
 - Создать 7 новых файлов (runners 4 + pool/find-new.ts + digest.ts + tg/handler).
 - Edit `packages/agent/src/scheduler/agent-pool/index.ts` — расширить tick на switch + auto-enqueue find-new-task + daily rollup cron.
 - Edit `.env.example` — добавить ровно перечисленные env vars.
-- Edit `packages/agent/packages/agent/packages/agent/src/mcp/registry/index.ts` (или эквивалент) для регистрации `agent_tasks_enqueue` tool (agent-only scope).
+- Edit `packages/agent/src/mcp/registry/index.ts` (или эквивалент) для регистрации `agent_tasks_enqueue` tool (agent-only scope).
 - Создать `packages/agent/src/mcp/tools/pool/agent-tasks-enqueue.ts` (≤80 lines) — handler для нового tool.
 - `bunx tsc --noEmit`, `bun test`, `bun run scripts/check-file-size.ts`.
 - `git commit -m "feat(pool): clear/check-tg/research/find-new-task runners + digest (PR-C3)"`.
@@ -32,9 +32,9 @@ Pool диверсифицирован — 5 типов runner'ов. `find-new-ta
 - НЕ менять `done_with_artifact` schema/handler (PR-C2).
 - НЕ менять `maxConcurrent` дефолт (PR-C4).
 - НЕ менять `agentMode: "scheduled"` semantics.
-- НЕ удалять `packages/agent/packages/agent/packages/agent/src/scheduler/free-agent.ts` (PR-C2 bridge остаётся).
-- НЕ trogать `packages/agent/packages/agent/src/pipeline/agent-pipeline/post/**` (PR-D).
-- НЕ trogать `packages/agent/packages/agent/packages/agent/src/pipeline/arbitration/prompts.ts` (PR-E).
+- НЕ удалять `packages/agent/src/scheduler/free-agent.ts` (PR-C2 bridge остаётся).
+- НЕ trogать `packages/agent/src/pipeline/agent-pipeline/post/**` (PR-D).
+- НЕ trogать `packages/agent/src/pipeline/arbitration/prompts.ts` (PR-E).
 - НЕ создавать `tg_send_message` calls в clear/check-tg/research runners (forbidden tools).
 - НЕ обходить registry scope filter — все forbidden tools отрезает scope, а не runtime if.
 - НЕ `git push`, НЕ `gh`, НЕ `--no-verify`.
@@ -53,7 +53,7 @@ packages/agent/src/scheduler/agent-pool/runners/find-new-task.ts
 packages/agent/src/scheduler/agent-pool/pool/find-new.ts
 packages/agent/src/scheduler/agent-pool/digest.ts
 packages/agent/src/telegram/bot/handlers/digest-mode.ts
-packages/agent/packages/agent/src/mcp/registry/index.ts                       # минимальный wire-up agent_tasks_enqueue
+packages/agent/src/mcp/registry/index.ts                       # минимальный wire-up agent_tasks_enqueue
 packages/agent/src/mcp/tools/pool/agent-tasks-enqueue.ts
 tests/agent-pool-runners.test.ts
 tests/find-new-task-logic.test.ts
@@ -378,6 +378,6 @@ Categories: `tsc-error` | `test-fail` | `file-cap` | `diff-boundary` | `anti-eco
 - `FAIL: anti-economy-violation: research.ts:31 contains "be efficient"`
 - `FAIL: quota-logic-bug: find-new.ts ratio includes find-new-task in denominator`
 - `FAIL: digest-format: composeDailyRollup throws on empty array`
-- `FAIL: boundary-leak: edited packages/core/packages/core/src/db/schema.ts (PR-C1 territory)`
+- `FAIL: boundary-leak: edited packages/core/src/db/schema.ts (PR-C1 territory)`
 
 Stop. Не push, не deploy, не enqueue real tasks в prod. Parent reads, decides.

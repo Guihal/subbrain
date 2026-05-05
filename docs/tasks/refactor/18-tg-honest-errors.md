@@ -10,17 +10,17 @@
 
 Цепочка сейчас:
 
-1. [packages/agent/packages/agent/src/telegram/bot/index.ts:238-247](../../../packages/agent/packages/agent/src/telegram/bot/index.ts#L238-L247) — `notify()` ловит err, пишет в лог, резолвится `void`.
-2. [packages/server/packages/server/src/app/deps.ts:373](../../../packages/server/packages/server/src/app/deps.ts#L373) — `setBotNotify((t) => bot.notify(t))`.
-3. [packages/agent/packages/agent/src/mcp/executor/index.ts:76-87](../../../packages/agent/packages/agent/src/mcp/executor/index.ts#L76-L87) — `tgSendMessage()` `await this.botNotify(text)` никогда не бросает → `return { success: true }`.
+1. [packages/agent/src/telegram/bot/index.ts:238-247](../../../packages/agent/src/telegram/bot/index.ts#L238-L247) — `notify()` ловит err, пишет в лог, резолвится `void`.
+2. [packages/server/src/app/deps.ts:373](../../../packages/server/src/app/deps.ts#L373) — `setBotNotify((t) => bot.notify(t))`.
+3. [packages/agent/src/mcp/executor/index.ts:76-87](../../../packages/agent/src/mcp/executor/index.ts#L76-L87) — `tgSendMessage()` `await this.botNotify(text)` никогда не бросает → `return { success: true }`.
 4. Registry tool `tg_send_message` видит `{ success: true }` → модель считает доставку успешной.
 
 ## Файлы
 
-- [packages/agent/packages/agent/src/telegram/bot/index.ts](../../../packages/agent/packages/agent/src/telegram/bot/index.ts) — добавить `notifyOrThrow(text)`.
-- [packages/server/packages/server/src/app/deps.ts](../../../packages/server/packages/server/src/app/deps.ts) — привязать `setBotNotify` к `notifyOrThrow`.
-- [packages/agent/packages/agent/src/mcp/executor/index.ts](../../../packages/agent/packages/agent/src/mcp/executor/index.ts) — корректно обернуть throwing `botNotify`.
-- [packages/agent/packages/agent/src/mcp/registry/telegram.tools.ts](../../../packages/agent/packages/agent/src/mcp/registry/telegram.tools.ts) — handler `tg_send_message` конвертирует throw в `ToolResult { ok: false, error: { code: "tg_delivery_failed", message } }`.
+- [packages/agent/src/telegram/bot/index.ts](../../../packages/agent/src/telegram/bot/index.ts) — добавить `notifyOrThrow(text)`.
+- [packages/server/src/app/deps.ts](../../../packages/server/src/app/deps.ts) — привязать `setBotNotify` к `notifyOrThrow`.
+- [packages/agent/src/mcp/executor/index.ts](../../../packages/agent/src/mcp/executor/index.ts) — корректно обернуть throwing `botNotify`.
+- [packages/agent/src/mcp/registry/telegram.tools.ts](../../../packages/agent/src/mcp/registry/telegram.tools.ts) — handler `tg_send_message` конвертирует throw в `ToolResult { ok: false, error: { code: "tg_delivery_failed", message } }`.
 
 ## Изменение
 
@@ -53,8 +53,8 @@ Tool-runner сериализует `ToolResult` в строку, агент ви
 
 - [x] `bunx tsc --noEmit` = 0.
 - [x] Новые тесты зелёные (`tests/telegram-notify.test.ts`, `tests/tg-send-tool.test.ts`, 10/10 pass).
-- [x] `grep -n 'this.botNotify(text)' packages/agent/packages/agent/src/mcp/executor/index.ts` показывает корректный `try/catch` (не пустой).
-- [x] `grep -n 'bot.notify(text)' packages/server/packages/server/src/app/deps.ts` заменён на `bot.notifyOrThrow(text)`.
+- [x] `grep -n 'this.botNotify(text)' packages/agent/src/mcp/executor/index.ts` показывает корректный `try/catch` (не пустой).
+- [x] `grep -n 'bot.notify(text)' packages/server/src/app/deps.ts` заменён на `bot.notifyOrThrow(text)`.
 - [x] TG-1 вычеркнут в [docs/02-audit.md](../../02-audit.md).
 
 ## Реализация — отличия от первоначального плана

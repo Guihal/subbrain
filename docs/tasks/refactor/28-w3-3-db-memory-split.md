@@ -14,7 +14,7 @@
 - `packages/core/src/db/tables/memory.ts`
 
 **Создать**:
-- `packages/core/packages/core/packages/core/src/db/tables/memory/index.ts` — `MemoryTable` orchestrator class (≤120 LOC). Конструктор + thin делегации в submodules.
+- `packages/core/src/db/tables/memory/index.ts` — `MemoryTable` orchestrator class (≤120 LOC). Конструктор + thin делегации в submodules.
 - `packages/core/src/db/tables/memory/insert.ts` — `insertContext(...)`, `insertArchive(...)`, `insertAgent(...)` (CRUD insert по 5 слоям). Pure functions taking `db` + params.
 - `packages/core/src/db/tables/memory/update.ts` — `updateContext(...)`, `updateArchive(...)`, `updateAgent(...)` + helpers (ALLOW maps for `updateRow`).
 - `packages/core/src/db/tables/memory/select.ts` — `getContext`, `getArchive`, `getAgent`, `listContext`, `listArchive`, `listAgent`, `count*` helpers.

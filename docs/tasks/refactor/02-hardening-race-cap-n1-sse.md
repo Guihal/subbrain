@@ -35,7 +35,7 @@
 
 ### HIGH-7 — batch vecSearch + кэш recency
 
-**Файл:** [packages/agent/packages/agent/src/rag/pipeline/index.ts](../../../packages/agent/packages/agent/src/rag/pipeline/index.ts)
+**Файл:** [packages/agent/src/rag/pipeline/index.ts](../../../packages/agent/src/rag/pipeline/index.ts)
 
 - Сейчас `vecSearch` делает по SELECT на каждый id → до 60 SELECT'ов на RAG-запрос.
 - Заменить на один `WHERE id IN (?,?,…)` (batch, параметризованный список).
@@ -45,7 +45,7 @@
 
 ### HIGH-9 — SSE write-after-close в `wrapStreamForChat`
 
-**Файл:** [packages/server/packages/server/src/routes/chat.ts](../../../packages/server/packages/server/src/routes/chat.ts), функция `wrapStreamForChat`
+**Файл:** [packages/server/src/routes/chat.ts](../../../packages/server/src/routes/chat.ts), функция `wrapStreamForChat`
 
 - Сейчас: клиент дисконнектится на 3-м chunk, но `db.updateChatMessage` продолжает писать остаток — в БД сохраняется частичный ответ.
 - Ввести флаг `isClosed` (замкнут на `signal.aborted || ws.closed`). После срабатывания — запретить `db.updateChatMessage`.
@@ -56,8 +56,8 @@
 
 - [packages/providers/src/rate-limiter.ts](../../../packages/providers/src/rate-limiter.ts)
 - [packages/core/src/lib/model-router.ts](../../../packages/core/src/lib/model-router.ts)
-- [packages/agent/packages/agent/src/rag/pipeline/index.ts](../../../packages/agent/packages/agent/src/rag/pipeline/index.ts)
-- [packages/server/packages/server/src/routes/chat.ts](../../../packages/server/packages/server/src/routes/chat.ts)
+- [packages/agent/src/rag/pipeline/index.ts](../../../packages/agent/src/rag/pipeline/index.ts)
+- [packages/server/src/routes/chat.ts](../../../packages/server/src/routes/chat.ts)
 - [packages/core/src/lib/errors.ts](../../../packages/core/src/lib/errors.ts) или аналог — новый `UpstreamExhaustedError`
 - `tests/rate-limiter.test.ts`, `tests/model-router.test.ts`, `tests/rag.test.ts`, `tests/chat-stream.test.ts`
 

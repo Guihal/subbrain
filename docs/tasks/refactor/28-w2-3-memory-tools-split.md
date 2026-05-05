@@ -12,17 +12,17 @@
 - `packages/agent/src/mcp/tools/memory-tools.ts`
 
 **Создать**:
-- `packages/agent/packages/agent/packages/agent/src/mcp/tools/memory/index.ts` — `MemoryTools` orchestrator class (≤150 LOC). Конструктор + setMemoryService + публичные методы как тонкие диспатчеры в submodules.
-- `packages/agent/packages/agent/packages/agent/src/mcp/tools/memory/read.ts` — `readMemory(memory, id, layer?)` (read all 5 layers: context/archive/shared/agent/log + delegated to memory.repo where possible). Возвращает `ToolResult`.
-- `packages/agent/packages/agent/packages/agent/src/mcp/tools/memory/write.ts` — `writeMemory(deps, params)` — самый большой кусок. Embed-first transactional shared writes (M-FINAL2 path + legacy `writeSharedAtomic` fallback). Внутри помощник `embedWithTimeout`. Категории: focus/shared/context/archive/agent. Использует `categoryToKind` + injected `memoryService` если есть.
-- `packages/agent/packages/agent/packages/agent/src/mcp/tools/memory/delete.ts` — `deleteMemory(memory, id, layer?)` — диспатч по слоям.
-- `packages/agent/packages/agent/packages/agent/src/mcp/tools/memory/search.ts` — `searchMemory(deps, params)` — FTS + vec поиск с rerank, работа с RAG.
-- `packages/agent/packages/agent/packages/agent/src/mcp/tools/memory/context-summary.ts` — `contextSummary(memory, sessionId)`.
-- `packages/agent/packages/agent/packages/agent/src/mcp/tools/memory/types.ts` — общие типы (если нужны), `EMBED_TIMEOUT_MS` константа, `embedWithTimeout` helper. Опционально — pure helpers могут жить в их модулях.
+- `packages/agent/src/mcp/tools/memory/index.ts` — `MemoryTools` orchestrator class (≤150 LOC). Конструктор + setMemoryService + публичные методы как тонкие диспатчеры в submodules.
+- `packages/agent/src/mcp/tools/memory/read.ts` — `readMemory(memory, id, layer?)` (read all 5 layers: context/archive/shared/agent/log + delegated to memory.repo where possible). Возвращает `ToolResult`.
+- `packages/agent/src/mcp/tools/memory/write.ts` — `writeMemory(deps, params)` — самый большой кусок. Embed-first transactional shared writes (M-FINAL2 path + legacy `writeSharedAtomic` fallback). Внутри помощник `embedWithTimeout`. Категории: focus/shared/context/archive/agent. Использует `categoryToKind` + injected `memoryService` если есть.
+- `packages/agent/src/mcp/tools/memory/delete.ts` — `deleteMemory(memory, id, layer?)` — диспатч по слоям.
+- `packages/agent/src/mcp/tools/memory/search.ts` — `searchMemory(deps, params)` — FTS + vec поиск с rerank, работа с RAG.
+- `packages/agent/src/mcp/tools/memory/context-summary.ts` — `contextSummary(memory, sessionId)`.
+- `packages/agent/src/mcp/tools/memory/types.ts` — общие типы (если нужны), `EMBED_TIMEOUT_MS` константа, `embedWithTimeout` helper. Опционально — pure helpers могут жить в их модулях.
 
 **Сохранить**:
 - Все существующие импорты `MemoryTools` (через `~/mcp/tools/memory` или ./memory) — auto-resolve через `index.ts`.
-- `packages/agent/packages/agent/packages/agent/src/mcp/tools/index.ts` или barrel — добавить re-export если был.
+- `packages/agent/src/mcp/tools/index.ts` или barrel — добавить re-export если был.
 
 **Trigger**: `scripts/check-file-size.ts` `"packages/agent/src/mcp/tools/memory-tools.ts": 473` → удалить.
 
@@ -39,7 +39,7 @@
 4. Inline комментарии MEM-2 (M-01), M-FINAL2, M-07.1 — переехать в `index.ts` JSDoc на класс + соответствующие модули (`write.ts` берёт основную часть).
 5. Сохранить `setMemoryService` как mutator на класс (нужно для `ToolExecutor.setMemoryService`).
 6. Проверить consumers: `grep -rn 'memory-tools\|MemoryTools' src/`. Любые `import { MemoryTools } from "...memory-tools"` → переключить на `...mcp/tools/memory` (через barrel).
-7. `packages/agent/packages/agent/src/mcp/executor/index.ts` — вероятно главный consumer. Изменить только если изменился import path; не редактировать логику (это отдельный PR W3-6).
+7. `packages/agent/src/mcp/executor/index.ts` — вероятно главный consumer. Изменить только если изменился import path; не редактировать логику (это отдельный PR W3-6).
 
 ## Тесты
 

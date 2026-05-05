@@ -12,7 +12,7 @@ Phase 5 adds OpenTelemetry instrumentation across the request →
 pre → main → tools → post → writes pipeline, exports traces to a single chosen
 backend (Langfuse OR Laminar), and exposes a cost/latency summary endpoint.
 
-The existing `metrics_log` table and `packages/core/packages/core/src/lib/metrics.ts` aggregator are NOT
+The existing `metrics_log` table and `packages/core/src/lib/metrics.ts` aggregator are NOT
 replaced — OTel runs alongside them. The summary endpoint reads `metrics_log`.
 
 ## Non-goals (apply to every packet below)
@@ -41,15 +41,15 @@ P5-2..P5-5 may run in parallel after P5-2 lands. P5-6 waits on P5-1 + P5-2.
 
 ## Glossary (shared)
 
-- **request_id** — id stamped on every request in `packages/server/packages/server/packages/server/src/routes/chat.ts`; reused
+- **request_id** — id stamped on every request in `packages/server/src/routes/chat.ts`; reused
   across pipeline phases for Layer 4 partitioning.
-- **virtual role** — value from `packages/core/packages/core/src/lib/model-map.ts` (`teamlead`, `coder`,
+- **virtual role** — value from `packages/core/src/lib/model-map.ts` (`teamlead`, `coder`,
   `critic`, `generalist`, `flash`, `chaos`, `memory`).
 - **phase** — one of `pre | main | post | room | stream | direct`
-  (files in `packages/agent/packages/agent/src/pipeline/agent-pipeline/phases/*.ts`).
-- **step** — one iteration of the agent loop (`packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/step.ts`).
-- **tool call** — dispatch in `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/tool-dispatch.ts`.
-- **metrics_log** — existing SQLite table (`packages/core/packages/core/src/db/schema.ts:218`) holding
+  (files in `packages/agent/src/pipeline/agent-pipeline/phases/*.ts`).
+- **step** — one iteration of the agent loop (`packages/agent/src/pipeline/agent-loop/step.ts`).
+- **tool call** — dispatch in `packages/agent/src/pipeline/agent-loop/tool-dispatch.ts`.
+- **metrics_log** — existing SQLite table (`packages/core/src/db/schema.ts:218`) holding
   JSON snapshots written by `packages/core/src/lib/metrics.ts:93`.
 
 ---
@@ -76,7 +76,7 @@ P5-2..P5-5 may run in parallel after P5-2 lands. P5-6 waits on P5-1 + P5-2.
     "docs/specs/subbrain-main.md:490-504",
     "docs/tasks/agent-teams/04-observability.md",
     "CLAUDE.md",
-    "packages/core/packages/core/src/db/schema.ts:218-224",
+    "packages/core/src/db/schema.ts:218-224",
     "packages/core/src/lib/metrics.ts"
   ],
   "risk_tier": "public-api",
@@ -121,12 +121,12 @@ P5-2..P5-5 may run in parallel after P5-2 lands. P5-6 waits on P5-1 + P5-2.
   ],
   "allowed_write_paths": [
     "packages/core/src/lib/telemetry.ts",
-    "packages/server/packages/server/src/app/bootstrap.ts",
+    "packages/server/src/app/bootstrap.ts",
     "package.json",
     ".env.example"
   ],
   "read_context": [
-    "packages/server/packages/server/src/app/bootstrap.ts",
+    "packages/server/src/app/bootstrap.ts",
     "packages/core/src/lib/logger.ts",
     "package.json",
     "docs/tasks/agent-teams/04-observability.md"
@@ -142,7 +142,7 @@ P5-2..P5-5 may run in parallel after P5-2 lands. P5-6 waits on P5-1 + P5-2.
     "bun -e \"import('@opentelemetry/sdk-node').then(()=>process.exit(0)).catch(e=>{console.error(e);process.exit(1)})\"",
     "bun run scripts/check-file-size.ts",
     "bun run scripts/check-deep-imports.ts",
-    "grep -F 'initTelemetry' packages/server/packages/server/src/app/bootstrap.ts"
+    "grep -F 'initTelemetry' packages/server/src/app/bootstrap.ts"
   ],
   "diff_budget_loc": 200,
   "file_count_max": 4,
@@ -175,25 +175,25 @@ P5-2..P5-5 may run in parallel after P5-2 lands. P5-6 waits on P5-1 + P5-2.
     "Do not skip a phase file — all five must be instrumented."
   ],
   "allowed_write_paths": [
-    "packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/phases/pre.ts",
-    "packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/phases/main.ts",
-    "packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/phases/post.ts",
-    "packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/phases/room.ts",
-    "packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/phases/stream.ts"
+    "packages/agent/src/pipeline/agent-pipeline/phases/pre.ts",
+    "packages/agent/src/pipeline/agent-pipeline/phases/main.ts",
+    "packages/agent/src/pipeline/agent-pipeline/phases/post.ts",
+    "packages/agent/src/pipeline/agent-pipeline/phases/room.ts",
+    "packages/agent/src/pipeline/agent-pipeline/phases/stream.ts"
   ],
   "read_context": [
-    "packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/phases/pre.ts",
-    "packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/phases/main.ts",
-    "packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/phases/post.ts",
-    "packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/phases/room.ts",
-    "packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/phases/stream.ts",
+    "packages/agent/src/pipeline/agent-pipeline/phases/pre.ts",
+    "packages/agent/src/pipeline/agent-pipeline/phases/main.ts",
+    "packages/agent/src/pipeline/agent-pipeline/phases/post.ts",
+    "packages/agent/src/pipeline/agent-pipeline/phases/room.ts",
+    "packages/agent/src/pipeline/agent-pipeline/phases/stream.ts",
     "packages/core/src/lib/telemetry.ts"
   ],
   "risk_tier": "ordinary",
   "acceptance": [
-    "grep -lF 'getTracer' packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/phases/pre.ts packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/phases/main.ts packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/phases/post.ts packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/phases/room.ts packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/phases/stream.ts | wc -l | awk '{ exit ($1==5)?0:1 }'",
-    "grep -RhE \"subbrain\\.pipeline\\.(pre|main|post|room|stream)\" packages/agent/packages/agent/src/pipeline/agent-pipeline/phases | wc -l | awk '{ exit ($1>=5)?0:1 }'",
-    "grep -RhF 'subbrain.request_id' packages/agent/packages/agent/src/pipeline/agent-pipeline/phases | wc -l | awk '{ exit ($1>=5)?0:1 }'",
+    "grep -lF 'getTracer' packages/agent/src/pipeline/agent-pipeline/phases/pre.ts packages/agent/src/pipeline/agent-pipeline/phases/main.ts packages/agent/src/pipeline/agent-pipeline/phases/post.ts packages/agent/src/pipeline/agent-pipeline/phases/room.ts packages/agent/src/pipeline/agent-pipeline/phases/stream.ts | wc -l | awk '{ exit ($1==5)?0:1 }'",
+    "grep -RhE \"subbrain\\.pipeline\\.(pre|main|post|room|stream)\" packages/agent/src/pipeline/agent-pipeline/phases | wc -l | awk '{ exit ($1>=5)?0:1 }'",
+    "grep -RhF 'subbrain.request_id' packages/agent/src/pipeline/agent-pipeline/phases | wc -l | awk '{ exit ($1>=5)?0:1 }'",
     "bunx tsc --noEmit",
     "bun run scripts/check-file-size.ts",
     "bun run scripts/check-deep-imports.ts"
@@ -230,22 +230,22 @@ P5-2..P5-5 may run in parallel after P5-2 lands. P5-6 waits on P5-1 + P5-2.
     "Do not auto-instrument http/fetch — only the listed call sites get spans."
   ],
   "allowed_write_paths": [
-    "packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/step.ts",
-    "packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/tool-runner.ts"
+    "packages/agent/src/pipeline/agent-loop/step.ts",
+    "packages/agent/src/pipeline/agent-loop/tool-runner.ts"
   ],
   "read_context": [
-    "packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/step.ts",
-    "packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/tool-runner.ts",
-    "packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/tool-dispatch.ts",
-    "packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/types.ts",
+    "packages/agent/src/pipeline/agent-loop/step.ts",
+    "packages/agent/src/pipeline/agent-loop/tool-runner.ts",
+    "packages/agent/src/pipeline/agent-loop/tool-dispatch.ts",
+    "packages/agent/src/pipeline/agent-loop/types.ts",
     "packages/core/src/lib/telemetry.ts"
   ],
   "risk_tier": "ordinary",
   "acceptance": [
-    "grep -F 'subbrain.agent.step' packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/step.ts",
-    "grep -F 'subbrain.tool.call' packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/tool-runner.ts",
-    "grep -E 'SpanStatusCode\\.ERROR|setStatus' packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/tool-runner.ts",
-    "grep -F 'subbrain.tool.name' packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/tool-runner.ts",
+    "grep -F 'subbrain.agent.step' packages/agent/src/pipeline/agent-loop/step.ts",
+    "grep -F 'subbrain.tool.call' packages/agent/src/pipeline/agent-loop/tool-runner.ts",
+    "grep -E 'SpanStatusCode\\.ERROR|setStatus' packages/agent/src/pipeline/agent-loop/tool-runner.ts",
+    "grep -F 'subbrain.tool.name' packages/agent/src/pipeline/agent-loop/tool-runner.ts",
     "bunx tsc --noEmit",
     "bun run scripts/check-file-size.ts",
     "bun run scripts/check-deep-imports.ts"
@@ -260,8 +260,8 @@ P5-2..P5-5 may run in parallel after P5-2 lands. P5-6 waits on P5-1 + P5-2.
     "Agent-loop instrumentation contradicts existing tool-runner or step.ts semantics — FAIL: spec contradicts code, list mismatch."
   ],
   "glossary": {
-    "Step": "One iteration of the agent loop in packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/step.ts.",
-    "Tool dispatch": "The executeAgentTool function in packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/tool-runner.ts:130-198 that resolves registry → dynamic → code-tools."
+    "Step": "One iteration of the agent loop in packages/agent/src/pipeline/agent-loop/step.ts.",
+    "Tool dispatch": "The executeAgentTool function in packages/agent/src/pipeline/agent-loop/tool-runner.ts:130-198 that resolves registry → dynamic → code-tools."
   }
 }
 ```
@@ -282,25 +282,25 @@ P5-2..P5-5 may run in parallel after P5-2 lands. P5-6 waits on P5-1 + P5-2.
     "Do not mount the route before authMiddleware."
   ],
   "allowed_write_paths": [
-    "packages/server/packages/server/src/routes/metrics.ts",
-    "packages/server/packages/server/src/app/bootstrap.ts",
+    "packages/server/src/routes/metrics.ts",
+    "packages/server/src/app/bootstrap.ts",
     "tests/metrics-runs.test.ts"
   ],
   "read_context": [
-    "packages/core/packages/core/src/db/schema.ts:215-225",
+    "packages/core/src/db/schema.ts:215-225",
     "packages/core/src/lib/metrics.ts",
     "packages/core/src/lib/metrics/snapshot.ts",
-    "packages/server/packages/server/src/routes/freelance.ts",
+    "packages/server/src/routes/freelance.ts",
     "packages/core/src/lib/api-envelope.ts",
-    "packages/server/packages/server/src/app/bootstrap.ts"
+    "packages/server/src/app/bootstrap.ts"
   ],
   "risk_tier": "public-api",
   "acceptance": [
-    "test -f packages/server/packages/server/src/routes/metrics.ts",
-    "grep -E \"'/v1/metrics/runs'|\\\"/v1/metrics/runs\\\"\" packages/server/packages/server/src/routes/metrics.ts",
-    "grep -F 'authMiddleware' packages/server/packages/server/src/app/bootstrap.ts",
-    "grep -F 'metrics_log' packages/server/packages/server/src/routes/metrics.ts",
-    "grep -E 'from *> *to|from>to|400' packages/server/packages/server/src/routes/metrics.ts",
+    "test -f packages/server/src/routes/metrics.ts",
+    "grep -E \"'/v1/metrics/runs'|\\\"/v1/metrics/runs\\\"\" packages/server/src/routes/metrics.ts",
+    "grep -F 'authMiddleware' packages/server/src/app/bootstrap.ts",
+    "grep -F 'metrics_log' packages/server/src/routes/metrics.ts",
+    "grep -E 'from *> *to|from>to|400' packages/server/src/routes/metrics.ts",
     "bunx tsc --noEmit",
     "bun test tests/metrics-runs.test.ts",
     "bun run scripts/check-file-size.ts",
@@ -308,7 +308,7 @@ P5-2..P5-5 may run in parallel after P5-2 lands. P5-6 waits on P5-1 + P5-2.
   ],
   "diff_budget_loc": 250,
   "file_count_max": 3,
-  "rollback": "Delete packages/server/packages/server/src/routes/metrics.ts and tests/metrics-runs.test.ts; revert the bootstrap.ts mount hunk.",
+  "rollback": "Delete packages/server/src/routes/metrics.ts and tests/metrics-runs.test.ts; revert the bootstrap.ts mount hunk.",
   "escalation_triggers": [
     "metrics_log snapshot JSON has only `models` field (no per-role or per-provider breakdown in current MetricsSnapshot) — that is expected; map `models` to `by_model`. If caller demands by_role/by_provider, escalate as separate schema-tier PR; do NOT invent fields here.",
     "No timingSafeEqual auth helper available for the route — escalate, do not roll a custom compare.",

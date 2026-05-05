@@ -18,7 +18,7 @@
 
 ### 1. Night-cycle Step 11 — pruneCompletedTasks
 
-**File:** `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/prune/tasks.ts` (new, ≤200 lines). По аналогии с `prune/shared.ts` и `prune/context.ts` (уже существуют, см. ревизию 01:29 в `~/vault/RLM/Daily/2026-04-22.md`).
+**File:** `packages/agent/src/pipeline/night-cycle/prune/tasks.ts` (new, ≤200 lines). По аналогии с `prune/shared.ts` и `prune/context.ts` (уже существуют, см. ревизию 01:29 в `~/vault/RLM/Daily/2026-04-22.md`).
 
 ```ts
 export async function pruneCompletedTasks(
@@ -93,7 +93,7 @@ export async function pruneCompletedTasks(
 
 ### 2. Call в night-cycle
 
-**File:** `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/index.ts`. Добавить Step 11 после `pruneFocus`:
+**File:** `packages/agent/src/pipeline/night-cycle/index.ts`. Добавить Step 11 после `pruneFocus`:
 
 ```ts
 log.info("Pruning completed tasks…");
@@ -108,7 +108,7 @@ try {
 }
 ```
 
-**File:** `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/types.ts` — добавить `tasksPruned: number` в `NightCycleResult`.
+**File:** `packages/agent/src/pipeline/night-cycle/types.ts` — добавить `tasksPruned: number` в `NightCycleResult`.
 
 ### 3. ISO-week edge case docs
 
@@ -152,7 +152,7 @@ bun run scripts/rollback-migration.ts scripts/migration-log/tasks-YYYY-MM-DD.jso
 
 Same LLM-классификация, но за **новые** записи в shared/context (не при initial migration). Вызывается раз в ночь после Step 11.
 
-**File:** `packages/agent/packages/agent/src/pipeline/night-cycle/prune/stray-tasks.ts` (new). Logic:
+**File:** `packages/agent/src/pipeline/night-cycle/prune/stray-tasks.ts` (new). Logic:
 - SELECT shared/context rows созданные с last night-cycle (через `night_cycle_last_processed_id` focus key).
 - Apply тот же regex filter + blacklist как migration.
 - LLM classify → migrate/keep.
@@ -160,7 +160,7 @@ Same LLM-классификация, но за **новые** записи в sh
 
 ### 6. /v1/tasks/history теперь показывает digests
 
-Уже есть REST `GET /v1/tasks/history` в [packages/server/packages/server/src/routes/tasks.ts](../../../packages/server/packages/server/src/routes/tasks.ts) — возвращает live `done|cancelled` за 7d. Phase 5 расширяет: также merge `layer3_archive WHERE tags LIKE '%tasks,digest,%'`. Фильтр по scope — через parsing контента или через metadata row (task digests не привязаны к одному scope). Простое решение: history возвращает union {live, digests}, клиент группирует.
+Уже есть REST `GET /v1/tasks/history` в [packages/server/src/routes/tasks.ts](../../../packages/server/src/routes/tasks.ts) — возвращает live `done|cancelled` за 7d. Phase 5 расширяет: также merge `layer3_archive WHERE tags LIKE '%tasks,digest,%'`. Фильтр по scope — через parsing контента или через metadata row (task digests не привязаны к одному scope). Простое решение: history возвращает union {live, digests}, клиент группирует.
 
 **Patch:**
 ```ts
@@ -233,7 +233,7 @@ curl http://localhost:4000/night-cycle/status
 
 ## Guardrails reminder
 
-- `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/prune/tasks.ts` ≤ 250.
+- `packages/agent/src/pipeline/night-cycle/prune/tasks.ts` ≤ 250.
 - `db.transaction()` для digest + delete atomicity. Embed — outside tx (retry-safe).
 - `logger.child("night.prune")`.
 - Migration script: `Bun.file()` / `Bun.write()` для JSONL (line-append via `.stream()` или `writeFile(..., {append:true})`).
@@ -241,5 +241,5 @@ curl http://localhost:4000/night-cycle/status
 
 ## Что изменяется в git
 
-Новые: `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/prune/tasks.ts`, `packages/agent/packages/agent/src/pipeline/night-cycle/prune/stray-tasks.ts`, `scripts/migrate-tasks-from-memory.ts`, `scripts/rollback-migration.ts`, `tests/tasks-retention.test.ts`, `tests/migrate-tasks-from-memory.test.ts`, `docs/night-cycle.md` (или update).
-Modified: `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/index.ts` (Step 11+12), `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/types.ts` (tasksPruned field), `packages/server/packages/server/packages/server/src/routes/tasks.ts` (/history включает digests).
+Новые: `packages/agent/src/pipeline/night-cycle/prune/tasks.ts`, `packages/agent/src/pipeline/night-cycle/prune/stray-tasks.ts`, `scripts/migrate-tasks-from-memory.ts`, `scripts/rollback-migration.ts`, `tests/tasks-retention.test.ts`, `tests/migrate-tasks-from-memory.test.ts`, `docs/night-cycle.md` (или update).
+Modified: `packages/agent/src/pipeline/night-cycle/index.ts` (Step 11+12), `packages/agent/src/pipeline/night-cycle/types.ts` (tasksPruned field), `packages/server/src/routes/tasks.ts` (/history включает digests).

@@ -18,12 +18,12 @@ Foundation:
 
 ## Файлы (scope-lock)
 
-- `packages/core/packages/core/packages/core/src/db/schema.ts` — Migration 16: `CREATE TABLE layer1_focus_shadow (key TEXT PRIMARY KEY, value TEXT, updated_at INTEGER)`. NO triggers, NO FTS — shadow only mirror.
+- `packages/core/src/db/schema.ts` — Migration 16: `CREATE TABLE layer1_focus_shadow (key TEXT PRIMARY KEY, value TEXT, updated_at INTEGER)`. NO triggers, NO FTS — shadow only mirror.
 - `packages/core/src/db/tables/memory.ts` — добавить методы `getShadowFocus(key) / setShadowFocus(key, value) / getAllShadowFocus() / clearShadowFocus()`. Mirror existing focus API. `updateRow`-pattern не применяется (KV).
 - `packages/core/src/repositories/memory.repo.ts` — pass-through для shadow API.
-- `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/steps/focus-rewrite.ts` — **NEW** ≤200 LOC. Step `runFocusRewrite(deps): Promise<FocusRewriteResult>` где `{ rewritten, skipped, errors }`.
-- `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/post-steps.ts` — wire `runFocusRewrite` ПОСЛЕ `pruneFocus` (prune первый, потом rewrite — иначе rewrite пишет в shadow, который потом prune не видит на real).
-- `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/types.ts` — `FocusRewriteResult` interface.
+- `packages/agent/src/pipeline/night-cycle/steps/focus-rewrite.ts` — **NEW** ≤200 LOC. Step `runFocusRewrite(deps): Promise<FocusRewriteResult>` где `{ rewritten, skipped, errors }`.
+- `packages/agent/src/pipeline/night-cycle/post-steps.ts` — wire `runFocusRewrite` ПОСЛЕ `pruneFocus` (prune первый, потом rewrite — иначе rewrite пишет в shadow, который потом prune не видит на real).
+- `packages/agent/src/pipeline/night-cycle/types.ts` — `FocusRewriteResult` interface.
 - `tests/night-cycle-focus-rewrite.test.ts` — **NEW** ≤300 LOC. ≥6 кейсов.
 - `docs/02-audit.md` — `### MEM-19 ✅ sleep-time focus block rewrite (закрыто M-11)`.
 - `docs/tasks/memory-v2/M-11-sleep-time-focus-rewrite.md` (этот) — Status DONE.
@@ -170,8 +170,8 @@ Test DB = `data/test-mem11-focus-rewrite.db`.
 2. `bun test tests/night-cycle-focus-rewrite.test.ts` → all green.
 3. `bun test` → ≥777 pass, 0 fail (770 baseline + ≥7 new).
 4. `bun -e 'import {MemoryDB} from "./src/db"; const m=new MemoryDB("data/test-mfinal-mig16.db"); console.log(m.db.query("PRAGMA user_version").get()); m.close()'` → `{ user_version: 16 }`.
-5. `grep -n "runFocusRewrite\|FOCUS_REWRITE\|layer1_focus_shadow" packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/steps/focus-rewrite.ts` → ≥3 hits.
-6. `grep -n "layer1_focus_shadow" packages/core/packages/core/src/db/schema.ts packages/core/src/db/tables/memory.ts` → ≥3 hits (CREATE + методы).
+5. `grep -n "runFocusRewrite\|FOCUS_REWRITE\|layer1_focus_shadow" packages/agent/src/pipeline/night-cycle/steps/focus-rewrite.ts` → ≥3 hits.
+6. `grep -n "layer1_focus_shadow" packages/core/src/db/schema.ts packages/core/src/db/tables/memory.ts` → ≥3 hits (CREATE + методы).
 7. M-11 plan file Status: DONE.
 8. MEM-19 entry в `docs/02-audit.md`.
 

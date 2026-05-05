@@ -7,14 +7,14 @@
 ## Цель
 
 Разнести три толстых файла:
-- [packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/index.ts](../../../packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/index.ts) (~422 строки) — оркестратор.
-- [packages/agent/packages/agent/src/pipeline/agent-pipeline/post-processing.ts](../../../packages/agent/packages/agent/src/pipeline/agent-pipeline/post-processing.ts) (~402 строки) — две ответственности (агентский цикл + extractors).
-- [packages/agent/packages/agent/src/pipeline/agent-pipeline/pre-processing.ts](../../../packages/agent/packages/agent/src/pipeline/agent-pipeline/pre-processing.ts) (~334 строки).
+- [packages/agent/src/pipeline/agent-pipeline/index.ts](../../../packages/agent/src/pipeline/agent-pipeline/index.ts) (~422 строки) — оркестратор.
+- [packages/agent/src/pipeline/agent-pipeline/post-processing.ts](../../../packages/agent/src/pipeline/agent-pipeline/post-processing.ts) (~402 строки) — две ответственности (агентский цикл + extractors).
+- [packages/agent/src/pipeline/agent-pipeline/pre-processing.ts](../../../packages/agent/src/pipeline/agent-pipeline/pre-processing.ts) (~334 строки).
 
 ## Целевая структура
 
 ```
-packages/agent/packages/agent/src/pipeline/agent-pipeline/
+packages/agent/src/pipeline/agent-pipeline/
 ├── index.ts                    # ≤100: AgentPipeline.execute() оркестратор
 ├── phases/
 │   ├── pre.ts                  # фаса pre-processing (агрегатор pre/*)
@@ -101,9 +101,9 @@ export class AgentPipeline {
 
 ## Файлы
 
-- [packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/index.ts](../../../packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/index.ts) (сократить)
-- [packages/agent/packages/agent/src/pipeline/agent-pipeline/post-processing.ts](../../../packages/agent/packages/agent/src/pipeline/agent-pipeline/post-processing.ts) (удалить, content разнесён)
-- [packages/agent/packages/agent/src/pipeline/agent-pipeline/pre-processing.ts](../../../packages/agent/packages/agent/src/pipeline/agent-pipeline/pre-processing.ts) (удалить, content разнесён)
+- [packages/agent/src/pipeline/agent-pipeline/index.ts](../../../packages/agent/src/pipeline/agent-pipeline/index.ts) (сократить)
+- [packages/agent/src/pipeline/agent-pipeline/post-processing.ts](../../../packages/agent/src/pipeline/agent-pipeline/post-processing.ts) (удалить, content разнесён)
+- [packages/agent/src/pipeline/agent-pipeline/pre-processing.ts](../../../packages/agent/src/pipeline/agent-pipeline/pre-processing.ts) (удалить, content разнесён)
 - Новые файлы: `phases/pre.ts`, `phases/main.ts`, `phases/post.ts`, `phases/direct-mode.ts`, `pre/exec-summary.ts`, `pre/rag-inject.ts`, `pre/focus-inject.ts`, `post/hippocampus.ts`, `post/extractors.ts`, `post/gate.ts`
 - Тесты выше.
 - [docs/completed/06-agent-pipeline.md](../../completed/06-agent-pipeline.md) — обновить под новую структуру.
@@ -127,6 +127,6 @@ export class AgentPipeline {
 
 - [ ] `bunx tsc --noEmit` = 0.
 - [ ] `bun test` зелёные.
-- [ ] `wc -l packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/index.ts` ≤ 100.
+- [ ] `wc -l packages/agent/src/pipeline/agent-pipeline/index.ts` ≤ 100.
 - [ ] Все файлы в `agent-pipeline/` ≤ 250 строк.
 - [ ] `bun run tests/integration.live.ts` end-to-end проходит (особенно: чат через pipeline создаёт записи в `shared_memory` через hippocampus).

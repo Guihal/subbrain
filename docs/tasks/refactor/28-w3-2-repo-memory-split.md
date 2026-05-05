@@ -14,7 +14,7 @@
 - `packages/core/src/repositories/memory.repo.ts`
 
 **Создать**:
-- `packages/core/packages/core/packages/core/src/repositories/memory/index.ts` — `MemoryRepository` orchestrator (≤120 LOC).
+- `packages/core/src/repositories/memory/index.ts` — `MemoryRepository` orchestrator (≤120 LOC).
 - `packages/core/src/repositories/memory/queries.ts` — non-search query proxies (CRUD: get/insert/update/delete по 5 слоям, batch operations).
 - `packages/core/src/repositories/memory/search-shared.ts` — `searchShared` + `searchSharedFts` + rerank wiring (если есть).
 - `packages/core/src/repositories/memory/search-context.ts` — `searchContext` + `searchContextFts`.

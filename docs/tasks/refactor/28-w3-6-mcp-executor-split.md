@@ -6,20 +6,20 @@
 
 ## Цель
 
-Разбить `packages/agent/packages/agent/src/mcp/executor/index.ts` (361 LOC) на split-folder. Public API = `ToolExecutor` class.
+Разбить `packages/agent/src/mcp/executor/index.ts` (361 LOC) на split-folder. Public API = `ToolExecutor` class.
 
 ## Файлы
 
 **Удалить**:
-- `packages/agent/packages/agent/src/mcp/executor/index.ts`
+- `packages/agent/src/mcp/executor/index.ts`
 
 **Создать**:
-- `packages/agent/packages/agent/packages/agent/src/mcp/executor/index.ts` — `ToolExecutor` orchestrator class (≤120 LOC). State (memory, registry, dynamicTools, codeTools) + thin делегации.
+- `packages/agent/src/mcp/executor/index.ts` — `ToolExecutor` orchestrator class (≤120 LOC). State (memory, registry, dynamicTools, codeTools) + thin делегации.
 - `packages/agent/src/mcp/executor/dispatch.ts` — `dispatch(name, args, ctx)` — priority array of resolvers (registry → dynamic → code-tools).
 - `packages/agent/src/mcp/executor/context.ts` — `buildExecCtx({...})` builder + AgentContext discriminated union helpers (если есть).
 - `packages/agent/src/mcp/executor/wiring.ts` — `setMemoryService`, `setRouter`, `setRoom`, `setDynamicTools`, `setCodeTools` setters (config phase).
 
-**Trigger**: `scripts/check-file-size.ts` `"packages/agent/packages/agent/src/mcp/executor/index.ts": 362` → удалить.
+**Trigger**: `scripts/check-file-size.ts` `"packages/agent/src/mcp/executor/index.ts": 362` → удалить.
 
 ## Изменение
 

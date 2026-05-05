@@ -7,7 +7,7 @@
 
 ## Контекст schema-state (важно для миграции)
 
-`packages/core/packages/core/packages/core/src/db/schema.ts` уже содержит миграции до `PRAGMA user_version = 16` (последняя — telegram chats schema). PR-A не добавлял миграций (только tighten validators), так что после merge PR-B следующий свободный номер — **17**. Pre-check ниже обязан подтвердить это перед стартом.
+`packages/core/src/db/schema.ts` уже содержит миграции до `PRAGMA user_version = 16` (последняя — telegram chats schema). PR-A не добавлял миграций (только tighten validators), так что после merge PR-B следующий свободный номер — **17**. Pre-check ниже обязан подтвердить это перед стартом.
 
 ## Цель
 
@@ -37,13 +37,13 @@ git log -1 --format='%s' main | grep -qE 'merge\(PR-B\)' && echo "PR-B ok" || ec
 
 **Allowed actions** (только эти):
 - Создать новые файлы: `packages/core/src/db/tables/agent-tasks.ts`, `packages/core/src/repositories/agent-tasks.repo.ts`, `packages/core/src/db/tables/agent-tasks/types.ts`, `tests/agent-tasks-repo.test.ts`, `tests/migration-17.test.ts`.
-- Edit `packages/core/packages/core/packages/core/src/db/schema.ts` — добавить `migration_17_agent_tasks` в migrations array (после migration_16), **не трогать** существующие migration функции.
-- Edit `packages/core/packages/core/packages/core/src/db/index.ts` — добавить `agentTasksRepo` поле + конструктор wire-up. **НЕ менять** другие repo / public API.
+- Edit `packages/core/src/db/schema.ts` — добавить `migration_17_agent_tasks` в migrations array (после migration_16), **не трогать** существующие migration функции.
+- Edit `packages/core/src/db/index.ts` — добавить `agentTasksRepo` поле + конструктор wire-up. **НЕ менять** другие repo / public API.
 - `bunx tsc --noEmit`, `bun test`, `bun run scripts/check-file-size.ts`.
 - `git add` ТОЛЬКО перечисленных файлов. `git commit -m "feat(db): add agent_tasks table + repo (PR-C1)"`.
 
 **Hard NO-GO:**
-- НЕ редактировать `packages/agent/packages/agent/packages/agent/src/scheduler/free-agent.ts`, `packages/agent/src/pipeline/**`, `packages/agent/src/mcp/**`, `packages/agent/src/services/**` — это PR-C2/C3.
+- НЕ редактировать `packages/agent/src/scheduler/free-agent.ts`, `packages/agent/src/pipeline/**`, `packages/agent/src/mcp/**`, `packages/agent/src/services/**` — это PR-C2/C3.
 - НЕ создавать `done_with_artifact` MCP tool, runner-engine, pool — это PR-C2.
 - НЕ переименовывать существующие таблицы / migrations / индексы.
 - НЕ менять `PRAGMA user_version` если уже ≥17 (конфликт миграций — STOP, см. §Pre-check).
@@ -53,8 +53,8 @@ git log -1 --format='%s' main | grep -qE 'merge\(PR-B\)' && echo "PR-B ok" || ec
 
 **Diff boundary:** `git diff --name-only HEAD~1..HEAD` после commit MUST содержать ровно эти файлы (5 new + 2 modified):
 ```
-packages/core/packages/core/src/db/index.ts
-packages/core/packages/core/src/db/schema.ts
+packages/core/src/db/index.ts
+packages/core/src/db/schema.ts
 packages/core/src/db/tables/agent-tasks.ts
 packages/core/src/db/tables/agent-tasks/types.ts
 packages/core/src/repositories/agent-tasks.repo.ts
@@ -67,11 +67,11 @@ tests/migration-17.test.ts
 
 ## Файлы
 
-- [packages/core/packages/core/src/db/schema.ts](../../../packages/core/packages/core/src/db/schema.ts) — migration entry: `migration_17_agent_tasks` (idempotent, после `migration_16`).
+- [packages/core/src/db/schema.ts](../../../packages/core/src/db/schema.ts) — migration entry: `migration_17_agent_tasks` (idempotent, после `migration_16`).
 - Новый [packages/core/src/db/tables/agent-tasks.ts](../../../packages/core/src/db/tables/agent-tasks.ts) (≤150 lines) — raw SQL + row→entity mapping. Только этот модуль ходит в SQL по `agent_tasks` и `idx_agent_tasks_pending`.
 - Новый [packages/core/src/repositories/agent-tasks.repo.ts](../../../packages/core/src/repositories/agent-tasks.repo.ts) (≤150 lines) — `AgentTasksRepository` фасад: `claim`, `listPending`, `getRunningOlderThan`, `complete`, `noop`, `fail`, `enqueue`, `markZombiesFailed`, `getDistribution24h`.
 - Новый [packages/core/src/db/tables/agent-tasks/types.ts](../../../packages/core/src/db/tables/agent-tasks/types.ts) (≤80 lines) — `AgentTaskRecord`, `AgentTaskStatus`, `AgentTaskType`, `EnqueueInput`.
-- [packages/core/packages/core/src/db/index.ts](../../../packages/core/packages/core/src/db/index.ts) — wire `AgentTasksRepository` instance в `MemoryDB` (поле `agentTasksRepo`).
+- [packages/core/src/db/index.ts](../../../packages/core/src/db/index.ts) — wire `AgentTasksRepository` instance в `MemoryDB` (поле `agentTasksRepo`).
 
 ## Изменение
 
@@ -289,7 +289,7 @@ Rollback: восстановить `.pre-mig9` snapshot.
 
 - В этой задаче нет интеграции с `MemoryService` / pool / runners — это PR-C2.
 - `done_with_artifact` MCP tool НЕ создаём здесь — PR-C2.
-- Free-agent ([packages/agent/packages/agent/src/scheduler/free-agent.ts](../../../packages/agent/packages/agent/src/scheduler/free-agent.ts)) НЕ удаляем — PR-C2 заменит legacy-bridge'ом.
+- Free-agent ([packages/agent/src/scheduler/free-agent.ts](../../../packages/agent/src/scheduler/free-agent.ts)) НЕ удаляем — PR-C2 заменит legacy-bridge'ом.
 
 ## Escape hatch
 

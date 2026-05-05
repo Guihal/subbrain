@@ -4,26 +4,26 @@
 
 ## Цель
 
-Разбить `packages/agent/packages/agent/src/rag/pipeline/index.ts` (699 LOC, transitional cap 700) на split-folder. Public API = `RAGPipeline` class + helpers. Whitelist: `rag/pipeline/index.ts:200`. **Bench invariants**: `scripts/bench-rag.ts` (новый, сохраняется в репо).
+Разбить `packages/agent/src/rag/pipeline/index.ts` (699 LOC, transitional cap 700) на split-folder. Public API = `RAGPipeline` class + helpers. Whitelist: `rag/pipeline/index.ts:200`. **Bench invariants**: `scripts/bench-rag.ts` (новый, сохраняется в репо).
 
 ## Файлы
 
 **Удалить**:
-- `packages/agent/packages/agent/src/rag/pipeline/index.ts`
+- `packages/agent/src/rag/pipeline/index.ts`
 
 **Создать**:
-- `packages/agent/packages/agent/packages/agent/src/rag/pipeline/index.ts` — `RAGPipeline` class (≤200 LOC, whitelist). Конструктор + публичные методы `embedContent`, `indexEntry`, `search`, `getRerankCallsPerSearch` (если есть metric).
+- `packages/agent/src/rag/pipeline/index.ts` — `RAGPipeline` class (≤200 LOC, whitelist). Конструктор + публичные методы `embedContent`, `indexEntry`, `search`, `getRerankCallsPerSearch` (если есть metric).
 - `packages/agent/src/rag/pipeline/forgetting.ts` — Ebbinghaus-like forgetting curve / time-decay scoring (если есть в текущем файле).
 - `packages/agent/src/rag/pipeline/boost-persona.ts` — persona-grade boost (+10% rerank weight для kind='persona').
 - `packages/agent/src/rag/pipeline/boost-salience.ts` — salience boost (по confidence / age).
-- `packages/agent/packages/agent/packages/agent/src/rag/pipeline/rrf.ts` — Reciprocal Rank Fusion для FTS + vec scores.
+- `packages/agent/src/rag/pipeline/rrf.ts` — Reciprocal Rank Fusion для FTS + vec scores.
 - `packages/agent/src/rag/pipeline/dedupe.ts` — dedup helpers (semantic + textual).
 - `packages/agent/src/rag/pipeline/rerank-call.ts` — NVIDIA NIM rerank вызов + counter (`rerank_calls_per_search` metric).
 
 **Создать**:
 - `scripts/bench-rag.ts` — benchmarks 100 итераций `rag.search` с фиксированными query+candidates. Логирует p50/p95/p99 latency + `rerank_calls_per_search`. **Регрессия p95 ≤5%**, rerank_calls_per_search неизменно.
 
-**Trigger**: `scripts/check-file-size.ts` row `"packages/agent/packages/agent/src/rag/pipeline/index.ts": 700` → удалить. Заменить на `"packages/agent/packages/agent/src/rag/pipeline/index.ts": 200` (CANONICAL_WHITELIST уже содержит).
+**Trigger**: `scripts/check-file-size.ts` row `"packages/agent/src/rag/pipeline/index.ts": 700` → удалить. Заменить на `"packages/agent/src/rag/pipeline/index.ts": 200` (CANONICAL_WHITELIST уже содержит).
 
 ## Изменение
 

@@ -10,7 +10,7 @@
 
 ### 23a — directMode триггерится не тем провайдером
 
-[packages/server/packages/server/src/routes/chat.ts:31-33](../../../packages/server/packages/server/src/routes/chat.ts#L31-L33) — `directMode = headers["x-direct-mode"] === "true" || router.isOverloaded`.
+[packages/server/src/routes/chat.ts:31-33](../../../packages/server/src/routes/chat.ts#L31-L33) — `directMode = headers["x-direct-mode"] === "true" || router.isOverloaded`.
 
 [packages/core/src/lib/model-router.ts:61-63](../../../packages/core/src/lib/model-router.ts#L61-L63) — `get isOverloaded` смотрит **только на NVIDIA** limiter (`availableSlots < 8`).
 
@@ -18,15 +18,15 @@
 
 ### 23b — startup требует недоступные провайдеры
 
-[packages/providers/packages/server/src/index.ts:23+](../../../packages/providers/packages/server/src/index.ts#L23) — создаёт `nvidia`, `openrouter`, `copilot` вне зависимости от того, используются ли они. Если в окружении нет `COPILOT_TOKEN` / `OPENROUTER_API_KEY` — сервер падает на старте.
+[packages/providers/src/index.ts:23+](../../../packages/providers/src/index.ts#L23) — создаёт `nvidia`, `openrouter`, `copilot` вне зависимости от того, используются ли они. Если в окружении нет `COPILOT_TOKEN` / `OPENROUTER_API_KEY` — сервер падает на старте.
 
 В текущей model-map-раскладке Copilot и OpenRouter нигде не primary, только как fallback → их фактически не вызывают, но ключи всё равно обязательны.
 
 ## Файлы
 
 - [packages/core/src/lib/model-router.ts](../../../packages/core/src/lib/model-router.ts) — `isOverloadedFor(provider)` + deprecation `isOverloaded`.
-- [packages/server/packages/server/src/routes/chat.ts](../../../packages/server/packages/server/src/routes/chat.ts) — `resolveModel(...).provider` и `isOverloadedFor(...)`.
-- [packages/providers/packages/server/src/index.ts](../../../packages/providers/packages/server/src/index.ts) — optional loading.
+- [packages/server/src/routes/chat.ts](../../../packages/server/src/routes/chat.ts) — `resolveModel(...).provider` и `isOverloadedFor(...)`.
+- [packages/providers/src/index.ts](../../../packages/providers/src/index.ts) — optional loading.
 
 ## Изменение
 

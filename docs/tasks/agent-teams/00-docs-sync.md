@@ -18,7 +18,7 @@ against an outdated provider/model story.
 
 ## Source-of-truth for models
 
-`packages/core/packages/core/src/lib/model-map.ts` is authoritative. Every claim about which model a
+`packages/core/src/lib/model-map.ts` is authoritative. Every claim about which model a
 virtual role uses must match that file. Current literal table (copy as-is into
 docs):
 
@@ -36,7 +36,7 @@ Embed model (full literal): `nvidia/llama-3.2-nemoretriever-300m-embed-v1`.
 Embed-code model (full literal): `nvidia/nv-embedcode-7b-v1`.
 Rerank model (full literal): `nvidia/rerank-qa-mistral-4b`.
 
-If `packages/core/packages/core/src/lib/model-map.ts` differs from this table at execution time, the
+If `packages/core/src/lib/model-map.ts` differs from this table at execution time, the
 worker must fail with `FAIL: spec-vs-code: model-map drift` instead of
 guessing.
 
@@ -47,10 +47,10 @@ write paths but should run in order P0-1 → P0-2 → P0-3 to keep diffs small
 and reviewable.
 
 - **P0-1** — Sync `AGENTS.md` model table, blockquote, request-pipeline
-  ASCII, and architecture ASCII from `packages/core/packages/core/src/lib/model-map.ts`.
+  ASCII, and architecture ASCII from `packages/core/src/lib/model-map.ts`.
 - **P0-2** — Sync `README.md` model tables, architecture blocks, env-table
   provider descriptions, project-structure comment, and provider language
-  from `packages/core/packages/core/src/lib/model-map.ts`.
+  from `packages/core/src/lib/model-map.ts`.
 - **P0-3** — Stage the working-tree deletions of obsolete `docs/*` files
   (already moved to `docs/old/неактуальное/`) and add a single forwarding
   README in `docs/old/неактуальное/` pointing back to
@@ -192,7 +192,7 @@ acceptance use string content, not line numbers, to stay robust.
 
 - The blockquote at AGENTS.md line ~37 ("Все роли используют
   **MiniMax-M2.7**…") becomes: "Per-role NVIDIA NIM primaries (см.
-  `packages/core/packages/core/src/lib/model-map.ts`); MiniMax-M2.7 used as fallback for most roles."
+  `packages/core/src/lib/model-map.ts`); MiniMax-M2.7 used as fallback for most roles."
 - The role table directly below it (lines ~39-47) must be replaced with the
   literal table from this contract.
 - The request-pipeline ASCII at AGENTS.md lines ~97 and ~111 currently says

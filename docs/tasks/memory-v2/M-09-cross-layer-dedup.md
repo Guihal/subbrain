@@ -19,10 +19,10 @@ Foundation для **M-11** (sleep-time block rewriter использует cross
 
 ## Файлы (scope-lock)
 
-- `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/steps/cross-layer-dedup.ts` — **NEW** ≤200 LOC. Step функция `runCrossLayerDedup(deps): Promise<CrossLayerResult>` где результат `{ pairs_examined, supersedes_added, promoted_to_shared, errors }`.
-- `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/steps/index.ts` — wire `runCrossLayerDedup` ПОСЛЕ `runMemoryDedup` (intra-layer первый, потом cross).
-- `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/post-steps.ts` (если используется) — wire.
-- `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/types.ts` — `CrossLayerResult` interface.
+- `packages/agent/src/pipeline/night-cycle/steps/cross-layer-dedup.ts` — **NEW** ≤200 LOC. Step функция `runCrossLayerDedup(deps): Promise<CrossLayerResult>` где результат `{ pairs_examined, supersedes_added, promoted_to_shared, errors }`.
+- `packages/agent/src/pipeline/night-cycle/steps/index.ts` — wire `runCrossLayerDedup` ПОСЛЕ `runMemoryDedup` (intra-layer первый, потом cross).
+- `packages/agent/src/pipeline/night-cycle/post-steps.ts` (если используется) — wire.
+- `packages/agent/src/pipeline/night-cycle/types.ts` — `CrossLayerResult` interface.
 - `packages/core/src/db/tables/memory.ts` — может потребоваться `crossLayerCandidates(layerA, layerB, threshold): Array<{a_id, b_id, similarity}>` SQL helper (raw SQL stays in db/tables per layer-boundary).
 - `packages/core/src/repositories/memory.repo.ts` — pass-through.
 - `tests/night-cycle-cross-layer-dedup.test.ts` — **NEW** ≤300 LOC. ≥6 кейсов.
@@ -118,8 +118,8 @@ Test DB = `data/test-mem9-crosslayer.db`.
 1. `bunx tsc --noEmit` → exit 0.
 2. `bun test ./tests/night-cycle-cross-layer-dedup.test.ts` → all green.
 3. `bun test` → ≥746 pass, 0 fail.
-4. `grep -n "runCrossLayerDedup\|cross-layer" packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/steps/cross-layer-dedup.ts packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/steps/index.ts` → ≥2 hits.
-5. `grep -n "ARCHIVE_PROMOTE_MIN_ACCESS\|ARCHIVE_PROMOTE_MIN_CONFIDENCE\|CROSS_LAYER_DEDUP_ENABLED" packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/steps/cross-layer-dedup.ts` → ≥3 hits.
+4. `grep -n "runCrossLayerDedup\|cross-layer" packages/agent/src/pipeline/night-cycle/steps/cross-layer-dedup.ts packages/agent/src/pipeline/night-cycle/steps/index.ts` → ≥2 hits.
+5. `grep -n "ARCHIVE_PROMOTE_MIN_ACCESS\|ARCHIVE_PROMOTE_MIN_CONFIDENCE\|CROSS_LAYER_DEDUP_ENABLED" packages/agent/src/pipeline/night-cycle/steps/cross-layer-dedup.ts` → ≥3 hits.
 6. M-09 plan file Status: DONE.
 
 ## Out of scope

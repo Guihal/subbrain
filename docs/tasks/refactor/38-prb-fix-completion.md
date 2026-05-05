@@ -92,9 +92,9 @@ git worktree list | grep -c agent-a24c5a9c224b06ce3             # expect: 0
 git branch | grep -c worktree-agent-a24c5a9c224b06ce3            # expect: 0
 
 # Content checks (на main, после merge)
-grep -c 'original_category' packages/agent/packages/agent/src/services/memory/archive-restore.ts        # expect: >=1
-grep -c 'buildEmbeddingMap' packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/janitor/phase-b-embed.ts  # expect: >=1
-test -f packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/janitor/phase-b-embed.ts && echo OK      # expect: OK
+grep -c 'original_category' packages/agent/src/services/memory/archive-restore.ts        # expect: >=1
+grep -c 'buildEmbeddingMap' packages/agent/src/pipeline/night-cycle/janitor/phase-b-embed.ts  # expect: >=1
+test -f packages/agent/src/pipeline/night-cycle/janitor/phase-b-embed.ts && echo OK      # expect: OK
 ```
 
 ## Definition of Done

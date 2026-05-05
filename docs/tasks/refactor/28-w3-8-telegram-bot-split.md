@@ -6,20 +6,20 @@
 
 ## Цель
 
-Разбить `packages/agent/packages/agent/src/telegram/bot/index.ts` (343 LOC) на split-folder. Public API = `TelegramBot` class. **`notify(chatId, msg)` — public logic-API** (см. SoC §3 cross-layer rule); используется scheduler/pipeline для уведомлений.
+Разбить `packages/agent/src/telegram/bot/index.ts` (343 LOC) на split-folder. Public API = `TelegramBot` class. **`notify(chatId, msg)` — public logic-API** (см. SoC §3 cross-layer rule); используется scheduler/pipeline для уведомлений.
 
 ## Файлы
 
 **Удалить**:
-- `packages/agent/packages/agent/src/telegram/bot/index.ts`
+- `packages/agent/src/telegram/bot/index.ts`
 
 **Создать**:
-- `packages/agent/packages/agent/packages/agent/src/telegram/bot/index.ts` — `TelegramBot` class (≤120 LOC). Конструктор + thin делегации.
-- `packages/agent/packages/agent/packages/agent/src/telegram/bot/commands.ts` — command handlers (/start, /help, /status, etc — список из текущего bot.ts).
+- `packages/agent/src/telegram/bot/index.ts` — `TelegramBot` class (≤120 LOC). Конструктор + thin делегации.
+- `packages/agent/src/telegram/bot/commands.ts` — command handlers (/start, /help, /status, etc — список из текущего bot.ts).
 - `packages/agent/src/telegram/bot/routing.ts` — message dispatch (text → AgentLoop, command → command-handler).
-- `packages/agent/packages/agent/packages/agent/src/telegram/bot/notify.ts` — **public** `notify(chatId, msg, options?)` — вызывается из scheduler/pipeline для уведомлений. Это logic-helper, НЕ transport.
+- `packages/agent/src/telegram/bot/notify.ts` — **public** `notify(chatId, msg, options?)` — вызывается из scheduler/pipeline для уведомлений. Это logic-helper, НЕ transport.
 
-**Trigger**: `scripts/check-file-size.ts` `"packages/agent/packages/agent/src/telegram/bot/index.ts": 344` → удалить.
+**Trigger**: `scripts/check-file-size.ts` `"packages/agent/src/telegram/bot/index.ts": 344` → удалить.
 
 ## Изменение
 

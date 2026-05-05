@@ -56,14 +56,14 @@ Hard non-goals shared by every packet (do not restate per packet — assumed):
   "non_goals": [
     "Do not register the repo into MemoryService consumers.",
     "Do not create done_with_artifact, pool engine, or any runner module.",
-    "Do not modify any other migration function in packages/core/packages/core/src/db/schema.ts.",
+    "Do not modify any other migration function in packages/core/src/db/schema.ts.",
     "Do not touch packages/agent/src/scheduler/, packages/agent/src/pipeline/, packages/agent/src/mcp/, packages/agent/src/services/ in this packet.",
     "Do not run docker compose, ssh, gh, or git push.",
     "Do not author migration_17 or migration_18 — those are owned by P3-2 and P3-5 respectively."
   ],
   "allowed_write_paths": [
-    "packages/core/packages/core/src/db/schema.ts",
-    "packages/core/packages/core/src/db/index.ts",
+    "packages/core/src/db/schema.ts",
+    "packages/core/src/db/index.ts",
     "packages/core/src/db/tables/agent-tasks.ts",
     "packages/core/src/db/tables/agent-tasks/types.ts",
     "packages/core/src/repositories/agent-tasks.repo.ts",
@@ -73,9 +73,9 @@ Hard non-goals shared by every packet (do not restate per packet — assumed):
   "read_context": [
     "docs/tasks/refactor/39-prc1-agent-tasks-table.md:1-310",
     "docs/specs/wave-plan-2026-05.md",
-    "packages/core/packages/core/src/db/schema.ts",
-    "packages/core/packages/core/src/db/index.ts",
-    "packages/core/packages/core/src/db/tables/memory/index.ts",
+    "packages/core/src/db/schema.ts",
+    "packages/core/src/db/index.ts",
+    "packages/core/src/db/tables/memory/index.ts",
     "packages/core/src/repositories/memory.repo.ts"
   ],
   "merge_dependency": "P3-5 (Migration 18) MUST be merged before P2-1 dispatches. P2-1 starts work against `PRAGMA user_version = 18`; if user_version < 18 at start, return `FAIL: pre-req-missing: P3-5 not merged (user_version=N, expected 18)`.",
@@ -107,8 +107,8 @@ Hard non-goals shared by every packet (do not restate per packet — assumed):
     "agent_tasks": "New SQLite table created by migration_19, see PRD 39 lines 80-108. Holds typed background tasks for the pool engine.",
     "AgentTaskRecord": "TypeScript row interface defined in packages/core/src/db/tables/agent-tasks/types.ts per PRD 39 lines 124-137.",
     "claimNext": "Atomic UPDATE...RETURNING that flips one pending row to running, see PRD 39 lines 178-189.",
-    "MemoryDB": "Existing facade class in packages/core/packages/core/src/db/index.ts, this packet only adds a getter agentTasksRepo.",
-    "migration_19": "Per-version migration function added to packages/core/packages/core/src/db/schema.ts following the migration_10..migration_18 pattern in that same file. P2-1 owns mig19; collision avoidance is recorded in docs/specs/wave-plan-2026-05.md:84-92 (P3-2=17, P3-5=18, P2-1=19)."
+    "MemoryDB": "Existing facade class in packages/core/src/db/index.ts, this packet only adds a getter agentTasksRepo.",
+    "migration_19": "Per-version migration function added to packages/core/src/db/schema.ts following the migration_10..migration_18 pattern in that same file. P2-1 owns mig19; collision avoidance is recorded in docs/specs/wave-plan-2026-05.md:84-92 (P3-2=17, P3-5=18, P2-1=19)."
   }
 }
 ```
@@ -130,13 +130,13 @@ Hard non-goals shared by every packet (do not restate per packet — assumed):
   ],
   "allowed_write_paths": [
     "packages/server/src/routes/agent-tasks.ts",
-    "packages/server/packages/server/src/app/bootstrap.ts",
+    "packages/server/src/app/bootstrap.ts",
     "tests/agent-tasks-routes.test.ts"
   ],
   "read_context": [
     "docs/tasks/refactor/39-prc1-agent-tasks-table.md:34-66",
-    "packages/server/packages/server/src/routes/memory.ts",
-    "packages/server/packages/server/src/routes/freelance.ts",
+    "packages/server/src/routes/memory.ts",
+    "packages/server/src/routes/freelance.ts",
     "packages/core/src/lib/api-envelope.ts",
     "packages/core/src/lib/auth.ts"
   ],
@@ -164,7 +164,7 @@ Hard non-goals shared by every packet (do not restate per packet — assumed):
   "glossary": {
     "PaginatedResponse": "Envelope type {items, total} from packages/core/src/lib/api-envelope.ts, used by routes/memory.ts and routes/freelance.ts.",
     "authMiddleware": "Bearer-token middleware exported from packages/core/src/lib/auth.ts (Elysia plugin); every route in this packet must be behind it.",
-    "Elysia TypeBox": "t.Object/t.Literal/t.Union schemas used for body and query validation; see packages/server/packages/server/src/routes/memory.ts for the canonical pattern.",
+    "Elysia TypeBox": "t.Object/t.Literal/t.Union schemas used for body and query validation; see packages/server/src/routes/memory.ts for the canonical pattern.",
     "agent_tasks": "Table created by P2-1 migration_19."
   }
 }
@@ -191,7 +191,7 @@ Validation: `type` is `t.Union([t.Literal("free"), t.Literal("clear"), t.Literal
     "Do not introduce parallelism, RunnerSlots, Mutex, Promise.allSettled fan-out in this packet.",
     "Do not register done_with_artifact tool here — done in P2-4.",
     "Do not change AgentLoop.run signature.",
-    "Do not modify packages/agent/packages/agent/src/scheduler/free-agent.ts in this packet (legacy bridge handled in P2-5)."
+    "Do not modify packages/agent/src/scheduler/free-agent.ts in this packet (legacy bridge handled in P2-5)."
   ],
   "allowed_write_paths": [
     "packages/agent/src/scheduler/agent-pool/index.ts",
@@ -201,8 +201,8 @@ Validation: `type` is `t.Union([t.Literal("free"), t.Literal("clear"), t.Literal
   ],
   "read_context": [
     "docs/tasks/refactor/40-prc2-pool-engine.md:62-141",
-    "packages/server/packages/server/src/app/schedulers.ts",
-    "packages/agent/packages/agent/src/scheduler/free-agent.ts",
+    "packages/server/src/app/schedulers.ts",
+    "packages/agent/src/scheduler/free-agent.ts",
     "packages/core/src/lib/logger.ts",
     "packages/core/src/lib/model-router.ts"
   ],
@@ -248,9 +248,9 @@ Tick must be re-entrancy-guarded: a `tickRunning: boolean` flag in the scheduler
 ```json
 {
   "task_id": "P2-4",
-  "goal": "Register `done_with_artifact` agent-only MCP tool that validates status/artifact/reason and signals AgentLoop termination via the same control-signal pattern as the existing inline `done` tool (in `packages/agent/packages/agent/src/mcp/registry/agent-meta.tools.ts:28`). The handler returns `{ok:true, data:<JSON-string-or-structured>}`; agent-loop's existing terminate dispatch reads that `data` to end the loop. ToolResult shape is **unchanged**.",
+  "goal": "Register `done_with_artifact` agent-only MCP tool that validates status/artifact/reason and signals AgentLoop termination via the same control-signal pattern as the existing inline `done` tool (in `packages/agent/src/mcp/registry/agent-meta.tools.ts:28`). The handler returns `{ok:true, data:<JSON-string-or-structured>}`; agent-loop's existing terminate dispatch reads that `data` to end the loop. ToolResult shape is **unchanged**.",
   "non_goals": [
-    "Do not remove or rename the existing inline `done` tool registered in packages/agent/packages/agent/src/mcp/registry/agent-meta.tools.ts:28.",
+    "Do not remove or rename the existing inline `done` tool registered in packages/agent/src/mcp/registry/agent-meta.tools.ts:28.",
     "Do not change the AgentLoop terminator priority order across other unrelated tools.",
     "Do not call agent_tasks repo from this tool — pool runner persists, not the tool.",
     "Do not expose this tool to scope:'public' callers.",
@@ -260,15 +260,15 @@ Tick must be re-entrancy-guarded: a `tickRunning: boolean` flag in the scheduler
   ],
   "allowed_write_paths": [
     "packages/agent/src/mcp/registry/pool.tools.ts",
-    "packages/agent/packages/agent/src/mcp/registry/index.ts",
+    "packages/agent/src/mcp/registry/index.ts",
     "packages/agent/src/mcp/tools/pool/done-with-artifact.ts",
     "tests/done-with-artifact.test.ts"
   ],
   "read_context": [
     "docs/tasks/refactor/40-prc2-pool-engine.md:92-111",
-    "packages/agent/packages/agent/src/mcp/registry/index.ts",
-    "packages/agent/packages/agent/src/mcp/registry/agent-meta.tools.ts",
-    "packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/tool-dispatch.ts"
+    "packages/agent/src/mcp/registry/index.ts",
+    "packages/agent/src/mcp/registry/agent-meta.tools.ts",
+    "packages/agent/src/pipeline/agent-loop/tool-dispatch.ts"
   ],
   "risk_tier": "public-api",
   "acceptance": [
@@ -280,8 +280,8 @@ Tick must be re-entrancy-guarded: a `tickRunning: boolean` flag in the scheduler
     "test \"$(wc -l < packages/agent/src/mcp/tools/pool/done-with-artifact.ts)\" -le 80",
     "grep -nE 'scope:\\s*\"agent-only\"' packages/agent/src/mcp/registry/pool.tools.ts",
     "grep -nE 'done_with_artifact' packages/agent/src/mcp/registry/pool.tools.ts",
-    "grep -nE 'registerAgentMetaTools' packages/agent/packages/agent/src/mcp/registry/agent-meta.tools.ts",
-    "test -z \"$(grep -nE 'export const ToolResult|interface ToolResult' packages/agent/packages/agent/src/mcp/types.ts | grep -v 'ok:\\s*true|ok:\\s*false')\""
+    "grep -nE 'registerAgentMetaTools' packages/agent/src/mcp/registry/agent-meta.tools.ts",
+    "test -z \"$(grep -nE 'export const ToolResult|interface ToolResult' packages/agent/src/mcp/types.ts | grep -v 'ok:\\s*true|ok:\\s*false')\""
   ],
   "diff_budget_loc": 200,
   "file_count_max": 4,
@@ -290,14 +290,14 @@ Tick must be re-entrancy-guarded: a `tickRunning: boolean` flag in the scheduler
     "Existing `done` tool (inline at agent-meta.tools.ts:28) starts failing tests after registry edit — return `FAIL: done-collision: existing tool broken`.",
     "AgentLoop terminator dispatch needs a structural change to the `ToolResult` shape to honor `done_with_artifact` — STOP, return `FAIL: scope: agent-loop refactor needed`. The packet's contract is: terminate is encoded inside `data` (string or structured), not as a new field.",
     "TypeBox schema requirements contradict the PRD body — return `FAIL: spec-contradicts-code: <where>`.",
-    "Worker cannot find `packages/agent/src/mcp/tools/done-tool.ts` — that file does NOT exist; the existing `done` tool is inline at `packages/agent/packages/agent/src/mcp/registry/agent-meta.tools.ts:28`. Read that file instead, do not invent a path."
+    "Worker cannot find `packages/agent/src/mcp/tools/done-tool.ts` — that file does NOT exist; the existing `done` tool is inline at `packages/agent/src/mcp/registry/agent-meta.tools.ts:28`. Read that file instead, do not invent a path."
   ],
   "glossary": {
     "done_with_artifact": "New agent-only MCP tool with input schema {status: 'complete'|'noop', artifact?:{type, content, url?}, reason?}, see PRD 40 lines 95-111.",
-    "ToolResult": "Discriminated union {success:true, data} | {success:false, error:{code, message}|string} from packages/agent/packages/agent/src/mcp/types.ts. UNCHANGED by this packet — terminate is encoded inside `data`.",
+    "ToolResult": "Discriminated union {success:true, data} | {success:false, error:{code, message}|string} from packages/agent/src/mcp/types.ts. UNCHANGED by this packet — terminate is encoded inside `data`.",
     "ToolError": "Builder for the {ok:false} branch with codes like 'validation_failed' / 'already_terminated'.",
     "scope=agent-only": "Registry filter that hides this tool from REST/MCP-public callers; only the autonomous agent loop sees it.",
-    "terminate (control signal)": "Agent-loop already interprets the existing `done` tool's `data` string as a terminate signal (see packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/tool-dispatch.ts and agent-loop/index.ts). `done_with_artifact` extends that pattern: handler returns `{ok:true, data}` where `data` is either a string (legacy) or a JSON-stringified `{terminate:true, status, artifact?, reason?}`. Agent-loop parses both. NO new ToolResult field is introduced.",
+    "terminate (control signal)": "Agent-loop already interprets the existing `done` tool's `data` string as a terminate signal (see packages/agent/src/pipeline/agent-loop/tool-dispatch.ts and agent-loop/index.ts). `done_with_artifact` extends that pattern: handler returns `{ok:true, data}` where `data` is either a string (legacy) or a JSON-stringified `{terminate:true, status, artifact?, reason?}`. Agent-loop parses both. NO new ToolResult field is introduced.",
     "idempotency": "AgentLoopState (or equivalent run-scoped flag) MUST track that one terminate has fired; subsequent `done`/`done_with_artifact` invocations in the same run return `ToolError{code:'already_terminated'}` and the loop does not re-emit the terminate signal."
   }
 }
@@ -315,7 +315,7 @@ Validation rules (worker must encode):
 ```json
 {
   "task_id": "P2-5a",
-  "goal": "Extend `AgentLoopRequest` (packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/types.ts) with four new optional fields — `onUsage?: (u: UsageEvent) => void`, `signal?: AbortSignal`, `systemMessage?: string`, `userMessage?: string` — and thread them through `run.ts`/`stream.ts`/`step.ts` to the underlying provider call so callers (P2-5 and beyond) can supply per-run abort + token telemetry + custom prompts. Existing call sites that omit the new fields must keep working unchanged.",
+  "goal": "Extend `AgentLoopRequest` (packages/agent/src/pipeline/agent-loop/types.ts) with four new optional fields — `onUsage?: (u: UsageEvent) => void`, `signal?: AbortSignal`, `systemMessage?: string`, `userMessage?: string` — and thread them through `run.ts`/`stream.ts`/`step.ts` to the underlying provider call so callers (P2-5 and beyond) can supply per-run abort + token telemetry + custom prompts. Existing call sites that omit the new fields must keep working unchanged.",
   "non_goals": [
     "Do not change defaults of any existing field.",
     "Do not invent a new `UsageEvent` shape — reuse whatever the provider layer already emits (or define it adjacent to AgentLoopRequest if absent, ≤15 LOC).",
@@ -325,17 +325,17 @@ Validation rules (worker must encode):
     "Do not edit packages/agent/src/scheduler/, packages/agent/src/services/, packages/server/src/routes/, packages/agent/src/mcp/."
   ],
   "allowed_write_paths": [
-    "packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/types.ts",
-    "packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/run.ts",
-    "packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/stream.ts",
-    "packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/step.ts",
+    "packages/agent/src/pipeline/agent-loop/types.ts",
+    "packages/agent/src/pipeline/agent-loop/run.ts",
+    "packages/agent/src/pipeline/agent-loop/stream.ts",
+    "packages/agent/src/pipeline/agent-loop/step.ts",
     "tests/agent-loop-request-surface.test.ts"
   ],
   "read_context": [
-    "packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/types.ts",
-    "packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/run.ts",
-    "packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/stream.ts",
-    "packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/step.ts",
+    "packages/agent/src/pipeline/agent-loop/types.ts",
+    "packages/agent/src/pipeline/agent-loop/run.ts",
+    "packages/agent/src/pipeline/agent-loop/stream.ts",
+    "packages/agent/src/pipeline/agent-loop/step.ts",
     "packages/core/src/lib/model-router.ts",
     "packages/providers/src/types.ts"
   ],
@@ -345,10 +345,10 @@ Validation rules (worker must encode):
     "bun run scripts/check-file-size.ts",
     "bun test tests/agent-loop-request-surface.test.ts",
     "bun test",
-    "grep -E 'onUsage|signal|systemMessage|userMessage' packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/types.ts",
-    "grep -nE 'onUsage|signal' packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/run.ts",
-    "grep -nE 'systemMessage|userMessage' packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/run.ts",
-    "test -z \"$(grep -rnE 'as any' packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/run.ts packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/stream.ts packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/step.ts packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/types.ts)\""
+    "grep -E 'onUsage|signal|systemMessage|userMessage' packages/agent/src/pipeline/agent-loop/types.ts",
+    "grep -nE 'onUsage|signal' packages/agent/src/pipeline/agent-loop/run.ts",
+    "grep -nE 'systemMessage|userMessage' packages/agent/src/pipeline/agent-loop/run.ts",
+    "test -z \"$(grep -rnE 'as any' packages/agent/src/pipeline/agent-loop/run.ts packages/agent/src/pipeline/agent-loop/stream.ts packages/agent/src/pipeline/agent-loop/step.ts packages/agent/src/pipeline/agent-loop/types.ts)\""
   ],
   "diff_budget_loc": 180,
   "file_count_max": 5,
@@ -360,7 +360,7 @@ Validation rules (worker must encode):
     "Existing tests fail because a previously implicit prompt is now exposed via `systemMessage` — return `FAIL: regression: <test name>`."
   ],
   "glossary": {
-    "AgentLoopRequest": "Public input type at packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/types.ts. Currently `{task, model?, maxSteps?, sessionId?, priority?, schedule?, agentMode?, agentId?}` (verified 2026-05-05). This packet adds four optional fields — no other change.",
+    "AgentLoopRequest": "Public input type at packages/agent/src/pipeline/agent-loop/types.ts. Currently `{task, model?, maxSteps?, sessionId?, priority?, schedule?, agentMode?, agentId?}` (verified 2026-05-05). This packet adds four optional fields — no other change.",
     "UsageEvent": "Lightweight `{promptTokens, completionTokens, totalTokens}` (or whatever the provider already emits) passed to `onUsage` after each step. Define here only if the provider layer doesn't already expose a public type.",
     "signal threading": "AbortSignal is plumbed into `run.ts`/`stream.ts` and forwarded to `ModelRouter.chat`/provider calls; signal.aborted aborts the loop with stoppedReason='error' and the partial state is persisted (Layer 4 + chat row) per existing semantics.",
     "systemMessage / userMessage": "Optional overrides used by callers that already build the prompt (e.g. pool runners). When absent, agent-loop's existing prompt construction runs unchanged."
@@ -381,28 +381,28 @@ This packet is a **prerequisite for P2-5**. P2-5 expects `onUsage` (token-budget
   "non_goals": [
     "Do not implement clear/check-tg/research/find-new-task runners — P2-6 territory.",
     "Do not raise AGENT_POOL_MAX_CONCURRENT above 1 in this packet.",
-    "Do not delete packages/agent/packages/agent/src/scheduler/free-agent.ts — bridge mode only.",
+    "Do not delete packages/agent/src/scheduler/free-agent.ts — bridge mode only.",
     "Do not modify AgentLoop.run signature; the surface comes from P2-5a. If `onUsage`/`signal` are missing, FAIL pre-req.",
     "Do not include the strings 'be efficient' / 'save tokens' / 'постарайся уложиться' / 'не используй tool без нужды' in the runner system prompt."
   ],
   "allowed_write_paths": [
     "packages/agent/src/scheduler/agent-pool/runners/free.ts",
     "packages/agent/src/scheduler/agent-pool/index.ts",
-    "packages/agent/packages/agent/src/scheduler/free-agent.ts",
+    "packages/agent/src/scheduler/free-agent.ts",
     ".env.example",
     "tests/agent-pool-runner-free.test.ts"
   ],
   "read_context": [
     "docs/tasks/refactor/40-prc2-pool-engine.md:144-228",
-    "packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/run.ts",
-    "packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/types.ts",
-    "packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/code-tools/scheduled-blacklist.ts",
-    "packages/agent/packages/agent/src/pipeline/agent-loop/code-tools/telegram-spam-gate.ts",
-    "packages/agent/packages/agent/src/scheduler/free-agent.ts"
+    "packages/agent/src/pipeline/agent-loop/run.ts",
+    "packages/agent/src/pipeline/agent-loop/types.ts",
+    "packages/agent/src/pipeline/agent-loop/code-tools/scheduled-blacklist.ts",
+    "packages/agent/src/pipeline/agent-loop/code-tools/telegram-spam-gate.ts",
+    "packages/agent/src/scheduler/free-agent.ts"
   ],
   "risk_tier": "ordinary",
   "acceptance": [
-    "grep -E 'onUsage|signal|systemMessage|userMessage' packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/types.ts",
+    "grep -E 'onUsage|signal|systemMessage|userMessage' packages/agent/src/pipeline/agent-loop/types.ts",
     "bunx tsc --noEmit",
     "bun run scripts/check-file-size.ts",
     "bun test tests/agent-pool-runner-free.test.ts",
@@ -411,13 +411,13 @@ This packet is a **prerequisite for P2-5**. P2-5 expects `onUsage` (token-budget
     "test \"$(wc -l < packages/agent/src/scheduler/agent-pool/index.ts)\" -le 100",
     "grep -niE 'save tokens|be efficient|постарайся уложиться|не используй tool без нужды' packages/agent/src/scheduler/agent-pool/runners/free.ts | wc -l | grep -q '^0$'",
     "grep -nE 'AGENT_POOL_MAX_TOKENS_FREE' .env.example",
-    "grep -nE 'legacy-free-agent' packages/agent/packages/agent/src/scheduler/free-agent.ts"
+    "grep -nE 'legacy-free-agent' packages/agent/src/scheduler/free-agent.ts"
   ],
   "diff_budget_loc": 290,
   "file_count_max": 5,
   "rollback": "Revert the commit; pool falls back to default no-op runFn from P2-3, free-agent.ts loses bridge.",
   "escalation_triggers": [
-    "P2-5a not merged — `grep -E 'onUsage|signal|systemMessage|userMessage' packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/types.ts` returns nothing — return `FAIL: pre-req-missing: P2-5a not merged (AgentLoopRequest lacks onUsage/signal/systemMessage/userMessage)`.",
+    "P2-5a not merged — `grep -E 'onUsage|signal|systemMessage|userMessage' packages/agent/src/pipeline/agent-loop/types.ts` returns nothing — return `FAIL: pre-req-missing: P2-5a not merged (AgentLoopRequest lacks onUsage/signal/systemMessage/userMessage)`.",
     "AgentLoop.run still doesn't honor `signal`/`onUsage` despite P2-5a fields existing — return `FAIL: pre-req-incomplete: P2-5a fields not threaded`.",
     "P2-3 not merged (no PoolContext type) — return `FAIL: pre-req-missing: P2-3`.",
     "P2-4 not merged (done_with_artifact missing) — return `FAIL: pre-req-missing: P2-4`.",
@@ -460,8 +460,8 @@ This packet is a **prerequisite for P2-5**. P2-5 expects `onUsage` (token-budget
   "read_context": [
     "docs/tasks/refactor/41-prc3-multi-runners.md:188-226",
     "docs/tasks/refactor/42-prc4-parallel-concurrency.md:166-191",
-    "packages/agent/packages/agent/src/telegram/bot/notify.ts",
-    "packages/agent/packages/agent/src/services/memory/index.ts",
+    "packages/agent/src/telegram/bot/notify.ts",
+    "packages/agent/src/services/memory/index.ts",
     "packages/core/src/repositories/memory.repo.ts"
   ],
   "risk_tier": "ordinary",

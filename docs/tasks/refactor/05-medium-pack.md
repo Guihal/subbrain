@@ -12,7 +12,7 @@
 
 ### MED-1 — generic `updateRow(table, allowlist, id, patch)`
 
-**Файл:** [packages/core/packages/core/src/db/index.ts](../../../packages/core/packages/core/src/db/index.ts)
+**Файл:** [packages/core/src/db/index.ts](../../../packages/core/src/db/index.ts)
 
 - Сейчас N руками написанных `update*` методов. Каждый принимает `Partial<X>` и собирает `SET col = ?` руками.
 - Вынести `updateRow(table: string, allowlist: Set<string>, id: number, patch: Record<string, unknown>): void`.
@@ -24,7 +24,7 @@
 **Файл:** [packages/core/src/lib/model-map.ts](../../../packages/core/src/lib/model-map.ts)
 
 - Добавить `export const RERANK_MODEL = "nvidia/llama-3_2-nv-rerankqa-1b-v2"` (или то, что сейчас захардкожено) рядом с `EMBED_MODEL`.
-- Заменить захардкоженную строку в [packages/agent/packages/agent/src/rag/pipeline/index.ts](../../../packages/agent/packages/agent/src/rag/pipeline/index.ts) на импорт.
+- Заменить захардкоженную строку в [packages/agent/src/rag/pipeline/index.ts](../../../packages/agent/src/rag/pipeline/index.ts) на импорт.
 
 ### MED-3 — `scripts/seed.ts` требует `--confirm` или path≠prod
 
@@ -49,7 +49,7 @@
 
 ### MED-5 — Worker availability check в sandbox
 
-**Файл:** [packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/code-tools/sandbox.ts](../../../packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/code-tools/sandbox.ts), строка ~43
+**Файл:** [packages/agent/src/pipeline/agent-loop/code-tools/sandbox.ts](../../../packages/agent/src/pipeline/agent-loop/code-tools/sandbox.ts), строка ~43
 
 ```ts
 if (typeof Worker === "undefined") {
@@ -68,33 +68,33 @@ if (typeof Worker === "undefined") {
 
 ### MED-7 — лишний `Promise.all` в pre-processing
 
-**Файл:** [packages/agent/packages/agent/src/pipeline/agent-pipeline/pre-processing.ts](../../../packages/agent/packages/agent/src/pipeline/agent-pipeline/pre-processing.ts), строки 151-154
+**Файл:** [packages/agent/src/pipeline/agent-pipeline/pre-processing.ts](../../../packages/agent/src/pipeline/agent-pipeline/pre-processing.ts), строки 151-154
 
 - Вокруг синхронного кода обёрнут `Promise.all` без причины — убрать.
 
 ### MED-8 — дедуп перед `rrfMerge`
 
-**Файл:** [packages/agent/packages/agent/src/rag/pipeline/index.ts](../../../packages/agent/packages/agent/src/rag/pipeline/index.ts), строка ~69
+**Файл:** [packages/agent/src/rag/pipeline/index.ts](../../../packages/agent/src/rag/pipeline/index.ts), строка ~69
 
 - Перед `rrfMerge` — `Map<id, Result>` для дедупа (FTS и vec могут вернуть одну и ту же запись).
 
 ### MED-9 — пересчёт embedding после merge в night-cycle
 
-**Файл:** [packages/agent/packages/agent/src/pipeline/night-cycle/steps.ts](../../../packages/agent/packages/agent/src/pipeline/night-cycle/steps.ts), функция `updateArchive`
+**Файл:** [packages/agent/src/pipeline/night-cycle/steps.ts](../../../packages/agent/src/pipeline/night-cycle/steps.ts), функция `updateArchive`
 
 - После merge содержимого записи — заново считать embedding и `rag.indexEntry(id, newVector)`.
 - Иначе обновлённый текст ищется по старому вектору.
 
 ### MED-10 — миграция v3 в `db.transaction()`
 
-**Файл:** [packages/core/packages/core/src/db/schema.ts](../../../packages/core/packages/core/src/db/schema.ts)
+**Файл:** [packages/core/src/db/schema.ts](../../../packages/core/src/db/schema.ts)
 
 - Сейчас миграция v3 — последовательность DROP + RENAME без транзакции; вылет посередине = битая БД.
 - Обернуть тело миграции v3 в `db.transaction(() => { ... })()`.
 
 ### MED-11 — маск `api_key`/`authorization`/`token` в `routes/logs.ts`
 
-**Файл:** [packages/server/packages/server/src/routes/logs.ts](../../../packages/server/packages/server/src/routes/logs.ts)
+**Файл:** [packages/server/src/routes/logs.ts](../../../packages/server/src/routes/logs.ts)
 
 - По умолчанию заменять значения полей с именами `api_key | api-key | authorization | token | bearer` на `***` (regex по сериализованному `meta`).
 - `?raw=1` снимает маскирование (для отладки).
@@ -114,20 +114,20 @@ if (typeof Worker === "undefined") {
 
 ### MED-14 — обрезание тела ошибки в `routes/chat.ts`
 
-**Файл:** [packages/server/packages/server/src/routes/chat.ts](../../../packages/server/packages/server/src/routes/chat.ts), строка ~131
+**Файл:** [packages/server/src/routes/chat.ts](../../../packages/server/src/routes/chat.ts), строка ~131
 
 - `err.body.slice(0, 200)` + `body.replace(/api[_-]?key/i, "***")` (regex-redact).
 
 ## Файлы (сводка)
 
-- `packages/core/packages/core/packages/core/src/db/index.ts`, `packages/core/packages/core/packages/core/src/db/schema.ts`
-- `packages/core/packages/core/src/lib/model-map.ts`, `packages/core/packages/core/src/lib/logger.ts`, `packages/core/src/lib/model-router.ts`
+- `packages/core/src/db/index.ts`, `packages/core/src/db/schema.ts`
+- `packages/core/src/lib/model-map.ts`, `packages/core/src/lib/logger.ts`, `packages/core/src/lib/model-router.ts`
 - `packages/providers/src/types.ts`, `packages/providers/src/stream-utils.ts`
-- `packages/agent/packages/agent/src/pipeline/agent-pipeline/pre-processing.ts`
-- `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/code-tools/sandbox.ts`
-- `packages/agent/packages/agent/src/pipeline/night-cycle/steps.ts`
-- `packages/agent/packages/agent/src/rag/pipeline/index.ts`
-- `packages/server/packages/server/packages/server/src/routes/logs.ts`, `packages/server/packages/server/packages/server/src/routes/chat.ts`
+- `packages/agent/src/pipeline/agent-pipeline/pre-processing.ts`
+- `packages/agent/src/pipeline/agent-loop/code-tools/sandbox.ts`
+- `packages/agent/src/pipeline/night-cycle/steps.ts`
+- `packages/agent/src/rag/pipeline/index.ts`
+- `packages/server/src/routes/logs.ts`, `packages/server/src/routes/chat.ts`
 - `scripts/seed.ts`
 
 ## Тесты

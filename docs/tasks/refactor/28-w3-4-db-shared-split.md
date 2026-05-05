@@ -14,7 +14,7 @@
 - `packages/core/src/db/tables/shared.ts`
 
 **Создать**:
-- `packages/core/packages/core/packages/core/src/db/tables/shared/index.ts` — `SharedTable` orchestrator class (≤120 LOC).
+- `packages/core/src/db/tables/shared/index.ts` — `SharedTable` orchestrator class (≤120 LOC).
 - `packages/core/src/db/tables/shared/insert.ts` — `insertShared`, `upsertShared` + helper `categoryToKind` если приватный.
 - `packages/core/src/db/tables/shared/update.ts` — `updateShared` + ALLOW map.
 - `packages/core/src/db/tables/shared/select.ts` — `getShared`, `listShared`, `countShared` + FTS-related selects.

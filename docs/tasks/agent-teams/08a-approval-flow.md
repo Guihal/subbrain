@@ -12,11 +12,11 @@
 - **A2-4** (`permission.ask` hook in pre-handler stage) merged.
 - **A2-5** (5-variant `ToolResult` union with `toLegacy()` shim) merged.
 
-> **PATH NOTE (2026-05-05):** A2 is not yet merged; `packages/agent/` does not exist. All `packages/agent/*` paths in this doc are **aspirational** — they resolve to `packages/agent/packages/agent/src/pipeline/agent-loop/*` in the current codebase. Kimi MUST create files under `packages/agent/packages/agent/src/pipeline/agent-loop/` (not `packages/agent/`) until A2 merges. The hook dispatcher lives at `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/tool-runner.ts` today; 8a-3 registers its gate there.
+> **PATH NOTE (2026-05-05):** A2 is not yet merged; `packages/agent/` does not exist. All `packages/agent/*` paths in this doc are **aspirational** — they resolve to `packages/agent/src/pipeline/agent-loop/*` in the current codebase. Kimi MUST create files under `packages/agent/src/pipeline/agent-loop/` (not `packages/agent/`) until A2 merges. The hook dispatcher lives at `packages/agent/src/pipeline/agent-loop/tool-runner.ts` today; 8a-3 registers its gate there.
 
 8a is implemented as a **plugin on top of A2's hooks pipeline**, not as a parallel ad-hoc gate inside the tool runner. The approval check is a `tool.execute.before` hook registered after the existing auto-deny plugins (`tg-gates`, `code-tool-guards`, `scheduled-blacklist`) so auto-deny still fires first. 8a-1 / 8a-2 are independent of A2 and may merge in parallel.
 
-Independent of Phase 5 observability — `metrics_log` table already exists (`packages/core/packages/core/src/db/schema.ts:218`).
+Independent of Phase 5 observability — `metrics_log` table already exists (`packages/core/src/db/schema.ts:218`).
 
 ## Scope
 
@@ -37,7 +37,7 @@ no setTimeout, no polling. When the operator presses Approve, the
 `(tool_name, args_hash)` within the lookup window, the gate finds the
 `approved` row and returns `success: true` (handler proceeds).
 
-> **ToolResult shape (current codebase):** `{success: boolean, data?: unknown, error?: {code, message} | string}` (see `packages/agent/packages/agent/packages/agent/src/mcp/types.ts`). The doc uses `error.code` notation — this means `error` is the structured `{code, message}` form. If A2-5 (5-variant `kind` union) merges before 8a, the shape may change; 8a code must adapt to whichever shape is live at merge time.
+> **ToolResult shape (current codebase):** `{success: boolean, data?: unknown, error?: {code, message} | string}` (see `packages/agent/src/mcp/types.ts`). The doc uses `error.code` notation — this means `error` is the structured `{code, message}` form. If A2-5 (5-variant `kind` union) merges before 8a, the shape may change; 8a code must adapt to whichever shape is live at merge time.
 
 Existing partial protections — `code-tool-validators.ts` (rejects hardcoded
 facts), `telegram-spam-gate.ts` (focus-key block), `auth.service.ts` token
@@ -55,7 +55,7 @@ the dispatcher is **strict and documented**:
 ```
 
 This ordering is enforced by the registration order in
-`packages/agent/packages/agent/src/pipeline/agent-loop/plugins-internal.ts` (A2-9 already pins
+`packages/agent/src/pipeline/agent-loop/plugins-internal.ts` (A2-9 already pins
 `[code-tool-guards, tg-gates, scheduled-blacklist, freelance-scout]`;
 8a-3 inserts the approval plugin **after** those four).
 
@@ -73,7 +73,7 @@ This ordering is enforced by the registration order in
 - No new approval surfaces beyond Telegram inline-button (no Slack, email, web push).
 - No retroactive approval of past tool calls — only future calls gate.
 - No admin override that auto-approves all calls. A boolean kill-switch (`APPROVAL_DISABLE=true`) is allowed but defaults off.
-- No re-implementation of A2 hooks. 8a-3 must register through the hook dispatcher (`packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/tool-runner.ts` today, `packages/agent/hooks/dispatcher.ts` after A2); if A2-3/A2-4/A2-5 are not merged, 8a-3 fails fast with `FAIL: dependency_missing: A2-3/A2-4/A2-5`.
+- No re-implementation of A2 hooks. 8a-3 must register through the hook dispatcher (`packages/agent/src/pipeline/agent-loop/tool-runner.ts` today, `packages/agent/hooks/dispatcher.ts` after A2); if A2-3/A2-4/A2-5 are not merged, 8a-3 fails fast with `FAIL: dependency_missing: A2-3/A2-4/A2-5`.
 
 ## Packet ordering
 
@@ -106,13 +106,13 @@ when no operator is set, without creating unresumable rows.
 
 - **operator chat** — single Telegram chat that receives approval prompts. Resolved at boot in 8a-2 via `resolveOperatorChat()` as `Number(process.env.APPROVAL_OPERATOR_CHAT_ID ?? process.env.TG_OWNER_CHAT_ID)`. If both unset or `Number(...)` is `NaN` → `resolveOperatorChat()` returns `null` and gated tools auto-deny with `{success: false, error: {code: "approval_unavailable", message: "..."}}`. No DB row written in that case.
 - **gated tool** — entry in the approval registry (8a-2) keyed by `(tool_name, agentMode)`. **Initial set: `tg_send_message` and `tg_send_report`, gated in BOTH `scheduled` AND `interactive` modes.** Both tools call `executor.tgSendMessage` (telegram.tools.ts:111; lib/telegram-report.ts:47,69,75) — gating only one leaves a bypass via `tg_send_report`. `code_*` execution stays out of scope until A2-network-deny lands.
-- **agentMode** — value from `PublicToolContext.agentMode` (`"interactive" | "scheduled" | undefined`). Existing field, see `packages/agent/packages/agent/packages/agent/src/mcp/registry/tool-registry.ts`. Both modes are gated for tools in the seed list.
+- **agentMode** — value from `PublicToolContext.agentMode` (`"interactive" | "scheduled" | undefined`). Existing field, see `packages/agent/src/mcp/registry/tool-registry.ts`. Both modes are gated for tools in the seed list.
 - **approval row** — row in `approvals` table (8a-1). Keyed by autoincrement `id`; lookup index on `(tool_name, args_hash, decided_at)`.
 - **args_hash** — SHA-256 hex of the canonical-JSON-stringified `args` object. Used so subsequent retries with identical args find the same approval.
 - **decision** — one of `"approved" | "denied" | "expired"`. Default expiry `APPROVAL_TTL_SEC=900` (15 min).
 - **async resume** — agent gets `ToolResult{success: false, error: {code: "awaiting_approval", message: "..."}}` and the loop terminates normally (max-steps or done). The next agent invocation (new chat message, next scheduled tick, next free-agent loop) re-issues the same tool call; if approved within TTL, the gate returns `success: true` from a `reuse_approved` lookup.
-- **ToolResult** — current shape: `{success: boolean, data?: unknown, error?: {code: string, message: string} | string}` (`packages/agent/packages/agent/packages/agent/src/mcp/types.ts`). 8a constructs structured errors as `{success: false, error: {code, message}}`. If A2-5 (5-variant `kind` union) merges before 8a, adapt to the new shape at merge time — do not pre-implement the unmerged union.
-- **metrics_log** — existing table (`packages/core/packages/core/src/db/schema.ts:218`); 8a-6 reuses it (no new table) for approval audit entries with `snapshot.kind="approval_decision"`.
+- **ToolResult** — current shape: `{success: boolean, data?: unknown, error?: {code: string, message: string} | string}` (`packages/agent/src/mcp/types.ts`). 8a constructs structured errors as `{success: false, error: {code, message}}`. If A2-5 (5-variant `kind` union) merges before 8a, adapt to the new shape at merge time — do not pre-implement the unmerged union.
+- **metrics_log** — existing table (`packages/core/src/db/schema.ts:218`); 8a-6 reuses it (no new table) for approval audit entries with `snapshot.kind="approval_decision"`.
 
 ---
 
@@ -126,7 +126,7 @@ when no operator is set, without creating unresumable rows.
 ```json
 {
   "task_id": "8a-1",
-  "goal": "Add approvals table to packages/core/packages/core/src/db/schema.ts and export Approval domain types from packages/core/src/db/tables/approvals.ts.",
+  "goal": "Add approvals table to packages/core/src/db/schema.ts and export Approval domain types from packages/core/src/db/tables/approvals.ts.",
   "non_goals": [
     "No backfill of historical tool calls into approvals.",
     "No FTS5 / sqlite-vec on approvals — plain B-tree indexes only.",
@@ -135,14 +135,14 @@ when no operator is set, without creating unresumable rows.
     "No change to existing tables; this packet is additive only."
   ],
   "allowed_write_paths": [
-    "packages/core/packages/core/src/db/schema.ts",
+    "packages/core/src/db/schema.ts",
     "packages/core/src/db/tables/approvals.ts"
   ],
   "read_context": [
-    "packages/core/packages/core/src/db/schema.ts:215-225",
-    "packages/core/packages/core/src/db/tables/freelance-leads.ts",
-    "packages/core/packages/core/src/db/tables/code-tools.ts",
-    "packages/core/packages/core/src/db/index.ts"
+    "packages/core/src/db/schema.ts:215-225",
+    "packages/core/src/db/tables/freelance-leads.ts",
+    "packages/core/src/db/tables/code-tools.ts",
+    "packages/core/src/db/index.ts"
   ],
   "guardrails": "Invoke subbrain-guardrails skill before editing src/ files. Schema migration must be additive only; no ALTER of existing tables.",
   "risk_tier": "schema",
@@ -151,14 +151,14 @@ when no operator is set, without creating unresumable rows.
     "bun run scripts/check-file-size.ts",
     "bun run scripts/check-deep-imports.ts",
     "bun test tests/db-schema.test.ts",
-    "rg -n 'CREATE TABLE IF NOT EXISTS approvals' packages/core/packages/core/src/db/schema.ts",
+    "rg -n 'CREATE TABLE IF NOT EXISTS approvals' packages/core/src/db/schema.ts",
     "rg -n 'export interface Approval' packages/core/src/db/tables/approvals.ts"
   ],
   "diff_budget_loc": 180,
   "file_count_max": 3,
   "rollback": "Drop approvals table on dev DB and revert schema.ts/tables/approvals.ts/index.ts to HEAD; no data migration needed since table is new.",
   "escalation_triggers": [
-    "Spec contradicts existing migration pattern in packages/core/packages/core/src/db/schema.ts.",
+    "Spec contradicts existing migration pattern in packages/core/src/db/schema.ts.",
     "Test DB at data/test.db has prior approvals table from earlier draft — investigate before re-creating.",
     "tsc fails with circular import between db/index.ts and tables/approvals.ts."
   ],
@@ -191,11 +191,11 @@ when no operator is set, without creating unresumable rows.
     "tests/approval-registry.test.ts"
   ],
   "read_context": [
-    "packages/agent/packages/agent/src/mcp/registry/telegram-spam-gate.ts",
-    "packages/agent/packages/agent/src/mcp/registry/tool-registry.ts:30-90",
-    "packages/agent/packages/agent/src/mcp/registry/telegram.tools.ts:93-118",
-    "packages/agent/packages/agent/src/mcp/registry/report.tools.ts:45-62",
-    "packages/agent/packages/agent/src/mcp/tools/telegram-report.ts:41-76",
+    "packages/agent/src/mcp/registry/telegram-spam-gate.ts",
+    "packages/agent/src/mcp/registry/tool-registry.ts:30-90",
+    "packages/agent/src/mcp/registry/telegram.tools.ts:93-118",
+    "packages/agent/src/mcp/registry/report.tools.ts:45-62",
+    "packages/agent/src/mcp/tools/telegram-report.ts:41-76",
     "docs/specs/subbrain-main.md:625-645"
   ],
   "guardrails": "Invoke subbrain-guardrails skill before editing src/ files. File cap 150 lines; if approval-registry.ts exceeds 150, split into approval-registry.ts + approval-registry/seed.ts.",
@@ -237,27 +237,27 @@ when no operator is set, without creating unresumable rows.
 ```json
 {
   "task_id": "8a-3",
-  "goal": "Add packages/agent/packages/agent/src/pipeline/agent-loop/approval-gate/index.ts as a Plugin that registers a tool.execute.before hook checking requiresApproval, calling resolveOperatorChat for availability, and either short-circuiting with {success:false, error:{code:'awaiting_approval'|'approval_unavailable'|'approval_denied'|'approval_expired'}} or allowing through to the handler when a fresh approved row exists; append the plugin to INTERNAL_PLUGINS in packages/agent/packages/agent/src/pipeline/agent-loop/plugins-internal.ts AFTER tg-gates, code-tool-guards, scheduled-blacklist so auto-deny still fires first.",
+  "goal": "Add packages/agent/src/pipeline/agent-loop/approval-gate/index.ts as a Plugin that registers a tool.execute.before hook checking requiresApproval, calling resolveOperatorChat for availability, and either short-circuiting with {success:false, error:{code:'awaiting_approval'|'approval_unavailable'|'approval_denied'|'approval_expired'}} or allowing through to the handler when a fresh approved row exists; append the plugin to INTERNAL_PLUGINS in packages/agent/src/pipeline/agent-loop/plugins-internal.ts AFTER tg-gates, code-tool-guards, scheduled-blacklist so auto-deny still fires first.",
   "non_goals": [
     "No Telegram side-effects in this packet — operator notification lives in 8a-4 (a separate hook on the same approvals row insert).",
     "No retry / resume logic inside the hook — async-resume is implicit (next agent invocation re-runs the tool, hits the same args_hash, and finds the approved row).",
     "No modification of A2 hook order semantics — registration order is the only ordering primitive used.",
     "No change to existing auto-deny plugins — they keep their current short-circuit behavior.",
     "No bypass for code-tool sandbox handlers — sandbox path stays unchanged.",
-    "Use current ToolResult shape {success, error?: {code,message}|string} from packages/agent/packages/agent/src/mcp/types.ts. If A2-5 (5-variant kind union) merges before 8a, adapt at merge time — do not pre-implement unmerged shapes."
+    "Use current ToolResult shape {success, error?: {code,message}|string} from packages/agent/src/mcp/types.ts. If A2-5 (5-variant kind union) merges before 8a, adapt at merge time — do not pre-implement unmerged shapes."
   ],
   "allowed_write_paths": [
-    "packages/agent/packages/agent/src/pipeline/agent-loop/approval-gate/index.ts",
-    "packages/agent/packages/agent/src/pipeline/agent-loop/approval-gate/lookup.ts",
-    "packages/agent/packages/agent/src/pipeline/agent-loop/plugins-internal.ts",
+    "packages/agent/src/pipeline/agent-loop/approval-gate/index.ts",
+    "packages/agent/src/pipeline/agent-loop/approval-gate/lookup.ts",
+    "packages/agent/src/pipeline/agent-loop/plugins-internal.ts",
     "packages/core/src/db/tables/approvals.ts",
     "tests/plugin-approval-gate.test.ts"
   ],
   "read_context": [
-    "packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/tool-runner.ts:95-200",
-    "packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/tool-dispatch.ts",
+    "packages/agent/src/pipeline/agent-loop/tool-runner.ts:95-200",
+    "packages/agent/src/pipeline/agent-loop/tool-dispatch.ts",
     "packages/agent/src/mcp/registry/approval-registry.ts",
-    "packages/agent/packages/agent/src/mcp/types.ts",
+    "packages/agent/src/mcp/types.ts",
     "packages/core/src/db/tables/approvals.ts"
   ],
   "guardrails": "Invoke subbrain-guardrails skill before editing src/ files. File cap 150 lines per module; approval-gate/index.ts ≤150, lookup.ts ≤150. Orchestrator (plugins-internal.ts) ≤100 lines.",
@@ -268,20 +268,20 @@ when no operator is set, without creating unresumable rows.
     "bun run scripts/check-deep-imports.ts",
     "bun test tests/plugin-approval-gate.test.ts",
     "bun test tests/agent-loop-hooks.test.ts",
-    "rg -n 'awaiting_approval' packages/agent/packages/agent/src/pipeline/agent-loop/approval-gate/index.ts",
-    "rg -n 'approval_unavailable' packages/agent/packages/agent/src/pipeline/agent-loop/approval-gate/index.ts",
-    "rg -n 'requiresApproval' packages/agent/packages/agent/src/pipeline/agent-loop/approval-gate/index.ts",
-    "rg -n 'success: false' packages/agent/packages/agent/src/pipeline/agent-loop/approval-gate/index.ts",
-    "rg -n 'approval-gate' packages/agent/packages/agent/src/pipeline/agent-loop/plugins-internal.ts",
-    "node -e 'const s=require(\"fs\").readFileSync(\"packages/agent/packages/agent/src/pipeline/agent-loop/plugins-internal.ts\",\"utf8\"); const order=[\"code-tool-guards\",\"tg-gates\",\"scheduled-blacklist\",\"freelance-scout\",\"approval-gate\"]; let last=-1; for (const n of order){const i=s.indexOf(n); if(i<=last){console.error(\"order broken at\",n);process.exit(1);} last=i;}'"
+    "rg -n 'awaiting_approval' packages/agent/src/pipeline/agent-loop/approval-gate/index.ts",
+    "rg -n 'approval_unavailable' packages/agent/src/pipeline/agent-loop/approval-gate/index.ts",
+    "rg -n 'requiresApproval' packages/agent/src/pipeline/agent-loop/approval-gate/index.ts",
+    "rg -n 'success: false' packages/agent/src/pipeline/agent-loop/approval-gate/index.ts",
+    "rg -n 'approval-gate' packages/agent/src/pipeline/agent-loop/plugins-internal.ts",
+    "node -e 'const s=require(\"fs\").readFileSync(\"packages/agent/src/pipeline/agent-loop/plugins-internal.ts\",\"utf8\"); const order=[\"code-tool-guards\",\"tg-gates\",\"scheduled-blacklist\",\"freelance-scout\",\"approval-gate\"]; let last=-1; for (const n of order){const i=s.indexOf(n); if(i<=last){console.error(\"order broken at\",n);process.exit(1);} last=i;}'"
   ],
   "diff_budget_loc": 280,
   "file_count_max": 5,
-  "rollback": "Revert packages/agent/packages/agent/src/pipeline/agent-loop/plugins-internal.ts + delete approval-gate plugin dir + revert approvals.ts helpers; auto-deny plugins keep working unchanged.",
+  "rollback": "Revert packages/agent/src/pipeline/agent-loop/plugins-internal.ts + delete approval-gate plugin dir + revert approvals.ts helpers; auto-deny plugins keep working unchanged.",
   "escalation_triggers": [
     "A2-3 / A2-4 / A2-5 not merged (no hook point in tool-runner.ts) — return FAIL: dependency_missing immediately, do not write any file.",
     "Existing test in tests/tool-runner.test.ts asserts unconditional dispatch — update test to seed agentMode='interactive' on a non-gated tool rather than weakening the gate.",
-    "A2-3 / A2-4 / A2-5 not merged AND no interim hook point in tool-runner.ts — return FAIL: dependency_missing immediately, do not write any file. The current tool-runner.ts (packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/tool-runner.ts) has no before-hook dispatcher; 8a-3 MUST have a hook point.",
+    "A2-3 / A2-4 / A2-5 not merged AND no interim hook point in tool-runner.ts — return FAIL: dependency_missing immediately, do not write any file. The current tool-runner.ts (packages/agent/src/pipeline/agent-loop/tool-runner.ts) has no before-hook dispatcher; 8a-3 MUST have a hook point.",
     "Concurrent inserts produce duplicate pending rows for the same args_hash within 1s — switch to INSERT OR IGNORE keyed on (tool_name, args_hash) WHERE decided_at IS NULL via a unique partial index, escalate if SQLite rejects the partial unique syntax.",
     "Plugin registration index in plugins-internal.ts ends up BEFORE any auto-deny plugin — STOP and re-order; ordering is a security invariant, not a hint.",
     "resolveOperatorChat() returns null and the gate still attempts to insert a pending row — this is a bug; the unavailable path must short-circuit BEFORE the DB write."
@@ -315,18 +315,18 @@ when no operator is set, without creating unresumable rows.
   ],
   "allowed_write_paths": [
     "packages/agent/src/telegram/bot/approvals.ts",
-    "packages/agent/packages/agent/src/telegram/bot/index.ts",
-    "packages/server/packages/server/src/app/deps.ts",
+    "packages/agent/src/telegram/bot/index.ts",
+    "packages/server/src/app/deps.ts",
     "tests/approval-bot.test.ts"
   ],
   "read_context": [
-    "packages/agent/packages/agent/src/telegram/bot/index.ts",
-    "packages/agent/packages/agent/src/telegram/bot/notify.ts",
-    "packages/agent/packages/agent/src/telegram/bot/commands.ts",
-    "packages/server/packages/server/src/app/deps.ts:338-367",
+    "packages/agent/src/telegram/bot/index.ts",
+    "packages/agent/src/telegram/bot/notify.ts",
+    "packages/agent/src/telegram/bot/commands.ts",
+    "packages/server/src/app/deps.ts:338-367",
     "packages/core/src/db/tables/approvals.ts",
     "packages/agent/src/mcp/registry/approval-registry.ts",
-    "packages/agent/packages/agent/src/pipeline/agent-loop/approval-gate/index.ts"
+    "packages/agent/src/pipeline/agent-loop/approval-gate/index.ts"
   ],
   "guardrails": "Invoke subbrain-guardrails skill before editing src/ files. File cap 150 lines; approvals.ts ≤150.",
   "risk_tier": "security",
@@ -373,15 +373,15 @@ when no operator is set, without creating unresumable rows.
   ],
   "allowed_write_paths": [
     "packages/agent/src/scheduler/approval-sweeper.ts",
-    "packages/server/packages/server/src/app/schedulers.ts",
+    "packages/server/src/app/schedulers.ts",
     "tests/approval-sweeper.test.ts"
   ],
   "read_context": [
-    "packages/agent/packages/agent/src/scheduler/free-agent.ts",
-    "packages/server/packages/server/src/app/schedulers.ts",
+    "packages/agent/src/scheduler/free-agent.ts",
+    "packages/server/src/app/schedulers.ts",
     "packages/core/src/db/tables/approvals.ts",
-    "packages/agent/packages/agent/src/pipeline/agent-loop/approval-gate/index.ts",
-    "packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/run.ts:42-97"
+    "packages/agent/src/pipeline/agent-loop/approval-gate/index.ts",
+    "packages/agent/src/pipeline/agent-loop/run.ts:42-97"
   ],
   "guardrails": "Invoke subbrain-guardrails skill before editing src/ files. File cap 150 lines; approval-sweeper.ts ≤150.",
   "risk_tier": "public-api",
@@ -391,7 +391,7 @@ when no operator is set, without creating unresumable rows.
     "bun run scripts/check-deep-imports.ts",
     "bun test tests/approval-sweeper.test.ts",
     "rg -n 'expires_at < unixepoch' packages/agent/src/scheduler/approval-sweeper.ts",
-    "rg -n 'installApprovalSweeper' packages/server/packages/server/src/app/schedulers.ts",
+    "rg -n 'installApprovalSweeper' packages/server/src/app/schedulers.ts",
     "rg -n 'retry-on-next-invocation\\|next agent invocation' packages/agent/src/scheduler/approval-sweeper.ts"
   ],
   "diff_budget_loc": 160,
@@ -428,14 +428,14 @@ when no operator is set, without creating unresumable rows.
   ],
   "allowed_write_paths": [
     "src/lib/approval-audit.ts",
-    "packages/agent/packages/agent/src/pipeline/agent-loop/approval-gate/index.ts",
+    "packages/agent/src/pipeline/agent-loop/approval-gate/index.ts",
     "packages/agent/src/telegram/bot/approvals.ts",
     "packages/agent/src/scheduler/approval-sweeper.ts"
   ],
   "guardrails": "Invoke subbrain-guardrails skill before editing src/ files. File cap 150 lines; approval-audit.ts ≤150.",
   "read_context": [
     "packages/core/src/lib/metrics.ts:80-110",
-    "packages/core/packages/core/src/db/schema.ts:218-225",
+    "packages/core/src/db/schema.ts:218-225",
     "packages/core/src/db/tables/approvals.ts"
   ],
   "risk_tier": "public-api",
@@ -445,7 +445,7 @@ when no operator is set, without creating unresumable rows.
     "bun run scripts/check-deep-imports.ts",
     "bun test tests/approval-audit.test.ts",
     "rg -n 'approval_decision' src/lib/approval-audit.ts",
-    "rg -n 'logApprovalDecision' packages/agent/packages/agent/src/pipeline/agent-loop/approval-gate/index.ts packages/agent/src/telegram/bot/approvals.ts packages/agent/src/scheduler/approval-sweeper.ts"
+    "rg -n 'logApprovalDecision' packages/agent/src/pipeline/agent-loop/approval-gate/index.ts packages/agent/src/telegram/bot/approvals.ts packages/agent/src/scheduler/approval-sweeper.ts"
   ],
   "diff_budget_loc": 180,
   "file_count_max": 4,
@@ -477,7 +477,7 @@ when no operator is set, without creating unresumable rows.
     "No code coverage target enforcement.",
     "No replacement of existing tool-runner tests — additive only.",
     "No snapshot tests of message text — assert structural fields (callback_data, decision, ToolResult.kind, error.code).",
-    "Use current ToolResult shape {success, error?} from packages/agent/packages/agent/src/mcp/types.ts in tests. If A2-5 merges before 8a, adapt test assertions to the new shape at merge time."
+    "Use current ToolResult shape {success, error?} from packages/agent/src/mcp/types.ts in tests. If A2-5 merges before 8a, adapt test assertions to the new shape at merge time."
   ],
   "allowed_write_paths": [
     "tests/approval-flow.test.ts",
@@ -486,7 +486,7 @@ when no operator is set, without creating unresumable rows.
   "read_context": [
     "tests/tool-runner.test.ts",
     "tests/freelance-scout.test.ts",
-    "packages/agent/packages/agent/src/pipeline/agent-loop/approval-gate/index.ts",
+    "packages/agent/src/pipeline/agent-loop/approval-gate/index.ts",
     "packages/agent/src/telegram/bot/approvals.ts",
     "packages/agent/src/scheduler/approval-sweeper.ts",
     "packages/agent/src/mcp/registry/approval-registry.ts"

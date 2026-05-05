@@ -14,7 +14,7 @@ is `git mv` + import path rewrite + manifest. No file content edits beyond that
 **Risk tier (default):** `public-api` — import paths are part of the contract
 surface for `scripts/`, `tests/`, future external SDK consumers, and existing
 CLAUDE.md references. **Higher tiers per packet:** A1-3 is `schema+public-api`
-(moves `packages/core/packages/core/packages/core/src/db/schema.ts`, the FTS5 + sqlite-vec migration source).
+(moves `packages/core/src/db/schema.ts`, the FTS5 + sqlite-vec migration source).
 
 ## Decisions pre-resolved (so Kimi does not invent)
 
@@ -24,18 +24,18 @@ contradict, `FAIL: spec-conflict` and stop.
 
 | Question | Pre-decided answer |
 |---|---|
-| Where does `packages/agent/src/services/*` go? | `packages/agent/packages/agent/src/services/`. Importers live in `mcp/`, `pipeline/`, `app/`, `scheduler/`, plus thin uses by `routes/`. **Exception:** `packages/core/packages/core/packages/agent/src/services/auth.service.ts` moves to `packages/core/packages/core/packages/agent/src/services/auth.service.ts` in A1-2 (cycle pre-split — `lib/auth.ts` middleware needs it; auth-service has zero non-stdlib imports). |
-| Where does `packages/server/src/app/*` go? | `packages/server/packages/server/src/app/`. Bootstrap, deps wiring, schedulers, shutdown — these are entrypoint glue used only by `packages/server/packages/server/packages/server/src/index.ts`. |
+| Where does `packages/agent/src/services/*` go? | `packages/agent/src/services/`. Importers live in `mcp/`, `pipeline/`, `app/`, `scheduler/`, plus thin uses by `routes/`. **Exception:** `packages/agent/src/services/auth.service.ts` moves to `packages/agent/src/services/auth.service.ts` in A1-2 (cycle pre-split — `lib/auth.ts` middleware needs it; auth-service has zero non-stdlib imports). |
+| Where does `packages/server/src/app/*` go? | `packages/server/src/app/`. Bootstrap, deps wiring, schedulers, shutdown — these are entrypoint glue used only by `packages/server/src/index.ts`. |
 | Where do leftover `src/lib/*` files go (auth, clock, errors, memory-decay, metrics{.ts,/}, redact, sse)? | `packages/core/src/lib/`. They are infrastructure primitives reused by ≥2 packages. |
-| Where do `packages/providers/src/types.ts`, `packages/agent/packages/agent/packages/agent/src/rag/types.ts`, `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/code-tools/types.ts` go? | `packages/core/src/types/{providers,rag,code-tool}.ts` — pre-split in A1-2 to break would-be cycles (`lib/messages.ts` needs `providers/types`; `lib/memory-decay.ts` needs `rag/types`; `db/tables/code-tools.ts` + `repositories/code-tools.repo.ts` need `code-tool/types`). The originals get re-exported from their old locations until A1-4/A1-5 move the implementations. |
-| Where does `src/lib/personas/*` and `packages/agent/packages/agent/src/lib/personas.ts` go? | `packages/agent/src/personas/` (spec line 568 explicit). Both names coexist — `personas.ts` keeps that name; `personas/` directory keeps that name. Linux ext4 allows both; if a packet's filesystem rejects, halt with `FAIL: name-collision`. (`personas-root.ts` fallback removed — confirmed unnecessary on target FS.) |
-| Where do `packages/agent/src/rag/*` and `packages/agent/src/telegram/*` go? | `packages/agent/packages/agent/src/rag/` and `packages/agent/packages/agent/src/telegram/`. They are integration logic the agent loop depends on; not part of HTTP transport. |
-| Where do `packages/server/src/mcp-transport/transport.ts` and `packages/server/src/mcp-transport/mcp-protocol.ts` go? | `packages/server/src/mcp-transport/` (View-tier — they import Elysia and define HTTP/SSE routes per CLAUDE.md three-layer SoC). The rest of `packages/agent/src/mcp/` (registry, executor, tools, telegram-tools, snapshot, types, playwright-client, index) goes to `packages/agent/packages/agent/src/mcp/`. |
-| Where does `packages/agent/packages/agent/packages/agent/src/scheduler/free-agent.ts` go? | `packages/agent/packages/agent/packages/agent/src/scheduler/free-agent.ts`. **Cycle break in A1-7a:** the `import type { AppDeps } from "../app/deps"` is replaced by a local `FreeAgentSchedulerDeps` interface (one structural type, agent-side); the `installFreeAgentScheduler(deps: FreeAgentSchedulerDeps)` signature stays compatible because `AppDeps extends FreeAgentSchedulerDeps` (server passes the wider type, agent only sees the narrow one). |
+| Where do `packages/providers/src/types.ts`, `packages/agent/src/rag/types.ts`, `packages/agent/src/pipeline/agent-loop/code-tools/types.ts` go? | `packages/core/src/types/{providers,rag,code-tool}.ts` — pre-split in A1-2 to break would-be cycles (`lib/messages.ts` needs `providers/types`; `lib/memory-decay.ts` needs `rag/types`; `db/tables/code-tools.ts` + `repositories/code-tools.repo.ts` need `code-tool/types`). The originals get re-exported from their old locations until A1-4/A1-5 move the implementations. |
+| Where does `src/lib/personas/*` and `packages/agent/src/lib/personas.ts` go? | `packages/agent/src/personas/` (spec line 568 explicit). Both names coexist — `personas.ts` keeps that name; `personas/` directory keeps that name. Linux ext4 allows both; if a packet's filesystem rejects, halt with `FAIL: name-collision`. (`personas-root.ts` fallback removed — confirmed unnecessary on target FS.) |
+| Where do `packages/agent/src/rag/*` and `packages/agent/src/telegram/*` go? | `packages/agent/src/rag/` and `packages/agent/src/telegram/`. They are integration logic the agent loop depends on; not part of HTTP transport. |
+| Where do `packages/server/src/mcp-transport/transport.ts` and `packages/server/src/mcp-transport/mcp-protocol.ts` go? | `packages/server/src/mcp-transport/` (View-tier — they import Elysia and define HTTP/SSE routes per CLAUDE.md three-layer SoC). The rest of `packages/agent/src/mcp/` (registry, executor, tools, telegram-tools, snapshot, types, playwright-client, index) goes to `packages/agent/src/mcp/`. |
+| Where does `packages/agent/src/scheduler/free-agent.ts` go? | `packages/agent/src/scheduler/free-agent.ts`. **Cycle break in A1-7a:** the `import type { AppDeps } from "../app/deps"` is replaced by a local `FreeAgentSchedulerDeps` interface (one structural type, agent-side); the `installFreeAgentScheduler(deps: FreeAgentSchedulerDeps)` signature stays compatible because `AppDeps extends FreeAgentSchedulerDeps` (server passes the wider type, agent only sees the narrow one). |
 | Per-package name? | `@subbrain/core`, `@subbrain/providers`, `@subbrain/plugin`, `@subbrain/agent`, `@subbrain/server`. Private (`"private": true`), no publish. |
 | Subpath exports? | Yes. Each package's `package.json#exports` map enumerates every consumed entrypoint as `"./<subpath>": "./src/<subpath>/index.ts"` (or `./src/<file>.ts`). Kimi MUST diff `git grep "from \"@subbrain/<pkg>"` after every packet and confirm every imported subpath is listed in `exports`. Missing subpath → `FAIL: missing-export`. |
 | TS path alias? | None. Imports between packages use `@subbrain/<pkg>` or `@subbrain/<pkg>/<subpath>`. Bun workspaces resolve via `node_modules/@subbrain/<name>` symlinks. Inside a package use relative paths. The previous `@/*` → `./src/*` alias (0 hits) is dropped in A1-1. |
-| `packages/plugin` content (types-only stub)? | `src/types.ts` placeholder + `packages/server/packages/server/packages/server/src/index.ts` re-export. Placeholder shapes only — real Hooks land in A2. (Same content as previous draft.) |
+| `packages/plugin` content (types-only stub)? | `src/types.ts` placeholder + `packages/server/src/index.ts` re-export. Placeholder shapes only — real Hooks land in A2. (Same content as previous draft.) |
 | Are scripts/tests moved? | No. `scripts/` and `tests/` stay at repo root; their imports rewrite to `@subbrain/<pkg>` / `@subbrain/<pkg>/<subpath>` aliases. |
 | Is `bun.lock` regenerated? | Yes, once per packet, via `bun install`. Commit it. |
 | Are `tsbuildinfo` files committed? | No. Each per-package tsconfig sets `"composite": true` but `tsbuildinfo` is gitignored. Update `.gitignore` in A1-1. |
@@ -60,7 +60,7 @@ A1-6a  → packages/agent: pipeline/ + services/ (split of old A1-5, part 1)
 A1-6b  → packages/agent: mcp/ (registry+executor+tools — NOT transport)
 A1-6c  → packages/agent: scheduler/ + telegram/
 A1-6d  → packages/agent: rag/ + personas
-A1-7   → packages/server: routes/, app/, mcp-transport/ (transport.ts + mcp-protocol.ts), packages/server/packages/server/src/index.ts
+A1-7   → packages/server: routes/, app/, mcp-transport/ (transport.ts + mcp-protocol.ts), packages/server/src/index.ts
          (was A1-6)
 A1-7a  → AppDeps cycle break (free-agent.ts → FreeAgentSchedulerDeps)
          (NEW micro-packet — depends on A1-6c structurally; runs immediately
@@ -117,7 +117,7 @@ docker compose build                                 # exit 0
    stays as-is in cap numbers; do not split or merge files even if a moved
    file flirts with the cap. Path keys update.
 4. No file deletions outside `git mv` mechanics.
-5. **Schema rule (A1-3 only):** `packages/core/packages/core/packages/core/src/db/schema.ts` migration code, FTS5 setup,
+5. **Schema rule (A1-3 only):** `packages/core/src/db/schema.ts` migration code, FTS5 setup,
    and `sqlite-vec` loader move byte-for-byte. The schema migration test
    (`tests/migrate.test.ts` or equivalent — the tests that open a fresh DB and
    call `migrate()`) MUST pass before and after A1-3. If a move appears to
@@ -159,8 +159,8 @@ docker compose build                                 # exit 0
   `packages/`. Internal-only (`"private": true`).
 - **Subpath export:** entry in `packages/<pkg>/package.json#exports` mapping
   `"./<name>": "./src/<path>"` so `from "@subbrain/<pkg>/<name>"` resolves.
-- **`AppDeps`:** the dependency container in `packages/server/packages/server/packages/server/src/app/deps.ts`. Lives at
-  `packages/server/packages/server/packages/server/src/app/deps.ts` after A1-7. Its shape is unchanged.
+- **`AppDeps`:** the dependency container in `packages/server/src/app/deps.ts`. Lives at
+  `packages/server/src/app/deps.ts` after A1-7. Its shape is unchanged.
 - **`FreeAgentSchedulerDeps`:** narrow agent-side type introduced in A1-7a.
   Structural subset of `AppDeps` containing exactly the fields
   `installFreeAgentScheduler` reads (`config.freeAgent`, `agentService`,
@@ -257,42 +257,42 @@ docker compose build                                 # exit 0
     "Do not move providers/<other>.ts — only providers/types.ts.",
     "Do not move rag/<other>.ts — only rag/types.ts.",
     "Do not move pipeline/agent-loop/code-tools/<other>.ts — only types.ts.",
-    "Do not edit packages/core/packages/agent/src/services/auth.service.ts content beyond the new path.",
+    "Do not edit packages/agent/src/services/auth.service.ts content beyond the new path.",
     "Do not delete the original-path shim files (they exist so unrewritten importers keep compiling); A1-3..A1-7 retire them as importers move.",
     "Do not introduce new symbols. Re-export surface = exact previous surface."
   ],
   "allowed_write_paths": [
     "packages/core/package.json",
     "packages/core/tsconfig.json",
-    "packages/core/packages/server/packages/server/src/index.ts",
+    "packages/server/src/index.ts",
     "packages/core/src/types/providers.ts",
     "packages/core/src/types/rag.ts",
     "packages/core/src/types/code-tool.ts",
-    "packages/core/packages/core/packages/agent/src/services/auth.service.ts",
-    "packages/core/packages/core/src/lib/auth.ts",
+    "packages/agent/src/services/auth.service.ts",
+    "packages/core/src/lib/auth.ts",
     "packages/providers/src/types.ts",
-    "packages/agent/packages/agent/src/rag/types.ts",
-    "packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/code-tools/types.ts",
-    "packages/core/packages/agent/src/services/auth.service.ts",
+    "packages/agent/src/rag/types.ts",
+    "packages/agent/src/pipeline/agent-loop/code-tools/types.ts",
+    "packages/agent/src/services/auth.service.ts",
     "packages/core/src/lib/auth.ts",
     "packages/core/src/lib/messages.ts",
     "packages/core/src/lib/memory-decay.ts",
-    "packages/core/packages/core/src/db/tables/code-tools.ts",
-    "packages/core/packages/core/src/repositories/code-tools.repo.ts",
+    "packages/core/src/db/tables/code-tools.ts",
+    "packages/core/src/repositories/code-tools.repo.ts",
     "scripts/check-file-size.ts",
     "scripts/check-deep-imports.ts",
     "bun.lock"
   ],
   "read_context": [
     "packages/providers/src/types.ts",
-    "packages/agent/packages/agent/src/rag/types.ts",
-    "packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/code-tools/types.ts",
-    "packages/core/packages/agent/src/services/auth.service.ts",
+    "packages/agent/src/rag/types.ts",
+    "packages/agent/src/pipeline/agent-loop/code-tools/types.ts",
+    "packages/agent/src/services/auth.service.ts",
     "packages/core/src/lib/auth.ts",
     "packages/core/src/lib/messages.ts",
     "packages/core/src/lib/memory-decay.ts",
-    "packages/core/packages/core/src/db/tables/code-tools.ts",
-    "packages/core/packages/core/src/repositories/code-tools.repo.ts",
+    "packages/core/src/db/tables/code-tools.ts",
+    "packages/core/src/repositories/code-tools.repo.ts",
     "tests/auth-service.test.ts",
     "tests/auth.test.ts"
   ],
@@ -300,16 +300,16 @@ docker compose build                                 # exit 0
   "acceptance": [
     "test -f packages/core/package.json",
     "test -f packages/core/tsconfig.json",
-    "test -f packages/core/packages/server/packages/server/src/index.ts",
+    "test -f packages/server/src/index.ts",
     "test -f packages/core/src/types/providers.ts",
     "test -f packages/core/src/types/rag.ts",
     "test -f packages/core/src/types/code-tool.ts",
-    "test -f packages/core/packages/core/packages/agent/src/services/auth.service.ts",
-    "test -f packages/core/packages/core/src/lib/auth.ts",
+    "test -f packages/agent/src/services/auth.service.ts",
+    "test -f packages/core/src/lib/auth.ts",
     "test -f packages/providers/src/types.ts && grep -q '@subbrain/core' packages/providers/src/types.ts",
-    "test -f packages/agent/packages/agent/src/rag/types.ts && grep -q '@subbrain/core' packages/agent/packages/agent/src/rag/types.ts",
-    "test -f packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/code-tools/types.ts && grep -q '@subbrain/core' packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/code-tools/types.ts",
-    "! test -f packages/core/packages/agent/src/services/auth.service.ts",
+    "test -f packages/agent/src/rag/types.ts && grep -q '@subbrain/core' packages/agent/src/rag/types.ts",
+    "test -f packages/agent/src/pipeline/agent-loop/code-tools/types.ts && grep -q '@subbrain/core' packages/agent/src/pipeline/agent-loop/code-tools/types.ts",
+    "! test -f packages/agent/src/services/auth.service.ts",
     "! test -f packages/core/src/lib/auth.ts",
     "bun install",
     "bunx tsc --noEmit",
@@ -335,20 +335,20 @@ docker compose build                                 # exit 0
     "leaf module": "imports only stdlib (node:*) or types from inside the same to-be-moved set — never anything from src/ that won't already be in core."
   },
   "exact_steps": [
-    "1. Create packages/core/package.json: {\"name\":\"@subbrain/core\",\"private\":true,\"type\":\"module\",\"exports\":{\".\":\"./packages/server/packages/server/src/index.ts\",\"./types/providers\":\"./src/types/providers.ts\",\"./types/rag\":\"./src/types/rag.ts\",\"./types/code-tool\":\"./src/types/code-tool.ts\",\"./services/auth\":\"./packages/core/packages/agent/src/services/auth.service.ts\",\"./lib/auth\":\"./packages/core/src/lib/auth.ts\"}}.",
+    "1. Create packages/core/package.json: {\"name\":\"@subbrain/core\",\"private\":true,\"type\":\"module\",\"exports\":{\".\":\"./packages/server/src/index.ts\",\"./types/providers\":\"./src/types/providers.ts\",\"./types/rag\":\"./src/types/rag.ts\",\"./types/code-tool\":\"./src/types/code-tool.ts\",\"./services/auth\":\"./packages/agent/src/services/auth.service.ts\",\"./lib/auth\":\"./packages/core/src/lib/auth.ts\"}}.",
     "2. Create packages/core/tsconfig.json: {\"extends\":\"../../tsconfig.json\",\"compilerOptions\":{\"composite\":true,\"rootDir\":\"./src\",\"outDir\":\"./dist\"},\"include\":[\"src/**/*.ts\"]}.",
     "3. git mv packages/providers/src/types.ts → packages/core/src/types/providers.ts. Then create a new packages/providers/src/types.ts with content `export * from \"@subbrain/core/types/providers\";`.",
-    "4. git mv packages/agent/packages/agent/src/rag/types.ts → packages/core/src/types/rag.ts. New shim packages/agent/packages/agent/src/rag/types.ts: `export * from \"@subbrain/core/types/rag\";`.",
-    "5. git mv packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/code-tools/types.ts → packages/core/src/types/code-tool.ts. New shim packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/code-tools/types.ts: `export * from \"@subbrain/core/types/code-tool\";`.",
-    "6. git mv packages/core/packages/agent/src/services/auth.service.ts → packages/core/packages/core/packages/agent/src/services/auth.service.ts. (No shim — only 4 importers, all rewritten this packet: packages/core/src/lib/auth.ts, packages/server/packages/server/src/app/deps.ts, tests/auth-service.test.ts, tests/auth.test.ts, tests/auth-coverage.test.ts, tests/app-bootstrap.test.ts).",
-    "7. git mv packages/core/src/lib/auth.ts → packages/core/packages/core/src/lib/auth.ts. Inside the moved file, rewrite `import type { AuthService } from \"../services/auth.service\";` → `import type { AuthService } from \"../services/auth.service\";` (path stays since both moved together — verify with grep).",
-    "8. Update the 6 importers in step 6 to `from \"@subbrain/core/services/auth\"` (or `from \"@subbrain/core\"` once index.ts re-exports). Update packages/server/packages/server/src/app/deps.ts auth-middleware import to `from \"@subbrain/core/lib/auth\"`.",
+    "4. git mv packages/agent/src/rag/types.ts → packages/core/src/types/rag.ts. New shim packages/agent/src/rag/types.ts: `export * from \"@subbrain/core/types/rag\";`.",
+    "5. git mv packages/agent/src/pipeline/agent-loop/code-tools/types.ts → packages/core/src/types/code-tool.ts. New shim packages/agent/src/pipeline/agent-loop/code-tools/types.ts: `export * from \"@subbrain/core/types/code-tool\";`.",
+    "6. git mv packages/agent/src/services/auth.service.ts → packages/agent/src/services/auth.service.ts. (No shim — only 4 importers, all rewritten this packet: packages/core/src/lib/auth.ts, packages/server/src/app/deps.ts, tests/auth-service.test.ts, tests/auth.test.ts, tests/auth-coverage.test.ts, tests/app-bootstrap.test.ts).",
+    "7. git mv packages/core/src/lib/auth.ts → packages/core/src/lib/auth.ts. Inside the moved file, rewrite `import type { AuthService } from \"../services/auth.service\";` → `import type { AuthService } from \"../services/auth.service\";` (path stays since both moved together — verify with grep).",
+    "8. Update the 6 importers in step 6 to `from \"@subbrain/core/services/auth\"` (or `from \"@subbrain/core\"` once index.ts re-exports). Update packages/server/src/app/deps.ts auth-middleware import to `from \"@subbrain/core/lib/auth\"`.",
     "9. Inside packages/core/src/types/providers.ts: verify it has zero non-stdlib imports. Same for rag.ts and code-tool.ts.",
     "10. Inside packages/core/src/lib/messages.ts: rewrite `import type { Message } from \"../providers/types\";` → `import type { Message } from \"@subbrain/core/types/providers\";`.",
     "11. Inside packages/core/src/lib/memory-decay.ts: rewrite `import type { RAGResult } from \"../rag/types\";` → `import type { RAGResult } from \"@subbrain/core/types/rag\";`.",
-    "12. Inside packages/core/packages/core/src/db/tables/code-tools.ts and packages/core/packages/core/src/repositories/code-tools.repo.ts: rewrite their import of code-tools/types → `from \"@subbrain/core/types/code-tool\"`.",
-    "13. Create packages/core/packages/server/packages/server/src/index.ts: `export * from \"./types/providers\"; export * from \"./types/rag\"; export * from \"./types/code-tool\"; export * from \"./services/auth.service\"; export * from \"./lib/auth\";` (matches the surface previously exposed at the moved leaf paths).",
-    "14. Update scripts/check-file-size.ts WHITELIST keys: packages/core/packages/agent/src/services/auth.service.ts (if listed) → packages/core/packages/core/packages/agent/src/services/auth.service.ts; packages/core/src/lib/auth.ts (if listed) → packages/core/packages/core/src/lib/auth.ts. Update scripts/check-deep-imports.ts TRANSITIONAL_DEEP_IMPORTS likewise. Path edits only.",
+    "12. Inside packages/core/src/db/tables/code-tools.ts and packages/core/src/repositories/code-tools.repo.ts: rewrite their import of code-tools/types → `from \"@subbrain/core/types/code-tool\"`.",
+    "13. Create packages/server/src/index.ts: `export * from \"./types/providers\"; export * from \"./types/rag\"; export * from \"./types/code-tool\"; export * from \"./services/auth.service\"; export * from \"./lib/auth\";` (matches the surface previously exposed at the moved leaf paths).",
+    "14. Update scripts/check-file-size.ts WHITELIST keys: packages/agent/src/services/auth.service.ts (if listed) → packages/agent/src/services/auth.service.ts; packages/core/src/lib/auth.ts (if listed) → packages/core/src/lib/auth.ts. Update scripts/check-deep-imports.ts TRANSITIONAL_DEEP_IMPORTS likewise. Path edits only.",
     "15. Run `bun install`. Run all acceptance commands."
   ]
 }
@@ -407,9 +407,9 @@ docker compose build                                 # exit 0
     "test -d packages/core/src/db",
     "test -d packages/core/src/repositories",
     "test -d packages/core/src/lib",
-    "test -f packages/core/packages/core/src/lib/logger.ts",
-    "test -f packages/core/packages/core/src/lib/http-client.ts",
-    "test -f packages/core/packages/core/packages/core/src/db/schema.ts",
+    "test -f packages/core/src/lib/logger.ts",
+    "test -f packages/core/src/lib/http-client.ts",
+    "test -f packages/core/src/db/schema.ts",
     "test ! -e src/db",
     "test ! -e src/repositories",
     "test ! -e packages/core/src/lib/logger.ts",
@@ -432,7 +432,7 @@ docker compose build                                 # exit 0
     "tsc reports a type error in a dependent that path-rewrite alone cannot fix → FAIL: type-error-non-mechanical.",
     "scripts/check-deep-imports.ts flags `@subbrain/core/src/...` style imports → FAIL: deep-import-rule-update.",
     "scripts/check-file-size.ts whitelist key path no longer matches after rename and the file is over cap → FAIL: file-cap-conflict.",
-    "packages/core/packages/core/src/db/schema.ts requires content edits to compile under new path → FAIL: spec-conflict-schema.",
+    "packages/core/src/db/schema.ts requires content edits to compile under new path → FAIL: spec-conflict-schema.",
     "Moved core file content contradicts existing schema, repository, or service types → FAIL: spec contradicts code, list mismatch."
   ],
   "glossary": {
@@ -440,14 +440,14 @@ docker compose build                                 # exit 0
     "diff_budget_note": "Bulk of diff is `git mv` directory moves (db/, repositories/, lib/*). Hand-written code stays under 250 LOC: package.json exports, tsconfig.json, index.ts barrel, import rewrites, guardrail path keys."
   },
   "exact_steps": [
-    "1. Extend packages/core/package.json#exports with: \"./db\":\"./packages/core/packages/core/src/db/index.ts\", \"./repositories\":\"./packages/core/packages/core/src/repositories/index.ts\", \"./lib/logger\":\"./packages/core/src/lib/logger.ts\", \"./lib/http-client\":\"./packages/core/src/lib/http-client.ts\", \"./lib/fts-utils\":\"./packages/core/src/lib/fts-utils.ts\", \"./lib/api-envelope\":\"./packages/core/src/lib/api-envelope.ts\", \"./lib/messages\":\"./packages/core/src/lib/messages.ts\", \"./lib/model-map\":\"./src/lib/model-map/index.ts\", \"./lib/clock\":\"./packages/core/src/lib/clock.ts\", \"./lib/errors\":\"./packages/core/src/lib/errors.ts\", \"./lib/memory-decay\":\"./packages/core/src/lib/memory-decay.ts\", \"./lib/metrics\":\"./src/lib/metrics/index.ts\", \"./lib/redact\":\"./packages/core/src/lib/redact.ts\", \"./lib/sse\":\"./packages/core/src/lib/sse.ts\". (Keep the A1-2 entries.)",
-    "2. git mv these into packages/core/src/ preserving structure: packages/core/src/db/ → packages/core/packages/core/src/db/. packages/core/src/repositories/ → packages/core/packages/core/src/repositories/.",
+    "1. Extend packages/core/package.json#exports with: \"./db\":\"./packages/core/src/db/index.ts\", \"./repositories\":\"./packages/core/src/repositories/index.ts\", \"./lib/logger\":\"./packages/core/src/lib/logger.ts\", \"./lib/http-client\":\"./packages/core/src/lib/http-client.ts\", \"./lib/fts-utils\":\"./packages/core/src/lib/fts-utils.ts\", \"./lib/api-envelope\":\"./packages/core/src/lib/api-envelope.ts\", \"./lib/messages\":\"./packages/core/src/lib/messages.ts\", \"./lib/model-map\":\"./src/lib/model-map/index.ts\", \"./lib/clock\":\"./packages/core/src/lib/clock.ts\", \"./lib/errors\":\"./packages/core/src/lib/errors.ts\", \"./lib/memory-decay\":\"./packages/core/src/lib/memory-decay.ts\", \"./lib/metrics\":\"./src/lib/metrics/index.ts\", \"./lib/redact\":\"./packages/core/src/lib/redact.ts\", \"./lib/sse\":\"./packages/core/src/lib/sse.ts\". (Keep the A1-2 entries.)",
+    "2. git mv these into packages/core/src/ preserving structure: packages/core/src/db/ → packages/core/src/db/. packages/core/src/repositories/ → packages/core/src/repositories/.",
     "3. git mv src/lib/{logger,http-client,fts-utils,api-envelope,messages,clock,errors,memory-decay,redact,sse}.ts → packages/core/src/lib/. git mv packages/core/src/lib/model-map.ts and src/lib/model-map/ subdirectory → packages/core/src/lib/model-map/<keep>. git mv packages/core/src/lib/metrics.ts and src/lib/metrics/ → packages/core/src/lib/metrics/<keep>.",
-    "4. Update packages/core/packages/server/packages/server/src/index.ts to also re-export the new modules (`export * from \"./db\"; export * from \"./repositories\"; export * from \"./lib/logger\";` etc.). Mirror exact set of exports previously importable from src/lib/<file> and packages/core/packages/core/src/db/index.ts and packages/core/packages/core/src/repositories/index.ts.",
+    "4. Update packages/server/src/index.ts to also re-export the new modules (`export * from \"./db\"; export * from \"./repositories\"; export * from \"./lib/logger\";` etc.). Mirror exact set of exports previously importable from src/lib/<file> and packages/core/src/db/index.ts and packages/core/src/repositories/index.ts.",
     "5. Rewrite imports in all remaining files (src/, scripts/, tests/) that previously imported from these moved paths. Replacement rule: `from \"<rel>/lib/logger\"` → `from \"@subbrain/core/lib/logger\"` (or `from \"@subbrain/core\"` for top-level usage). Within packages/core itself, keep relative imports.",
     "6. Run `bun install` so workspace symlink @subbrain/core is fresh.",
     "7. Update root tsconfig.json: replace `\"include\": [\"src/**/*.ts\"]` with `\"include\": [\"src/**/*.ts\", \"packages/*/src/**/*.ts\"]` so root tsc still sees moved files until A1-9 narrows further.",
-    "8. Update scripts/check-file-size.ts and scripts/check-deep-imports.ts whitelists/path keys: replace `packages/core/src/db/` → `packages/core/packages/core/src/db/`, `packages/core/src/repositories/` → `packages/core/packages/core/src/repositories/`, and the moved `src/lib/*.ts` paths → `packages/core/src/lib/*.ts`. Path edits only; do not change cap numbers or rules.",
+    "8. Update scripts/check-file-size.ts and scripts/check-deep-imports.ts whitelists/path keys: replace `packages/core/src/db/` → `packages/core/src/db/`, `packages/core/src/repositories/` → `packages/core/src/repositories/`, and the moved `src/lib/*.ts` paths → `packages/core/src/lib/*.ts`. Path edits only; do not change cap numbers or rules.",
     "9. Verify subpath-export coverage: `git grep \"from \\\"@subbrain/core/\" | sed -E 's|.*from \\\"(@subbrain/core[^\\\"]*)\\\".*|\\1|' | sort -u` — every entry must be either `@subbrain/core` or a key in the exports map.",
     "10. Run all acceptance commands; if any fails, classify against escalation triggers."
   ]
@@ -485,13 +485,13 @@ docker compose build                                 # exit 0
     "packages/providers/src/rate-limiter.ts",
     "packages/core/src/lib/model-router.ts",
     "packages/providers/src/model-router/",
-    "packages/core/packages/server/packages/server/src/index.ts",
+    "packages/server/src/index.ts",
     "packages/core/package.json"
   ],
   "risk_tier": "public-api",
   "acceptance": [
     "test -f packages/providers/package.json",
-    "test -f packages/providers/packages/server/packages/server/src/index.ts",
+    "test -f packages/providers/src/index.ts",
     "test -d packages/providers/src/providers",
     "test -f packages/providers/src/rate-limiter.ts",
     "test -f packages/providers/src/model-router.ts",
@@ -512,7 +512,7 @@ docker compose build                                 # exit 0
   "file_count_max": 80,
   "rollback": "git reset --hard HEAD~1 and bun install.",
   "escalation_triggers": [
-    "Any provider file imports from packages/agent/packages/agent/src/pipeline/, packages/agent/packages/agent/src/mcp/, packages/agent/packages/agent/src/scheduler/, or packages/server/packages/server/src/routes/ — would create cycle once agent/server are built; if found → FAIL: package-cycle.",
+    "Any provider file imports from packages/agent/src/pipeline/, packages/agent/src/mcp/, packages/agent/src/scheduler/, or packages/server/src/routes/ — would create cycle once agent/server are built; if found → FAIL: package-cycle.",
     "model-router imports model-map directly via relative path that crosses package boundary — must use @subbrain/core → FAIL: cross-pkg-relative-import.",
     "tsc reports unresolved @subbrain/core import inside packages/providers — workspace symlink missing → FAIL: workspace-resolution.",
     "packages/providers/src/types.ts shim cannot be retired because some importer still uses the old path — list importers in fail message → FAIL: shim-still-used."
@@ -522,11 +522,11 @@ docker compose build                                 # exit 0
     "diff_budget_note": "Bulk of diff is `git mv` directory moves (providers/, model-router/, rate-limiter.ts). Hand-written code stays under 250 LOC: package.json exports, tsconfig.json, index.ts barrel, import rewrites, guardrail path keys."
   },
   "exact_steps": [
-    "1. Create packages/providers/package.json: {\"name\":\"@subbrain/providers\",\"private\":true,\"type\":\"module\",\"exports\":{\".\":\"./packages/server/packages/server/src/index.ts\",\"./providers\":\"./packages/providers/packages/server/src/index.ts\",\"./rate-limiter\":\"./src/rate-limiter.ts\",\"./model-router\":\"./src/model-router.ts\",\"./model-router/sse-parser\":\"./src/model-router/sse-parser.ts\"}} (extend the exports map to cover any subpath used by importers — verify with grep before writing).",
+    "1. Create packages/providers/package.json: {\"name\":\"@subbrain/providers\",\"private\":true,\"type\":\"module\",\"exports\":{\".\":\"./packages/server/src/index.ts\",\"./providers\":\"./packages/providers/src/index.ts\",\"./rate-limiter\":\"./src/rate-limiter.ts\",\"./model-router\":\"./src/model-router.ts\",\"./model-router/sse-parser\":\"./src/model-router/sse-parser.ts\"}} (extend the exports map to cover any subpath used by importers — verify with grep before writing).",
     "2. Create packages/providers/tsconfig.json extending root with composite + rootDir/outDir.",
-    "3. git mv packages/providers/src/ → packages/providers/packages/providers/src/. git mv packages/providers/src/rate-limiter.ts → packages/providers/src/rate-limiter.ts. git mv packages/core/src/lib/model-router.ts → packages/providers/src/model-router.ts. git mv packages/providers/src/model-router/ → packages/providers/src/model-router/.",
-    "4. Retire the packages/providers/src/types.ts shim from A1-2: since packages/providers/src/ is now empty (the directory was moved), the shim was moved with it — verify it's now packages/providers/packages/providers/src/types.ts and re-exports from @subbrain/core/types/providers. **Decision:** keep that shim alive (so downstream code that still imports `@subbrain/providers/types` resolves) by adding an export entry `\"./types\":\"./packages/providers/src/types.ts\"`. Do NOT add a new top-level packages/providers/src/types.ts at root — packages/providers/src/ as a directory is gone.",
-    "5. Create packages/providers/packages/server/packages/server/src/index.ts that re-exports the same surface as before (everything previously importable via `src/providers`, `src/lib/rate-limiter`, `src/lib/model-router`, `packages/providers/src/model-router/<sub>`).",
+    "3. git mv packages/providers/src/ → packages/providers/src/. git mv packages/providers/src/rate-limiter.ts → packages/providers/src/rate-limiter.ts. git mv packages/core/src/lib/model-router.ts → packages/providers/src/model-router.ts. git mv packages/providers/src/model-router/ → packages/providers/src/model-router/.",
+    "4. Retire the packages/providers/src/types.ts shim from A1-2: since packages/providers/src/ is now empty (the directory was moved), the shim was moved with it — verify it's now packages/providers/src/types.ts and re-exports from @subbrain/core/types/providers. **Decision:** keep that shim alive (so downstream code that still imports `@subbrain/providers/types` resolves) by adding an export entry `\"./types\":\"./packages/providers/src/types.ts\"`. Do NOT add a new top-level packages/providers/src/types.ts at root — packages/providers/src/ as a directory is gone.",
+    "5. Create packages/providers/src/index.ts that re-exports the same surface as before (everything previously importable via `src/providers`, `src/lib/rate-limiter`, `src/lib/model-router`, `packages/providers/src/model-router/<sub>`).",
     "6. Rewrite imports across remaining src/, scripts/, tests/ from old paths to `@subbrain/providers` (or its subpath). Inside packages/providers/, relative imports stay; cross-package references to logger/http-client/model-map → `@subbrain/core/...`.",
     "7. Run bun install. Verify subpath-export coverage with grep. Run all acceptance commands."
   ]
@@ -551,7 +551,7 @@ docker compose build                                 # exit 0
   "allowed_write_paths": [
     "packages/plugin/package.json",
     "packages/plugin/tsconfig.json",
-    "packages/plugin/packages/server/packages/server/src/index.ts",
+    "packages/server/src/index.ts",
     "packages/plugin/src/types.ts",
     "bun.lock"
   ],
@@ -563,7 +563,7 @@ docker compose build                                 # exit 0
   "acceptance": [
     "test -f packages/plugin/package.json",
     "test -f packages/plugin/src/types.ts",
-    "test -f packages/plugin/packages/server/packages/server/src/index.ts",
+    "test -f packages/server/src/index.ts",
     "bun install",
     "bunx tsc --noEmit",
     "bunx tsc -p packages/plugin/tsconfig.json --noEmit",
@@ -584,10 +584,10 @@ docker compose build                                 # exit 0
     "stub": "minimum types so the package compiles and resolves; A2 replaces with real Hooks interface."
   },
   "exact_steps": [
-    "1. Create packages/plugin/package.json: {\"name\":\"@subbrain/plugin\",\"private\":true,\"type\":\"module\",\"exports\":{\".\":\"./packages/server/packages/server/src/index.ts\",\"./types\":\"./src/types.ts\"}}.",
+    "1. Create packages/plugin/package.json: {\"name\":\"@subbrain/plugin\",\"private\":true,\"type\":\"module\",\"exports\":{\".\":\"./packages/server/src/index.ts\",\"./types\":\"./src/types.ts\"}}.",
     "2. Create packages/plugin/tsconfig.json extending root with composite + rootDir/outDir.",
     "3. Create packages/plugin/src/types.ts with EXACTLY this content (placeholder; real shapes in A2):\n\nexport type ToolResult<T = unknown> =\n  | { ok: true; data: T }\n  | { ok: false; error: { code: string; message: string } };\n\nexport type ToolDefinition = {\n  name: string;\n  description: string;\n  scope: \"public\" | \"agent-only\";\n};\n\nexport type Hooks = Record<string, never>;\n\nexport function tool<T extends ToolDefinition>(def: T): T {\n  return def;\n}\n",
-    "4. Create packages/plugin/packages/server/packages/server/src/index.ts: `export * from \"./types\";`.",
+    "4. Create packages/server/src/index.ts: `export * from \"./types\";`.",
     "5. Run bun install. Run acceptance."
   ]
 }
@@ -606,7 +606,7 @@ docker compose build                                 # exit 0
     "Do not split files. The 150-line cap whitelist stays untouched in cap numbers; only path keys update.",
     "Do not edit pipeline phase semantics, hippocampus step cap, arbitration weights, or context-compressor SOFT_LIMIT.",
     "Do not retire the code-tool/types shim from A1-2 — that retires in A1-6b once code-tools/ is also moved.",
-    "Do not touch packages/core/packages/core/src/db/schema.ts (already in core) or any SQL."
+    "Do not touch packages/core/src/db/schema.ts (already in core) or any SQL."
   ],
   "allowed_write_paths": [
     "packages/agent/package.json",
@@ -622,8 +622,8 @@ docker compose build                                 # exit 0
   "read_context": [
     "packages/agent/src/pipeline/",
     "packages/agent/src/services/",
-    "packages/core/packages/server/packages/server/src/index.ts",
-    "packages/providers/packages/server/packages/server/src/index.ts"
+    "packages/server/src/index.ts",
+    "packages/providers/src/index.ts"
   ],
   "risk_tier": "public-api",
   "acceptance": [
@@ -652,11 +652,11 @@ docker compose build                                 # exit 0
     "diff_budget_note": "Bulk of diff is `git mv` directory moves (pipeline/, services/). Hand-written code stays under 250 LOC: package.json exports, tsconfig.json, index.ts barrel, import rewrites, guardrail path keys."
   },
   "exact_steps": [
-    "1. Create packages/agent/package.json: {\"name\":\"@subbrain/agent\",\"private\":true,\"type\":\"module\",\"exports\":{\".\":\"./packages/server/packages/server/src/index.ts\",\"./pipeline\":\"./packages/agent/packages/agent/src/pipeline/index.ts\",\"./services\":\"./packages/agent/src/services/index.ts\"}}. (Extend exports as A1-6b/c/d add subtrees.)",
+    "1. Create packages/agent/package.json: {\"name\":\"@subbrain/agent\",\"private\":true,\"type\":\"module\",\"exports\":{\".\":\"./packages/server/src/index.ts\",\"./pipeline\":\"./packages/agent/src/pipeline/index.ts\",\"./services\":\"./packages/agent/src/services/index.ts\"}}. (Extend exports as A1-6b/c/d add subtrees.)",
     "2. Create packages/agent/tsconfig.json extending root with composite + rootDir/outDir.",
-    "3. git mv packages/agent/src/pipeline/ → packages/agent/packages/agent/src/pipeline/.",
-    "4. git mv packages/agent/src/services/* (everything except auth.service.ts which is already in core) → packages/agent/packages/agent/src/services/. packages/agent/src/services/ should now be empty — `rmdir src/services` if so.",
-    "5. Create packages/agent/packages/server/packages/server/src/index.ts re-exporting whatever was previously importable from these subtrees (services/index.ts barrels, pipeline barrels). Mirror exact set of exports.",
+    "3. git mv packages/agent/src/pipeline/ → packages/agent/src/pipeline/.",
+    "4. git mv packages/agent/src/services/* (everything except auth.service.ts which is already in core) → packages/agent/src/services/. packages/agent/src/services/ should now be empty — `rmdir src/services` if so.",
+    "5. Create packages/server/src/index.ts re-exporting whatever was previously importable from these subtrees (services/index.ts barrels, pipeline barrels). Mirror exact set of exports.",
     "6. Rewrite all remaining importers (src/, scripts/, tests/) from old paths → @subbrain/agent or @subbrain/agent/<subpath>. Within agent itself relative imports stay; cross-pkg references → @subbrain/core or @subbrain/providers.",
     "7. Update scripts/check-file-size.ts and scripts/check-deep-imports.ts path keys from src/{pipeline,services}/ → packages/agent/src/{pipeline,services}/.",
     "8. Verify subpath-export coverage. Run bun install. Run all acceptance commands."
@@ -671,7 +671,7 @@ docker compose build                                 # exit 0
 ```json
 {
   "task_id": "A1-6b",
-  "goal": "Move logic-tier MCP code into packages/agent/packages/agent/src/mcp/ and retire the A1-2 code-tool/types shim, leaving transport-tier files for A1-7.",
+  "goal": "Move logic-tier MCP code into packages/agent/src/mcp/ and retire the A1-2 code-tool/types shim, leaving transport-tier files for A1-7.",
   "non_goals": [
     "Do not move packages/server/src/mcp-transport/transport.ts or packages/server/src/mcp-transport/mcp-protocol.ts — those are View-tier (Elysia routes) and belong in server in A1-7.",
     "Do not change tool registry semantics, tool scope assignments (public vs agent-only), or the dispatcher priority array.",
@@ -679,7 +679,7 @@ docker compose build                                 # exit 0
   ],
   "allowed_write_paths": [
     "packages/agent/package.json",
-    "packages/agent/packages/agent/src/mcp/**",
+    "packages/agent/src/mcp/**",
     "src/**",
     "scripts/**",
     "tests/**",
@@ -689,16 +689,16 @@ docker compose build                                 # exit 0
   ],
   "read_context": [
     "packages/agent/src/mcp/",
-    "packages/agent/packages/server/packages/server/src/index.ts"
+    "packages/server/src/index.ts"
   ],
   "risk_tier": "public-api",
   "acceptance": [
-    "test -d packages/agent/packages/agent/src/mcp/registry",
-    "test -d packages/agent/packages/agent/src/mcp/tools",
-    "test -f packages/agent/packages/agent/packages/agent/src/mcp/snapshot.ts",
-    "test -f packages/agent/packages/agent/packages/agent/src/mcp/telegram-tools.ts",
-    "test -f packages/agent/packages/agent/packages/agent/src/mcp/types.ts",
-    "test -f packages/agent/packages/agent/packages/agent/src/mcp/playwright/index.ts || true",
+    "test -d packages/agent/src/mcp/registry",
+    "test -d packages/agent/src/mcp/tools",
+    "test -f packages/agent/src/mcp/snapshot.ts",
+    "test -f packages/agent/src/mcp/telegram-tools.ts",
+    "test -f packages/agent/src/mcp/types.ts",
+    "test -f packages/agent/src/mcp/playwright/index.ts || true",
     "test -f packages/server/src/mcp-transport/transport.ts",
     "test -f packages/server/src/mcp-transport/mcp-protocol.ts",
     "ls packages/agent/src/mcp/ | wc -l | xargs -I {} test {} -le 3",
@@ -716,7 +716,7 @@ docker compose build                                 # exit 0
   "escalation_triggers": [
     "Any moved mcp file imports Elysia or packages/server/src/routes/ — should be logic-tier only; if found → FAIL: soc-violation.",
     "Transport files (transport.ts / mcp-protocol.ts) accidentally moved → FAIL: transport-misplaced.",
-    "Code-tool/types shim cannot retire because some importer still uses packages/agent/packages/agent/src/pipeline/agent-loop/code-tools/types path → list importers → FAIL: shim-still-used."
+    "Code-tool/types shim cannot retire because some importer still uses packages/agent/src/pipeline/agent-loop/code-tools/types path → list importers → FAIL: shim-still-used."
   ],
   "glossary": {
     "logic-tier mcp": "registry/, executor/, tools/, snapshot.ts, telegram-tools.ts, types.ts, playwright-client.ts (if present), index.ts. NO Elysia imports.",
@@ -724,15 +724,15 @@ docker compose build                                 # exit 0
     "diff_budget_note": "Bulk of diff is `git mv` directory moves (mcp/registry/, mcp/executor/, mcp/tools/, snapshot.ts, etc.). Hand-written code stays under 200 LOC: package.json exports, index.ts barrel, import rewrites, guardrail path keys."
   },
   "exact_steps": [
-    "1. Extend packages/agent/package.json#exports: \"./mcp\":\"./packages/agent/src/mcp/index.ts\", \"./mcp/registry\":\"./packages/agent/packages/agent/src/mcp/registry/index.ts\", \"./mcp/executor\":\"./packages/agent/packages/agent/src/mcp/executor/index.ts\", \"./mcp/tools\":\"./packages/agent/packages/agent/src/mcp/tools/index.ts\", \"./mcp/snapshot\":\"./packages/agent/packages/agent/src/mcp/snapshot.ts\", \"./mcp/telegram-tools\":\"./packages/agent/packages/agent/src/mcp/telegram-tools.ts\", \"./mcp/types\":\"./packages/agent/packages/agent/src/mcp/types.ts\", \"./mcp/playwright-client\":\"./packages/agent/packages/agent/src/mcp/playwright/index.ts\". (Verify each subpath is actually consumed via grep before adding.)",
-    "2. git mv packages/agent/src/mcp/registry/ → packages/agent/packages/agent/src/mcp/registry/.",
-    "3. git mv packages/agent/src/mcp/executor/ → packages/agent/packages/agent/src/mcp/executor/. (If executor is a single file packages/agent/packages/agent/src/mcp/executor/index.ts — git mv that file.)",
-    "4. git mv packages/agent/src/mcp/tools/ → packages/agent/packages/agent/src/mcp/tools/.",
-    "5. git mv packages/agent/packages/agent/src/mcp/snapshot.ts packages/agent/packages/agent/src/mcp/telegram-tools.ts packages/agent/packages/agent/src/mcp/types.ts packages/agent/src/mcp/index.ts → packages/agent/packages/agent/src/mcp/.",
-    "6. If packages/agent/packages/agent/src/mcp/playwright/index.ts exists, git mv it too.",
+    "1. Extend packages/agent/package.json#exports: \"./mcp\":\"./packages/agent/src/mcp/index.ts\", \"./mcp/registry\":\"./packages/agent/src/mcp/registry/index.ts\", \"./mcp/executor\":\"./packages/agent/src/mcp/executor/index.ts\", \"./mcp/tools\":\"./packages/agent/src/mcp/tools/index.ts\", \"./mcp/snapshot\":\"./packages/agent/src/mcp/snapshot.ts\", \"./mcp/telegram-tools\":\"./packages/agent/src/mcp/telegram-tools.ts\", \"./mcp/types\":\"./packages/agent/src/mcp/types.ts\", \"./mcp/playwright-client\":\"./packages/agent/src/mcp/playwright/index.ts\". (Verify each subpath is actually consumed via grep before adding.)",
+    "2. git mv packages/agent/src/mcp/registry/ → packages/agent/src/mcp/registry/.",
+    "3. git mv packages/agent/src/mcp/executor/ → packages/agent/src/mcp/executor/. (If executor is a single file packages/agent/src/mcp/executor/index.ts — git mv that file.)",
+    "4. git mv packages/agent/src/mcp/tools/ → packages/agent/src/mcp/tools/.",
+    "5. git mv packages/agent/src/mcp/snapshot.ts packages/agent/src/mcp/telegram-tools.ts packages/agent/src/mcp/types.ts packages/agent/src/mcp/index.ts → packages/agent/src/mcp/.",
+    "6. If packages/agent/src/mcp/playwright/index.ts exists, git mv it too.",
     "7. Verify packages/agent/src/mcp/ now contains only transport.ts, mcp-protocol.ts (and maybe an empty index — leave as-is; A1-7 handles).",
-    "8. Update packages/agent/packages/server/packages/server/src/index.ts to re-export from ./mcp where previous re-export existed.",
-    "9. Retire packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/code-tools/types.ts shim left by A1-2: that file already lives at packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/code-tools/types.ts after A1-6a, but it's still a re-export shim pointing at @subbrain/core/types/code-tool. **Keep the shim alive** — agent-internal code can use `from \"./types\"` (relative) or the shim; cross-pkg use is `from \"@subbrain/core/types/code-tool\"`. Only remove the shim if zero importers reference it after rewrites.",
+    "8. Update packages/server/src/index.ts to re-export from ./mcp where previous re-export existed.",
+    "9. Retire packages/agent/src/pipeline/agent-loop/code-tools/types.ts shim left by A1-2: that file already lives at packages/agent/src/pipeline/agent-loop/code-tools/types.ts after A1-6a, but it's still a re-export shim pointing at @subbrain/core/types/code-tool. **Keep the shim alive** — agent-internal code can use `from \"./types\"` (relative) or the shim; cross-pkg use is `from \"@subbrain/core/types/code-tool\"`. Only remove the shim if zero importers reference it after rewrites.",
     "10. Rewrite all remaining importers from packages/agent/src/mcp/<logic-paths> to @subbrain/agent/mcp/<sub>.",
     "11. Update guardrail script path keys. Verify subpath-export coverage. Run all acceptance commands."
   ]
@@ -754,8 +754,8 @@ docker compose build                                 # exit 0
   ],
   "allowed_write_paths": [
     "packages/agent/package.json",
-    "packages/agent/packages/agent/src/scheduler/**",
-    "packages/agent/packages/agent/src/telegram/**",
+    "packages/agent/src/scheduler/**",
+    "packages/agent/src/telegram/**",
     "src/**",
     "scripts/**",
     "tests/**",
@@ -766,13 +766,13 @@ docker compose build                                 # exit 0
   "read_context": [
     "packages/agent/src/scheduler/",
     "packages/agent/src/telegram/",
-    "packages/agent/packages/server/packages/server/src/index.ts"
+    "packages/server/src/index.ts"
   ],
   "risk_tier": "public-api",
   "acceptance": [
     "test -d packages/agent/src/scheduler",
     "test -d packages/agent/src/telegram",
-    "test -f packages/agent/packages/agent/packages/agent/src/scheduler/free-agent.ts",
+    "test -f packages/agent/src/scheduler/free-agent.ts",
     "test ! -e src/scheduler",
     "test ! -e src/telegram",
     "bun install",
@@ -787,7 +787,7 @@ docker compose build                                 # exit 0
   "file_count_max": 50,
   "rollback": "git reset --hard HEAD~1 and bun install.",
   "escalation_triggers": [
-    "free-agent.ts AppDeps import resolution: it imports `../app/deps` (relative to packages/agent/packages/agent/src/scheduler/) which now points to ../../../packages/server/src/app/deps — still resolves because packages/server/src/app/ has not moved yet. After A1-7 src/app moves to packages/server/src/app and the import would have to cross packages → cycle. **A1-6c MUST NOT edit this import.** A1-7a fixes it. → If tsc breaks at A1-6c because the relative path no longer resolves, FAIL: free-agent-import-broken-early (means src/app moved unexpectedly — investigate).",
+    "free-agent.ts AppDeps import resolution: it imports `../app/deps` (relative to packages/agent/src/scheduler/) which now points to ../../../packages/server/src/app/deps — still resolves because packages/server/src/app/ has not moved yet. After A1-7 src/app moves to packages/server/src/app and the import would have to cross packages → cycle. **A1-6c MUST NOT edit this import.** A1-7a fixes it. → If tsc breaks at A1-6c because the relative path no longer resolves, FAIL: free-agent-import-broken-early (means src/app moved unexpectedly — investigate).",
     "Telegram bot tests fail (notify, polling) — likely import-path mismatch, not behavior; classify before failing."
   ],
   "glossary": {
@@ -795,10 +795,10 @@ docker compose build                                 # exit 0
     "diff_budget_note": "Bulk of diff is `git mv` directory moves (scheduler/, telegram/). Hand-written code stays under 200 LOC: package.json exports, index.ts barrel, import rewrites, guardrail path keys."
   },
   "exact_steps": [
-    "1. Extend packages/agent/package.json#exports: \"./scheduler\":\"./packages/agent/src/scheduler/index.ts\" (or per-file subpaths if no index), \"./telegram\":\"./packages/agent/packages/agent/src/telegram/index.ts\".",
-    "2. git mv packages/agent/src/scheduler/ → packages/agent/packages/agent/src/scheduler/. git mv packages/agent/src/telegram/ → packages/agent/packages/agent/src/telegram/.",
+    "1. Extend packages/agent/package.json#exports: \"./scheduler\":\"./packages/agent/src/scheduler/index.ts\" (or per-file subpaths if no index), \"./telegram\":\"./packages/agent/src/telegram/index.ts\".",
+    "2. git mv packages/agent/src/scheduler/ → packages/agent/src/scheduler/. git mv packages/agent/src/telegram/ → packages/agent/src/telegram/.",
     "3. Inside free-agent.ts: rewrite `import type { AppDeps } from \"../app/deps\"` to `import type { AppDeps } from \"../../../packages/server/src/app/deps\"` ONLY IF the relative path no longer resolves after move. **Preferred: leave the import as `import type { AppDeps } from \"../app/deps\"` if Bun's workspace resolver can find packages/server/src/app/deps via the still-existing src/ tree. Verify with `bunx tsc --noEmit`.** If it fails, halt with FAIL: free-agent-import-broken-early; A1-7 + A1-7a will resolve.",
-    "4. Update packages/agent/packages/server/packages/server/src/index.ts to re-export scheduler + telegram surfaces.",
+    "4. Update packages/server/src/index.ts to re-export scheduler + telegram surfaces.",
     "5. Rewrite all remaining importers from packages/agent/src/scheduler/<...>, packages/agent/src/telegram/<...> → @subbrain/agent/<sub>.",
     "6. Update guardrail path keys. Run all acceptance commands."
   ]
@@ -812,7 +812,7 @@ docker compose build                                 # exit 0
 ```json
 {
   "task_id": "A1-6d",
-  "goal": "Move packages/agent/src/rag/ and src/lib/personas* into packages/agent and retire the A1-2 packages/agent/packages/agent/src/rag/types.ts shim.",
+  "goal": "Move packages/agent/src/rag/ and src/lib/personas* into packages/agent and retire the A1-2 packages/agent/src/rag/types.ts shim.",
   "non_goals": [
     "Do not change RAG retrieval scoring, FTS sanitizer use, persona prompt content.",
     "Do not split files.",
@@ -820,7 +820,7 @@ docker compose build                                 # exit 0
   ],
   "allowed_write_paths": [
     "packages/agent/package.json",
-    "packages/agent/packages/agent/src/rag/**",
+    "packages/agent/src/rag/**",
     "packages/agent/src/personas/**",
     "packages/agent/src/personas.ts",
     "src/**",
@@ -834,7 +834,7 @@ docker compose build                                 # exit 0
     "packages/agent/src/rag/",
     "packages/agent/src/lib/personas.ts",
     "src/lib/personas/",
-    "packages/agent/packages/server/packages/server/src/index.ts"
+    "packages/server/src/index.ts"
   ],
   "risk_tier": "public-api",
   "acceptance": [
@@ -864,10 +864,10 @@ docker compose build                                 # exit 0
     "diff_budget_note": "Bulk of diff is `git mv` directory moves (rag/, personas.ts, personas/). Hand-written code stays under 200 LOC: package.json exports, index.ts barrel, import rewrites, guardrail path keys."
   },
   "exact_steps": [
-    "1. Extend packages/agent/package.json#exports: \"./rag\":\"./packages/agent/packages/agent/src/rag/index.ts\", \"./personas\":\"./src/personas.ts\". (If consumers import from `./personas/<sub>`, add those subpaths too.)",
-    "2. git mv packages/agent/src/rag/ → packages/agent/packages/agent/src/rag/. After move, the rag/types.ts shim from A1-2 is at packages/agent/packages/agent/packages/agent/src/rag/types.ts. Decision: retire it — replace its body with the original type definitions (which were moved to packages/core/src/types/rag.ts in A1-2). **Wait — that would duplicate.** Correct decision: KEEP the shim at packages/agent/packages/agent/packages/agent/src/rag/types.ts as `export * from \"@subbrain/core/types/rag\";` so agent-internal relative imports `./types` keep working without forcing every callsite to know about the core path.",
+    "1. Extend packages/agent/package.json#exports: \"./rag\":\"./packages/agent/src/rag/index.ts\", \"./personas\":\"./src/personas.ts\". (If consumers import from `./personas/<sub>`, add those subpaths too.)",
+    "2. git mv packages/agent/src/rag/ → packages/agent/src/rag/. After move, the rag/types.ts shim from A1-2 is at packages/agent/src/rag/types.ts. Decision: retire it — replace its body with the original type definitions (which were moved to packages/core/src/types/rag.ts in A1-2). **Wait — that would duplicate.** Correct decision: KEEP the shim at packages/agent/src/rag/types.ts as `export * from \"@subbrain/core/types/rag\";` so agent-internal relative imports `./types` keep working without forcing every callsite to know about the core path.",
     "3. git mv packages/agent/src/lib/personas.ts → packages/agent/src/personas.ts. git mv src/lib/personas/ → packages/agent/src/personas/. If FS rejects because of name collision (Linux ext4 does NOT reject; if mac/btrfs/zfs surprise), HALT with FAIL: name-collision.",
-    "4. Update packages/agent/packages/server/packages/server/src/index.ts to re-export from ./rag and ./personas.",
+    "4. Update packages/server/src/index.ts to re-export from ./rag and ./personas.",
     "5. Rewrite all remaining importers (src/, scripts/, tests/) from old paths → @subbrain/agent/<sub>.",
     "6. Verify src/lib/ has no leftover files — anything left should be a moved-but-not-deleted artifact; investigate.",
     "7. Update guardrail path keys. Run all acceptance commands."
@@ -877,12 +877,12 @@ docker compose build                                 # exit 0
 
 ---
 
-## Packet A1-7 — packages/server (routes/, app/, mcp-transport/, packages/server/packages/server/src/index.ts)
+## Packet A1-7 — packages/server (routes/, app/, mcp-transport/, packages/server/src/index.ts)
 
 ```json
 {
   "task_id": "A1-7",
-  "goal": "Move HTTP routes, app bootstrap, packages/server/src/mcp-transport/transport.ts + mcp-protocol.ts, and packages/server/packages/server/src/index.ts into packages/server to finalize the empty src/ directory.",
+  "goal": "Move HTTP routes, app bootstrap, packages/server/src/mcp-transport/transport.ts + mcp-protocol.ts, and packages/server/src/index.ts into packages/server to finalize the empty src/ directory.",
   "non_goals": [
     "Do not change Elysia route shapes, validators, auth middleware, or response envelopes.",
     "Do not modify the SSE heartbeat interval or idleTimeout.",
@@ -904,19 +904,19 @@ docker compose build                                 # exit 0
     "bun.lock"
   ],
   "read_context": [
-    "packages/server/packages/server/src/index.ts",
+    "packages/server/src/index.ts",
     "packages/server/src/app/",
     "packages/server/src/routes/",
     "packages/server/src/mcp-transport/transport.ts",
     "packages/server/src/mcp-transport/mcp-protocol.ts",
-    "packages/core/packages/server/packages/server/src/index.ts",
-    "packages/providers/packages/server/packages/server/src/index.ts",
-    "packages/agent/packages/server/packages/server/src/index.ts"
+    "packages/server/src/index.ts",
+    "packages/providers/src/index.ts",
+    "packages/server/src/index.ts"
   ],
   "risk_tier": "public-api",
   "acceptance": [
     "test -f packages/server/package.json",
-    "test -f packages/server/packages/server/packages/server/src/index.ts",
+    "test -f packages/server/src/index.ts",
     "test -d packages/server/src/routes",
     "test -d packages/server/src/app",
     "test -d packages/server/src/mcp-transport",
@@ -924,12 +924,12 @@ docker compose build                                 # exit 0
     "test -f packages/server/src/mcp-transport/mcp-protocol.ts",
     "test ! -e src/routes",
     "test ! -e src/app",
-    "test ! -e packages/server/packages/server/src/index.ts",
+    "test ! -e packages/server/src/index.ts",
     "test ! -e packages/server/src/mcp-transport/transport.ts",
     "test ! -e packages/server/src/mcp-transport/mcp-protocol.ts",
     "ls packages/agent/src/mcp/ 2>/dev/null | wc -l | xargs -I {} test {} -eq 0 || true",
     "test -z \"$(ls -A src 2>/dev/null)\" && rmdir src || ls -la src",
-    "node -e \"const p=require('./package.json'); if(p.module && p.module !== 'packages/server/packages/server/packages/server/src/index.ts') process.exit(1)\"",
+    "node -e \"const p=require('./package.json'); if(p.module && p.module !== 'packages/server/src/index.ts') process.exit(1)\"",
     "bun install",
     "bunx tsc --noEmit",
     "bunx tsc -p packages/server/tsconfig.json --noEmit",
@@ -943,23 +943,23 @@ docker compose build                                 # exit 0
   "rollback": "git reset --hard HEAD~1 and bun install.",
   "escalation_triggers": [
     "src/ contains a file other than the moved set after the move (orphan) → FAIL: orphan-file.",
-    "Root package.json#scripts entries reference packages/server/packages/server/src/index.ts; after rewrite to packages/server/packages/server/packages/server/src/index.ts, `bun run` fails → FAIL: scripts-broken.",
+    "Root package.json#scripts entries reference packages/server/src/index.ts; after rewrite to packages/server/src/index.ts, `bun run` fails → FAIL: scripts-broken.",
     "tsc reports unresolved @subbrain/agent or @subbrain/core import inside packages/server → FAIL: workspace-resolution.",
-    "free-agent.ts AppDeps import breaks: this packet moves packages/server/src/app/ → packages/server/packages/server/src/app/, so the relative import from packages/agent/packages/agent/packages/agent/src/scheduler/free-agent.ts no longer resolves. Expected — A1-7a fixes it. **In A1-7 itself, accept that tsc may fail at this single import; mark it as known and let A1-7a green it.** If anything OTHER than free-agent.ts AppDeps fails, FAIL: unexpected-server-import-break."
+    "free-agent.ts AppDeps import breaks: this packet moves packages/server/src/app/ → packages/server/src/app/, so the relative import from packages/agent/src/scheduler/free-agent.ts no longer resolves. Expected — A1-7a fixes it. **In A1-7 itself, accept that tsc may fail at this single import; mark it as known and let A1-7a green it.** If anything OTHER than free-agent.ts AppDeps fails, FAIL: unexpected-server-import-break."
   ],
   "glossary": {
-    "server": "@subbrain/server — Elysia HTTP transport, route handlers, mcp-transport (REST + JSON-RPC SSE), app bootstrap, dependency wiring, scheduler installation entrypoints, packages/server/packages/server/src/index.ts entry.",
+    "server": "@subbrain/server — Elysia HTTP transport, route handlers, mcp-transport (REST + JSON-RPC SSE), app bootstrap, dependency wiring, scheduler installation entrypoints, packages/server/src/index.ts entry.",
     "diff_budget_note": "Bulk of diff is `git mv` directory moves (routes/, app/, mcp-transport/, index.ts). Hand-written code stays under 250 LOC: package.json exports, tsconfig.json, index.ts barrel, import rewrites, root package.json module/scripts, guardrail path keys."
   },
   "exact_steps": [
-    "1. Create packages/server/package.json: {\"name\":\"@subbrain/server\",\"private\":true,\"type\":\"module\",\"main\":\"./packages/server/packages/server/src/index.ts\",\"exports\":{\".\":\"./packages/server/packages/server/src/index.ts\",\"./app/deps\":\"./packages/server/packages/server/src/app/deps.ts\"}}. (`./app/deps` exported because A1-7a needs it as a stable reference point.)",
+    "1. Create packages/server/package.json: {\"name\":\"@subbrain/server\",\"private\":true,\"type\":\"module\",\"main\":\"./packages/server/src/index.ts\",\"exports\":{\".\":\"./packages/server/src/index.ts\",\"./app/deps\":\"./packages/server/src/app/deps.ts\"}}. (`./app/deps` exported because A1-7a needs it as a stable reference point.)",
     "2. Create packages/server/tsconfig.json extending root with composite.",
-    "3. git mv packages/server/src/routes/ → packages/server/packages/server/src/routes/. git mv packages/server/src/app/ → packages/server/packages/server/src/app/. git mv packages/server/packages/server/src/index.ts → packages/server/packages/server/packages/server/src/index.ts.",
+    "3. git mv packages/server/src/routes/ → packages/server/src/routes/. git mv packages/server/src/app/ → packages/server/src/app/. git mv packages/server/src/index.ts → packages/server/src/index.ts.",
     "4. mkdir packages/server/src/mcp-transport. git mv packages/server/src/mcp-transport/transport.ts → packages/server/src/mcp-transport/transport.ts. git mv packages/server/src/mcp-transport/mcp-protocol.ts → packages/server/src/mcp-transport/mcp-protocol.ts. After this, packages/agent/src/mcp/ should be empty — `rmdir src/mcp` if so.",
     "5. Verify src/ is now empty: `ls -A src` returns nothing → rmdir src.",
-    "6. Update root package.json: change `module` from `index.ts` to `packages/server/packages/server/packages/server/src/index.ts`. Update any `package.json#scripts` entry referencing `packages/server/packages/server/packages/server/src/index.ts` (`bun run packages/server/packages/server/src/index.ts`) → `bun run packages/server/packages/server/packages/server/src/index.ts`.",
+    "6. Update root package.json: change `module` from `index.ts` to `packages/server/src/index.ts`. Update any `package.json#scripts` entry referencing `packages/server/src/index.ts` (`bun run packages/server/src/index.ts`) → `bun run packages/server/src/index.ts`.",
     "7. Rewrite imports in moved files: cross-pkg → @subbrain/{core,providers,agent,plugin}. Within packages/server, relative imports stay.",
-    "8. **Known broken import:** packages/agent/packages/agent/packages/agent/src/scheduler/free-agent.ts imports `../app/deps` which no longer resolves. **Do NOT fix in A1-7.** A1-7a is the explicit fix packet. tsc may report 1-2 errors at this exact import — they MUST be exactly that and nothing else. If other errors appear, escalate.",
+    "8. **Known broken import:** packages/agent/src/scheduler/free-agent.ts imports `../app/deps` which no longer resolves. **Do NOT fix in A1-7.** A1-7a is the explicit fix packet. tsc may report 1-2 errors at this exact import — they MUST be exactly that and nothing else. If other errors appear, escalate.",
     "9. Update scripts/check-file-size.ts and scripts/check-deep-imports.ts path keys for routes/, app/, index.ts, and mcp/{transport,mcp-protocol}.ts → mcp-transport/.",
     "10. bun install. Run all acceptance commands. **tsc may fail on the one free-agent.ts AppDeps import — accept and note.** Other acceptance must pass."
   ]
@@ -975,25 +975,25 @@ docker compose build                                 # exit 0
   "task_id": "A1-7a",
   "goal": "Replace free-agent.ts agent→server AppDeps import with a local FreeAgentSchedulerDeps interface that AppDeps structurally satisfies.",
   "non_goals": [
-    "Do not edit any other file beyond packages/agent/packages/agent/packages/agent/src/scheduler/free-agent.ts and the call site in packages/server/packages/server/packages/server/src/app/schedulers.ts.",
+    "Do not edit any other file beyond packages/agent/src/scheduler/free-agent.ts and the call site in packages/server/src/app/schedulers.ts.",
     "Do not introduce a new shared types package.",
     "Do not change runtime behavior (the function signature accepts a structural subset; AppDeps remains assignable).",
     "Do not export FreeAgentSchedulerDeps as a public agent API beyond what's needed for the import."
   ],
   "allowed_write_paths": [
-    "packages/agent/packages/agent/packages/agent/src/scheduler/free-agent.ts",
-    "packages/server/packages/server/packages/server/src/app/schedulers.ts"
+    "packages/agent/src/scheduler/free-agent.ts",
+    "packages/server/src/app/schedulers.ts"
   ],
   "read_context": [
-    "packages/agent/packages/agent/packages/agent/src/scheduler/free-agent.ts",
-    "packages/server/packages/server/packages/server/src/app/deps.ts",
-    "packages/server/packages/server/packages/server/src/app/schedulers.ts"
+    "packages/agent/src/scheduler/free-agent.ts",
+    "packages/server/src/app/deps.ts",
+    "packages/server/src/app/schedulers.ts"
   ],
   "risk_tier": "public-api",
   "acceptance": [
-    "! grep -q '../app/deps' packages/agent/packages/agent/packages/agent/src/scheduler/free-agent.ts",
-    "! grep -q '@subbrain/server' packages/agent/packages/agent/packages/agent/src/scheduler/free-agent.ts",
-    "grep -q 'FreeAgentSchedulerDeps' packages/agent/packages/agent/packages/agent/src/scheduler/free-agent.ts",
+    "! grep -q '../app/deps' packages/agent/src/scheduler/free-agent.ts",
+    "! grep -q '@subbrain/server' packages/agent/src/scheduler/free-agent.ts",
+    "grep -q 'FreeAgentSchedulerDeps' packages/agent/src/scheduler/free-agent.ts",
     "bun install",
     "bunx tsc --noEmit",
     "bunx tsc -p packages/agent/tsconfig.json --noEmit",
@@ -1005,7 +1005,7 @@ docker compose build                                 # exit 0
   ],
   "diff_budget_loc": 60,
   "file_count_max": 2,
-  "rollback": "git checkout -- packages/agent/packages/agent/packages/agent/src/scheduler/free-agent.ts packages/server/packages/server/packages/server/src/app/schedulers.ts.",
+  "rollback": "git checkout -- packages/agent/src/scheduler/free-agent.ts packages/server/src/app/schedulers.ts.",
   "escalation_triggers": [
     "AppDeps cannot be structurally assigned to FreeAgentSchedulerDeps — means free-agent.ts uses a deps field not declared in the interface; widen the interface (still agent-side) → if widening would require pulling in agent-foreign types, FAIL: deps-shape-mismatch.",
     "Other tests fail (e.g. app-bootstrap.test.ts) because the call site signature changed — should not happen; AppDeps still assignable → FAIL: caller-signature-break."
@@ -1015,10 +1015,10 @@ docker compose build                                 # exit 0
     "structural assignability": "TypeScript treats two types as assignable if the target's required fields are present in the source. AppDeps has all FreeAgentSchedulerDeps fields plus more → AppDeps is assignable to FreeAgentSchedulerDeps without conversion."
   },
   "exact_steps": [
-    "1. In packages/agent/packages/agent/packages/agent/src/scheduler/free-agent.ts, remove `import type { AppDeps } from \"../app/deps\";` (or whatever relative path it resolved to).",
+    "1. In packages/agent/src/scheduler/free-agent.ts, remove `import type { AppDeps } from \"../app/deps\";` (or whatever relative path it resolved to).",
     "2. Add a local interface declaration above installFreeAgentScheduler:\n\n```ts\nexport interface FreeAgentSchedulerDeps {\n  config: { freeAgent: { enabled: boolean; intervalMinutes: number; maxSteps: number; startupDelayMs: number; task: string } };\n  agentService: { run(input: { task: string; model: string; maxSteps: number; sessionId: string; priority: \"low\" | \"normal\" | \"high\"; agentMode: \"scheduled\" | \"interactive\"; agentId: string; schedule: { intervalMinutes: number; source: string } }): Promise<{ stoppedReason: string; totalSteps: number; requestId: string; sessionId: string; finalAnswer?: string }> };\n  telegramBot?: { notify(msg: string): Promise<void> };\n}\n```\n\n   **Verification:** before writing, read free-agent.ts top-to-bottom and enumerate every `deps.<field>` access. The interface must include exactly those — nothing more, nothing less. If a field is read that's not in the draft above, add it. If a field is in the draft but never read, remove it.",
     "3. Change the function signature: `installFreeAgentScheduler(deps: FreeAgentSchedulerDeps)`.",
-    "4. In packages/server/packages/server/packages/server/src/app/schedulers.ts, the call `installFreeAgentScheduler(deps)` does NOT need a cast — AppDeps is structurally assignable. Verify by running tsc.",
+    "4. In packages/server/src/app/schedulers.ts, the call `installFreeAgentScheduler(deps)` does NOT need a cast — AppDeps is structurally assignable. Verify by running tsc.",
     "5. Run all acceptance commands. Both per-package tsc invocations must be exit 0 (this is the cycle-break verification)."
   ]
 }
@@ -1031,7 +1031,7 @@ docker compose build                                 # exit 0
 ```json
 {
   "task_id": "A1-8",
-  "goal": "Update Dockerfile and docker-compose.yml for multi-package layout, copying workspace manifests before bun install so the container boots from packages/server/packages/server/packages/server/src/index.ts.",
+  "goal": "Update Dockerfile and docker-compose.yml for multi-package layout, copying workspace manifests before bun install so the container boots from packages/server/src/index.ts.",
   "non_goals": [
     "Do not change the runtime image base (oven/bun:1.3-slim).",
     "Do not change Chrome / Playwright installation.",
@@ -1047,7 +1047,7 @@ docker compose build                                 # exit 0
   "read_context": [
     "Dockerfile",
     "docker-compose.yml",
-    "packages/server/packages/server/packages/server/src/index.ts",
+    "packages/server/src/index.ts",
     "packages/core/package.json",
     "packages/providers/package.json",
     "packages/plugin/package.json",
@@ -1059,7 +1059,7 @@ docker compose build                                 # exit 0
   "acceptance": [
     "docker compose build",
     "grep -q 'packages/' Dockerfile",
-    "grep -q 'packages/server/packages/server/packages/server/src/index.ts' Dockerfile",
+    "grep -q 'packages/server/src/index.ts' Dockerfile",
     "! grep -q 'COPY src/' Dockerfile",
     "grep -E 'COPY (packages/.*package\\.json|packages/\\*/package\\.json)' Dockerfile",
     "bunx tsc --noEmit",
@@ -1077,13 +1077,13 @@ docker compose build                                 # exit 0
   "glossary": {
     "manifest copy order": "with workspaces, `bun install --frozen-lockfile` resolves every workspace's package.json. They MUST exist in the build context before `bun install` runs. Copy them as a separate cache layer before the rest of source.",
     "build context": "subbrain service uses `build: .` — the Dockerfile receives the whole repo. Multi-package install happens once at build time.",
-    "CMD target": "container entrypoint command; was `bun run packages/server/packages/server/src/index.ts`, becomes `bun run packages/server/packages/server/packages/server/src/index.ts`."
+    "CMD target": "container entrypoint command; was `bun run packages/server/src/index.ts`, becomes `bun run packages/server/src/index.ts`."
   },
   "exact_steps": [
     "1. In Dockerfile builder stage, BEFORE `bun install`, copy all package manifests so workspaces resolve. Replace the current single-line `COPY package.json bun.lock* ./` with:\n\n```\nCOPY package.json bun.lock* ./\nCOPY packages/core/package.json packages/core/\nCOPY packages/providers/package.json packages/providers/\nCOPY packages/plugin/package.json packages/plugin/\nCOPY packages/agent/package.json packages/agent/\nCOPY packages/server/package.json packages/server/\nCOPY web/package.json web/\n```\n\n   Then `RUN bun install --frozen-lockfile` runs against the populated workspaces tree.",
     "2. After `bun install`, replace `COPY src/ src/` with `COPY packages/ packages/`. Keep `COPY public/ public/`, `COPY scripts/ scripts/`, `COPY tsconfig.json ./`. Also COPY any per-package tsconfig.json — they're inside packages/<pkg>/ already so the `COPY packages/ packages/` step picks them up; verify.",
     "3. In Dockerfile runtime stage, replace `COPY --from=builder /app/src ./src` with `COPY --from=builder /app/packages ./packages`. Keep node_modules copy (workspace symlinks resolve since /app/packages is now in place). Also keep COPY of root package.json (already in Dockerfile).",
-    "4. Replace CMD: `CMD [\"bun\", \"run\", \"packages/server/packages/server/src/index.ts\"]` → `CMD [\"bun\", \"run\", \"packages/server/packages/server/packages/server/src/index.ts\"]`.",
+    "4. Replace CMD: `CMD [\"bun\", \"run\", \"packages/server/src/index.ts\"]` → `CMD [\"bun\", \"run\", \"packages/server/src/index.ts\"]`.",
     "5. HEALTHCHECK URL was http://localhost:4000/health — unchanged. Leave HEALTHCHECK as is.",
     "6. Update .dockerignore (create if absent) to exclude: `**/dist`, `**/*.tsbuildinfo`, `node_modules`, `web/.nuxt`, `web/.output`, `data/`, `tmp/`. Verify `packages/` is NOT excluded.",
     "7. docker-compose.yml: no service-shape changes needed. The `subbrain` service still uses `build: .`. Verify `web` service still uses `build: ./web` and is not affected (web workspace is separate).",
@@ -1163,7 +1163,7 @@ docker compose build                                 # exit 0
     "2. Replace path strings only. Preserve surrounding prose.",
     "3. Update root tsconfig.json: change `\"include\": [\"src/**/*.ts\", \"packages/*/src/**/*.ts\"]` → `\"include\": [\"packages/*/src/**/*.ts\", \"scripts/**/*.ts\", \"tests/**/*.ts\"]`. Verify tsc still passes.",
     "4. Update scripts/check-deep-imports.ts, scripts/check-file-size.ts, scripts/check-forbidden-patterns.ts so any remaining literal `src/` path roots become `packages/<pkg>/src/`. Path-string rewrites only.",
-    "5. Audit leftover A1-2 shims (packages/providers/packages/providers/src/types.ts, packages/agent/packages/agent/packages/agent/src/rag/types.ts, packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/code-tools/types.ts). For each: `git grep \"@subbrain/<pkg>/<shim-path>\\|from .*\\\"\\.\\./<shim>\\\"\" packages/ scripts/ tests/`. If zero importers, delete the shim and remove its export from package.json. If importers remain, leave shim and document why.",
+    "5. Audit leftover A1-2 shims (packages/providers/src/types.ts, packages/agent/src/rag/types.ts, packages/agent/src/pipeline/agent-loop/code-tools/types.ts). For each: `git grep \"@subbrain/<pkg>/<shim-path>\\|from .*\\\"\\.\\./<shim>\\\"\" packages/ scripts/ tests/`. If zero importers, delete the shim and remove its export from package.json. If importers remain, leave shim and document why.",
     "6. Run all acceptance commands including all 5 per-package tsc invocations."
   ]
 }

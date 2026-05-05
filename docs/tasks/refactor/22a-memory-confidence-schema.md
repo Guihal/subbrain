@@ -19,11 +19,11 @@ UI approval — отдельный PR 22b.
 
 ## Файлы
 
-- [packages/core/packages/core/src/db/schema.ts](../../../packages/core/packages/core/src/db/schema.ts) — migration 8.
-- [packages/agent/packages/agent/src/mcp/registry/memory.tools.ts](../../../packages/agent/packages/agent/src/mcp/registry/memory.tools.ts) — `memory_write` args схема.
-- [packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/hippocampus.ts](../../../packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/hippocampus.ts) — system prompt.
-- [packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/extractors.ts](../../../packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/extractors.ts) — writeShared, writeContext.
-- [packages/agent/packages/agent/src/rag/pipeline/index.ts](../../../packages/agent/packages/agent/src/rag/pipeline/index.ts) — FTS + vec фильтры.
+- [packages/core/src/db/schema.ts](../../../packages/core/src/db/schema.ts) — migration 8.
+- [packages/agent/src/mcp/registry/memory.tools.ts](../../../packages/agent/src/mcp/registry/memory.tools.ts) — `memory_write` args схема.
+- [packages/agent/src/pipeline/agent-pipeline/post/hippocampus.ts](../../../packages/agent/src/pipeline/agent-pipeline/post/hippocampus.ts) — system prompt.
+- [packages/agent/src/pipeline/agent-pipeline/post/extractors.ts](../../../packages/agent/src/pipeline/agent-pipeline/post/extractors.ts) — writeShared, writeContext.
+- [packages/agent/src/rag/pipeline/index.ts](../../../packages/agent/src/rag/pipeline/index.ts) — FTS + vec фильтры.
 - [packages/core/src/db/tables/memory.ts](../../../packages/core/src/db/tables/memory.ts), [shared.ts](../../../packages/core/src/db/tables/shared.ts) — insert/get методы принимают confidence + status, и `getSharedMany` добавить если нет.
 
 ## Изменение

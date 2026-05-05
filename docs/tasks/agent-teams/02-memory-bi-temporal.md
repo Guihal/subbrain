@@ -28,10 +28,10 @@ out-of-scope.
    replaced by current consolidated form).
 2. `docs/tasks/memory-v2/M-12-archive-confidence-real.md` — archive
    `confidence` HIGH/LOW → REAL (Status: **DONE** in source; landed in
-   Migration 15 at `packages/core/packages/core/src/db/schema.ts:820-862`). Phase 3 keeps a verification
+   Migration 15 at `packages/core/src/db/schema.ts:820-862`). Phase 3 keeps a verification
    packet only.
 3. `docs/tasks/refactor/43-prd-hippocampus-rewrite.md` — PR-D hippocampus
-   rewrite + write-cap (includes `packages/core/packages/core/src/lib/metrics.ts` counter scope).
+   rewrite + write-cap (includes `packages/core/src/lib/metrics.ts` counter scope).
 4. `docs/tasks/refactor/44-pre-character.md` — PR-E persona pass over
    teamlead synthesis + hippocampus character (depends on PR-D landed).
 
@@ -44,7 +44,7 @@ out-of-scope.
 4. Do NOT change the public MCP `memory_*` tool surface (`memory_search`,
    `memory_read`, `memory_write`, `memory_delete`).
 5. Do NOT change embed model / rerank model selection — `EMBED_MODEL` /
-   `RERANK_MODEL` in `packages/core/packages/core/src/lib/model-map.ts` are fixed.
+   `RERANK_MODEL` in `packages/core/src/lib/model-map.ts` are fixed.
 6. Do NOT change `memory_edges` schema (M-05 landed).
 7. Do NOT modify Telegram bot, frontend (`web/app/`), or autonomous loop.
 8. Do NOT touch `archive` confidence column — M-12 already landed.
@@ -52,7 +52,7 @@ out-of-scope.
 ## Ordering (strict serial; merge dependencies are HARD)
 
 `P3-2` and `P3-5` both author a SQLite migration on top of the same file
-(`packages/core/packages/core/packages/core/src/db/schema.ts`). They CANNOT run in parallel — both would claim version
+(`packages/core/src/db/schema.ts`). They CANNOT run in parallel — both would claim version
 17 and one would silently overwrite the other. P3-2 lands Migration 17 first;
 P3-5 only starts after P3-2 is **merged** and writes Migration 18.
 
@@ -86,7 +86,7 @@ PR" logic.
    row-count grows unbounded; out-of-scope for first pass.
 2. **P3-3 layer scope:** filter is applied to BOTH `shared_memory` and
    `layer2_context` retrieval (FTS + vec + helper paths). Shared-memory
-   retrieval is currently in `packages/core/packages/core/packages/core/src/db/tables/shared/search-vec.ts`; context
+   retrieval is currently in `packages/core/src/db/tables/shared/search-vec.ts`; context
    retrieval in `packages/core/src/db/tables/memory/*` and `packages/agent/src/rag/pipeline/{fts,vec}.ts`.
 3. **P3-4 boost cap:** non-stacking semantics. Final boost on a row is
    `max(personaBoost, salienceBoost, edgeWalkBoost)`, NOT product. This
@@ -98,19 +98,19 @@ PR" logic.
    facts). Escalation trigger included if spec ambiguity surfaces.
 5. **P3-6 NIGHT_CYCLE_MODEL fallback:** must be centralised. Five sites
    currently duplicate `process.env.NIGHT_CYCLE_MODEL || "memory"`:
-   `packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/steps/shared.ts:8`,
-   `packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/prune/shared.ts:7`,
-   `packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/prune/context.ts:8`,
-   `packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/prune/focus.ts:7`,
-   `packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/prune/tasks-classify.ts:102`. P3-6 introduces
-   `packages/agent/packages/agent/src/pipeline/night-cycle/model.ts` (single export `resolveNightModel()`)
+   `packages/agent/src/pipeline/night-cycle/steps/shared.ts:8`,
+   `packages/agent/src/pipeline/night-cycle/prune/shared.ts:7`,
+   `packages/agent/src/pipeline/night-cycle/prune/context.ts:8`,
+   `packages/agent/src/pipeline/night-cycle/prune/focus.ts:7`,
+   `packages/agent/src/pipeline/night-cycle/prune/tasks-classify.ts:102`. P3-6 introduces
+   `packages/agent/src/pipeline/night-cycle/model.ts` (single export `resolveNightModel()`)
    and rewires every callsite. Acceptance greps the five files for zero
    remaining `NIGHT_CYCLE_MODEL` literals.
 
 ## Path-correction note (was wrong in the previous draft)
 
-Earlier drafts referenced `packages/agent/packages/agent/src/rag/pipeline/index.ts`. That file does NOT exist.
-Real layout is split: `packages/agent/packages/agent/packages/agent/src/rag/pipeline/index.ts` plus
+Earlier drafts referenced `packages/agent/src/rag/pipeline/index.ts`. That file does NOT exist.
+Real layout is split: `packages/agent/src/rag/pipeline/index.ts` plus
 `{boosts,embed,fts,vec,rerank,rrf}.ts` siblings. All packets below reference
 the split paths.
 
@@ -123,7 +123,7 @@ the split paths.
   "task_id": "P3-1",
   "goal": "Verify Migration 15 landed and `layer3_archive.confidence` is REAL with no string-literal callers remaining; abort with FAIL if drift detected.",
   "non_goals": [
-    "Do not modify `packages/core/packages/core/packages/core/src/db/schema.ts` Migration 15 SQL.",
+    "Do not modify `packages/core/src/db/schema.ts` Migration 15 SQL.",
     "Do not change `layer3_archive.confidence` type or backfill values.",
     "Do not edit `tests/memory-archive-confidence.test.ts`.",
     "Do not run `bun run scripts/seed.ts` or any data-mutation script.",
@@ -133,7 +133,7 @@ the split paths.
     "docs/tasks/memory-v2/M-12-archive-confidence-real.md"
   ],
   "read_context": [
-    "packages/core/packages/core/src/db/schema.ts:800-865",
+    "packages/core/src/db/schema.ts:800-865",
     "docs/tasks/memory-v2/M-12-archive-confidence-real.md",
     "tests/memory-archive-confidence.test.ts"
   ],
@@ -141,7 +141,7 @@ the split paths.
   "acceptance": [
     "bunx tsc --noEmit",
     "bun test tests/memory-archive-confidence.test.ts",
-    "test \"$(grep -c 'PRAGMA user_version = 15' packages/core/packages/core/src/db/schema.ts)\" -ge 1",
+    "test \"$(grep -c 'PRAGMA user_version = 15' packages/core/src/db/schema.ts)\" -ge 1",
     "test \"$(grep -rn \"'HIGH'\\|'LOW'\" src/ --include='*.ts' | grep archive | grep -v test | grep -v '//' | grep -v schema.ts | wc -l)\" -eq 0",
     "grep -q '^**Status:** DONE' docs/tasks/memory-v2/M-12-archive-confidence-real.md || sed -i 's/^**Status:** OPEN/**Status:** DONE/' docs/tasks/memory-v2/M-12-archive-confidence-real.md"
   ],
@@ -149,14 +149,14 @@ the split paths.
   "file_count_max": 1,
   "rollback": "Revert any sed edit on M-12 doc; verification packet has no schema impact.",
   "escalation_triggers": [
-    "Migration 15 missing from packages/core/packages/core/src/db/schema.ts",
+    "Migration 15 missing from packages/core/src/db/schema.ts",
     "grep finds 'HIGH'/'LOW' archive callers outside schema migration backfill",
     "tests/memory-archive-confidence.test.ts fails",
     "user_version reads <15 on existing dev DB",
     "M-12 source doc disagrees with landed schema"
   ],
   "glossary": {
-    "Migration 15": "packages/core/packages/core/src/db/schema.ts block guarded by `if (version < 15)` that rebuilds layer3_archive with REAL confidence",
+    "Migration 15": "packages/core/src/db/schema.ts block guarded by `if (version < 15)` that rebuilds layer3_archive with REAL confidence",
     "user_version": "SQLite PRAGMA tracking applied migration index"
   }
 }
@@ -168,7 +168,7 @@ the split paths.
 
 > **STRONG-MODEL ONLY. Kimi: emit `FAIL: requires_strong_model` and stop.**
 > Reason: schema-tier (`risk_tier: "schema"`), single-writer migration on
-> `packages/core/packages/core/packages/core/src/db/schema.ts` (currently `user_version=16` at line 879). Migration
+> `packages/core/src/db/schema.ts` (currently `user_version=16` at line 879). Migration
 > mistakes here are not safely revertible on prod. Operator escalates to
 > Opus / Codex critic. **Merge gate:** P3-5 cannot start until this packet
 > is merged.
@@ -189,24 +189,24 @@ the split paths.
     "Do not start P3-5 (Migration 18) — that is gated on this packet merging."
   ],
   "allowed_write_paths": [
-    "packages/core/packages/core/src/db/schema.ts",
-    "packages/core/packages/core/src/db/types.ts",
-    "packages/core/packages/core/src/db/tables/memory/helpers.ts",
-    "packages/core/packages/core/src/db/tables/memory/context.ts",
-    "packages/core/packages/core/src/db/tables/shared/helpers.ts",
-    "packages/core/packages/core/src/db/tables/shared/index.ts",
-    "packages/core/packages/core/src/repositories/memory/index.ts",
+    "packages/core/src/db/schema.ts",
+    "packages/core/src/db/types.ts",
+    "packages/core/src/db/tables/memory/helpers.ts",
+    "packages/core/src/db/tables/memory/context.ts",
+    "packages/core/src/db/tables/shared/helpers.ts",
+    "packages/core/src/db/tables/shared/index.ts",
+    "packages/core/src/repositories/memory/index.ts",
     "tests/memory-bi-temporal-schema.test.ts"
   ],
   "read_context": [
-    "packages/core/packages/core/src/db/schema.ts:860-887",
-    "packages/core/packages/core/src/db/tables/memory/context.ts",
-    "packages/core/packages/core/src/db/tables/memory/helpers.ts",
-    "packages/core/packages/core/src/db/tables/shared/helpers.ts",
-    "packages/core/packages/core/src/db/tables/shared/index.ts",
-    "packages/core/packages/core/src/db/tables/shared/search-vec.ts",
-    "packages/core/packages/core/src/repositories/memory/index.ts",
-    "packages/core/packages/core/src/db/types.ts"
+    "packages/core/src/db/schema.ts:860-887",
+    "packages/core/src/db/tables/memory/context.ts",
+    "packages/core/src/db/tables/memory/helpers.ts",
+    "packages/core/src/db/tables/shared/helpers.ts",
+    "packages/core/src/db/tables/shared/index.ts",
+    "packages/core/src/db/tables/shared/search-vec.ts",
+    "packages/core/src/repositories/memory/index.ts",
+    "packages/core/src/db/types.ts"
   ],
   "risk_tier": "schema",
   "acceptance": [
@@ -221,7 +221,7 @@ the split paths.
   ],
   "diff_budget_loc": 320,
   "file_count_max": 8,
-  "rollback": "Drop the `if (version < 17)` block in packages/core/packages/core/src/db/schema.ts; `valid_from`/`valid_to`/`observed_at` are additive nullable columns so no data loss. Revert helper additions in shared/memory tables.",
+  "rollback": "Drop the `if (version < 17)` block in packages/core/src/db/schema.ts; `valid_from`/`valid_to`/`observed_at` are additive nullable columns so no data loss. Revert helper additions in shared/memory tables.",
   "escalation_triggers": [
     "user_version read != 16 before migration runs (means another migration landed; coordinate version number)",
     "ALTER TABLE ADD COLUMN fails because of existing column collision",
@@ -235,7 +235,7 @@ the split paths.
     "valid_to": "INTEGER unix-seconds; when fact ceased; null = still current",
     "observed_at": "INTEGER unix-seconds; when Subbrain learned the fact; defaults to (unixepoch()) on insert",
     "Migration 17": "Next sequential migration after 16 (layer1_focus_shadow); guarded by `if (version < 17)`",
-    "shared CRUD path": "packages/core/packages/core/src/db/tables/shared/helpers.ts (SHARED_UPDATABLE allow-list) + shared/index.ts (insertShared/updateShared) + repositories/memory/index.ts facade — bi-temporal columns must round-trip through ALL three"
+    "shared CRUD path": "packages/core/src/db/tables/shared/helpers.ts (SHARED_UPDATABLE allow-list) + shared/index.ts (insertShared/updateShared) + repositories/memory/index.ts facade — bi-temporal columns must round-trip through ALL three"
   }
 }
 ```
@@ -257,32 +257,32 @@ the split paths.
     "Do not change MCP `memory_search` tool signature."
   ],
   "allowed_write_paths": [
-    "packages/core/packages/core/src/db/tables/memory/helpers.ts",
-    "packages/core/packages/core/src/db/tables/memory/search.ts",
-    "packages/core/packages/core/src/db/tables/shared/helpers.ts",
-    "packages/core/packages/core/src/db/tables/shared/search-vec.ts",
-    "packages/agent/packages/agent/src/rag/pipeline/fts.ts",
-    "packages/agent/packages/agent/src/rag/pipeline/vec.ts",
+    "packages/core/src/db/tables/memory/helpers.ts",
+    "packages/core/src/db/tables/memory/search.ts",
+    "packages/core/src/db/tables/shared/helpers.ts",
+    "packages/core/src/db/tables/shared/search-vec.ts",
+    "packages/agent/src/rag/pipeline/fts.ts",
+    "packages/agent/src/rag/pipeline/vec.ts",
     "tests/rag-bi-temporal-filter.test.ts"
   ],
   "read_context": [
-    "packages/core/packages/core/src/db/tables/memory/helpers.ts",
-    "packages/core/packages/core/src/db/tables/memory/search.ts",
-    "packages/core/packages/core/src/db/tables/shared/helpers.ts",
-    "packages/core/packages/core/src/db/tables/shared/search-vec.ts",
-    "packages/agent/packages/agent/src/rag/pipeline/fts.ts",
-    "packages/agent/packages/agent/src/rag/pipeline/vec.ts",
-    "packages/agent/packages/agent/src/rag/pipeline/index.ts"
+    "packages/core/src/db/tables/memory/helpers.ts",
+    "packages/core/src/db/tables/memory/search.ts",
+    "packages/core/src/db/tables/shared/helpers.ts",
+    "packages/core/src/db/tables/shared/search-vec.ts",
+    "packages/agent/src/rag/pipeline/fts.ts",
+    "packages/agent/src/rag/pipeline/vec.ts",
+    "packages/agent/src/rag/pipeline/index.ts"
   ],
   "risk_tier": "public-api",
   "acceptance": [
     "bunx tsc --noEmit",
     "bun test tests/rag-bi-temporal-filter.test.ts",
     "bun test 2>&1 | tail -3 | grep -q '0 fail'",
-    "grep -nE 'AND \\(valid_from IS NULL OR valid_from <= unixepoch\\(\\)\\) AND \\(valid_to IS NULL OR valid_to > unixepoch\\(\\)\\)' packages/core/packages/core/src/db/tables/memory/helpers.ts | wc -l | grep -qE '^[1-9]'",
-    "grep -nE 'AND \\(valid_from IS NULL OR valid_from <= unixepoch\\(\\)\\) AND \\(valid_to IS NULL OR valid_to > unixepoch\\(\\)\\)' packages/core/packages/core/src/db/tables/shared/helpers.ts | wc -l | grep -qE '^[1-9]'",
-    "grep -nE 'valid_to IS NULL OR valid_to' packages/agent/packages/agent/src/rag/pipeline/fts.ts | wc -l | grep -qE '^[1-9]'",
-    "grep -nE 'valid_to IS NULL OR valid_to' packages/agent/packages/agent/src/rag/pipeline/vec.ts | wc -l | grep -qE '^[1-9]'",
+    "grep -nE 'AND \\(valid_from IS NULL OR valid_from <= unixepoch\\(\\)\\) AND \\(valid_to IS NULL OR valid_to > unixepoch\\(\\)\\)' packages/core/src/db/tables/memory/helpers.ts | wc -l | grep -qE '^[1-9]'",
+    "grep -nE 'AND \\(valid_from IS NULL OR valid_from <= unixepoch\\(\\)\\) AND \\(valid_to IS NULL OR valid_to > unixepoch\\(\\)\\)' packages/core/src/db/tables/shared/helpers.ts | wc -l | grep -qE '^[1-9]'",
+    "grep -nE 'valid_to IS NULL OR valid_to' packages/agent/src/rag/pipeline/fts.ts | wc -l | grep -qE '^[1-9]'",
+    "grep -nE 'valid_to IS NULL OR valid_to' packages/agent/src/rag/pipeline/vec.ts | wc -l | grep -qE '^[1-9]'",
     "bun run scripts/check-file-size.ts",
     "bun run scripts/check-deep-imports.ts"
   ],
@@ -312,7 +312,7 @@ the split paths.
 ```json
 {
   "task_id": "P3-4",
-  "goal": "Add `applyEdgeWalkBoost` in `packages/agent/packages/agent/packages/agent/src/rag/pipeline/boosts.ts`. It walks 1-hop neighbours via `MemoryDB.getRelated(id, layer, 1)` (layer-aware API; respects `src_layer`/`dst_layer` columns from M-05) and bumps reachable result rows by 1.08×. Final boost is composed NON-STACKING with persona/salience: `score *= max(personaFactor, salienceFactor, edgeFactor)` rather than the product.",
+  "goal": "Add `applyEdgeWalkBoost` in `packages/agent/src/rag/pipeline/boosts.ts`. It walks 1-hop neighbours via `MemoryDB.getRelated(id, layer, 1)` (layer-aware API; respects `src_layer`/`dst_layer` columns from M-05) and bumps reachable result rows by 1.08×. Final boost is composed NON-STACKING with persona/salience: `score *= max(personaFactor, salienceFactor, edgeFactor)` rather than the product.",
   "non_goals": [
     "Do not change `memory_edges` schema.",
     "Do not implement n-hop walk (1-hop only in this packet).",
@@ -323,32 +323,32 @@ the split paths.
     "Do not stack boost factors multiplicatively — combined ceiling stays at 1.10× (max of three signals)."
   ],
   "allowed_write_paths": [
-    "packages/agent/packages/agent/src/rag/pipeline/boosts.ts",
-    "packages/agent/packages/agent/src/rag/pipeline/index.ts",
+    "packages/agent/src/rag/pipeline/boosts.ts",
+    "packages/agent/src/rag/pipeline/index.ts",
     "tests/rag-edge-walk-boost.test.ts"
   ],
   "read_context": [
-    "packages/agent/packages/agent/src/rag/pipeline/boosts.ts",
-    "packages/agent/packages/agent/src/rag/pipeline/index.ts",
-    "packages/core/packages/core/src/db/tables/edges.ts",
-    "packages/core/packages/core/src/db/index.ts:425-450",
-    "packages/core/packages/core/src/db/tables/memory/index.ts"
+    "packages/agent/src/rag/pipeline/boosts.ts",
+    "packages/agent/src/rag/pipeline/index.ts",
+    "packages/core/src/db/tables/edges.ts",
+    "packages/core/src/db/index.ts:425-450",
+    "packages/core/src/db/tables/memory/index.ts"
   ],
   "risk_tier": "ordinary",
   "acceptance": [
     "bunx tsc --noEmit",
     "bun test tests/rag-edge-walk-boost.test.ts",
     "bun test 2>&1 | tail -3 | grep -q '0 fail'",
-    "grep -nE 'applyEdgeWalkBoost|EDGE_WALK_BOOST' packages/agent/packages/agent/src/rag/pipeline/boosts.ts | wc -l | grep -qE '^[2-9]'",
-    "grep -nE 'applyEdgeWalkBoost' packages/agent/packages/agent/src/rag/pipeline/index.ts | wc -l | grep -qE '^[1-9]'",
-    "grep -nE 'getRelated\\(' packages/agent/packages/agent/src/rag/pipeline/boosts.ts | wc -l | grep -qE '^[1-9]'",
-    "grep -nE 'Math\\.max\\(' packages/agent/packages/agent/src/rag/pipeline/boosts.ts | wc -l | grep -qE '^[1-9]'",
+    "grep -nE 'applyEdgeWalkBoost|EDGE_WALK_BOOST' packages/agent/src/rag/pipeline/boosts.ts | wc -l | grep -qE '^[2-9]'",
+    "grep -nE 'applyEdgeWalkBoost' packages/agent/src/rag/pipeline/index.ts | wc -l | grep -qE '^[1-9]'",
+    "grep -nE 'getRelated\\(' packages/agent/src/rag/pipeline/boosts.ts | wc -l | grep -qE '^[1-9]'",
+    "grep -nE 'Math\\.max\\(' packages/agent/src/rag/pipeline/boosts.ts | wc -l | grep -qE '^[1-9]'",
     "bun run scripts/check-file-size.ts",
     "bun run scripts/check-deep-imports.ts"
   ],
   "diff_budget_loc": 220,
   "file_count_max": 3,
-  "rollback": "Remove `applyEdgeWalkBoost` import + call from `packages/agent/packages/agent/packages/agent/src/rag/pipeline/index.ts`; helper becomes dead code.",
+  "rollback": "Remove `applyEdgeWalkBoost` import + call from `packages/agent/src/rag/pipeline/index.ts`; helper becomes dead code.",
   "escalation_triggers": [
     "memory_edges table missing (M-05 not landed)",
     "Edge-walk join causes >100ms RAG latency on test fixture (≥1k edges)",
@@ -372,7 +372,7 @@ the split paths.
 > Reason: schema-tier (`risk_tier: "schema"`), Migration 18 author. **Hard
 > merge dependency:** P3-2 (Migration 17) must be merged FIRST; running this
 > packet against an unmerged P3-2 produces a version-17/18 collision in
-> `packages/core/packages/core/packages/core/src/db/schema.ts`. Operator gate-keeps the merge order; Kimi is told to
+> `packages/core/src/db/schema.ts`. Operator gate-keeps the merge order; Kimi is told to
 > abort outright.
 
 ```json
@@ -392,17 +392,17 @@ the split paths.
     "Do not start before P3-2 is merged — this packet writes Migration 18 against user_version=17."
   ],
   "allowed_write_paths": [
-    "packages/core/packages/core/src/db/schema.ts",
-    "packages/core/packages/core/src/db/types.ts",
+    "packages/core/src/db/schema.ts",
+    "packages/core/src/db/types.ts",
     "packages/core/src/db/tables/memory/blocks.ts",
-    "packages/core/packages/core/src/db/tables/memory/index.ts",
+    "packages/core/src/db/tables/memory/index.ts",
     "tests/memory-blocks.test.ts"
   ],
   "read_context": [
-    "packages/core/packages/core/src/db/schema.ts:860-887",
-    "packages/core/packages/core/src/db/tables/memory/index.ts",
-    "packages/core/packages/core/src/db/tables/memory/helpers.ts",
-    "packages/core/packages/core/src/db/types.ts"
+    "packages/core/src/db/schema.ts:860-887",
+    "packages/core/src/db/tables/memory/index.ts",
+    "packages/core/src/db/tables/memory/helpers.ts",
+    "packages/core/src/db/types.ts"
   ],
   "risk_tier": "schema",
   "acceptance": [
@@ -441,7 +441,7 @@ the split paths.
 ```json
 {
   "task_id": "P3-6",
-  "goal": "Add `sleep` virtual role in `packages/core/packages/core/src/lib/model-map.ts` mapping to `deepseek-ai/deepseek-v4-flash` (NIM, fallback `MiniMax-M2.7`). Centralise the `NIGHT_CYCLE_MODEL` env-fallback resolver in a new `packages/agent/packages/agent/src/pipeline/night-cycle/model.ts` (`resolveNightModel()` returns `process.env.NIGHT_CYCLE_MODEL || \"sleep\"`) and rewire ALL FIVE duplicate sites to use it.",
+  "goal": "Add `sleep` virtual role in `packages/core/src/lib/model-map.ts` mapping to `deepseek-ai/deepseek-v4-flash` (NIM, fallback `MiniMax-M2.7`). Centralise the `NIGHT_CYCLE_MODEL` env-fallback resolver in a new `packages/agent/src/pipeline/night-cycle/model.ts` (`resolveNightModel()` returns `process.env.NIGHT_CYCLE_MODEL || \"sleep\"`) and rewire ALL FIVE duplicate sites to use it.",
   "non_goals": [
     "Do not change `memory` role (post-extractor remains independent).",
     "Do not rename existing roles (`teamlead`/`coder`/`critic`/`flash`/`chaos`/`generalist`/`memory`).",
@@ -451,22 +451,22 @@ the split paths.
   ],
   "allowed_write_paths": [
     "packages/core/src/lib/model-map.ts",
-    "packages/agent/packages/agent/src/pipeline/night-cycle/model.ts",
-    "packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/steps/shared.ts",
-    "packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/prune/shared.ts",
-    "packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/prune/context.ts",
-    "packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/prune/focus.ts",
-    "packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/prune/tasks-classify.ts",
+    "packages/agent/src/pipeline/night-cycle/model.ts",
+    "packages/agent/src/pipeline/night-cycle/steps/shared.ts",
+    "packages/agent/src/pipeline/night-cycle/prune/shared.ts",
+    "packages/agent/src/pipeline/night-cycle/prune/context.ts",
+    "packages/agent/src/pipeline/night-cycle/prune/focus.ts",
+    "packages/agent/src/pipeline/night-cycle/prune/tasks-classify.ts",
     "tests/model-map-sleep-role.test.ts"
   ],
   "read_context": [
     "packages/core/src/lib/model-map.ts",
-    "packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/index.ts",
-    "packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/steps/shared.ts",
-    "packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/prune/shared.ts",
-    "packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/prune/context.ts",
-    "packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/prune/focus.ts",
-    "packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/prune/tasks-classify.ts",
+    "packages/agent/src/pipeline/night-cycle/index.ts",
+    "packages/agent/src/pipeline/night-cycle/steps/shared.ts",
+    "packages/agent/src/pipeline/night-cycle/prune/shared.ts",
+    "packages/agent/src/pipeline/night-cycle/prune/context.ts",
+    "packages/agent/src/pipeline/night-cycle/prune/focus.ts",
+    "packages/agent/src/pipeline/night-cycle/prune/tasks-classify.ts",
     "CLAUDE.md"
   ],
   "risk_tier": "public-api",
@@ -475,10 +475,10 @@ the split paths.
     "bun test tests/model-map-sleep-role.test.ts",
     "bun test 2>&1 | tail -3 | grep -q '0 fail'",
     "grep -nE '^\\s*sleep:\\s*\\{' packages/core/src/lib/model-map.ts | wc -l | grep -qE '^[1-9]'",
-    "grep -nE 'export function resolveNightModel' packages/agent/packages/agent/src/pipeline/night-cycle/model.ts | wc -l | grep -qE '^[1-9]'",
-    "test \"$(grep -rnE 'process\\.env\\.NIGHT_CYCLE_MODEL' packages/agent/packages/agent/src/pipeline/night-cycle/ | wc -l)\" -eq 1",
-    "test \"$(grep -rnE 'NIGHT_CYCLE_MODEL\\s*\\|\\|' packages/agent/packages/agent/src/pipeline/night-cycle/ | wc -l)\" -eq 1",
-    "grep -rnE 'resolveNightModel\\(' packages/agent/packages/agent/src/pipeline/night-cycle/ | wc -l | grep -qE '^[5-9]|[1-9][0-9]'",
+    "grep -nE 'export function resolveNightModel' packages/agent/src/pipeline/night-cycle/model.ts | wc -l | grep -qE '^[1-9]'",
+    "test \"$(grep -rnE 'process\\.env\\.NIGHT_CYCLE_MODEL' packages/agent/src/pipeline/night-cycle/ | wc -l)\" -eq 1",
+    "test \"$(grep -rnE 'NIGHT_CYCLE_MODEL\\s*\\|\\|' packages/agent/src/pipeline/night-cycle/ | wc -l)\" -eq 1",
+    "grep -rnE 'resolveNightModel\\(' packages/agent/src/pipeline/night-cycle/ | wc -l | grep -qE '^[5-9]|[1-9][0-9]'",
     "bun run scripts/check-file-size.ts",
     "bun run scripts/check-deep-imports.ts",
     "bun run scripts/check-model-ids.ts"
@@ -496,7 +496,7 @@ the split paths.
   "glossary": {
     "sleep role": "Virtual role for night-cycle steps (PII-scrub / translate / compress / verify / dedup); replaces hardcoded NIGHT_CYCLE_MODEL env default `\"memory\"`",
     "model-map.ts": "Single source of truth for virtual-role -> real model id (CLAUDE.md guardrail #11)",
-    "five duplicate sites": "packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/steps/shared.ts:8, prune/shared.ts:7, prune/context.ts:8, prune/focus.ts:7, prune/tasks-classify.ts:102 — all collapse to a single `resolveNightModel()` call",
+    "five duplicate sites": "packages/agent/src/pipeline/night-cycle/steps/shared.ts:8, prune/shared.ts:7, prune/context.ts:8, prune/focus.ts:7, prune/tasks-classify.ts:102 — all collapse to a single `resolveNightModel()` call",
     "resolver semantics": "process.env.NIGHT_CYCLE_MODEL || \"sleep\" (was \"memory\"); the only place the literal `NIGHT_CYCLE_MODEL` may appear is the resolver itself"
   }
 }
@@ -509,19 +509,19 @@ the split paths.
 ```json
 {
   "task_id": "P3-7",
-  "goal": "Implement PR-D from `docs/tasks/refactor/43-prd-hippocampus-rewrite.md`: rewrite `getExtractorPrompt` body (text only), add `MAX_WRITES_PER_EXCHANGE=3` cap + telemetry counter (via `packages/core/packages/core/src/lib/metrics.ts` — file already exists per source PRD §3) + `logger.info` events in `runHippocampus`, update tests.",
+  "goal": "Implement PR-D from `docs/tasks/refactor/43-prd-hippocampus-rewrite.md`: rewrite `getExtractorPrompt` body (text only), add `MAX_WRITES_PER_EXCHANGE=3` cap + telemetry counter (via `packages/core/src/lib/metrics.ts` — file already exists per source PRD §3) + `logger.info` events in `runHippocampus`, update tests.",
   "non_goals": [
     "Do not change `MAX_HIPPO_STEPS=5`.",
     "Do not change signatures of `getExtractorPrompt`, `runHippocampus`, or `MIN_EXTRACTION_LENGTH`.",
-    "Do not touch `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/extractors.ts` or `gate.ts`.",
+    "Do not touch `packages/agent/src/pipeline/agent-pipeline/post/extractors.ts` or `gate.ts`.",
     "Do not change `WHITELIST_*` validators (PR-A landed).",
     "Do not write any string matching `save token|be efficient|постарайся уложиться|не пиши слишком много|не используй tool без нужды`.",
     "Do not run `git push` / `gh` / docker / ssh.",
     "Do not create new MCP tools or memory layers."
   ],
   "allowed_write_paths": [
-    "packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/hippocampus.ts",
-    "packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/prompt.ts",
+    "packages/agent/src/pipeline/agent-pipeline/post/hippocampus.ts",
+    "packages/agent/src/pipeline/agent-pipeline/post/prompt.ts",
     "packages/core/src/lib/metrics.ts",
     "tests/hippocampus-extraction.test.ts",
     "tests/hippocampus-cap.test.ts"
@@ -529,10 +529,10 @@ the split paths.
   "read_context": [
     "docs/tasks/refactor/43-prd-hippocampus-rewrite.md:18-24",
     "docs/tasks/refactor/43-prd-hippocampus-rewrite.md:109-115",
-    "packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/hippocampus.ts",
-    "packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/prompt.ts",
-    "packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/extractors.ts:1-30",
-    "packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/gate.ts:1-30",
+    "packages/agent/src/pipeline/agent-pipeline/post/hippocampus.ts",
+    "packages/agent/src/pipeline/agent-pipeline/post/prompt.ts",
+    "packages/agent/src/pipeline/agent-pipeline/post/extractors.ts:1-30",
+    "packages/agent/src/pipeline/agent-pipeline/post/gate.ts:1-30",
     "packages/core/src/lib/metrics.ts"
   ],
   "risk_tier": "public-api",
@@ -542,15 +542,15 @@ the split paths.
     "bun test 2>&1 | tail -3 | grep -q '0 fail'",
     "bun run scripts/check-file-size.ts",
     "bun run scripts/check-deep-imports.ts",
-    "test \"$(wc -l < packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/hippocampus.ts)\" -le 150",
-    "test \"$(wc -l < packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/prompt.ts)\" -le 150",
-    "grep -cE 'MAX_WRITES_PER_EXCHANGE\\s*=\\s*3' packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/hippocampus.ts | grep -qE '^[1-9]'",
-    "grep -cE 'limit_exceeded' packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/hippocampus.ts | grep -qE '^[1-9]'",
+    "test \"$(wc -l < packages/agent/src/pipeline/agent-pipeline/post/hippocampus.ts)\" -le 150",
+    "test \"$(wc -l < packages/agent/src/pipeline/agent-pipeline/post/prompt.ts)\" -le 150",
+    "grep -cE 'MAX_WRITES_PER_EXCHANGE\\s*=\\s*3' packages/agent/src/pipeline/agent-pipeline/post/hippocampus.ts | grep -qE '^[1-9]'",
+    "grep -cE 'limit_exceeded' packages/agent/src/pipeline/agent-pipeline/post/hippocampus.ts | grep -qE '^[1-9]'",
     "grep -cE 'hippocampus_writes_per_exchange|writes_count' packages/core/src/lib/metrics.ts | grep -qE '^[1-9]'",
-    "grep -cE 'surprising|non-obvious|actionable' packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/prompt.ts | grep -qE '^[3-9]|[1-9][0-9]'",
-    "test \"$(grep -cniE 'save token|be efficient|постарайся уложиться|не пиши слишком много|не используй tool без нужды' packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/prompt.ts)\" -eq 0",
-    "grep -cE 'MAX_HIPPO_STEPS\\s*=\\s*5' packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/hippocampus.ts | grep -qE '^[1-9]'",
-    "grep -cE 'export function getExtractorPrompt\\b' packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/prompt.ts | grep -qE '^[1-9]'",
+    "grep -cE 'surprising|non-obvious|actionable' packages/agent/src/pipeline/agent-pipeline/post/prompt.ts | grep -qE '^[3-9]|[1-9][0-9]'",
+    "test \"$(grep -cniE 'save token|be efficient|постарайся уложиться|не пиши слишком много|не используй tool без нужды' packages/agent/src/pipeline/agent-pipeline/post/prompt.ts)\" -eq 0",
+    "grep -cE 'MAX_HIPPO_STEPS\\s*=\\s*5' packages/agent/src/pipeline/agent-pipeline/post/hippocampus.ts | grep -qE '^[1-9]'",
+    "grep -cE 'export function getExtractorPrompt\\b' packages/agent/src/pipeline/agent-pipeline/post/prompt.ts | grep -qE '^[1-9]'",
     "test \"$(git diff --name-only HEAD | grep -cE 'post/(extractors|gate)\\.ts$')\" -eq 0",
     "test \"$(git diff --name-only HEAD | grep -cE 'arbitration/prompts\\.ts$')\" -eq 0"
   ],
@@ -563,12 +563,12 @@ the split paths.
     "PR-A whitelist validator blocks all writes in test (validator-collision) — STOP, do not bypass",
     "Anti-economy grep finds banned phrase — rewrite rule, never silence grep",
     "Diff exceeds 240 LOC",
-    "`packages/core/packages/core/src/lib/metrics.ts` shape diverges from existing counters — match the existing pattern, do NOT introduce a new metrics framework"
+    "`packages/core/src/lib/metrics.ts` shape diverges from existing counters — match the existing pattern, do NOT introduce a new metrics framework"
   ],
   "glossary": {
     "MAX_WRITES_PER_EXCHANGE": "Hard counter cap on `memory_write` tool calls per single exchange (3); separate from `MAX_HIPPO_STEPS=5` (loop steps)",
     "supersede-aware": "If `memory_search` cosine 0.85-0.92 → write with `supersedes_id`; ≥0.92 skip; <0.85 fresh insert",
-    "telemetry counter": "`hippocampus_writes_per_exchange` histogram in `packages/core/packages/core/src/lib/metrics.ts` (file already exists; PRD §3 requires it). Plus `logger.info(\"hippocampus\", \"<event>\", { exchange_id, writes_count, skipped_dup_count })` per CLAUDE.md guardrail #9"
+    "telemetry counter": "`hippocampus_writes_per_exchange` histogram in `packages/core/src/lib/metrics.ts` (file already exists; PRD §3 requires it). Plus `logger.info(\"hippocampus\", \"<event>\", { exchange_id, writes_count, skipped_dup_count })` per CLAUDE.md guardrail #9"
   }
 }
 ```
@@ -591,15 +591,15 @@ the split paths.
     "Do not run `git push` / `gh` / docker / ssh."
   ],
   "allowed_write_paths": [
-    "packages/agent/packages/agent/src/pipeline/arbitration/prompts.ts",
-    "packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/prompt.ts",
+    "packages/agent/src/pipeline/arbitration/prompts.ts",
+    "packages/agent/src/pipeline/agent-pipeline/post/prompt.ts",
     "tests/arbitration-room.test.ts",
     "tests/hippocampus-extraction.test.ts"
   ],
   "read_context": [
     "docs/tasks/refactor/44-pre-character.md",
-    "packages/agent/packages/agent/src/pipeline/arbitration/prompts.ts",
-    "packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/prompt.ts",
+    "packages/agent/src/pipeline/arbitration/prompts.ts",
+    "packages/agent/src/pipeline/agent-pipeline/post/prompt.ts",
     "tests/arbitration-room.test.ts",
     "tests/hippocampus-extraction.test.ts"
   ],
@@ -609,16 +609,16 @@ the split paths.
     "bun test 2>&1 | tail -3 | grep -q '0 fail'",
     "bun run scripts/check-file-size.ts",
     "bun run scripts/check-deep-imports.ts",
-    "test \"$(wc -l < packages/agent/packages/agent/src/pipeline/arbitration/prompts.ts)\" -le 150",
-    "test \"$(wc -l < packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/prompt.ts)\" -le 150",
-    "grep -cE 'рассудительный тимлид|verification|hedges?' packages/agent/packages/agent/src/pipeline/arbitration/prompts.ts | grep -qE '^[3-9]|[1-9][0-9]'",
-    "grep -cE 'гиппокамп|surprising|stenographer|архивист' packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/prompt.ts | grep -qE '^[3-9]|[1-9][0-9]'",
-    "grep -cE 'memory_search.*candidate|MAX_WRITES_PER_EXCHANGE|whitelist' packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/prompt.ts | grep -qE '^[1-9]'",
-    "test \"$(grep -cniE 'save token|be efficient|постарайся уложиться|не пиши слишком много|не используй tool без нужды' packages/agent/packages/agent/src/pipeline/arbitration/prompts.ts packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/prompt.ts)\" -eq 0",
-    "grep -cE 'export function buildSynthesisSystemPrompt\\b' packages/agent/packages/agent/src/pipeline/arbitration/prompts.ts | grep -qE '^[1-9]'",
-    "grep -cE 'export function getExtractorPrompt\\b' packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/prompt.ts | grep -qE '^[1-9]'",
+    "test \"$(wc -l < packages/agent/src/pipeline/arbitration/prompts.ts)\" -le 150",
+    "test \"$(wc -l < packages/agent/src/pipeline/agent-pipeline/post/prompt.ts)\" -le 150",
+    "grep -cE 'рассудительный тимлид|verification|hedges?' packages/agent/src/pipeline/arbitration/prompts.ts | grep -qE '^[3-9]|[1-9][0-9]'",
+    "grep -cE 'гиппокамп|surprising|stenographer|архивист' packages/agent/src/pipeline/agent-pipeline/post/prompt.ts | grep -qE '^[3-9]|[1-9][0-9]'",
+    "grep -cE 'memory_search.*candidate|MAX_WRITES_PER_EXCHANGE|whitelist' packages/agent/src/pipeline/agent-pipeline/post/prompt.ts | grep -qE '^[1-9]'",
+    "test \"$(grep -cniE 'save token|be efficient|постарайся уложиться|не пиши слишком много|не используй tool без нужды' packages/agent/src/pipeline/arbitration/prompts.ts packages/agent/src/pipeline/agent-pipeline/post/prompt.ts)\" -eq 0",
+    "grep -cE 'export function buildSynthesisSystemPrompt\\b' packages/agent/src/pipeline/arbitration/prompts.ts | grep -qE '^[1-9]'",
+    "grep -cE 'export function getExtractorPrompt\\b' packages/agent/src/pipeline/agent-pipeline/post/prompt.ts | grep -qE '^[1-9]'",
     "test \"$(git diff --name-only HEAD | grep -cE 'post/(hippocampus|extractors|gate)\\.ts$|arbitration-room\\.ts$')\" -eq 0",
-    "test \"$(git diff packages/agent/packages/agent/src/pipeline/arbitration/prompts.ts packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/prompt.ts | grep -cE '^\\+(import|export)')\" -eq 0"
+    "test \"$(git diff packages/agent/src/pipeline/arbitration/prompts.ts packages/agent/src/pipeline/agent-pipeline/post/prompt.ts | grep -cE '^\\+(import|export)')\" -eq 0"
   ],
   "diff_budget_loc": 100,
   "file_count_max": 4,
@@ -696,7 +696,7 @@ the split paths.
 - A2A and frontend changes are **Phase 6+**, not Phase 3.
 - BAML / Promptfoo wiring is **Phase 4** — not part of any P3-* packet.
 - OpenTelemetry / Langfuse decision is **Phase 5** — telemetry calls in
-  P3-7 use existing `packages/core/packages/core/src/lib/metrics.ts` + plain `logger.info` per CLAUDE.md
+  P3-7 use existing `packages/core/src/lib/metrics.ts` + plain `logger.info` per CLAUDE.md
   guardrail #9, not OTel.
 - Memory-blocks editor UI is **Phase 6 frontend rewrite**; P3-5 lands schema
   + helpers only.
@@ -711,4 +711,4 @@ All 9 packets merged with green acceptance, audit log entry in
 - `bun run scripts/check-deep-imports.ts` exit 0
 - `bunx tsc --noEmit` exit 0
 - `bun -e 'import {MemoryDB} from "./src/db"; const d=new MemoryDB(":memory:"); console.log(d.db.query("PRAGMA user_version").get())'` reports `{ user_version: 18 }`
-- `grep -rnE 'process\\.env\\.NIGHT_CYCLE_MODEL' packages/agent/packages/agent/src/pipeline/night-cycle/ | wc -l` == 1 (single resolver)
+- `grep -rnE 'process\\.env\\.NIGHT_CYCLE_MODEL' packages/agent/src/pipeline/night-cycle/ | wc -l` == 1 (single resolver)

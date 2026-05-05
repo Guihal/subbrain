@@ -10,7 +10,7 @@
 
 ## Текущее состояние
 
-- Web-инструменты (`web_navigate`, `browser_snapshot`, ...) работают через `packages/agent/packages/agent/src/mcp/playwright/index.ts` с одним глобальным Playwright-контекстом. Параллельный скраппинг поломает основные сессии.
+- Web-инструменты (`web_navigate`, `browser_snapshot`, ...) работают через `packages/agent/src/mcp/playwright/index.ts` с одним глобальным Playwright-контекстом. Параллельный скраппинг поломает основные сессии.
 - Нет отдельного scope для фоновых агентов — автономный агент и основной чат делят один Playwright.
 
 ## Архитектура
@@ -21,7 +21,7 @@
 
 ### 2. HTTP-эндпоинты
 
-Файл: `packages/server/packages/server/packages/server/src/routes/freelance.ts` (новый).
+Файл: `packages/server/src/routes/freelance.ts` (новый).
 
 - `POST /v1/search/freelance/start` — запускает scout'а (если не запущен), возвращает `{ chat_id, started_at }`.
 - `POST /v1/search/freelance/stop` — останавливает.
@@ -59,7 +59,7 @@
 
 **Ключевое:** у scout'а **свой Playwright context**, изолированный от основного.
 
-- В `packages/agent/packages/agent/src/mcp/playwright/index.ts` — добавить поддержку именованных контекстов: `getContext(name)` возвращает существующий или создаёт новый `browser.newContext({ ... })`.
+- В `packages/agent/src/mcp/playwright/index.ts` — добавить поддержку именованных контекстов: `getContext(name)` возвращает существующий или создаёт новый `browser.newContext({ ... })`.
 - Scout работает в контексте `freelance` (`incognito: true` — чистый storage без логинов юзера).
 - Основной чат и автономный агент — в контексте `main`.
 - Таким образом сессии, куки, авторизации на fl.ru (если появятся) — в `freelance`, не мешают юзеру ничем.
@@ -106,10 +106,10 @@ FREELANCE_TG_CHAT_ID=<numeric>
 
 ## Файлы
 
-- `packages/server/packages/server/packages/server/src/routes/freelance.ts` (новый)
+- `packages/server/src/routes/freelance.ts` (новый)
 - `packages/agent/src/scheduler/freelance-scout.ts` (новый)
-- `packages/core/packages/core/packages/core/src/db/schema.ts` (миграция: `chats.kind`)
-- `packages/agent/packages/agent/src/mcp/playwright/index.ts` (поддержка именованных контекстов)
+- `packages/core/src/db/schema.ts` (миграция: `chats.kind`)
+- `packages/agent/src/mcp/playwright/index.ts` (поддержка именованных контекстов)
 - `web/app/pages/freelance.vue` (новый)
 - `web/app/composables/useFreelance.ts` (новый)
 - `tests/freelance-scout.test.ts` (новый)

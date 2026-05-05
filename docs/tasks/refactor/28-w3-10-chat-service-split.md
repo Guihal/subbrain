@@ -14,7 +14,7 @@
 - `packages/agent/src/services/chat.service.ts`
 
 **Создать**:
-- `packages/agent/packages/agent/packages/agent/src/services/chat/index.ts` — `ChatService` orchestrator class (≤120 LOC). Хранит deps + thin делегации. **Re-exports**: `sanitizeAgentId`, `extractChatMeta`, `wrapStreamForChat` (consumers ожидают их по тому же import path).
+- `packages/agent/src/services/chat/index.ts` — `ChatService` orchestrator class (≤120 LOC). Хранит deps + thin делегации. **Re-exports**: `sanitizeAgentId`, `extractChatMeta`, `wrapStreamForChat` (consumers ожидают их по тому же import path).
 - `packages/agent/src/services/chat/rag-context.ts` — `loadRagContext`, `buildSystemPrompt` — RAG hippocampus + system prompt assembly.
 - `packages/agent/src/services/chat/model-select.ts` — `resolveModel`, `applyOpenAICompatOverrides`, `selectVirtualRole` — virtual role resolution.
 - `packages/agent/src/services/chat/sse-format.ts` — `wrapStreamForChat`, SSE chunk parsing → DB persist (`chats` table). 

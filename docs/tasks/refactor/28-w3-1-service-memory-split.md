@@ -14,7 +14,7 @@
 - `packages/agent/src/services/memory.service.ts`
 
 **Создать**:
-- `packages/agent/packages/agent/packages/agent/src/services/memory/index.ts` — `MemoryService` orchestrator (≤120 LOC).
+- `packages/agent/src/services/memory/index.ts` — `MemoryService` orchestrator (≤120 LOC).
 - `packages/agent/src/services/memory/insert.ts` — `insertShared`, `insertContext`, `insertArchive` + embed-first transactional logic. Pure functions taking `{repo, rag}` deps.
 - `packages/agent/src/services/memory/update.ts` — `updateShared`, `updateContext`, `updateArchive`.
 - `packages/agent/src/services/memory/search.ts` — высокоуровневый `search()` объединяющий FTS + vec + rerank (если есть).

@@ -8,8 +8,8 @@
 
 Shared-слой памяти семантически не ищется.
 
-- [packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/extractors.ts:29](../../../packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/extractors.ts#L29) — `writeShared` не эмбеддит. `vec_embedding` не пополняется → vec-search не найдёт.
-- [packages/agent/packages/agent/src/rag/pipeline/index.ts:156](../../../packages/agent/packages/agent/src/rag/pipeline/index.ts#L156) — vec-путь для shared не подтягивает row. Snippet пустой, title = id.
+- [packages/agent/src/pipeline/agent-pipeline/post/extractors.ts:29](../../../packages/agent/src/pipeline/agent-pipeline/post/extractors.ts#L29) — `writeShared` не эмбеддит. `vec_embedding` не пополняется → vec-search не найдёт.
+- [packages/agent/src/rag/pipeline/index.ts:156](../../../packages/agent/src/rag/pipeline/index.ts#L156) — vec-путь для shared не подтягивает row. Snippet пустой, title = id.
 
 ## Реализация
 

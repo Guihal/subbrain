@@ -9,7 +9,7 @@ Wave 1 memory-v2 (M-01 close MEM-2, M-02 access tracking, M-04 fts_log, M-07 kin
 **Тест-пасс:** убедиться что 678/0 не ослабло, что нет flaky тестов, что live-end-to-end (если уместно — skip если не доступно) проходит, что typecheck строго чист, что нет `any`/`as` тёмных пятен.
 
 **Рефактор-пасс:** опционально (если найдены проблемы) поправить:
-- File-cap 250 LOC violations среди файлов которые росли в wave 1 (`packages/core/packages/core/packages/core/src/db/schema.ts`, `packages/agent/packages/agent/src/rag/pipeline/index.ts`, `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/validators.ts`, `packages/core/src/db/tables/shared.ts`, `tests/memory-kind.test.ts` если >250).
+- File-cap 250 LOC violations среди файлов которые росли в wave 1 (`packages/core/src/db/schema.ts`, `packages/agent/src/rag/pipeline/index.ts`, `packages/agent/src/pipeline/agent-pipeline/post/validators.ts`, `packages/core/src/db/tables/shared.ts`, `tests/memory-kind.test.ts` если >250).
 - DRY-нарушения (M-01 критик отметил `writeSharedAtomic` в `packages/agent/src/mcp/tools/memory-tools.ts` дублирует `MemoryService.insertShared` — это интенциональное решение subagent'а; пересмотреть).
 - Любые `any` / `as` casts появившиеся при wide-changes.
 - Audit `docs/02-audit.md` — закрыть пункты которые wave 1 закрыл, открыть новые если выявлены.
@@ -18,16 +18,16 @@ Wave 1 memory-v2 (M-01 close MEM-2, M-02 access tracking, M-04 fts_log, M-07 kin
 ## Файлы
 
 Read-mostly (audit зона, скорее всего БЕЗ изменений):
-- `packages/core/packages/core/packages/core/src/db/schema.ts` (700+ LOC — exception per guardrails §1).
-- `packages/core/src/db/tables/shared.ts`, `packages/core/packages/core/packages/core/src/db/tables/log.ts`, `packages/core/src/db/tables/memory.ts`.
-- `packages/core/packages/core/packages/core/src/db/types.ts`.
-- `packages/core/src/repositories/memory.repo.ts`, `packages/core/packages/core/packages/core/src/repositories/log.repo.ts`.
+- `packages/core/src/db/schema.ts` (700+ LOC — exception per guardrails §1).
+- `packages/core/src/db/tables/shared.ts`, `packages/core/src/db/tables/log.ts`, `packages/core/src/db/tables/memory.ts`.
+- `packages/core/src/db/types.ts`.
+- `packages/core/src/repositories/memory.repo.ts`, `packages/core/src/repositories/log.repo.ts`.
 - `packages/agent/src/services/memory.service.ts`.
-- `packages/agent/packages/agent/src/pipeline/agent-pipeline/post/{validators,extractors,hippocampus,gate,dedupe,extractors-helpers}.ts`.
-- `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/context-compressor.ts`.
-- `packages/agent/src/mcp/tools/memory-tools.ts`, `packages/agent/packages/agent/packages/agent/src/mcp/registry/memory.tools.ts`.
-- `packages/agent/packages/agent/src/rag/pipeline/index.ts`, `packages/agent/packages/agent/packages/agent/src/rag/types.ts`.
-- `packages/server/packages/server/packages/server/src/routes/memory.ts`.
+- `packages/agent/src/pipeline/agent-pipeline/post/{validators,extractors,hippocampus,gate,dedupe,extractors-helpers}.ts`.
+- `packages/agent/src/pipeline/context-compressor.ts`.
+- `packages/agent/src/mcp/tools/memory-tools.ts`, `packages/agent/src/mcp/registry/memory.tools.ts`.
+- `packages/agent/src/rag/pipeline/index.ts`, `packages/agent/src/rag/types.ts`.
+- `packages/server/src/routes/memory.ts`.
 - `web/app/composables/useMemory.ts`, `web/app/composables/useMemory/types.ts`, `web/app/pages/memory.vue`.
 - All 4 wave plan files: `docs/tasks/memory-v2/{M-01,M-02,M-04,M-07}-*.md`.
 - `docs/02-audit.md`.
@@ -56,7 +56,7 @@ Write-zone (только если есть проблемы):
 ### 2. Audit-пасс (обязательно — пишет новый раздел в audit.md)
 
 Подсчитать LOC:
-- `wc -l packages/core/packages/core/src/db/schema.ts packages/agent/packages/agent/src/rag/pipeline/index.ts packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/validators.ts packages/core/src/db/tables/shared.ts tests/memory-kind.test.ts tests/fts-log.test.ts`.
+- `wc -l packages/core/src/db/schema.ts packages/agent/src/rag/pipeline/index.ts packages/agent/src/pipeline/agent-pipeline/post/validators.ts packages/core/src/db/tables/shared.ts tests/memory-kind.test.ts tests/fts-log.test.ts`.
 - Files >250 (не из exception list `system-prompt.ts, model-map.ts, rag/pipeline.ts, MCP registry, telegram modules, tests`) → флагнуть.
 
 Найти source-of-truth violations:

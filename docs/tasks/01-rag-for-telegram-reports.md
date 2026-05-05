@@ -16,7 +16,7 @@ Status: DONE
 
 ### 1. Новый MCP-тул `report_context`
 
-Файл: `packages/agent/packages/agent/packages/agent/src/mcp/registry/report.tools.ts` (новый), регистрация в `packages/agent/packages/agent/packages/agent/src/mcp/registry/index.ts`.
+Файл: `packages/agent/src/mcp/registry/report.tools.ts` (новый), регистрация в `packages/agent/src/mcp/registry/index.ts`.
 
 - `scope: "agent-only"` — не отдаём по REST.
 - Вход: `{ topic?: string, since_hours?: number }`. `topic` — тема отчёта (если нет — берём последние сообщения сессии как query). `since_hours` default 24.
@@ -35,7 +35,7 @@ Status: DONE
   - <context/archive hit 2>
   ```
 
-### 2. Сборщик `packages/agent/packages/agent/packages/agent/src/rag/report-context.ts` (новый)
+### 2. Сборщик `packages/agent/src/rag/report-context.ts` (новый)
 
 - `MemoryDB.searchShared(topic)` через FTS — топ N фактов (N=10 default).
 - `rag.hybridSearch(topic)` — гибридный поиск по `context`+`archive` с rerank, топ K (K=5 default).
@@ -76,16 +76,16 @@ Status: DONE
 
 ## Файлы
 
-- `packages/agent/packages/agent/packages/agent/src/mcp/registry/report.tools.ts` (новый)
-- `packages/agent/packages/agent/packages/agent/src/mcp/registry/index.ts` (регистрация)
-- `packages/agent/packages/agent/packages/agent/src/rag/report-context.ts` (новый)
+- `packages/agent/src/mcp/registry/report.tools.ts` (новый)
+- `packages/agent/src/mcp/registry/index.ts` (регистрация)
+- `packages/agent/src/rag/report-context.ts` (новый)
 - `packages/agent/src/mcp/tools/telegram-tools.ts` (обёртка `sendReport`)
 - вызовы `telegram_send` для отчётов — заменить на `sendReport` (грепнуть по коду, чтобы не пропустить)
 - `tests/report-context.test.ts` (новый)
 
 ## Порядок исполнения
 
-1. `packages/agent/packages/agent/packages/agent/src/rag/report-context.ts` + unit-test.
+1. `packages/agent/src/rag/report-context.ts` + unit-test.
 2. MCP-тул `report_context` + регистрация.
 3. Обёртка `sendReport` + перевод всех call-sites.
 4. Env `REPORT_RAG` + kill-switch проверка.

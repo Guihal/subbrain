@@ -9,18 +9,18 @@
 Три endpoint-а объявлены в Elysia-цепочке ДО `authMiddleware` → доступны без токена. Плюс middleware глобально пропускает `/telegram/*` по префиксу → админ-ручки webhook совсем голые.
 
 Доступ без auth к:
-- `GET /api/token` ([packages/server/packages/server/src/app/bootstrap.ts:103](../../../packages/server/packages/server/src/app/bootstrap.ts#L103)) — возвращает `{ token: config.authToken }`. Bearer-секрет утекает любому кто может постучать на порт.
-- `POST /night-cycle` ([packages/server/packages/server/src/app/bootstrap.ts:93](../../../packages/server/packages/server/src/app/bootstrap.ts#L93)) — триггерит цикл: реальный CPU/LLM-бюджет.
-- `GET /night-cycle/status` ([packages/server/packages/server/src/app/bootstrap.ts:98](../../../packages/server/packages/server/src/app/bootstrap.ts#L98)) — раскрывает внутреннее состояние.
-- `POST /telegram/set-webhook` ([packages/server/packages/server/src/routes/telegram.ts:44](../../../packages/server/packages/server/src/routes/telegram.ts#L44)) — репоинт бота на произвольный URL.
-- `POST /telegram/remove-webhook` ([packages/server/packages/server/src/routes/telegram.ts:50](../../../packages/server/packages/server/src/routes/telegram.ts#L50)) — отключение бота.
+- `GET /api/token` ([packages/server/src/app/bootstrap.ts:103](../../../packages/server/src/app/bootstrap.ts#L103)) — возвращает `{ token: config.authToken }`. Bearer-секрет утекает любому кто может постучать на порт.
+- `POST /night-cycle` ([packages/server/src/app/bootstrap.ts:93](../../../packages/server/src/app/bootstrap.ts#L93)) — триггерит цикл: реальный CPU/LLM-бюджет.
+- `GET /night-cycle/status` ([packages/server/src/app/bootstrap.ts:98](../../../packages/server/src/app/bootstrap.ts#L98)) — раскрывает внутреннее состояние.
+- `POST /telegram/set-webhook` ([packages/server/src/routes/telegram.ts:44](../../../packages/server/src/routes/telegram.ts#L44)) — репоинт бота на произвольный URL.
+- `POST /telegram/remove-webhook` ([packages/server/src/routes/telegram.ts:50](../../../packages/server/src/routes/telegram.ts#L50)) — отключение бота.
 
 Корневая причина — [packages/core/src/lib/auth.ts:28](../../../packages/core/src/lib/auth.ts#L28): `if (path.startsWith("/telegram/")) return` игнорирует префикс целиком. Должно быть только `/telegram/webhook`.
 
 ## Файлы
 
-- [packages/server/packages/server/src/app/bootstrap.ts](../../../packages/server/packages/server/src/app/bootstrap.ts) — переставить endpoint-ы за `authMiddleware`.
-- [packages/server/packages/server/src/routes/telegram.ts](../../../packages/server/packages/server/src/routes/telegram.ts) — split на public (webhook) и admin.
+- [packages/server/src/app/bootstrap.ts](../../../packages/server/src/app/bootstrap.ts) — переставить endpoint-ы за `authMiddleware`.
+- [packages/server/src/routes/telegram.ts](../../../packages/server/src/routes/telegram.ts) — split на public (webhook) и admin.
 - [packages/core/src/lib/auth.ts](../../../packages/core/src/lib/auth.ts) — сузить bypass до строго `/telegram/webhook`.
 
 ## Изменение
@@ -53,7 +53,7 @@
 - [ ] `bunx tsc --noEmit` = 0.
 - [ ] `bun test tests/auth-coverage.test.ts` зелёный.
 - [ ] `grep -n 'startsWith("/telegram/' packages/core/src/lib/auth.ts` = 0 совпадений.
-- [ ] `grep -n '/api/token\|/night-cycle' packages/server/packages/server/src/app/bootstrap.ts | grep -B2 authMiddleware` показывает middleware ВЫШЕ endpoint-ов.
+- [ ] `grep -n '/api/token\|/night-cycle' packages/server/src/app/bootstrap.ts | grep -B2 authMiddleware` показывает middleware ВЫШЕ endpoint-ов.
 - [ ] AUTH-16 вычеркнут в [docs/02-audit.md](../../02-audit.md).
 - [ ] `Status: DONE (PR #N)` выставлен.
 

@@ -4,26 +4,26 @@
 
 ## Цель
 
-Разбить `packages/agent/packages/agent/src/pipeline/night-cycle/prune/stray-tasks.ts` (164 LOC) на split-folder. Public API сохранить — `collectStrayTasks(memory, router)` + `LAST_RUN_FOCUS_KEY`.
+Разбить `packages/agent/src/pipeline/night-cycle/prune/stray-tasks.ts` (164 LOC) на split-folder. Public API сохранить — `collectStrayTasks(memory, router)` + `LAST_RUN_FOCUS_KEY`.
 
 Также убрать deep-import barrel violation: `tasks-classify.ts` импортируется напрямую (`./tasks-classify`); после split → re-export через parent `prune/index.ts` снимет TRANSITIONAL_DEEP_IMPORTS entry.
 
 ## Файлы
 
 **Удалить** (после переноса):
-- `packages/agent/packages/agent/src/pipeline/night-cycle/prune/stray-tasks.ts`
+- `packages/agent/src/pipeline/night-cycle/prune/stray-tasks.ts`
 
 **Создать**:
-- `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/prune/stray-tasks/index.ts` — orchestrator (≤80 LOC). `collectStrayTasks` экспортирует, читает focus key, вызывает `fetchCandidates` → `classifyAndUpsert` → советует `setFocus`.
-- `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/prune/stray-tasks/fetch.ts` — `fetchCandidates(memory, windowStart): CandidateRow[]` — query `shared_memory` + `layer2_context` queries, объединяет в `CandidateRow[]`. Содержит `SharedScanRow`/`ContextScanRow` interfaces.
-- `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/prune/stray-tasks/classify.ts` — `classifyAndUpsert(memory, router, candidates, deadline)` — per-row loop с MAX_PER_CYCLE / MAX_DURATION_MS бюджетом. Использует `classifyCandidate` из `./tasks-classify`. Возвращает counter migrated.
-- `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/prune/stray-tasks/constants.ts` — `LAST_RUN_FOCUS_KEY`, `MAX_WINDOW_SECONDS`, `MAX_PER_CYCLE`, `MAX_DURATION_MS`. Re-export `LAST_RUN_FOCUS_KEY` через `index.ts` для backward-compat (есть consumer'ы).
+- `packages/agent/src/pipeline/night-cycle/prune/stray-tasks/index.ts` — orchestrator (≤80 LOC). `collectStrayTasks` экспортирует, читает focus key, вызывает `fetchCandidates` → `classifyAndUpsert` → советует `setFocus`.
+- `packages/agent/src/pipeline/night-cycle/prune/stray-tasks/fetch.ts` — `fetchCandidates(memory, windowStart): CandidateRow[]` — query `shared_memory` + `layer2_context` queries, объединяет в `CandidateRow[]`. Содержит `SharedScanRow`/`ContextScanRow` interfaces.
+- `packages/agent/src/pipeline/night-cycle/prune/stray-tasks/classify.ts` — `classifyAndUpsert(memory, router, candidates, deadline)` — per-row loop с MAX_PER_CYCLE / MAX_DURATION_MS бюджетом. Использует `classifyCandidate` из `./tasks-classify`. Возвращает counter migrated.
+- `packages/agent/src/pipeline/night-cycle/prune/stray-tasks/constants.ts` — `LAST_RUN_FOCUS_KEY`, `MAX_WINDOW_SECONDS`, `MAX_PER_CYCLE`, `MAX_DURATION_MS`. Re-export `LAST_RUN_FOCUS_KEY` через `index.ts` для backward-compat (есть consumer'ы).
 
 **Изменить**:
-- `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/prune/index.ts` — добавить `export { collectStrayTasks, LAST_RUN_FOCUS_KEY } from "./stray-tasks"` если ещё нет; добавить `export { classifyCandidate, ... } from "./tasks-classify"` чтобы убрать deep-import нарушение.
+- `packages/agent/src/pipeline/night-cycle/prune/index.ts` — добавить `export { collectStrayTasks, LAST_RUN_FOCUS_KEY } from "./stray-tasks"` если ещё нет; добавить `export { classifyCandidate, ... } from "./tasks-classify"` чтобы убрать deep-import нарушение.
 - `scripts/check-deep-imports.ts` `TRANSITIONAL_DEEP_IMPORTS` Set — удалить `stray-tasks/tasks-classify` если есть; снять deep-import ограничение для prune/tasks-classify.
 
-**Trigger**: `scripts/check-file-size.ts` `"packages/agent/packages/agent/src/pipeline/night-cycle/prune/stray-tasks.ts": 165` → удалить.
+**Trigger**: `scripts/check-file-size.ts` `"packages/agent/src/pipeline/night-cycle/prune/stray-tasks.ts": 165` → удалить.
 
 ## Изменение
 

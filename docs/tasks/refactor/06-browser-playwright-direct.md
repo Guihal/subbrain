@@ -6,10 +6,10 @@
 
 ## Что сделано
 
-- **Шаг B (прямой chromium.launch):** `packages/agent/packages/agent/src/mcp/playwright/index.ts` уже полностью переписан на `playwright` напрямую (`chromium.launch({channel:"chrome", headless:true, args:["--no-sandbox","--disable-dev-shm-usage"]})`). Реализует 9 методов (`browser_navigate|snapshot|click|type|go_back|press_key|scroll|screenshot|close`) через стабильный фасад `callTool(name, args)`. `registry/web.tools.ts` не трогался.
+- **Шаг B (прямой chromium.launch):** `packages/agent/src/mcp/playwright/index.ts` уже полностью переписан на `playwright` напрямую (`chromium.launch({channel:"chrome", headless:true, args:["--no-sandbox","--disable-dev-shm-usage"]})`). Реализует 9 методов (`browser_navigate|snapshot|click|type|go_back|press_key|scroll|screenshot|close`) через стабильный фасад `callTool(name, args)`. `registry/web.tools.ts` не трогался.
 - **Шаг C (leak-guard):**
   - `playwright-client.ts`: глобальный `Set<PlaywrightClient>` + `process.on("beforeExit", ...)` закрывает все живые клиенты. Конструктор регистрирует инстанс, `close()` снимает. Добавлен геттер `contextCount` (live `browser.contexts().length ?? 0`).
-  - `packages/server/packages/server/packages/server/src/app/shutdown.ts`: перед `playwright.close()` логируется `open contexts before close: N` — видно в logs во время graceful shutdown, ловит накопившиеся leaked-контексты.
+  - `packages/server/src/app/shutdown.ts`: перед `playwright.close()` логируется `open contexts before close: N` — видно в logs во время graceful shutdown, ловит накопившиеся leaked-контексты.
   - `tests/browser-smoke.ts` (новый): 5× `browser_navigate`, измеряет `ps ax -o comm= | grep -c '^chrome'` до/после, с poll-stabilize, exit 1 при `after > before`. Имя `*.ts` без `.test.` — `bun test` не подхватывает.
 - **package.json:** удалён `@playwright/mcp` (больше не импортируется в коде); добавлен прямой `"playwright": "^1.49.0"` (до этого тянулся транзитивом из mcp как alpha-версия).
 
@@ -49,7 +49,7 @@ Deploy:
 
 ## Текущее состояние
 
-[packages/agent/packages/agent/src/mcp/playwright/index.ts](../../../packages/agent/packages/agent/src/mcp/playwright/index.ts) — обёртка над `@playwright/mcp` через отдельный процесс + JSON-RPC. Зависает на handshake внутри Docker. Все web-тулы (navigate/snapshot/click/type/back/press_key) идут через единый `callTool(name, args)` — внешний интерфейс не меняется.
+[packages/agent/src/mcp/playwright/index.ts](../../../packages/agent/src/mcp/playwright/index.ts) — обёртка над `@playwright/mcp` через отдельный процесс + JSON-RPC. Зависает на handshake внутри Docker. Все web-тулы (navigate/snapshot/click/type/back/press_key) идут через единый `callTool(name, args)` — внешний интерфейс не меняется.
 
 ## Шаг A — обновить `@playwright/mcp`
 
@@ -58,7 +58,7 @@ Deploy:
    ```bash
    docker compose build && docker compose up -d
    docker compose exec subbrain bun -e '
-     const { callTool } = await import("./packages/agent/packages/agent/src/mcp/playwright/index.ts");
+     const { callTool } = await import("./packages/agent/src/mcp/playwright/index.ts");
      for (let i = 0; i < 3; i++) {
        await callTool("web_navigate", {url: "https://example.com"});
        const snap = await callTool("web_snapshot", {});
@@ -70,7 +70,7 @@ Deploy:
 
 ## Шаг B (fallback) — прямой `chromium.launch`
 
-Срабатывает если Шаг A не помог. Переписать `packages/agent/packages/agent/src/mcp/playwright/index.ts`:
+Срабатывает если Шаг A не помог. Переписать `packages/agent/src/mcp/playwright/index.ts`:
 
 ```ts
 import { chromium, type Browser, type Page } from "playwright";
@@ -141,9 +141,9 @@ async function clickByRef(ref: string) {
 
 ## Файлы
 
-- [packages/agent/packages/agent/src/mcp/playwright/index.ts](../../../packages/agent/packages/agent/src/mcp/playwright/index.ts)
+- [packages/agent/src/mcp/playwright/index.ts](../../../packages/agent/src/mcp/playwright/index.ts)
 - [package.json](../../../package.json) (Шаг A: версия `@playwright/mcp` или Шаг B: переход на `playwright` + удаление `@playwright/mcp` из deps)
-- [packages/server/packages/server/src/app/shutdown.ts](../../../packages/server/packages/server/src/app/shutdown.ts) (после PR 07; до — в `packages/server/packages/server/packages/server/src/index.ts`) — лог числа контекстов
+- [packages/server/src/app/shutdown.ts](../../../packages/server/src/app/shutdown.ts) (после PR 07; до — в `packages/server/src/index.ts`) — лог числа контекстов
 - `tests/browser-smoke.ts` (новый, `*.ts` без `.test.` — чтобы `bun test` не подхватывал автоматически)
 
 ## Тесты

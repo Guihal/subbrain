@@ -10,15 +10,15 @@
 
 Два места:
 
-- [packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/tool-runner.ts:45-65](../../../packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/tool-runner.ts#L45-L65) — `withToolTimeout` делает race, но не abort.
-- [packages/agent/packages/agent/src/pipeline/arbitration/index.ts:85,225-249](../../../packages/agent/packages/agent/src/pipeline/arbitration/index.ts#L85) — `controllers[i]` создаются, **но `timer = setTimeout(() => reject(...))` не вызывает `abort()`**.
+- [packages/agent/src/pipeline/agent-loop/tool-runner.ts:45-65](../../../packages/agent/src/pipeline/agent-loop/tool-runner.ts#L45-L65) — `withToolTimeout` делает race, но не abort.
+- [packages/agent/src/pipeline/arbitration/index.ts:85,225-249](../../../packages/agent/src/pipeline/arbitration/index.ts#L85) — `controllers[i]` создаются, **но `timer = setTimeout(() => reject(...))` не вызывает `abort()`**.
 
 ## Файлы
 
-- [packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/tool-runner.ts](../../../packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/tool-runner.ts) — внутренний `AbortController` в `withToolTimeout`.
-- [packages/agent/packages/agent/src/pipeline/arbitration/index.ts](../../../packages/agent/packages/agent/src/pipeline/arbitration/index.ts) — timer вызывает `controllers[i].abort()`.
+- [packages/agent/src/pipeline/agent-loop/tool-runner.ts](../../../packages/agent/src/pipeline/agent-loop/tool-runner.ts) — внутренний `AbortController` в `withToolTimeout`.
+- [packages/agent/src/pipeline/arbitration/index.ts](../../../packages/agent/src/pipeline/arbitration/index.ts) — timer вызывает `controllers[i].abort()`.
 - [packages/agent/src/mcp/registry/types.ts](../../../packages/agent/src/mcp/registry/types.ts) (или рядом, где определён `ToolHandler`) — подпись получает optional `signal`.
-- [packages/agent/packages/agent/src/mcp/registry/web.tools.ts](../../../packages/agent/packages/agent/src/mcp/registry/web.tools.ts), [consult.tools.ts](../../../packages/agent/src/mcp/registry/consult.tools.ts), [critic.tools.ts](../../../packages/agent/src/mcp/registry/critic.tools.ts) — принимают signal, передают в `PlaywrightClient` / `router.chat`.
+- [packages/agent/src/mcp/registry/web.tools.ts](../../../packages/agent/src/mcp/registry/web.tools.ts), [consult.tools.ts](../../../packages/agent/src/mcp/registry/consult.tools.ts), [critic.tools.ts](../../../packages/agent/src/mcp/registry/critic.tools.ts) — принимают signal, передают в `PlaywrightClient` / `router.chat`.
 - [packages/core/src/lib/model-router.ts](../../../packages/core/src/lib/model-router.ts) — `router.chat` композирует `AbortSignal.any([external, toolTimeoutSignal])`, прокидывает провайдерам.
 
 Если суммарный diff перерастает 250 LoC — split:
@@ -92,7 +92,7 @@ type ToolHandler<T, R> = (
 
 - [x] `bunx tsc --noEmit` = 0.
 - [x] Оба теста зелёные (`tests/tool-timeout-abort.test.ts` — 3 case, `tests/arbitration-abort.test.ts` — 2 case).
-- [x] `grep -n 'Promise.race' packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/tool-runner.ts packages/agent/packages/agent/src/pipeline/arbitration/index.ts` — каждый случай имеет соседний `.abort()` / `controller.abort`.
+- [x] `grep -n 'Promise.race' packages/agent/src/pipeline/agent-loop/tool-runner.ts packages/agent/src/pipeline/arbitration/index.ts` — каждый случай имеет соседний `.abort()` / `controller.abort`.
 - [ ] Integration test (live, opt-in): долгий web_navigate с 15s timeout на недоступный host → Playwright browser освобождается за ≤ 16s (не висит до HTTP default). *(опциональная live-проверка, не блокирует merge)*
 - [x] CANCEL-1 вычеркнут в [docs/02-audit.md](../../02-audit.md).
 

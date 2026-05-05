@@ -12,7 +12,7 @@
 
 ### HIGH-2 — `arbitration-room.ts`: `Promise.all` → `Promise.allSettled` + abort остальных
 
-**Файл:** [packages/agent/packages/agent/src/pipeline/arbitration/index.ts](../../../packages/agent/packages/agent/src/pipeline/arbitration/index.ts)
+**Файл:** [packages/agent/src/pipeline/arbitration/index.ts](../../../packages/agent/src/pipeline/arbitration/index.ts)
 
 - `Promise.all` над N специалистами → один падает → падает арбитраж целиком. Заменить на `allSettled`, пропустить упавших.
 - Первый `fulfilled` → `AbortController.abort()` на остальных; сигнал пробрасывается в `ModelRouter.chat()` и далее в провайдеры.
@@ -23,7 +23,7 @@
 
 ### HIGH-3 — per-tool timeout в `agent-loop/tool-runner.ts`
 
-**Файл:** [packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/tool-runner.ts](../../../packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/tool-runner.ts)
+**Файл:** [packages/agent/src/pipeline/agent-loop/tool-runner.ts](../../../packages/agent/src/pipeline/agent-loop/tool-runner.ts)
 
 - `Promise.race([exec, timeoutPromise(N)])` вокруг каждого `handler.call`.
 - N по scope:
@@ -38,7 +38,7 @@
 
 ### HIGH-5 — FTS-санитизация тегов в night-cycle
 
-**Файл:** [packages/agent/packages/agent/src/pipeline/night-cycle/steps.ts](../../../packages/agent/packages/agent/src/pipeline/night-cycle/steps.ts), строка ~187
+**Файл:** [packages/agent/src/pipeline/night-cycle/steps.ts](../../../packages/agent/src/pipeline/night-cycle/steps.ts), строка ~187
 
 - Теги (user-supplied, могут содержать `"`, `:`, `*`) напрямую идут в `MATCH` → throw.
 - Прогнать через `sanitizeFtsQuery` из [packages/core/src/lib/fts-utils.ts](../../../packages/core/src/lib/fts-utils.ts).
@@ -47,7 +47,7 @@
 
 ### HIGH-6 — транзакция insertArchive + indexEntry
 
-**Файл:** [packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/index.ts](../../../packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/index.ts), строки 86-101
+**Файл:** [packages/agent/src/pipeline/night-cycle/index.ts](../../../packages/agent/src/pipeline/night-cycle/index.ts), строки 86-101
 
 - Сейчас: `insertArchive()` коммитится, затем `rag.indexEntry()` падает на эмбеддинге → архив с `NULL`-вектором навсегда невидим для RAG.
 - Обернуть в `db.transaction(() => { insertArchive(); rag.indexEntry(); })`. Фейл эмбеддинга → откат, `logger.warn("night-cycle", "archive_retry_next_cycle", {id})`, retry следующей ночью.
@@ -56,10 +56,10 @@
 
 ## Файлы
 
-- [packages/agent/packages/agent/src/pipeline/arbitration/index.ts](../../../packages/agent/packages/agent/src/pipeline/arbitration/index.ts)
-- [packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/tool-runner.ts](../../../packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/tool-runner.ts)
-- [packages/agent/packages/agent/src/pipeline/night-cycle/steps.ts](../../../packages/agent/packages/agent/src/pipeline/night-cycle/steps.ts)
-- [packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/index.ts](../../../packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/index.ts)
+- [packages/agent/src/pipeline/arbitration/index.ts](../../../packages/agent/src/pipeline/arbitration/index.ts)
+- [packages/agent/src/pipeline/agent-loop/tool-runner.ts](../../../packages/agent/src/pipeline/agent-loop/tool-runner.ts)
+- [packages/agent/src/pipeline/night-cycle/steps.ts](../../../packages/agent/src/pipeline/night-cycle/steps.ts)
+- [packages/agent/src/pipeline/night-cycle/index.ts](../../../packages/agent/src/pipeline/night-cycle/index.ts)
 - [packages/providers/src/types.ts](../../../packages/providers/src/types.ts) — `ChatRequest` получает `signal?`
 - [packages/providers/src/nvidia.ts](../../../packages/providers/src/nvidia.ts), [packages/providers/src/nvidia.ts](../../../packages/providers/src/nvidia.ts) — проверка `signal.aborted`
 - [packages/core/src/lib/model-router.ts](../../../packages/core/src/lib/model-router.ts) — проброс signal

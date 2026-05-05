@@ -11,21 +11,21 @@
 
 ## Файлы (scope-lock — изменять ТОЛЬКО эти)
 
-- `packages/core/packages/core/packages/core/src/db/schema.ts` — Migration **11** (assigned). FTS5 virtual table `fts_log` (content+role, content_rowid=id) + 3 trigger'а AFTER INSERT/DELETE/UPDATE на `layer4_log`. **НЕ** трогать существующие миграции (1-10).
-- `packages/core/packages/core/packages/core/src/db/types.ts` — расширить `RAGSearchOptions['layers']` тип чтобы принимать `"log"` (если он сейчас union строк) ИЛИ добавить отдельный enum / const массив.
-- `packages/core/packages/core/packages/core/src/db/tables/log.ts` — **NEW** файл. `LogTable` класс с методом `searchLog(query: string, opts?: { limit?: number, agentId?: string, sessionId?: string }): FtsResult[]`. Использовать `sanitizeFtsQuery` (`packages/core/packages/core/src/lib/fts-utils.ts`) на вход. JOIN `fts_log` ↔ `layer4_log` по rowid. Default limit=20.
-- `packages/core/packages/core/packages/core/src/repositories/log.repo.ts` — добавить `searchLog` метод (public API). Делегирует в `LogTable.searchLog`. Если `LogRepository` нет — создать или extend существующее место.
-- `packages/core/packages/core/packages/core/src/db/index.ts` — экспортировать `LogTable` если нужно для facade `MemoryDB`.
-- `packages/agent/packages/agent/src/rag/pipeline/index.ts` — расширить `searchHybrid` чтобы при `layers: ["log"]` дёргал FTS-only ветку через `logRepo.searchLog(query)`. Vec-ветка skip для `log`. RRF merge всё ещё работает (FTS-only score). Bump-access **НЕ** делать на log layer (M-02 `isBumpLayer` уже фильтрует). Recency boost — оставить (актуально для логов).
-- `packages/agent/packages/agent/packages/agent/src/mcp/registry/memory.tools.ts` ИЛИ `packages/agent/packages/agent/packages/agent/src/mcp/registry/rag.tools.ts` — добавить `memory_log_search` tool с **scope: "agent-only"**, TypeBox схема `t.Object({ query, limit?, agentId?, sessionId? })`. Handler делегирует в `executor.ragSearch({ layers: ["log"], query, ... })` или прямо в `logRepo.searchLog`.
-- `packages/server/packages/server/packages/server/src/routes/memory.ts` — НЕ добавлять `?q=` поддержку для `/v1/memory/log`. Оставить read-only listing. (Защита от PII утечки через public REST.)
+- `packages/core/src/db/schema.ts` — Migration **11** (assigned). FTS5 virtual table `fts_log` (content+role, content_rowid=id) + 3 trigger'а AFTER INSERT/DELETE/UPDATE на `layer4_log`. **НЕ** трогать существующие миграции (1-10).
+- `packages/core/src/db/types.ts` — расширить `RAGSearchOptions['layers']` тип чтобы принимать `"log"` (если он сейчас union строк) ИЛИ добавить отдельный enum / const массив.
+- `packages/core/src/db/tables/log.ts` — **NEW** файл. `LogTable` класс с методом `searchLog(query: string, opts?: { limit?: number, agentId?: string, sessionId?: string }): FtsResult[]`. Использовать `sanitizeFtsQuery` (`packages/core/src/lib/fts-utils.ts`) на вход. JOIN `fts_log` ↔ `layer4_log` по rowid. Default limit=20.
+- `packages/core/src/repositories/log.repo.ts` — добавить `searchLog` метод (public API). Делегирует в `LogTable.searchLog`. Если `LogRepository` нет — создать или extend существующее место.
+- `packages/core/src/db/index.ts` — экспортировать `LogTable` если нужно для facade `MemoryDB`.
+- `packages/agent/src/rag/pipeline/index.ts` — расширить `searchHybrid` чтобы при `layers: ["log"]` дёргал FTS-only ветку через `logRepo.searchLog(query)`. Vec-ветка skip для `log`. RRF merge всё ещё работает (FTS-only score). Bump-access **НЕ** делать на log layer (M-02 `isBumpLayer` уже фильтрует). Recency boost — оставить (актуально для логов).
+- `packages/agent/src/mcp/registry/memory.tools.ts` ИЛИ `packages/agent/src/mcp/registry/rag.tools.ts` — добавить `memory_log_search` tool с **scope: "agent-only"**, TypeBox схема `t.Object({ query, limit?, agentId?, sessionId? })`. Handler делегирует в `executor.ragSearch({ layers: ["log"], query, ... })` или прямо в `logRepo.searchLog`.
+- `packages/server/src/routes/memory.ts` — НЕ добавлять `?q=` поддержку для `/v1/memory/log`. Оставить read-only listing. (Защита от PII утечки через public REST.)
 - `tests/fts-log.test.ts` — **NEW** файл (4-6 кейсов).
 - `docs/02-audit.md` — добавить `### MEM-8 ✅ fts_log + RAG layer "log" (закрыто M-04)` справочную секцию.
 - `docs/tasks/memory-v2/M-04-fts-log.md` — Status: DONE.
 
 **НЕ трогать:**
 - Любые существующие миграции (1-10).
-- Embedding слой (`packages/agent/packages/agent/src/rag/pipeline/index.ts` vec branch для context/archive/shared — без изменений).
+- Embedding слой (`packages/agent/src/rag/pipeline/index.ts` vec branch для context/archive/shared — без изменений).
 - `packages/agent/src/services/memory.service.ts` — log не пишется через service (он пишется через `logger.ts` напрямую).
 - `web/app/pages/memory.vue` — UI `/memory` `Log` tab остаётся read-only без поиска (отдельный follow-up).
 
@@ -66,7 +66,7 @@ Wrap в `db.transaction()` с per-statement `.run()`. `IF NOT EXISTS` + `user_ve
 
 ### `LogTable.searchLog`
 
-Файл `packages/core/packages/core/packages/core/src/db/tables/log.ts` (новый, ≤150 LOC):
+Файл `packages/core/src/db/tables/log.ts` (новый, ≤150 LOC):
 
 ```ts
 export class LogTable {
@@ -98,7 +98,7 @@ export class LogTable {
 
 ### RAG-layer `"log"`
 
-В `searchHybrid` (`packages/agent/packages/agent/src/rag/pipeline/index.ts`) при `layers.includes("log")`:
+В `searchHybrid` (`packages/agent/src/rag/pipeline/index.ts`) при `layers.includes("log")`:
 - FTS branch: `logRepo.searchLog(query, { agentId, sessionId, limit: ftsLimit })`. Адаптировать `FtsResult.id` (number) → string для общей дедупликации.
 - Vec branch: skip для `"log"` (нет embed'ов). Возвращать пустой массив.
 - Rerank: участвует в общем RRF merge / recency boost. Если `skipRerank` или нет других слоёв — ftsLimit topN сразу.
@@ -108,7 +108,7 @@ Default `layers` массив RAG-pipeline'а **не** менять — `["conte
 
 ### MCP tool `memory_log_search` (agent-only)
 
-В `packages/agent/packages/agent/packages/agent/src/mcp/registry/memory.tools.ts` (или rag.tools.ts) — `registry.register({ name: "memory_log_search", scope: "agent-only", input: t.Object({ query: t.String(), limit: t.Optional(t.Number()), agentId: t.Optional(t.String()), sessionId: t.Optional(t.String()) }), handler: async (ctx, args) => { ... } })`. Handler возвращает `ToolResult{ ok:true, data: hits }`.
+В `packages/agent/src/mcp/registry/memory.tools.ts` (или rag.tools.ts) — `registry.register({ name: "memory_log_search", scope: "agent-only", input: t.Object({ query: t.String(), limit: t.Optional(t.Number()), agentId: t.Optional(t.String()), sessionId: t.Optional(t.String()) }), handler: async (ctx, args) => { ... } })`. Handler возвращает `ToolResult{ ok:true, data: hits }`.
 
 ## Тесты
 
@@ -130,7 +130,7 @@ Default `layers` массив RAG-pipeline'а **не** менять — `["conte
 3. `bun test` (полный) → exit 0, ≥650 pass (baseline после M-02), 0 fail.
 4. `sqlite3 <test-db> "SELECT name FROM sqlite_master WHERE name='fts_log'"` → 1 row.
 5. `sqlite3 <test-db> "SELECT name FROM sqlite_master WHERE type='trigger' AND tbl_name='layer4_log'"` → ≥3 rows (ai/ad/au).
-6. `grep -n "fts_log\|searchLog" packages/core/packages/core/src/db/tables/log.ts packages/core/packages/core/src/repositories/log.repo.ts packages/agent/packages/agent/src/rag/pipeline/index.ts` — все три файла ссылаются на новые APIs.
+6. `grep -n "fts_log\|searchLog" packages/core/src/db/tables/log.ts packages/core/src/repositories/log.repo.ts packages/agent/src/rag/pipeline/index.ts` — все три файла ссылаются на новые APIs.
 7. `grep -n "memory_log_search" packages/agent/src/mcp/registry/` → ≥1 hit, `scope: "agent-only"`.
 8. `docs/tasks/memory-v2/M-04-fts-log.md` — `Status: DONE (PR <sha>)`.
 

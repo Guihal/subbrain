@@ -56,7 +56,7 @@ transport-agnostic and may proceed.
    single shared-secret bearer token (`A2A_SHARED_SECRET`) is the only
    accepted auth in P6-4. Full mutual auth is deferred.
 6. No frontend UI in this phase. Transcript viewer is a Phase 7 item.
-7. No new model roles, no edits to `packages/core/packages/core/src/lib/model-map.ts`.
+7. No new model roles, no edits to `packages/core/src/lib/model-map.ts`.
 
 ## Packet layout (6 packets)
 
@@ -70,7 +70,7 @@ independently). Total ≤ 6 PRs. Single packet ≤ 300 LOC, ≤ 4 files.
 ```json
 {
   "task_id": "P6-1",
-  "goal": "Add RoomParticipant interface and ParticipantInput/ParticipantOutput types in packages/agent/src/pipeline/arbitration/participants.ts and re-export from packages/agent/packages/agent/src/pipeline/arbitration/types.ts.",
+  "goal": "Add RoomParticipant interface and ParticipantInput/ParticipantOutput types in packages/agent/src/pipeline/arbitration/participants.ts and re-export from packages/agent/src/pipeline/arbitration/types.ts.",
   "non_goals": [
     "Do not refactor dispatch.ts or index.ts in this packet.",
     "Do not add any implementation of RoomParticipant.",
@@ -80,13 +80,13 @@ independently). Total ≤ 6 PRs. Single packet ≤ 300 LOC, ≤ 4 files.
   ],
   "allowed_write_paths": [
     "packages/agent/src/pipeline/arbitration/participants.ts",
-    "packages/agent/packages/agent/src/pipeline/arbitration/types.ts",
-    "packages/agent/packages/agent/src/pipeline/arbitration/index.ts"
+    "packages/agent/src/pipeline/arbitration/types.ts",
+    "packages/agent/src/pipeline/arbitration/index.ts"
   ],
   "read_context": [
-    "packages/agent/packages/agent/src/pipeline/arbitration/types.ts",
-    "packages/agent/packages/agent/src/pipeline/arbitration/dispatch.ts",
-    "packages/agent/packages/agent/src/pipeline/arbitration/index.ts",
+    "packages/agent/src/pipeline/arbitration/types.ts",
+    "packages/agent/src/pipeline/arbitration/dispatch.ts",
+    "packages/agent/src/pipeline/arbitration/index.ts",
     "docs/specs/subbrain-main.md:505-518"
   ],
   "risk_tier": "ordinary",
@@ -96,7 +96,7 @@ independently). Total ≤ 6 PRs. Single packet ≤ 300 LOC, ≤ 4 files.
     "bun run scripts/check-deep-imports.ts",
     "bun test tests/arbitration.test.ts tests/arbitration-abort.test.ts",
     "rg -n 'RoomParticipant' packages/agent/src/pipeline/arbitration/participants.ts | wc -l | awk '{ if ($1 < 1) exit 1 }'",
-    "rg -n 'export type \\{[^}]*RoomParticipant' packages/agent/packages/agent/src/pipeline/arbitration/types.ts || rg -n 'export \\* from \"./participants\"' packages/agent/packages/agent/src/pipeline/arbitration/types.ts"
+    "rg -n 'export type \\{[^}]*RoomParticipant' packages/agent/src/pipeline/arbitration/types.ts || rg -n 'export \\* from \"./participants\"' packages/agent/src/pipeline/arbitration/types.ts"
   ],
   "diff_budget_loc": 80,
   "file_count_max": 2,
@@ -121,7 +121,7 @@ independently). Total ≤ 6 PRs. Single packet ≤ 300 LOC, ≤ 4 files.
 ```json
 {
   "task_id": "P6-2",
-  "goal": "Replace the role-string fan-out in packages/agent/packages/agent/src/pipeline/arbitration/dispatch.ts with a participant fan-out using RoomParticipant[]; introduce a LocalParticipant adapter in packages/agent/src/pipeline/arbitration/participants.ts that wraps router.chat with the existing prompt; index.ts builds LocalParticipant[] from RoomConfig.agents.",
+  "goal": "Replace the role-string fan-out in packages/agent/src/pipeline/arbitration/dispatch.ts with a participant fan-out using RoomParticipant[]; introduce a LocalParticipant adapter in packages/agent/src/pipeline/arbitration/participants.ts that wraps router.chat with the existing prompt; index.ts builds LocalParticipant[] from RoomConfig.agents.",
   "non_goals": [
     "Do not change synthesis behavior, prompt text, or weights.",
     "Do not introduce a remote participant in this packet.",
@@ -131,14 +131,14 @@ independently). Total ≤ 6 PRs. Single packet ≤ 300 LOC, ≤ 4 files.
   ],
   "allowed_write_paths": [
     "packages/agent/src/pipeline/arbitration/participants.ts",
-    "packages/agent/packages/agent/src/pipeline/arbitration/dispatch.ts",
-    "packages/agent/packages/agent/src/pipeline/arbitration/index.ts"
+    "packages/agent/src/pipeline/arbitration/dispatch.ts",
+    "packages/agent/src/pipeline/arbitration/index.ts"
   ],
   "read_context": [
-    "packages/agent/packages/agent/src/pipeline/arbitration/dispatch.ts",
-    "packages/agent/packages/agent/src/pipeline/arbitration/index.ts",
-    "packages/agent/packages/agent/src/pipeline/arbitration/prompts.ts",
-    "packages/agent/packages/agent/src/pipeline/arbitration/synthesis.ts",
+    "packages/agent/src/pipeline/arbitration/dispatch.ts",
+    "packages/agent/src/pipeline/arbitration/index.ts",
+    "packages/agent/src/pipeline/arbitration/prompts.ts",
+    "packages/agent/src/pipeline/arbitration/synthesis.ts",
     "tests/arbitration.test.ts",
     "tests/arbitration-abort.test.ts"
   ],
@@ -148,10 +148,10 @@ independently). Total ≤ 6 PRs. Single packet ≤ 300 LOC, ≤ 4 files.
     "bun run scripts/check-file-size.ts",
     "bun run scripts/check-deep-imports.ts",
     "bun test tests/arbitration.test.ts tests/arbitration-abort.test.ts",
-    "rg -n 'router.chat' packages/agent/packages/agent/src/pipeline/arbitration/dispatch.ts && exit 1 || true",
-    "rg -n 'RoomParticipant' packages/agent/packages/agent/src/pipeline/arbitration/dispatch.ts",
-    "wc -l packages/agent/packages/agent/src/pipeline/arbitration/dispatch.ts | awk '{ if ($1 > 150) exit 1 }'",
-    "wc -l packages/agent/packages/agent/src/pipeline/arbitration/index.ts | awk '{ if ($1 > 100) exit 1 }'"
+    "rg -n 'router.chat' packages/agent/src/pipeline/arbitration/dispatch.ts && exit 1 || true",
+    "rg -n 'RoomParticipant' packages/agent/src/pipeline/arbitration/dispatch.ts",
+    "wc -l packages/agent/src/pipeline/arbitration/dispatch.ts | awk '{ if ($1 > 150) exit 1 }'",
+    "wc -l packages/agent/src/pipeline/arbitration/index.ts | awk '{ if ($1 > 100) exit 1 }'"
   ],
   "diff_budget_loc": 220,
   "file_count_max": 3,
@@ -186,18 +186,18 @@ independently). Total ≤ 6 PRs. Single packet ≤ 300 LOC, ≤ 4 files.
     "Do not couple persistence to the A2A flag — local rooms also produce transcripts."
   ],
   "allowed_write_paths": [
-    "packages/core/packages/core/src/db/schema.ts",
+    "packages/core/src/db/schema.ts",
     "packages/core/src/db/tables/arbitration-transcripts.ts",
     "packages/core/src/db/tables/index.ts",
     "packages/core/src/repositories/arbitration-transcripts.repo.ts",
-    "packages/agent/packages/agent/src/pipeline/arbitration/index.ts",
+    "packages/agent/src/pipeline/arbitration/index.ts",
     "scripts/audit-db.ts"
   ],
   "read_context": [
-    "packages/core/packages/core/src/db/schema.ts",
-    "packages/core/packages/core/src/db/tables/chats.ts",
+    "packages/core/src/db/schema.ts",
+    "packages/core/src/db/tables/chats.ts",
     "packages/core/src/repositories/chat.repository.ts",
-    "packages/agent/packages/agent/src/pipeline/arbitration/index.ts",
+    "packages/agent/src/pipeline/arbitration/index.ts",
     "docs/tasks/refactor/39-prc1-agent-tasks-table.md",
     "docs/tasks/refactor/40-prc2-pool-engine.md",
     "docs/specs/subbrain-main.md:425-442"
@@ -209,8 +209,8 @@ independently). Total ≤ 6 PRs. Single packet ≤ 300 LOC, ≤ 4 files.
     "bun run scripts/check-deep-imports.ts",
     "bun test tests/arbitration.test.ts tests/arbitration-abort.test.ts",
     "bun run scripts/audit-db.ts | rg -i 'arbitration_transcripts|transcripts' || true",
-    "rg -n 'CREATE TABLE.*arbitration_transcripts' packages/core/packages/core/src/db/schema.ts || rg -n 'artifact_payload' packages/core/packages/core/src/db/schema.ts",
-    "rg -n 'db.transaction\\(' packages/agent/packages/agent/src/pipeline/arbitration/index.ts || rg -n 'insertTranscript' packages/core/src/repositories/arbitration-transcripts.repo.ts"
+    "rg -n 'CREATE TABLE.*arbitration_transcripts' packages/core/src/db/schema.ts || rg -n 'artifact_payload' packages/core/src/db/schema.ts",
+    "rg -n 'db.transaction\\(' packages/agent/src/pipeline/arbitration/index.ts || rg -n 'insertTranscript' packages/core/src/repositories/arbitration-transcripts.repo.ts"
   ],
   "diff_budget_loc": 260,
   "file_count_max": 4,
@@ -235,7 +235,7 @@ independently). Total ≤ 6 PRs. Single packet ≤ 300 LOC, ≤ 4 files.
 ```json
 {
   "task_id": "P6-4",
-  "goal": "Implement RemoteParticipant in packages/agent/src/pipeline/arbitration/a2a/remote-participant.ts that calls a remote agent over <A2A_TRANSPORT> using packages/core/src/lib/http-client.ts; gate participant construction in packages/agent/packages/agent/src/pipeline/arbitration/index.ts on A2A_ENABLED env flag (default false); load remote participant configs from A2A_PARTICIPANTS env (JSON array of {id,url,capabilities}) at bootstrap.",
+  "goal": "Implement RemoteParticipant in packages/agent/src/pipeline/arbitration/a2a/remote-participant.ts that calls a remote agent over <A2A_TRANSPORT> using packages/core/src/lib/http-client.ts; gate participant construction in packages/agent/src/pipeline/arbitration/index.ts on A2A_ENABLED env flag (default false); load remote participant configs from A2A_PARTICIPANTS env (JSON array of {id,url,capabilities}) at bootstrap.",
   "non_goals": [
     "Do not enable A2A by default — A2A_ENABLED defaults to false and the env must be read exactly once at bootstrap.",
     "Do not introduce mTLS/OAuth — auth is a single shared-secret bearer header `Authorization: Bearer ${A2A_SHARED_SECRET}`.",
@@ -246,14 +246,14 @@ independently). Total ≤ 6 PRs. Single packet ≤ 300 LOC, ≤ 4 files.
   "allowed_write_paths": [
     "packages/agent/src/pipeline/arbitration/a2a/remote-participant.ts",
     "packages/agent/src/pipeline/arbitration/a2a/transport.ts",
-    "packages/agent/packages/agent/src/pipeline/arbitration/index.ts",
-    "packages/server/packages/server/src/app/bootstrap.ts"
+    "packages/agent/src/pipeline/arbitration/index.ts",
+    "packages/server/src/app/bootstrap.ts"
   ],
   "read_context": [
     "packages/agent/src/pipeline/arbitration/participants.ts",
-    "packages/agent/packages/agent/src/pipeline/arbitration/index.ts",
+    "packages/agent/src/pipeline/arbitration/index.ts",
     "packages/core/src/lib/http-client.ts",
-    "packages/server/packages/server/src/app/bootstrap.ts",
+    "packages/server/src/app/bootstrap.ts",
     "docs/specs/subbrain-main.md:505-518"
   ],
   "risk_tier": "public-api",
@@ -263,7 +263,7 @@ independently). Total ≤ 6 PRs. Single packet ≤ 300 LOC, ≤ 4 files.
     "bun run scripts/check-deep-imports.ts",
     "bun test tests/arbitration.test.ts tests/arbitration-abort.test.ts",
     "env A2A_ENABLED=false bun test tests/arbitration.test.ts",
-    "rg -n 'A2A_ENABLED' packages/agent/packages/agent/src/pipeline/arbitration/index.ts packages/server/packages/server/src/app/bootstrap.ts",
+    "rg -n 'A2A_ENABLED' packages/agent/src/pipeline/arbitration/index.ts packages/server/src/app/bootstrap.ts",
     "rg -n 'fetchJson|fetchStream' packages/agent/src/pipeline/arbitration/a2a/transport.ts",
     "rg -n 'fetch\\(|new Request\\(' packages/agent/src/pipeline/arbitration/a2a/ && exit 1 || true",
     "wc -l packages/agent/src/pipeline/arbitration/a2a/remote-participant.ts packages/agent/src/pipeline/arbitration/a2a/transport.ts | awk '{ if ($1 > 150) exit 1 }'"
@@ -281,7 +281,7 @@ independently). Total ≤ 6 PRs. Single packet ≤ 300 LOC, ≤ 4 files.
   "glossary": {
     "<A2A_TRANSPORT>": "TBD — placeholder for chosen wire (Google A2A JSON-RPC+SSE | HTTP+SSE | gRPC). Must be fixed in spec before P6-4 starts.",
     "RemoteParticipant": "RoomParticipant impl with kind='remote'; ask() POSTs ParticipantInput over <A2A_TRANSPORT> and maps the response to ParticipantOutput.",
-    "A2A_ENABLED": "Env flag, parsed at bootstrap in packages/server/packages/server/src/app/bootstrap.ts; default false. Read once, not per request.",
+    "A2A_ENABLED": "Env flag, parsed at bootstrap in packages/server/src/app/bootstrap.ts; default false. Read once, not per request.",
     "A2A_PARTICIPANTS": "JSON array env var, e.g. `[{\"id\":\"alice\",\"url\":\"https://...\",\"capabilities\":[\"code\"]}]`."
   }
 }
@@ -308,7 +308,7 @@ independently). Total ≤ 6 PRs. Single packet ≤ 300 LOC, ≤ 4 files.
   "read_context": [
     "tests/arbitration.test.ts",
     "tests/arbitration-abort.test.ts",
-    "packages/agent/packages/agent/src/pipeline/arbitration/index.ts",
+    "packages/agent/src/pipeline/arbitration/index.ts",
     "packages/agent/src/pipeline/arbitration/a2a/remote-participant.ts",
     "packages/agent/src/pipeline/arbitration/a2a/transport.ts"
   ],

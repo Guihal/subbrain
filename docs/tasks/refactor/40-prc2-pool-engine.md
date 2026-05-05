@@ -21,16 +21,16 @@ Single-runner pool engine. Заменяет старый `free-agent.ts`. Каж
 
 **Allowed actions:**
 - Создать новые файлы из §Файлы → Новые модули (6 файлов).
-- Edit `packages/server/packages/server/packages/server/src/app/bootstrap.ts`, `packages/agent/packages/agent/packages/agent/src/scheduler/free-agent.ts`, `.env.example` — только в местах указанных в §Изменения.
-- Edit `packages/core/packages/core/packages/core/src/db/index.ts` ТОЛЬКО если нужно expose `agentTasksRepo` в `MemoryDB` для pool — но это сделано в PR-C1, проверь сначала через grep `agentTasksRepo` в `packages/core/packages/core/packages/core/src/db/index.ts`. Если уже есть — НЕ трогать файл.
-- Edit `packages/agent/packages/agent/packages/agent/src/mcp/registry/index.ts` или аналог — wire-up `pool.tools.ts` registry. Минимальный edit.
+- Edit `packages/server/src/app/bootstrap.ts`, `packages/agent/src/scheduler/free-agent.ts`, `.env.example` — только в местах указанных в §Изменения.
+- Edit `packages/core/src/db/index.ts` ТОЛЬКО если нужно expose `agentTasksRepo` в `MemoryDB` для pool — но это сделано в PR-C1, проверь сначала через grep `agentTasksRepo` в `packages/core/src/db/index.ts`. Если уже есть — НЕ трогать файл.
+- Edit `packages/agent/src/mcp/registry/index.ts` или аналог — wire-up `pool.tools.ts` registry. Минимальный edit.
 - `bunx tsc --noEmit`, `bun test`, `bun run scripts/check-file-size.ts`.
 - `git commit -m "feat(pool): single-runner agent pool + done_with_artifact (PR-C2)"`.
 
 **Hard NO-GO:**
 - НЕ создавать `clear.ts`, `check-tg.ts`, `research.ts`, `find-new-task.ts` runners — это PR-C3.
 - НЕ менять `maxConcurrent` дефолт >1 — это PR-C4.
-- НЕ удалять `packages/agent/packages/agent/packages/agent/src/scheduler/free-agent.ts` — только bridge mode (см. §Изменения).
+- НЕ удалять `packages/agent/src/scheduler/free-agent.ts` — только bridge mode (см. §Изменения).
 - НЕ менять `AgentLoop.run` сигнатуру (`onUsage` callback должен УЖЕ существовать; если его нет — STOP, это отдельный pre-req PR).
 - НЕ менять `agentMode: "scheduled"` semantics (`scheduled-blacklist.ts` / `telegram-spam-gate.ts`).
 - НЕ переименовывать существующий `done` MCP tool. `done_with_artifact` — новый, рядом.
@@ -43,14 +43,14 @@ Single-runner pool engine. Заменяет старый `free-agent.ts`. Каж
 **Diff boundary:** ровно эти файлы (новые + modified):
 ```
 .env.example
-packages/server/packages/server/src/app/bootstrap.ts
-packages/agent/packages/agent/src/scheduler/free-agent.ts
+packages/server/src/app/bootstrap.ts
+packages/agent/src/scheduler/free-agent.ts
 packages/agent/src/scheduler/agent-pool/index.ts
 packages/agent/src/scheduler/agent-pool/pool/index.ts
 packages/agent/src/scheduler/agent-pool/runners/free.ts
 packages/agent/src/scheduler/agent-pool/types.ts
 packages/agent/src/mcp/registry/pool.tools.ts
-packages/agent/packages/agent/src/mcp/registry/index.ts                 # минимальный wire-up
+packages/agent/src/mcp/registry/index.ts                 # минимальный wire-up
 packages/agent/src/mcp/tools/pool/done-with-artifact.ts
 tests/agent-pool-engine.test.ts
 tests/done-with-artifact.test.ts
@@ -73,8 +73,8 @@ tests/agent-pool-runner-free.test.ts
 
 ### Изменения
 
-- [packages/server/packages/server/src/app/bootstrap.ts](../../../packages/server/packages/server/src/app/bootstrap.ts) — install pool scheduler если `AGENT_POOL_ENABLED=true`. Перед существующим free-agent блоком (free-agent legacy bridge ниже).
-- [packages/agent/packages/agent/src/scheduler/free-agent.ts](../../../packages/agent/packages/agent/src/scheduler/free-agent.ts) — **legacy bridge mode** (НЕ удалять полностью):
+- [packages/server/src/app/bootstrap.ts](../../../packages/server/src/app/bootstrap.ts) — install pool scheduler если `AGENT_POOL_ENABLED=true`. Перед существующим free-agent блоком (free-agent legacy bridge ниже).
+- [packages/agent/src/scheduler/free-agent.ts](../../../packages/agent/src/scheduler/free-agent.ts) — **legacy bridge mode** (НЕ удалять полностью):
   - Если `AGENT_POOL_ENABLED=true` И `FREE_AGENT=true` — на startup один раз `agentTasksRepo.enqueue({type:"free", prompt:<legacy prompt>, createdBy:"legacy-free-agent"})`. Лог `logger.warn("free-agent.legacy", "deprecated, enqueued one task; disable FREE_AGENT env")`.
   - Если `AGENT_POOL_ENABLED=false` — старое поведение без изменений (back-compat).
 - [.env.example](../../../.env.example) — новый блок `# === agent-pool (spec 2026-05-03) ===`:
@@ -193,7 +193,7 @@ const result = await agentLoop.run({
 - `web_*`, `memory_*` (с PR-A validators), `embed_*`, `rag_*`, `consult_chaos`, `consult_specialists`, `create_code_tool`/`edit_code_tool` (validators из task 15), `done_with_artifact`.
 - Forbidden: `tg_send_message` (D4 идёт через TG-confirm, не direct send).
 
-Существующие mechanism: [packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/code-tools/scheduled-blacklist.ts](../../../packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/code-tools/scheduled-blacklist.ts) + [packages/agent/packages/agent/src/pipeline/agent-loop/code-tools/telegram-spam-gate.ts](../../../packages/agent/packages/agent/src/pipeline/agent-loop/code-tools/telegram-spam-gate.ts) уже включены при `agentMode==="scheduled"`. Не менять.
+Существующие mechanism: [packages/agent/src/pipeline/agent-loop/code-tools/scheduled-blacklist.ts](../../../packages/agent/src/pipeline/agent-loop/code-tools/scheduled-blacklist.ts) + [packages/agent/src/pipeline/agent-loop/code-tools/telegram-spam-gate.ts](../../../packages/agent/src/pipeline/agent-loop/code-tools/telegram-spam-gate.ts) уже включены при `agentMode==="scheduled"`. Не менять.
 
 ## Тесты
 
@@ -217,7 +217,7 @@ const result = await agentLoop.run({
 
 | # | Симптом | Mitigation | Recovery |
 |---|---------|-----------|----------|
-| 1 | `AgentLoop.run` не имеет `onUsage` callback или `signal` параметра | Проверить ДО старта: `grep -n 'onUsage\|signal' packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/types.ts`. Если нет — STOP, это pre-req PR. | `FAIL: pre-req-missing: AgentLoop.run lacks onUsage/signal — needs separate PR before C2`. |
+| 1 | `AgentLoop.run` не имеет `onUsage` callback или `signal` параметра | Проверить ДО старта: `grep -n 'onUsage\|signal' packages/agent/src/pipeline/agent-loop/types.ts`. Если нет — STOP, это pre-req PR. | `FAIL: pre-req-missing: AgentLoop.run lacks onUsage/signal — needs separate PR before C2`. |
 | 2 | `done_with_artifact` collides с existing `done` tool — agent loop ловит обе как terminate | В `agent-loop/tool-dispatch.ts` (или эквивалент): treat both as terminator, но `done_with_artifact` приоритет если оба вызваны. Spec: новый tool — addition, не replacement. | Если test показывает что `done` ломается — fix dispatch logic в isolated commit, ВНУТРИ этой задачи (пограничный edit, осторожно). |
 | 3 | Token budget abort через `AbortController` оставляет partial DB state (chat row written, tool result orphan) | `AgentLoop.run` уже использует `signal` для abort cleanly — pipeline does not commit partial chat. Если test показывает orphan — bug в loop, не в pool. | Если orphan — task → failed с reason="token_budget_exceeded; orphan rows: <N>", parent escalates. |
 | 4 | Pool tick fires до того как DB migration 17 применилась (boot race) | `installAgentPoolScheduler` вызывать ПОСЛЕ `MemoryDB` migrate (т.е. после `new MemoryDB(...)`). В `bootstrap.ts` сначала db, потом scheduler. | `db.agentTasksRepo` будет undefined → tick crash → log error. Recovery: рестарт. Не auto-retry, fix order. |
@@ -247,9 +247,9 @@ wc -l packages/agent/src/mcp/registry/pool.tools.ts                             
 wc -l packages/agent/src/mcp/tools/pool/done-with-artifact.ts                                 # expect: ≤80
 
 # Wire-up evidence
-grep -n 'AGENT_POOL_ENABLED' packages/server/packages/server/src/app/bootstrap.ts                              # expect: ≥1 match
-grep -n 'installAgentPoolScheduler' packages/server/packages/server/src/app/bootstrap.ts                       # expect: ≥1 match
-grep -n 'legacy-free-agent' packages/agent/packages/agent/src/scheduler/free-agent.ts                        # expect: ≥1 match
+grep -n 'AGENT_POOL_ENABLED' packages/server/src/app/bootstrap.ts                              # expect: ≥1 match
+grep -n 'installAgentPoolScheduler' packages/server/src/app/bootstrap.ts                       # expect: ≥1 match
+grep -n 'legacy-free-agent' packages/agent/src/scheduler/free-agent.ts                        # expect: ≥1 match
 grep -nE 'AGENT_POOL_MAX_TOKENS' .env.example                                  # expect: ≥2 matches (FREE + per-task)
 grep -n 'done_with_artifact' packages/agent/src/mcp/registry/pool.tools.ts                    # expect: ≥1 match
 
@@ -268,7 +268,7 @@ grep -nE 'logger\.(info|warn|error|debug)\([^,)]+\)' packages/agent/src/schedule
 grep -rnE 'agent-pool/runners/(clear|check-tg|research|find-new-task)' src/   # expect: 0 (PR-C3)
 ```
 
-Manual smoke (опционально, после `bun run packages/server/packages/server/src/index.ts` локально с `AGENT_POOL_ENABLED=true` + test DB):
+Manual smoke (опционально, после `bun run packages/server/src/index.ts` локально с `AGENT_POOL_ENABLED=true` + test DB):
 1. `curl -X POST localhost:4000/v1/admin/agent-pool/enqueue -d '{"type":"free","prompt":"navigate example.com and capture title","createdBy":"smoke"}'` (если admin route есть; иначе через `bun -e` direct repo call).
 2. Ждать tick (60s).
 3. `sqlite3 data/test.db 'SELECT id, status, artifact, reason FROM agent_tasks ORDER BY id DESC LIMIT 1'` → expect `status='done'` + non-null artifact JSON.

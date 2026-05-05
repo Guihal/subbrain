@@ -6,13 +6,13 @@
 
 ## Цель
 
-1. **MicroPR**: уменьшить `packages/core/packages/core/src/lib/logger.ts` 263 → ≤200 (canonical cap = 200, transitional cap = 263). Без split — squeeze multi-line statements + redundant patterns.
+1. **MicroPR**: уменьшить `packages/core/src/lib/logger.ts` 263 → ≤200 (canonical cap = 200, transitional cap = 263). Без split — squeeze multi-line statements + redundant patterns.
 2. **P-C2**: закрыть FILE-SIZE-1 в audit (✅).
 
 ## Файлы
 
 **MicroPR (logger.ts squeeze)**:
-- Изменить: `packages/core/packages/core/src/lib/logger.ts` — uglify multi-line, объединить compact patterns. Целевой LOC ≤200.
+- Изменить: `packages/core/src/lib/logger.ts` — uglify multi-line, объединить compact patterns. Целевой LOC ≤200.
 - Изменить: `scripts/check-file-size.ts` — удалить TRANSITIONAL_WHITELIST row `"packages/core/src/lib/logger.ts": 263` (canonical 200 wins).
 
 **P-C2 закрытие**:
@@ -25,7 +25,7 @@
 
 ### MicroPR
 
-1. Прочитать `packages/core/packages/core/src/lib/logger.ts` целиком.
+1. Прочитать `packages/core/src/lib/logger.ts` целиком.
 2. Сжать без потери функциональности:
    - Multi-line `if (x) { return y; }` → `if (x) return y;`.
    - Multi-line ternary в console.log → 1-line или helper.
