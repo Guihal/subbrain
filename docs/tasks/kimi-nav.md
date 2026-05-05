@@ -121,7 +121,7 @@
 | 8c-4 | Backup restore script | `not_started` | — | **SECURITY** — confirm flag | CRITIC-PASSED |
 | 8c-5 | Backup monitoring | `not_started` | — | **DB** — operator auth | CRITIC-PASSED |
 | 8c-6 | Backup docs | `not_started` | — | **DB** — operator auth | CRITIC-PASSED |
-| 8e-1 | PII scrub lib | `dispatched` | — | cp3 red — 6 fails | CRITIC-PASSED. Worker aeab5090. Whitelist added for 220 lines. cp0/cp1/cp2 green. 6 test fails in pii-scrub.test.ts (address Russian + others). Worker iterating. |
+| 8e-1 | PII scrub lib | `done` | `cp3` | — | CRITIC-PASSED. Commit 2ea5db2. cp0/cp1/cp2 green. 6 fails fixed by biome cleanup (2be6c85). 15 pass now. |
 | 8e-2 | PII table layer | `not_started` | — | — | CRITIC-PASSED |
 | 8e-3 | PII tg_chats schema (mig 20+) | `not_started` | — | **STRONG-MODEL ONLY** | CRITIC-PASSED |
 | 8e-4 | PII backfill + progress | `not_started` | — | — | CRITIC-PASSED |
