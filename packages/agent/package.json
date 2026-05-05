@@ -44,6 +44,8 @@
     "./telegram/bot/notify": "./src/telegram/bot/notify.ts",
     "./telegram/userbot": "./src/telegram/userbot/index.ts",
     "./rag": "./src/rag/index.ts",
+    "./plugins-internal/scheduled-blacklist": "./plugins-internal/scheduled-blacklist/index.ts",
+    "./plugins-internal/freelance-scout": "./plugins-internal/freelance-scout/index.ts",
     "./lib/personas": "./src/lib/personas.ts",
     "./baml_client": "./src/baml_client/index.ts",
     "./lib/structured-output": "./src/lib/structured-output/index.ts"
