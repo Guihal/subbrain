@@ -1,5 +1,5 @@
-import { describe, test, expect } from "bun:test";
-import { redactSecrets, HttpError } from "../../src/lib/errors";
+import { describe, expect, test } from "bun:test";
+import { HttpError, redactSecrets } from "../../src/lib/errors";
 
 describe("redactSecrets", () => {
   test("strips Bearer + ghu_ + sk- + nvapi-", () => {
@@ -13,11 +13,7 @@ describe("redactSecrets", () => {
   });
 
   test("HttpError: BOTH .message AND .body redacted", () => {
-    const e = new HttpError(
-      401,
-      '{"err":"Bearer ghu_aaaaaaaaaaaaaaaaaaaa"}',
-      { url: "x" },
-    );
+    const e = new HttpError(401, '{"err":"Bearer ghu_aaaaaaaaaaaaaaaaaaaa"}', { url: "x" });
     expect(e.message).not.toMatch(/ghu_/);
     expect(e.body).not.toMatch(/ghu_/);
   });

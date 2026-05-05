@@ -1,7 +1,7 @@
 import type { ModelRouter } from "../../../lib/model-router";
 import type { CompressedEntry } from "../types";
 import { parseJson } from "../types";
-import { NIGHT_MODEL, nightLog as log } from "./shared";
+import { nightLog as log, NIGHT_MODEL } from "./shared";
 
 export async function compress(
   text: string,

@@ -4,10 +4,10 @@
  * underlying `router.chat` call can bail out instead of continuing to the
  * natural end.
  */
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
+import type { ModelRouter } from "../src/lib/model-router";
 import { ArbitrationRoom } from "../src/pipeline/arbitration";
 import type { ChatResponse, Message } from "../src/providers/types";
-import type { ModelRouter } from "../src/lib/model-router";
 
 function makeResponse(content: string): ChatResponse {
   return {
@@ -87,9 +87,7 @@ describe("ArbitrationRoom abort propagation", () => {
     expect(elapsed).toBeLessThan(1500);
 
     // coder came back, others timed out (empty).
-    const responses = Object.fromEntries(
-      result.agentResponses.map((r) => [r.role, r]),
-    );
+    const responses = Object.fromEntries(result.agentResponses.map((r) => [r.role, r]));
     expect(responses.coder?.content).toContain("Coder quick answer");
     expect(responses.critic?.content).toBe("");
     expect(responses.generalist?.content).toBe("");

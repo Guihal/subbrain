@@ -13,9 +13,7 @@ export function createTaskFilters(deps: TaskFiltersDeps) {
     const q = filters.value.q.trim().toLowerCase();
     if (!q) return items.value;
     return items.value.filter(
-      (t) =>
-        t.title.toLowerCase().includes(q) ||
-        t.description.toLowerCase().includes(q),
+      (t) => t.title.toLowerCase().includes(q) || t.description.toLowerCase().includes(q),
     );
   });
 
@@ -31,10 +29,7 @@ export function createTaskFilters(deps: TaskFiltersDeps) {
    * `q` preserves page (client-side filter — typing shouldn't jump
    * pages); everything else resets page=1.
    */
-  function setFilter<K extends keyof TaskFilters>(
-    key: K,
-    val: TaskFilters[K],
-  ): void {
+  function setFilter<K extends keyof TaskFilters>(key: K, val: TaskFilters[K]): void {
     const next: TaskFilters = { ...filters.value, [key]: val };
     if (key !== "q" && key !== "page") next.page = 1;
     filters.value = next;

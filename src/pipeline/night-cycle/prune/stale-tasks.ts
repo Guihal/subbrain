@@ -33,10 +33,7 @@ export function pruneStaleTasks(memory: MemoryDB): StaleTasksResult {
   const inProgressDays = envDays("NIGHT_CYCLE_STALE_INPROGRESS_DAYS", 3);
   const result: StaleTasksResult = {
     openDeleted: memory.deleteStaleTasksByStatus("open", openDays * 86400),
-    inProgressDeleted: memory.deleteStaleTasksByStatus(
-      "in_progress",
-      inProgressDays * 86400,
-    ),
+    inProgressDeleted: memory.deleteStaleTasksByStatus("in_progress", inProgressDays * 86400),
   };
   if (result.openDeleted || result.inProgressDeleted) {
     log.info(

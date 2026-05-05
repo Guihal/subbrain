@@ -3,7 +3,7 @@
  * authoring section behind `interactive` (default) — scheduled mode renders
  * only a short disable notice and never mentions `create_code_tool`.
  */
-import { describe, test, expect, afterAll } from "bun:test";
+import { afterAll, describe, expect, test } from "bun:test";
 import { unlinkSync } from "node:fs";
 import { MemoryDB } from "../src/db";
 import { buildAgentSystemPrompt } from "../src/pipeline/agent-loop/system-prompt";

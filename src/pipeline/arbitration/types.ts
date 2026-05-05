@@ -29,8 +29,7 @@ export interface ArbitrationResult {
   category: TaskCategory;
 }
 
-export const SPECIALIST_TIMEOUT =
-  Number(process.env.SPECIALIST_TIMEOUT_MS) || 30_000;
+export const SPECIALIST_TIMEOUT = Number(process.env.SPECIALIST_TIMEOUT_MS) || 30_000;
 
 // Synthesis runs after specialists; without its own ceiling it inherits the
 // outer consult_* budget, and outer-abort cascades kill near-finished calls.

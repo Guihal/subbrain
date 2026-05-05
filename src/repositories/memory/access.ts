@@ -3,9 +3,11 @@ import type { Database } from "bun:sqlite";
 type Layer = "shared" | "context" | "archive";
 
 function tableFor(layer: Layer): string {
-  return layer === "shared" ? "shared_memory"
-    : layer === "context" ? "layer2_context"
-    : "layer3_archive";
+  return layer === "shared"
+    ? "shared_memory"
+    : layer === "context"
+      ? "layer2_context"
+      : "layer3_archive";
 }
 
 /**
@@ -57,8 +59,9 @@ export function bumpAccess(db: Database, layer: Layer, ids: string[]): void {
  */
 export function decaySalience(db: Database, layer: Layer, now: number): number {
   const table = tableFor(layer);
-  const result = db.query(
-    `UPDATE ${table}
+  const result = db
+    .query(
+      `UPDATE ${table}
         SET salience = salience * POW(
               0.98,
               MAX(
@@ -69,6 +72,7 @@ export function decaySalience(db: Database, layer: Layer, now: number): number {
             last_decayed_at = ?
       WHERE COALESCE(last_decayed_at, last_accessed_at) IS NOT NULL
         AND salience > 0.001`,
-  ).run(now, now);
+    )
+    .run(now, now);
   return result.changes;
 }

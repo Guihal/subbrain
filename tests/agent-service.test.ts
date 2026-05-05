@@ -5,10 +5,10 @@
  * createStream, applies the documented defaults (model=teamlead,
  * priority=low), and forwards optional fields. Pure stubs — no real loop.
  */
-import { describe, test, expect } from "bun:test";
-import { AgentService } from "../src/services/agent.service";
+import { describe, expect, test } from "bun:test";
 import type { AgentLoop, AgentLoopRequest, AgentLoopResult } from "../src/pipeline/agent-loop";
 import type { ChatRepository } from "../src/repositories";
+import { AgentService } from "../src/services/agent.service";
 
 function makeMockLoop() {
   const runCalls: AgentLoopRequest[] = [];
@@ -28,7 +28,9 @@ function makeMockLoop() {
     createStream: (req: AgentLoopRequest): ReadableStream<Uint8Array> => {
       streamCalls.push(req);
       return new ReadableStream<Uint8Array>({
-        start(c) { c.close(); },
+        start(c) {
+          c.close();
+        },
       });
     },
     setMetrics: () => {},

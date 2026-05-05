@@ -21,9 +21,9 @@ export function listByStatus(
   const items = db
     .query(`SELECT * FROM ${table} WHERE status = ? ORDER BY updated_at DESC LIMIT ? OFFSET ?`)
     .all(status, limit, offset) as (SharedRow | ContextRow)[];
-  const row = db
-    .query(`SELECT COUNT(*) AS c FROM ${table} WHERE status = ?`)
-    .get(status) as { c: number };
+  const row = db.query(`SELECT COUNT(*) AS c FROM ${table} WHERE status = ?`).get(status) as {
+    c: number;
+  };
   return { items, total: row.c };
 }
 

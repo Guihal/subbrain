@@ -2,9 +2,10 @@
  * Code-tool management (agent-only).
  * CRUD + test для пользовательских code-тулов, исполняемых в sandbox.
  */
-import { t, type ToolRegistry } from "./tool-registry";
-import { executeSandboxed } from "../../pipeline/agent-loop/code-tools/sandbox";
+
 import { applyCodeToolGuards } from "../../pipeline/agent-loop/code-tools/code-tool-validators";
+import { executeSandboxed } from "../../pipeline/agent-loop/code-tools/sandbox";
+import { type ToolRegistry, t } from "./tool-registry";
 
 export function registerCodeMgmtTools(registry: ToolRegistry): void {
   registry.register({
@@ -18,8 +19,7 @@ export function registerCodeMgmtTools(registry: ToolRegistry): void {
       }),
       description: t.String(),
       code: t.String({
-        description:
-          "TypeScript: export default async (input: string) => string|object",
+        description: "TypeScript: export default async (input: string) => string|object",
       }),
     }),
     handler: (args, ctx) => {
@@ -80,10 +80,7 @@ export function registerCodeMgmtTools(registry: ToolRegistry): void {
         return { success: false, error: "Code tools not available" };
       }
       const deleted = ctx.codeTools.delete(args.name);
-      ctx.log.info(
-        "agent-loop",
-        `Code tool deleted: ${args.name} (${deleted})`,
-      );
+      ctx.log.info("agent-loop", `Code tool deleted: ${args.name} (${deleted})`);
       return { success: deleted };
     },
   });
@@ -114,8 +111,7 @@ export function registerCodeMgmtTools(registry: ToolRegistry): void {
 
   registry.register({
     name: "list_code_tools",
-    description:
-      "List all code tools with their status, run count, and error count.",
+    description: "List all code tools with their status, run count, and error count.",
     scope: "agent-only",
     input: t.Object({
       include_disabled: t.Optional(t.Boolean()),

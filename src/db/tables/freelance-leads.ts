@@ -1,9 +1,5 @@
-import { Database } from "bun:sqlite";
-import type {
-  FreelanceLeadRow,
-  FreelanceSource,
-  FreelanceStatus,
-} from "../types";
+import type { Database } from "bun:sqlite";
+import type { FreelanceLeadRow, FreelanceSource, FreelanceStatus } from "../types";
 import { updateRow } from "./update-row";
 
 const FREELANCE_LEADS_UPDATABLE = new Set<string>(["status"]);
@@ -25,15 +21,7 @@ export class FreelanceLeadsTable {
         `INSERT INTO freelance_leads (id, url, source, title, budget, score, reason)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
       )
-      .run(
-        lead.id,
-        lead.url,
-        lead.source,
-        lead.title,
-        lead.budget,
-        lead.score,
-        lead.reason,
-      );
+      .run(lead.id, lead.url, lead.source, lead.title, lead.budget, lead.score, lead.reason);
   }
 
   getById(id: string): FreelanceLeadRow | null {
@@ -49,11 +37,10 @@ export class FreelanceLeadsTable {
     return row !== null;
   }
 
-  list(opts: {
-    status?: FreelanceStatus;
-    limit: number;
-    offset: number;
-  }): { items: FreelanceLeadRow[]; total: number } {
+  list(opts: { status?: FreelanceStatus; limit: number; offset: number }): {
+    items: FreelanceLeadRow[];
+    total: number;
+  } {
     if (opts.status) {
       const items = this.db
         .query(
@@ -68,9 +55,7 @@ export class FreelanceLeadsTable {
       return { items, total };
     }
     const items = this.db
-      .query(
-        "SELECT * FROM freelance_leads ORDER BY created_at DESC LIMIT ? OFFSET ?",
-      )
+      .query("SELECT * FROM freelance_leads ORDER BY created_at DESC LIMIT ? OFFSET ?")
       .all(opts.limit, opts.offset) as FreelanceLeadRow[];
     const total = (
       this.db.query("SELECT COUNT(*) AS c FROM freelance_leads").get() as {
@@ -88,19 +73,15 @@ export class FreelanceLeadsTable {
 
   countLeadsSince(ts: number): number {
     return (
-      this.db
-        .query(
-          "SELECT COUNT(*) AS c FROM freelance_leads WHERE created_at >= ?",
-        )
-        .get(ts) as { c: number }
+      this.db.query("SELECT COUNT(*) AS c FROM freelance_leads WHERE created_at >= ?").get(ts) as {
+        c: number;
+      }
     ).c;
   }
 
   lastCreatedAt(): number | null {
     const row = this.db
-      .query(
-        "SELECT created_at AS ts FROM freelance_leads ORDER BY created_at DESC LIMIT 1",
-      )
+      .query("SELECT created_at AS ts FROM freelance_leads ORDER BY created_at DESC LIMIT 1")
       .get() as { ts: number } | null;
     return row?.ts ?? null;
   }

@@ -1,9 +1,9 @@
 /** M-04.1 night-cycle embed-log + RAG vec unblock for layer="log". §Тесты. */
-import { describe, test, expect, beforeEach, afterAll } from "bun:test";
-import { existsSync, unlinkSync } from "fs";
+import { afterAll, beforeEach, describe, expect, test } from "bun:test";
+import { existsSync, unlinkSync } from "node:fs";
 import { MemoryDB } from "../src/db";
-import { RAGPipeline } from "../src/rag";
 import { runEmbedLog } from "../src/pipeline/night-cycle/steps/embed-log";
+import { RAGPipeline } from "../src/rag";
 
 const TEST_DB = "data/test-mem4.1-embed-log.db";
 const ENV_KEYS = ["LOG_EMBED_ENABLED", "LOG_EMBED_CAP", "LOG_EMBED_BATCH"] as const;
@@ -15,8 +15,7 @@ function cleanup(): void {
   }
 }
 type EnvSnap = Record<string, string | undefined>;
-const snapshotEnv = (): EnvSnap =>
-  Object.fromEntries(ENV_KEYS.map((k) => [k, process.env[k]]));
+const snapshotEnv = (): EnvSnap => Object.fromEntries(ENV_KEYS.map((k) => [k, process.env[k]]));
 function restoreEnv(snap: EnvSnap): void {
   for (const k of ENV_KEYS) {
     if (snap[k] === undefined) delete process.env[k];
@@ -26,16 +25,20 @@ function restoreEnv(snap: EnvSnap): void {
 
 // Unit-norm 2048-d vector — two close ones → high cosine.
 function unit(a: number, b: number): Float32Array {
-  const v = new Float32Array(2048); v[0] = a; v[1] = b;
-  let n = 0; for (const x of v) n += x * x; n = Math.sqrt(n);
+  const v = new Float32Array(2048);
+  v[0] = a;
+  v[1] = b;
+  let n = 0;
+  for (const x of v) n += x * x;
+  n = Math.sqrt(n);
   for (let i = 0; i < v.length; i++) v[i] /= n;
   return v;
 }
 const V_NEAR = unit(1, 0.05);
 
-function mkRouter(opts: {
-  embedImpl?: (input: string[]) => Promise<number[][]> | number[][];
-} = {}): never {
+function mkRouter(
+  opts: { embedImpl?: (input: string[]) => Promise<number[][]> | number[][] } = {},
+): never {
   const impl = opts.embedImpl ?? ((input: string[]) => input.map(() => Array.from(V_NEAR)));
   return {
     raw: {
@@ -150,7 +153,7 @@ describe("M-04.1 night-cycle embed-log step", () => {
     restoreEnv(envSnap);
   });
 
-  test("RAG layers:[\"log\"] vec branch contributes hits (FTS-empty case)", async () => {
+  test('RAG layers:["log"] vec branch contributes hits (FTS-empty case)', async () => {
     // Content shares no tokens with query → FTS empty; vec branch carries.
     seedLogs(memory, 5, "zzz xyzzy frobnicate");
     const rag = new RAGPipeline(memory, mkRouter());

@@ -60,17 +60,13 @@ for (const file of walk(SRC)) {
     const match = stripped.match(pat);
     if (match) {
       violations++;
-      console.error(
-        `✗ ${relative(ROOT, file)}: found "${match[0]}" — move to lib/model-map.ts`,
-      );
+      console.error(`✗ ${relative(ROOT, file)}: found "${match[0]}" — move to lib/model-map.ts`);
     }
   }
 }
 
 if (violations > 0) {
-  console.error(
-    `\n${violations} model-id violation(s) outside lib/model-map.ts. Guardrail #11.`,
-  );
+  console.error(`\n${violations} model-id violation(s) outside lib/model-map.ts. Guardrail #11.`);
   process.exit(1);
 }
 console.log("✓ all model IDs live in lib/model-map.ts");

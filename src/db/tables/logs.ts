@@ -1,4 +1,4 @@
-import { Database } from "bun:sqlite";
+import type { Database } from "bun:sqlite";
 import type { LogRow } from "../types";
 
 export class LogsTable {
@@ -40,18 +40,14 @@ export class LogsTable {
 
   getLogsSinceTime(sinceUnix: number, limit = 500): LogRow[] {
     return this.db
-      .query(
-        "SELECT * FROM layer4_log WHERE created_at >= ? ORDER BY created_at DESC LIMIT ?",
-      )
+      .query("SELECT * FROM layer4_log WHERE created_at >= ? ORDER BY created_at DESC LIMIT ?")
       .all(sinceUnix, limit) as LogRow[];
   }
 
   listLog(limit = 100, offset = 0, sessionId?: string): LogRow[] {
     if (sessionId) {
       return this.db
-        .query(
-          "SELECT * FROM layer4_log WHERE session_id = ? ORDER BY id DESC LIMIT ? OFFSET ?",
-        )
+        .query("SELECT * FROM layer4_log WHERE session_id = ? ORDER BY id DESC LIMIT ? OFFSET ?")
         .all(sessionId, limit, offset) as LogRow[];
     }
     return this.db

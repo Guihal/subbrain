@@ -1,11 +1,11 @@
-import { reactive, ref, toRefs, watch, type Ref } from "vue";
+import { type Ref, reactive, ref, toRefs, watch } from "vue";
 import type { MemoryRow } from "../useMemory";
+import { badgeColor, fmtTs, rowBadge } from "./format";
 import {
   buildPatch as buildPatchPure,
-  resetFrom as resetFromPure,
   type EditorFields,
+  resetFrom as resetFromPure,
 } from "./patches";
-import { badgeColor, fmtTs, rowBadge } from "./format";
 
 export type {
   AgentPatch,

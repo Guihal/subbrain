@@ -15,12 +15,7 @@ export const CONTEXT_UPDATABLE = new Set([
   "superseded_by",
   "derived_from",
 ]);
-export const ARCHIVE_UPDATABLE = new Set([
-  "title",
-  "content",
-  "tags",
-  "confidence",
-]);
+export const ARCHIVE_UPDATABLE = new Set(["title", "content", "tags", "confidence"]);
 
 // MEM-6: same shape as shared.ts:buildActiveFilter — kept here so each table
 // file owns its own SQL (boundary test forbids services hitting SQL directly,
@@ -33,9 +28,7 @@ export function buildActiveFilter(
   if (opts?.activeOnly) parts.push(`AND ${alias}.status = 'active'`);
   if (opts?.notStale) {
     parts.push(`AND ${alias}.superseded_by IS NULL`);
-    parts.push(
-      `AND (${alias}.expires_at IS NULL OR ${alias}.expires_at > unixepoch())`,
-    );
+    parts.push(`AND (${alias}.expires_at IS NULL OR ${alias}.expires_at > unixepoch())`);
   }
   return parts.length === 0 ? "" : ` ${parts.join(" ")}`;
 }

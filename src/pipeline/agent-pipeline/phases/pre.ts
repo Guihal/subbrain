@@ -9,10 +9,10 @@
 import type { MemoryDB } from "../../../db";
 import type { ModelRouter } from "../../../lib/model-router";
 import type { RAGPipeline, RAGResult } from "../../../rag";
-import type { PreProcessingOutput } from "../types";
 import { buildSystemPrompt } from "../helpers";
-import { loadFocusSeed, buildSeedContext } from "../pre/focus-inject";
 import { buildExecutiveSummary } from "../pre/exec-summary";
+import { buildSeedContext, loadFocusSeed } from "../pre/focus-inject";
+import type { PreProcessingOutput } from "../types";
 
 export interface PreStats {
   ragCount: number;
@@ -39,7 +39,13 @@ export async function runPre(args: {
   agentId?: string | null;
 }): Promise<PreResult> {
   const {
-    memory, router, rag, model, userMessage, firstMessage, onProgress,
+    memory,
+    router,
+    rag,
+    model,
+    userMessage,
+    firstMessage,
+    onProgress,
     agentId = null,
   } = args;
 
@@ -72,10 +78,7 @@ export async function runPre(args: {
   );
 
   // Empty memory → nothing to search, return seed-only context.
-  if (
-    seed.sharedMemory.length === 0 &&
-    Object.keys(seed.focusEntries).length === 0
-  ) {
+  if (seed.sharedMemory.length === 0 && Object.keys(seed.focusEntries).length === 0) {
     const preOutput: PreProcessingOutput = {
       executiveSummary: "",
       ragResults: [],
@@ -103,9 +106,7 @@ export async function runPre(args: {
 
   const rawMemoryBlock = buildRawMemoryBlock(seedContext, exec.ragResults);
 
-  onProgress?.(
-    `✅ Контекст собран за ${exec.steps} шагов (${exec.summary.length} символов)\n`,
-  );
+  onProgress?.(`✅ Контекст собран за ${exec.steps} шагов (${exec.summary.length} символов)\n`);
 
   const preOutput: PreProcessingOutput = {
     executiveSummary: exec.summary,
@@ -127,10 +128,7 @@ export async function runPre(args: {
   };
 }
 
-function buildRawMemoryBlock(
-  seedContext: string,
-  ragResults: RAGResult[],
-): string {
+function buildRawMemoryBlock(seedContext: string, ragResults: RAGResult[]): string {
   const parts: string[] = [];
   if (seedContext) parts.push(seedContext);
   if (ragResults.length > 0) {

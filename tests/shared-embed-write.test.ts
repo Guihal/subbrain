@@ -9,20 +9,23 @@
  * insert+vec invariant: 0 shared_memory rows without a matching
  * vec_embeddings row when layer='shared'.
  */
-import { describe, test, expect, beforeAll } from "bun:test";
-import { unlinkSync } from "fs";
+import { beforeAll, describe, expect, test } from "bun:test";
+import { unlinkSync } from "node:fs";
 import { MemoryDB } from "../src/db";
-import { RAGPipeline } from "../src/rag";
-import { writeShared } from "../src/pipeline/agent-pipeline/post/extractors";
-import { MemoryService } from "../src/services/memory";
 import { MemoryTools } from "../src/mcp/tools/memory";
-import { compressContext, type CompressorMemory } from "../src/pipeline/context-compressor";
+import { writeShared } from "../src/pipeline/agent-pipeline/post/extractors";
+import { type CompressorMemory, compressContext } from "../src/pipeline/context-compressor";
 import type { Message } from "../src/providers/types";
+import { RAGPipeline } from "../src/rag";
+import { MemoryService } from "../src/services/memory";
 
 const TEST_DB = "data/test-shared-embed.db";
 
 const log = {
-  info: () => {}, warn: () => {}, error: () => {}, debug: () => {},
+  info: () => {},
+  warn: () => {},
+  error: () => {},
+  debug: () => {},
 } as any;
 
 // Deterministic "embedding": non-zero bag-of-chars hash, 2048 dims.
@@ -38,7 +41,9 @@ function fakeEmbed(text: string): Float32Array {
 
 function mkRouter() {
   return {
-    chat: async () => { throw new Error("router.chat not used in this test"); },
+    chat: async () => {
+      throw new Error("router.chat not used in this test");
+    },
     raw: {
       embed: async (req: { input: string[] }) => ({
         data: req.input.map((t) => ({ embedding: Array.from(fakeEmbed(t)) })),
@@ -54,7 +59,9 @@ describe("writeShared — embed + transactional persistence (PR 24)", () => {
   let rag: RAGPipeline;
 
   beforeAll(() => {
-    try { unlinkSync(TEST_DB); } catch {}
+    try {
+      unlinkSync(TEST_DB);
+    } catch {}
     memory = new MemoryDB(TEST_DB);
     rag = new RAGPipeline(memory, mkRouter());
   });
@@ -73,15 +80,15 @@ describe("writeShared — embed + transactional persistence (PR 24)", () => {
     // shared_memory row present
     const row = memory.getShared(wr.id!);
     expect(row).not.toBeNull();
-    expect(row!.content).toContain("fact X");
-    expect(row!.status).toBe("active");
+    expect(row?.content).toContain("fact X");
+    expect(row?.status).toBe("active");
 
     // vec_embedding row present for layer=shared
     const vecRow = memory.db
       .query("SELECT id, layer FROM vec_embeddings WHERE id = ?")
       .get(wr.id!) as { id: string; layer: string } | null;
     expect(vecRow).not.toBeNull();
-    expect(vecRow!.layer).toBe("shared");
+    expect(vecRow?.layer).toBe("shared");
   });
 
   test("retrieveShared via RAG vec path returns populated snippet", async () => {
@@ -90,7 +97,12 @@ describe("writeShared — embed + transactional persistence (PR 24)", () => {
       memory,
       rag,
       mkRouter(),
-      { category: "skill", content: "fact X extra content about SNMP discovery", tags: "", confidence: 0.9 },
+      {
+        category: "skill",
+        content: "fact X extra content about SNMP discovery",
+        tags: "",
+        confidence: 0.9,
+      },
       log,
     );
     expect(wr.ok).toBe(true);
@@ -106,11 +118,11 @@ describe("writeShared — embed + transactional persistence (PR 24)", () => {
     expect(hit).toBeDefined();
     // snippet populated (not empty, not just id); FTS path may wrap
     // matched tokens in <b>...</b>, vec-only path returns raw content.
-    expect(hit!.snippet.length).toBeGreaterThan(0);
-    const plainSnippet = hit!.snippet.replace(/<\/?b>/g, "");
+    expect(hit?.snippet.length).toBeGreaterThan(0);
+    const plainSnippet = hit?.snippet.replace(/<\/?b>/g, "");
     expect(plainSnippet).toContain("fact X");
     // title is category (mapped from SharedRow)
-    expect(hit!.title).toBe("skill");
+    expect(hit?.title).toBe("skill");
   });
 
   test("embed timeout → no DB rows written (atomic)", async () => {
@@ -126,11 +138,9 @@ describe("writeShared — embed + transactional persistence (PR 24)", () => {
               rej(signal.reason ?? new Error("aborted"));
               return;
             }
-            signal.addEventListener(
-              "abort",
-              () => rej(signal.reason ?? new Error("aborted")),
-              { once: true },
-            );
+            signal.addEventListener("abort", () => rej(signal.reason ?? new Error("aborted")), {
+              once: true,
+            });
           }),
         rerank: async () => ({ results: [] }),
       },
@@ -175,7 +185,9 @@ describe("M-01 / MEM-2 — shared_memory writers all embed atomically", () => {
   let rag: RAGPipeline;
 
   beforeAll(() => {
-    try { unlinkSync(MEM2_DB); } catch {}
+    try {
+      unlinkSync(MEM2_DB);
+    } catch {}
     memory = new MemoryDB(MEM2_DB);
     rag = new RAGPipeline(memory, mkRouter());
   });
@@ -192,19 +204,22 @@ describe("M-01 / MEM-2 — shared_memory writers all embed atomically", () => {
 
     const row = memory.getShared(id);
     expect(row).not.toBeNull();
-    expect(row!.content).toBe("Service-path fact about the user.");
+    expect(row?.content).toBe("Service-path fact about the user.");
 
-    const vec = memory.db
-      .query("SELECT id, layer FROM vec_embeddings WHERE id = ?")
-      .get(id) as { id: string; layer: string } | null;
+    const vec = memory.db.query("SELECT id, layer FROM vec_embeddings WHERE id = ?").get(id) as {
+      id: string;
+      layer: string;
+    } | null;
     expect(vec).not.toBeNull();
-    expect(vec!.layer).toBe("shared");
+    expect(vec?.layer).toBe("shared");
   });
 
   test("MemoryService rolls back when embed throws (no orphan row)", async () => {
     const failingRouter = {
       raw: {
-        embed: async () => { throw new Error("simulated_embed_fail"); },
+        embed: async () => {
+          throw new Error("simulated_embed_fail");
+        },
         rerank: async () => ({ results: [] }),
       },
       scheduleRaw: async (_p: string, fn: () => Promise<unknown>) => fn(),
@@ -242,19 +257,21 @@ describe("M-01 / MEM-2 — shared_memory writers all embed atomically", () => {
 
     const row = memory.getShared(insertedId);
     expect(row).not.toBeNull();
-    expect(row!.content).toBe("MCP-path fact about TypeScript.");
+    expect(row?.content).toBe("MCP-path fact about TypeScript.");
 
     const vec = memory.db
       .query("SELECT id, layer FROM vec_embeddings WHERE id = ?")
       .get(insertedId) as { id: string; layer: string } | null;
     expect(vec).not.toBeNull();
-    expect(vec!.layer).toBe("shared");
+    expect(vec?.layer).toBe("shared");
   });
 
   test("MemoryTools.write embed-fail returns error and writes no row", async () => {
     const failingRouter = {
       raw: {
-        embed: async () => { throw new Error("simulated_embed_fail"); },
+        embed: async () => {
+          throw new Error("simulated_embed_fail");
+        },
         rerank: async () => ({ results: [] }),
       },
       scheduleRaw: async (_p: string, fn: () => Promise<unknown>) => fn(),

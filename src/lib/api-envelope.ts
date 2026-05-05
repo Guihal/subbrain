@@ -39,8 +39,7 @@ export async function paginate<T>(
   // Q-12: cap query length at 500 chars — sanitizeFtsQuery already limits
   // term count but the raw string is still allocated downstream.
   const MAX_Q_LEN = 500;
-  const rawQ =
-    typeof opts.q === "string" ? opts.q.trim().slice(0, MAX_Q_LEN) : "";
+  const rawQ = typeof opts.q === "string" ? opts.q.trim().slice(0, MAX_Q_LEN) : "";
   const q = rawQ.length > 0 ? rawQ : undefined;
 
   // Prefer explicit page/page_size; fall back to limit/offset if given.
@@ -49,17 +48,13 @@ export async function paginate<T>(
 
   const limitNum = toInt(opts.limit);
   const offsetNum = toInt(opts.offset);
-  if (limitNum !== undefined) {
+  if (limitNum === undefined) {
+    pageSize = clamp(toInt(opts.page_size) ?? DEFAULT_PAGE_SIZE, 1, MAX_PAGE_SIZE);
+    page = Math.max(1, toInt(opts.page) ?? 1);
+  } else {
     pageSize = clamp(limitNum, 1, MAX_PAGE_SIZE);
     const off = offsetNum ?? 0;
     page = Math.floor(off / pageSize) + 1;
-  } else {
-    pageSize = clamp(
-      toInt(opts.page_size) ?? DEFAULT_PAGE_SIZE,
-      1,
-      MAX_PAGE_SIZE,
-    );
-    page = Math.max(1, toInt(opts.page) ?? 1);
   }
 
   const offset = (page - 1) * pageSize;

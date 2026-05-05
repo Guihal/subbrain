@@ -1,5 +1,5 @@
-import type { ChatParams } from "../../providers/types";
 import { ProviderError } from "../../providers/nvidia";
+import type { ChatParams } from "../../providers/types";
 import type { ModelTarget, ProviderName } from "../model-map";
 import type { Backend } from "./constants";
 

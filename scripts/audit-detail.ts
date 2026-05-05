@@ -1,4 +1,5 @@
 import { Database } from "bun:sqlite";
+
 const db = new Database("data/subbrain.db", { readonly: true });
 
 // Full Layer 2 context entry
@@ -17,9 +18,7 @@ for (const c of ctx) {
 
 // Recent logs — full content
 console.log("\n=== Last 10 log entries ===");
-const logs = db
-  .query("SELECT * FROM layer4_log ORDER BY created_at DESC LIMIT 10")
-  .all() as any[];
+const logs = db.query("SELECT * FROM layer4_log ORDER BY created_at DESC LIMIT 10").all() as any[];
 for (const l of logs) {
   const ts = new Date(l.created_at * 1000).toISOString().slice(0, 19);
   console.log(`\n--- ${ts} [${l.role}] model=${l.agent_id} ---`);

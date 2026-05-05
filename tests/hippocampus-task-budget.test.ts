@@ -6,15 +6,10 @@
  * registry.call dispatch) is covered by pipeline-post-hippocampus.test.ts
  * — here we pin the budget semantics themselves.
  */
-import { describe, test, expect, beforeEach, afterEach } from "bun:test";
-import { unlinkSync, existsSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { existsSync, unlinkSync } from "node:fs";
 import { MemoryDB } from "../src/db";
-import {
-  ToolExecutor,
-  buildRegistry,
-  type ToolRegistry,
-  type AgentToolContext,
-} from "../src/mcp";
+import { type AgentToolContext, buildRegistry, ToolExecutor, type ToolRegistry } from "../src/mcp";
 import type { TaskMutationBudget } from "../src/mcp/registry";
 
 const DB_PATH = "data/test-hippo-budget.db";
@@ -37,11 +32,7 @@ function mkExecutor(memory: MemoryDB): ToolExecutor {
   return new ToolExecutor(memory, router);
 }
 
-async function addTask(
-  registry: ToolRegistry,
-  ctx: AgentToolContext,
-  title: string,
-) {
+async function addTask(registry: ToolRegistry, ctx: AgentToolContext, title: string) {
   return registry.callAsAgent("task_add", { title, scope: "global" }, ctx);
 }
 
@@ -94,11 +85,7 @@ describe("Hippocampus taskBudget — registry guard", () => {
     const taskId = (added.data as { id: string }).id;
     expect(budget.remaining).toBe(2);
 
-    const updated = await registry.callAsAgent(
-      "task_update",
-      { id: taskId, priority: 5 },
-      ctx,
-    );
+    const updated = await registry.callAsAgent("task_update", { id: taskId, priority: 5 }, ctx);
     expect(updated.success).toBe(true);
     expect(budget.remaining).toBe(1);
 
@@ -130,11 +117,7 @@ describe("Hippocampus taskBudget — registry guard", () => {
     expect(cancelled.success).toBe(true);
     expect(budget.remaining).toBe(0);
 
-    const extra = await registry.callAsAgent(
-      "task_cancel",
-      { id: taskId, reason: "again" },
-      ctx,
-    );
+    const extra = await registry.callAsAgent("task_cancel", { id: taskId, reason: "again" }, ctx);
     expect(extra.success).toBe(false);
     expect(extra.error).toContain("rate_limit");
   });

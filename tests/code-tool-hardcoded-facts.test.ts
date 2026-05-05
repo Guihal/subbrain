@@ -5,10 +5,10 @@
  *
  * See docs/tasks/code-tools-poisoning-fix.md.
  */
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import {
-  checkHardcodedFacts,
   applyCodeToolGuards,
+  checkHardcodedFacts,
 } from "../src/pipeline/agent-loop/code-tools/code-tool-validators";
 
 const noopLog = {
@@ -99,7 +99,12 @@ describe("applyCodeToolGuards (F-2 + sandbox)", () => {
   test("1 match → null (warn-and-accept)", () => {
     const code = `export default async () => 'hello Дмитрий'`;
     let warned = false;
-    const log = { ...noopLog, warn: () => { warned = true; } };
+    const log = {
+      ...noopLog,
+      warn: () => {
+        warned = true;
+      },
+    };
     const err = applyCodeToolGuards(code, "warn-tool", log as never);
     expect(err).toBeNull();
     expect(warned).toBe(true);

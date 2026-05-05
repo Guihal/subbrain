@@ -3,24 +3,24 @@
  * PR-8 (C-4): session-init and finalization helpers live here so the two
  * orchestrators do not drift.
  */
-import { randomUUID } from "crypto";
+import { randomUUID } from "node:crypto";
 import type { MemoryDB } from "../../db";
-import type { ModelRouter } from "../../lib/model-router";
-import type { RAGPipeline } from "../../rag";
-import type { ToolExecutor, ToolRegistry } from "../../mcp";
-import type { Tool, Message } from "../../providers/types";
-import type { ArbitrationRoom } from "../arbitration";
 import { logger } from "../../lib/logger";
-import { runPost } from "../agent-pipeline/phases/post";
-import type { DynamicToolRegistry } from "./dynamic-tools";
-import type { CodeToolRegistry } from "./code-tools";
-import type { ToolRunnerDeps } from "./tool-runner";
-import type { StepDeps } from "./step";
-import type { AgentLoopSession, AgentMode } from "./types";
 import type { Priority } from "../../lib/model-map";
-import { MAX_STEPS, AGENT_MODEL, type AgentLoopRequest } from "./types";
-import { buildAgentSystemPrompt } from "./system-prompt";
+import type { ModelRouter } from "../../lib/model-router";
+import type { ToolExecutor, ToolRegistry } from "../../mcp";
+import type { Message, Tool } from "../../providers/types";
+import type { RAGPipeline } from "../../rag";
+import { runPost } from "../agent-pipeline/phases/post";
+import type { ArbitrationRoom } from "../arbitration";
+import type { CodeToolRegistry } from "./code-tools";
+import type { DynamicToolRegistry } from "./dynamic-tools";
 import { persistToChat } from "./persist";
+import type { StepDeps } from "./step";
+import { buildAgentSystemPrompt } from "./system-prompt";
+import type { ToolRunnerDeps } from "./tool-runner";
+import type { AgentLoopSession, AgentMode } from "./types";
+import { AGENT_MODEL, type AgentLoopRequest, MAX_STEPS } from "./types";
 
 export interface AgentLoopDeps {
   memory: MemoryDB;
@@ -107,15 +107,9 @@ export async function initAgentLoopContext(
 
   const session: AgentLoopSession = {
     consultSpecialistsCount: 0,
-    consultSpecialistsMax: Math.max(
-      1,
-      Number(process.env.AGENT_CONSULT_SPECIALISTS_MAX) || 3,
-    ),
+    consultSpecialistsMax: Math.max(1, Number(process.env.AGENT_CONSULT_SPECIALISTS_MAX) || 3),
     consultChaosCount: 0,
-    consultChaosMax: Math.max(
-      1,
-      Number(process.env.AGENT_CONSULT_CHAOS_MAX) || 5,
-    ),
+    consultChaosMax: Math.max(1, Number(process.env.AGENT_CONSULT_CHAOS_MAX) || 5),
   };
 
   const systemPrompt = await buildAgentSystemPrompt(
@@ -166,14 +160,7 @@ export function finalizeAgentRun(
     "assistant",
     `${summaryTag} ${summary}`,
   );
-  persistToChat(
-    deps.memory,
-    ctx.sessionId,
-    ctx.requestId,
-    ctx.model,
-    req.task,
-    summary,
-  );
+  persistToChat(deps.memory, ctx.sessionId, ctx.requestId, ctx.model, req.task, summary);
   firePost(
     deps,
     {
@@ -215,9 +202,6 @@ export function firePost(
     agentId: params.agentId,
     options: { skipRawLog: true },
   }).catch((e) =>
-    log.error(
-      "post",
-      `Agent post-processing failed: ${e instanceof Error ? e.message : e}`,
-    ),
+    log.error("post", `Agent post-processing failed: ${e instanceof Error ? e.message : e}`),
   );
 }

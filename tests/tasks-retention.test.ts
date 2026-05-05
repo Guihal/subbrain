@@ -6,21 +6,12 @@
  * completed_at, because transitionTask stamps unixepoch() — we need to
  * cover 2025 dates, week edges, etc.
  */
-import {
-  afterAll,
-  beforeEach,
-  describe,
-  expect,
-  test,
-} from "bun:test";
+import { afterAll, beforeEach, describe, expect, test } from "bun:test";
 import { randomUUID } from "node:crypto";
 import { existsSync, unlinkSync } from "node:fs";
 import { MemoryDB } from "../src/db";
 import type { Embedder } from "../src/pipeline/night-cycle/prune/tasks";
-import {
-  _capFromTailForTest,
-  pruneCompletedTasks,
-} from "../src/pipeline/night-cycle/prune/tasks";
+import { _capFromTailForTest, pruneCompletedTasks } from "../src/pipeline/night-cycle/prune/tasks";
 import { TaskRepository } from "../src/repositories/task.repo";
 
 const DB_PATH = "data/test-retention.db";
@@ -46,9 +37,7 @@ function seedDoneTask(
     scope: (opts.scope as "global") ?? "global",
   });
   memory.db
-    .query(
-      `UPDATE tasks SET status='done', completed_at=?, updated_at=? WHERE id=?`,
-    )
+    .query(`UPDATE tasks SET status='done', completed_at=?, updated_at=? WHERE id=?`)
     .run(completedAt, completedAt, id);
   return id;
 }
@@ -57,20 +46,16 @@ function seedCancelledTask(memory: MemoryDB, updatedAt: number): string {
   const id = randomUUID();
   memory.insertTask({ id, title: "cancel me", scope: "global" });
   memory.db
-    .query(
-      `UPDATE tasks SET status='cancelled', completed_at=?, updated_at=? WHERE id=?`,
-    )
+    .query(`UPDATE tasks SET status='cancelled', completed_at=?, updated_at=? WHERE id=?`)
     .run(updatedAt, updatedAt, id);
   return id;
 }
 
 function countArchive(memory: MemoryDB, tagLike: string): number {
   return (
-    memory.db
-      .query(
-        `SELECT COUNT(*) AS c FROM layer3_archive WHERE tags LIKE ?`,
-      )
-      .get(tagLike) as { c: number }
+    memory.db.query(`SELECT COUNT(*) AS c FROM layer3_archive WHERE tags LIKE ?`).get(tagLike) as {
+      c: number;
+    }
   ).c;
 }
 
@@ -123,9 +108,7 @@ describe("pruneCompletedTasks", () => {
     expect(pruned).toBe(5);
     expect(emb.calls).toBe(1);
     expect(countArchive(memory, "tasks,digest,%")).toBe(1);
-    const remaining = memory.db
-      .query(`SELECT COUNT(*) AS c FROM tasks`)
-      .get() as { c: number };
+    const remaining = memory.db.query(`SELECT COUNT(*) AS c FROM tasks`).get() as { c: number };
     expect(remaining.c).toBe(0);
     memory.close();
   });
@@ -155,9 +138,7 @@ describe("pruneCompletedTasks", () => {
     await pruneCompletedTasks(memory, emb);
     expect(countArchive(memory, "tasks,digest,%")).toBe(1);
     const row = memory.db
-      .query(
-        `SELECT content FROM layer3_archive WHERE tags LIKE 'tasks,digest,%' LIMIT 1`,
-      )
+      .query(`SELECT content FROM layer3_archive WHERE tags LIKE 'tasks,digest,%' LIMIT 1`)
       .get() as { content: string };
     expect(row.content).toInclude("first-batch-task");
     expect(row.content).toInclude("second-batch-task");
@@ -179,9 +160,7 @@ describe("pruneCompletedTasks", () => {
     );
     // A fake digest for w10 label that should not collide with w1 via LIKE.
     // Use a real completion timestamp inside week 10 (2026-03-09 UTC = Mon).
-    const w10Completion = Math.floor(
-      Date.UTC(2026, 2, 10, 12, 0, 0) / 1000,
-    );
+    const w10Completion = Math.floor(Date.UTC(2026, 2, 10, 12, 0, 0) / 1000);
     seedDoneTask(memory, w10Completion);
     const emb = makeEmbedder();
     await pruneCompletedTasks(memory, emb);
@@ -203,9 +182,7 @@ describe("pruneCompletedTasks", () => {
     };
     const pruned = await pruneCompletedTasks(memory, emb);
     expect(pruned).toBe(0);
-    const remaining = memory.db
-      .query(`SELECT COUNT(*) AS c FROM tasks`)
-      .get() as { c: number };
+    const remaining = memory.db.query(`SELECT COUNT(*) AS c FROM tasks`).get() as { c: number };
     expect(remaining.c).toBe(1);
     expect(countArchive(memory, "tasks,digest,%")).toBe(0);
     memory.close();
@@ -223,7 +200,7 @@ describe("pruneCompletedTasks", () => {
   });
 
   test("capFromTail: single >50KB line falls back to char truncation, not empty", () => {
-    const hugeLine = "- [global] " + "x".repeat(60_000);
+    const hugeLine = `- [global] ${"x".repeat(60_000)}`;
     const result = _capFromTailForTest(hugeLine);
     expect(result.length).toBeLessThanOrEqual(50_000);
     expect(result.length).toBeGreaterThan(40_000);
@@ -239,9 +216,9 @@ describe("pruneCompletedTasks", () => {
     const pruned = await pruneCompletedTasks(memory, emb);
     expect(pruned).toBe(2);
     expect(countArchive(memory, "tasks,digest,%")).toBe(2);
-    const tags = memory.db
-      .query(`SELECT tags FROM layer3_archive ORDER BY tags ASC`)
-      .all() as { tags: string }[];
+    const tags = memory.db.query(`SELECT tags FROM layer3_archive ORDER BY tags ASC`).all() as {
+      tags: string;
+    }[];
     expect(tags.length).toBe(2);
     expect(tags[0].tags).not.toBe(tags[1].tags);
     memory.close();
@@ -276,9 +253,7 @@ describe("history loader — strict phase pagination", () => {
         "HIGH",
         "night-cycle",
       );
-      memory.db
-        .query(`UPDATE layer3_archive SET created_at=? WHERE id=?`)
-        .run(now - i * 60, id);
+      memory.db.query(`UPDATE layer3_archive SET created_at=? WHERE id=?`).run(now - i * 60, id);
     }
   }
 

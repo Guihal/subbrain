@@ -4,12 +4,7 @@
  */
 
 import type { AgentResponse } from "./types";
-import {
-  DEFAULT_WEIGHTS,
-  getWeight,
-  roleDisplayName,
-  type TaskCategory,
-} from "./weights";
+import { DEFAULT_WEIGHTS, getWeight, roleDisplayName, type TaskCategory } from "./weights";
 
 const ROLE_PROMPTS: Record<string, string> = {
   coder:

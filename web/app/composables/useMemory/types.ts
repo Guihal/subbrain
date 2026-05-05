@@ -1,10 +1,4 @@
-export type MemoryTab =
-  | "focus"
-  | "shared"
-  | "context"
-  | "archive"
-  | "agent"
-  | "log";
+export type MemoryTab = "focus" | "shared" | "context" | "archive" | "agent" | "log";
 
 export type ListLayer = Exclude<MemoryTab, "focus">;
 
@@ -90,8 +84,16 @@ export interface ListEnvelope<T> {
 
 export const LAYER_SCHEMAS = {
   focus: { fields: ["key", "value"] as const, readonly: false, kind: "kv" as const },
-  shared: { fields: ["category", "content", "tags"] as const, readonly: false, kind: "list" as const },
-  context: { fields: ["title", "content", "tags"] as const, readonly: false, kind: "list" as const },
+  shared: {
+    fields: ["category", "content", "tags"] as const,
+    readonly: false,
+    kind: "list" as const,
+  },
+  context: {
+    fields: ["title", "content", "tags"] as const,
+    readonly: false,
+    kind: "list" as const,
+  },
   archive: {
     fields: ["title", "content", "tags", "confidence"] as const,
     readonly: false,

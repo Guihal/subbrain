@@ -7,24 +7,32 @@
  * integration (routes/chat.ts wiring) stays covered by
  * `tests/chat-direct-mode.test.ts` and `tests/chat-continuity.test.ts`.
  */
-import { describe, test, expect } from "bun:test";
-import { ChatService, extractChatMeta } from "../src/services/chat";
+import { describe, expect, test } from "bun:test";
 import type { ChatResponse } from "../src/providers/types";
+import { ChatService, extractChatMeta } from "../src/services/chat";
 
 function makeRouter(overloaded: Record<string, boolean>) {
   let directCalled = false;
   let directStreamCalled = false;
   const router = {
     isOverloadedFor: (p: string) => Boolean(overloaded[p]),
-    get isOverloaded() { return Boolean(overloaded.nvidia); },
+    get isOverloaded() {
+      return Boolean(overloaded.nvidia);
+    },
     chat: async (_model: string, _params: unknown): Promise<ChatResponse> => {
       directCalled = true;
       return {
-        id: "r", object: "chat.completion", created: 0, model: "stub",
-        choices: [{
-          index: 0, finish_reason: "stop",
-          message: { role: "assistant", content: "direct-reply" },
-        }],
+        id: "r",
+        object: "chat.completion",
+        created: 0,
+        model: "stub",
+        choices: [
+          {
+            index: 0,
+            finish_reason: "stop",
+            message: { role: "assistant", content: "direct-reply" },
+          },
+        ],
         usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
       };
     },
@@ -51,11 +59,17 @@ function makePipeline() {
       lastReq = req;
       return {
         response: {
-          id: "p", object: "chat.completion", created: 0, model: "stub",
-          choices: [{
-            index: 0, finish_reason: "stop",
-            message: { role: "assistant", content: "pipeline-reply" },
-          }],
+          id: "p",
+          object: "chat.completion",
+          created: 0,
+          model: "stub",
+          choices: [
+            {
+              index: 0,
+              finish_reason: "stop",
+              message: { role: "assistant", content: "pipeline-reply" },
+            },
+          ],
           usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
         } as ChatResponse,
         requestId: "req-1",
@@ -161,7 +175,9 @@ describe("ChatService.handle — direct vs pipeline", () => {
     expect(res.status).toBe(200);
     expect(res.headers.get("Content-Type")).toBe("text/event-stream");
     // Drain so the mock stream completes.
-    const reader = res.body!.getReader();
-    while (!(await reader.read()).done) { /* drain */ }
+    const reader = res.body?.getReader();
+    while (!(await reader.read()).done) {
+      /* drain */
+    }
   });
 });

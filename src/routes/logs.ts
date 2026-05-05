@@ -28,10 +28,7 @@ export function logsRoute(memory: MemoryDB) {
         return {
           count: rows.length,
           logs: rows.map((r) => {
-            let content =
-              r.content.length > 2000
-                ? r.content.slice(0, 2000) + "…"
-                : r.content;
+            let content = r.content.length > 2000 ? `${r.content.slice(0, 2000)}…` : r.content;
             if (!raw) content = maskSecrets(content);
             return {
               id: r.id,

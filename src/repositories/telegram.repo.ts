@@ -5,12 +5,8 @@
  * Note: `tg_excluded_chats` lives on `ChatRepository` (shares the chats
  * table).
  */
-import { Database } from "bun:sqlite";
-import {
-  TgMessagesTable,
-  type TgMessageInsert,
-  type TgSearchOpts,
-} from "../db/tables/tg-messages";
+import type { Database } from "bun:sqlite";
+import { type TgMessageInsert, TgMessagesTable, type TgSearchOpts } from "../db/tables/tg-messages";
 import type { TgMessageRow, TgSearchHit } from "../db/types";
 
 export class TelegramRepository {

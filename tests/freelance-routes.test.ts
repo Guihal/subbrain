@@ -1,8 +1,8 @@
-import { describe, test, expect, beforeAll, afterAll } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { existsSync, unlinkSync } from "node:fs";
+import { Elysia } from "elysia";
 import { MemoryDB } from "../src/db";
 import { freelanceRoute } from "../src/routes/freelance";
-import { Elysia } from "elysia";
-import { unlinkSync, existsSync } from "fs";
 
 const TEST_DB = "data/test-freelance-routes.db";
 let memory: MemoryDB;

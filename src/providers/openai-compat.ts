@@ -9,11 +9,7 @@
 import { NvidiaProvider } from "./nvidia";
 
 export class OpenAICompatProvider extends NvidiaProvider {
-  constructor(
-    baseUrl: string,
-    apiKey: string,
-    extraHeaders: Record<string, string> = {},
-  ) {
+  constructor(baseUrl: string, apiKey: string, extraHeaders: Record<string, string> = {}) {
     super(baseUrl, apiKey, {
       ...extraHeaders,
       "X-Subbrain-Provider": "openai-compat",

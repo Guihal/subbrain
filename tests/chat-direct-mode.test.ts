@@ -1,7 +1,7 @@
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { Elysia } from "elysia";
-import { chatRoute } from "../src/routes/chat";
 import type { ChatResponse } from "../src/providers/types";
+import { chatRoute } from "../src/routes/chat";
 
 /**
  * Stub router where isOverloadedFor answers per-provider. We track whether

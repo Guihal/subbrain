@@ -5,8 +5,9 @@
  * Эти тулы не выставляются в REST / MCP JSON-RPC — видны только агент-лупу.
  * Требуют расширенный ToolContext: router, room, dynamicTools, log, registry.
  */
-import { t, type ToolRegistry } from "./tool-registry";
+
 import type { DynamicToolDef } from "../../pipeline/agent-loop/dynamic-tools";
+import { type ToolRegistry, t } from "./tool-registry";
 
 export function registerAgentMetaTools(registry: ToolRegistry): void {
   registry.register({
@@ -25,8 +26,7 @@ export function registerAgentMetaTools(registry: ToolRegistry): void {
 
   registry.register({
     name: "done",
-    description:
-      "Signal that you have completed the task. Include final summary for the user.",
+    description: "Signal that you have completed the task. Include final summary for the user.",
     scope: "agent-only",
     input: t.Object({
       summary: t.String({ description: "Final result/summary for the user" }),
@@ -66,10 +66,7 @@ export function registerAgentMetaTools(registry: ToolRegistry): void {
         return { success: false, error: "ArbitrationRoom not configured" };
       }
       if (ctx.session) {
-        if (
-          ctx.session.consultSpecialistsCount >=
-          ctx.session.consultSpecialistsMax
-        ) {
+        if (ctx.session.consultSpecialistsCount >= ctx.session.consultSpecialistsMax) {
           return {
             success: false,
             error: `consult_specialists quota exceeded (${ctx.session.consultSpecialistsMax} per session). Decide alone or use consult_chaos (cheap).`,
@@ -143,9 +140,7 @@ export function registerAgentMetaTools(registry: ToolRegistry): void {
         ctx.session.consultChaosCount += 1;
       }
       const context = args.context || "Нет контекста";
-      const question =
-        args.question ||
-        "Что делать дальше? Предложи 3 конкретных действия.";
+      const question = args.question || "Что делать дальше? Предложи 3 конкретных действия.";
 
       const shared = ctx.executor.memoryDb.getAllShared();
       const profile = shared.length
@@ -218,8 +213,7 @@ ${profile}
         ]),
       ),
       prompt_template: t.String({
-        description:
-          "System prompt for the specialist. Use {{input}} for the caller's input.",
+        description: "System prompt for the specialist. Use {{input}} for the caller's input.",
       }),
       input_description: t.Optional(
         t.String({ description: "Description of the input parameter" }),
@@ -253,10 +247,7 @@ ${profile}
       const result = ctx.dynamicTools.register(def);
       if (result.success) {
         ctx.persistDynamicTools?.();
-        ctx.log.info(
-          "agent-loop",
-          `Dynamic tool created: ${def.name} → ${def.model}`,
-        );
+        ctx.log.info("agent-loop", `Dynamic tool created: ${def.name} → ${def.model}`);
         return { success: true, data: { name: def.name } };
       }
       return { success: false, error: result.error };

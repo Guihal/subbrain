@@ -2,30 +2,31 @@
  * Фабрика реестра. Один вызов — и все тулы доступны через
  * REST, MCP JSON-RPC и агент-луп.
  */
-import { ToolRegistry } from "./tool-registry";
-import { registerMemoryTools } from "./memory.tools";
-import { registerEmbedTools } from "./embed.tools";
-import { registerLogTools } from "./log.tools";
-import { registerRagTools } from "./rag.tools";
-import { registerTelegramTools } from "./telegram.tools";
-import { registerWebTools } from "./web.tools";
+
 import { registerAgentMetaTools } from "./agent-meta.tools";
 import { registerCodeMgmtTools } from "./code-mgmt.tools";
+import { registerEmbedTools } from "./embed.tools";
+import { registerLogTools } from "./log.tools";
+import { registerMemoryTools } from "./memory.tools";
+import { registerRagTools } from "./rag.tools";
 import { registerReportTools } from "./report.tools";
 import { registerTasksTools } from "./tasks.tools";
+import { registerTelegramTools } from "./telegram.tools";
+import { ToolRegistry } from "./tool-registry";
+import { registerWebTools } from "./web.tools";
 
-export { ToolRegistry, SCHEDULED_HIDDEN_TOOLS } from "./tool-registry";
 export type {
-  ToolContext,
-  PublicToolContext,
+  AgentMode,
   AgentToolContext,
+  PublicToolContext,
+  TaskMutationBudget,
+  ToolContext,
   ToolContextFor,
   ToolDef,
-  ToolScope,
   ToolLog,
-  TaskMutationBudget,
-  AgentMode,
+  ToolScope,
 } from "./tool-registry";
+export { SCHEDULED_HIDDEN_TOOLS, ToolRegistry } from "./tool-registry";
 
 /**
  * Строит реестр, регистрируя все тулы.

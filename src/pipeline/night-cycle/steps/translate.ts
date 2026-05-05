@@ -1,6 +1,6 @@
 import type { ModelRouter } from "../../../lib/model-router";
 import { stripThinkTags } from "../types";
-import { NIGHT_MODEL, nightLog as log } from "./shared";
+import { nightLog as log, NIGHT_MODEL } from "./shared";
 
 /**
  * Returns translated text, or `null` on LLM failure / empty response.
@@ -9,10 +9,7 @@ import { NIGHT_MODEL, nightLog as log } from "./shared";
  * break dedup/compress. Empty inputs and already-English text are passed
  * through unchanged.
  */
-export async function translate(
-  text: string,
-  router: ModelRouter,
-): Promise<string | null> {
+export async function translate(text: string, router: ModelRouter): Promise<string | null> {
   if (!text.length) return text;
   const cyrillicRatio = (text.match(/[а-яё]/gi) || []).length / text.length;
   if (cyrillicRatio < 0.1) return text;

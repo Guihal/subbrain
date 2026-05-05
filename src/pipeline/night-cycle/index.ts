@@ -8,19 +8,15 @@
  *   - post-steps.ts         — contradictions + prune* + stray collection.
  */
 import type { MemoryDB } from "../../db";
+import { logger } from "../../lib/logger";
 import type { ModelRouter } from "../../lib/model-router";
 import type { RAGPipeline } from "../../rag";
 import type { MemoryService } from "../../services/memory";
-import { logger } from "../../lib/logger";
-import {
-  type NightCycleResult,
-  BATCH_SIZE,
-  FOCUS_KEY_LAST_PROCESSED,
-} from "./types";
-import { RETRY_FOCUS_KEY } from "./retry-queue";
-import { runRetryPass, runMainBatch } from "./batch";
 import { runAntiPatternsStep } from "./anti-patterns-step";
+import { runMainBatch, runRetryPass } from "./batch";
 import { runPostBatchSteps } from "./post-steps";
+import { RETRY_FOCUS_KEY } from "./retry-queue";
+import { BATCH_SIZE, FOCUS_KEY_LAST_PROCESSED, type NightCycleResult } from "./types";
 
 const log = logger.child("night");
 
@@ -87,7 +83,7 @@ export class NightCycle {
     log.info("Cycle started");
 
     const lastIdStr = this.memory.getFocus(FOCUS_KEY_LAST_PROCESSED);
-    const lastProcessedId = lastIdStr ? parseInt(lastIdStr, 10) : 0;
+    const lastProcessedId = lastIdStr ? Number.parseInt(lastIdStr, 10) : 0;
     const logs = this.memory.getLogsSince(lastProcessedId, BATCH_SIZE);
     if (logs.length === 0) {
       log.info("No unprocessed logs — nothing to do");

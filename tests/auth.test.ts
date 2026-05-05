@@ -1,4 +1,4 @@
-import { describe, test, expect, afterAll } from "bun:test";
+import { afterAll, describe, expect, test } from "bun:test";
 import { Elysia } from "elysia";
 import { authMiddleware } from "../src/lib/auth";
 import { AuthService } from "../src/services/auth.service";
@@ -9,7 +9,7 @@ const app = new Elysia()
   .use(authMiddleware(new AuthService(TOKEN)))
   .get("/protected", () => ({ data: "secret" }))
   .listen(0);
-const base = `http://localhost:${app.server!.port}`;
+const base = `http://localhost:${app.server?.port}`;
 
 afterAll(() => app.stop());
 
@@ -25,7 +25,7 @@ describe("authMiddleware", () => {
   });
 
   test("wrong token same length → 401", async () => {
-    const wrong = TOKEN.slice(0, -1) + "X";
+    const wrong = `${TOKEN.slice(0, -1)}X`;
     const r = await fetch(`${base}/protected`, {
       headers: { Authorization: `Bearer ${wrong}` },
     });

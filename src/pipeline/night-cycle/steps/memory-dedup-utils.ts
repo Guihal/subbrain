@@ -2,16 +2,16 @@
  * MEM-6: helpers for memory-dedup.ts. Split out to keep the orchestrator
  * under the 250-LOC cap. Pure / small DB ops only — no external IO.
  */
-import type { MemoryDB, SharedRow, ContextRow } from "../../../db";
-import type { RAGPipeline } from "../../../rag";
+import type { ContextRow, MemoryDB, SharedRow } from "../../../db";
 import { logger } from "../../../lib/logger";
+import type { RAGPipeline } from "../../../rag";
 
 const log = logger.child("night.memory-dedup");
 
 // Cosine threshold computed in JS. sqlite-vec returns L2 on un-normalised
 // vectors, not cosine, so we use it only as a candidate filter and re-rank
 // pairwise in JS using the vec map we already built.
-export const DUP_COSINE_MIN = 0.90;
+export const DUP_COSINE_MIN = 0.9;
 export const VEC_NEIGHBOURS = 5;
 export const EMBED_BATCH_SIZE = 50;
 export const EMBED_TIMEOUT_MS = 5000;
@@ -75,9 +75,7 @@ export async function buildClusters<T extends { id: string; content: string }>(
   for (let i = 0; i < rows.length; i += EMBED_BATCH_SIZE) {
     const batch = rows.slice(i, i + EMBED_BATCH_SIZE);
     const settled = await Promise.allSettled(
-      batch.map((r) =>
-        rag.embedContent(r.content, AbortSignal.timeout(EMBED_TIMEOUT_MS)),
-      ),
+      batch.map((r) => rag.embedContent(r.content, AbortSignal.timeout(EMBED_TIMEOUT_MS))),
     );
     settled.forEach((res, idx) => {
       if (res.status === "fulfilled" && res.value && res.value.length > 0) {
@@ -136,11 +134,9 @@ export async function buildClusters<T extends { id: string; content: string }>(
   for (const r of rows) {
     const root = find(r.id);
     if (!clusterMap.has(root)) clusterMap.set(root, []);
-    clusterMap.get(root)!.push(r.id);
+    clusterMap.get(root)?.push(r.id);
   }
-  return [...clusterMap.values()]
-    .filter((ids) => ids.length > 1)
-    .map((ids) => ({ ids }));
+  return [...clusterMap.values()].filter((ids) => ids.length > 1).map((ids) => ({ ids }));
 }
 
 export function unionCsv(parts: string[]): string {
@@ -173,11 +169,7 @@ export function markExpired(memory: MemoryDB): number {
   const nowSec = Math.floor(Date.now() / 1000);
   let count = 0;
   for (const r of memory.getAllShared()) {
-    if (
-      r.expires_at !== null &&
-      r.expires_at <= nowSec &&
-      r.superseded_by === null
-    ) {
+    if (r.expires_at !== null && r.expires_at <= nowSec && r.superseded_by === null) {
       memory.updateShared(r.id, { superseded_by: "expired" });
       count++;
     }
@@ -186,11 +178,7 @@ export function markExpired(memory: MemoryDB): number {
   for (let offset = 0; ; offset += PAGE) {
     const page = memory.listContext(PAGE, offset);
     for (const r of page) {
-      if (
-        r.expires_at !== null &&
-        r.expires_at <= nowSec &&
-        r.superseded_by === null
-      ) {
+      if (r.expires_at !== null && r.expires_at <= nowSec && r.superseded_by === null) {
         memory.updateContext(r.id, { superseded_by: "expired" });
         count++;
       }

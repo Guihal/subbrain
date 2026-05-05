@@ -1,9 +1,9 @@
-import { describe, test, expect, beforeEach } from "bun:test";
-import { unlinkSync } from "fs";
+import { beforeEach, describe, expect, test } from "bun:test";
+import { unlinkSync } from "node:fs";
 import { Elysia } from "elysia";
 import { MemoryDB } from "../src/db";
-import { chatRoute } from "../src/routes/chat";
 import type { ChatResponse } from "../src/providers/types";
+import { chatRoute } from "../src/routes/chat";
 
 const TEST_DB = "data/test-chat-continuity.db";
 
@@ -14,20 +14,32 @@ function mkRouter(onChat: (messages: any[]) => void) {
     chat: async (_model: string, params: any): Promise<ChatResponse> => {
       onChat(params.messages);
       return {
-        id: "r", object: "chat.completion", created: 0, model: "flash",
-        choices: [{
-          index: 0, finish_reason: "stop",
-          message: { role: "assistant", content: "reply-2" },
-        }],
+        id: "r",
+        object: "chat.completion",
+        created: 0,
+        model: "flash",
+        choices: [
+          {
+            index: 0,
+            finish_reason: "stop",
+            message: { role: "assistant", content: "reply-2" },
+          },
+        ],
         usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
       };
     },
-    chatStream: async () => { throw new Error("unused"); },
+    chatStream: async () => {
+      throw new Error("unused");
+    },
   } as any;
 }
 
 describe("chat continuity (A2)", () => {
-  beforeEach(() => { try { unlinkSync(TEST_DB); } catch {} });
+  beforeEach(() => {
+    try {
+      unlinkSync(TEST_DB);
+    } catch {}
+  });
 
   test("hydrates history from chats table when client sends only last user msg", async () => {
     const memory = new MemoryDB(TEST_DB);
@@ -37,7 +49,9 @@ describe("chat continuity (A2)", () => {
     memory.appendChatMessage("c1", "assistant", "reply-1", { model: "flash" });
 
     let seen: any[] = [];
-    const router = mkRouter((m) => { seen = m; });
+    const router = mkRouter((m) => {
+      seen = m;
+    });
     const app = new Elysia().use(chatRoute(router, undefined, memory));
 
     const res = await app.handle(
@@ -65,7 +79,9 @@ describe("chat continuity (A2)", () => {
     memory.appendChatMessage("c2", "assistant", "reply-1", { model: "flash" });
 
     let seen: any[] = [];
-    const router = mkRouter((m) => { seen = m; });
+    const router = mkRouter((m) => {
+      seen = m;
+    });
     const app = new Elysia().use(chatRoute(router, undefined, memory));
 
     const res = await app.handle(

@@ -9,4 +9,3 @@ export interface ToolResult {
   /** Structured error on failure: {code, message}. String form is legacy. */
   error?: { code: string; message: string } | string;
 }
-

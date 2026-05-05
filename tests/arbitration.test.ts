@@ -36,13 +36,10 @@ const makeResponse = (content: string): ChatResponse => ({
 const mockRouter = {
   chat: async (model: string, params: any, _priority?: string) => {
     chatCalls.push({ model, messages: params.messages });
-    if (model === "teamlead")
-      return makeResponse("Synthesized answer from team.");
+    if (model === "teamlead") return makeResponse("Synthesized answer from team.");
     if (model === "coder") return makeResponse("Coder says: use a HashMap.");
-    if (model === "critic")
-      return makeResponse("Critic says: watch for race conditions.");
-    if (model === "generalist")
-      return makeResponse("Generalist says: consider trade-offs.");
+    if (model === "critic") return makeResponse("Critic says: watch for race conditions.");
+    if (model === "generalist") return makeResponse("Generalist says: consider trade-offs.");
     return makeResponse("Unknown role response.");
   },
 } as any;
@@ -52,35 +49,23 @@ const room = new ArbitrationRoom(mockRouter);
 // ─── Test 1: classify() returns null for simple requests ─
 
 console.assert(room.classify("fix the typo") === null, "Simple request → null");
-console.assert(
-  room.classify("напиши функцию сортировки") === null,
-  "Simple RU → null",
-);
+console.assert(room.classify("напиши функцию сортировки") === null, "Simple RU → null");
 
 // ─── Test 2: classify() detects architecture questions ───
 
 const arch = room.classify("какой подход лучше — Redis или SQLite?");
 console.assert(arch !== null, "Architecture question → RoomConfig");
-console.assert(
-  arch!.category === "architecture",
-  `Expected architecture, got ${arch!.category}`,
-);
-console.assert(
-  arch!.agents.length === 3,
-  `Expected 3 agents, got ${arch!.agents.length}`,
-);
+console.assert(arch?.category === "architecture", `Expected architecture, got ${arch?.category}`);
+console.assert(arch?.agents.length === 3, `Expected 3 agents, got ${arch?.agents.length}`);
 
 // ─── Test 3: classify() detects review requests ──────────
 
 const review = room.classify("проверь этот код на баги");
 console.assert(review !== null, "Review request → RoomConfig");
+console.assert(review?.category === "review", `Expected review, got ${review?.category}`);
 console.assert(
-  review!.category === "review",
-  `Expected review, got ${review!.category}`,
-);
-console.assert(
-  review!.agents.length === 2,
-  `Expected 2 agents for review, got ${review!.agents.length}`,
+  review?.agents.length === 2,
+  `Expected 2 agents for review, got ${review?.agents.length}`,
 );
 
 // ─── Test 4: classify() detects explicit triggers ────────
@@ -94,15 +79,11 @@ console.assert(explicitEn !== null, "EN explicit trigger → RoomConfig");
 // ─── Test 5: Parallel dispatch → synthesis ───────────────
 
 chatCalls = [];
-const result = await room.run(
-  "Какой подход лучше для кеша?",
-  "We use SQLite.",
-  {
-    agents: ["coder", "critic", "generalist"],
-    category: "architecture",
-    timeout: 5000,
-  },
-);
+const result = await room.run("Какой подход лучше для кеша?", "We use SQLite.", {
+  agents: ["coder", "critic", "generalist"],
+  category: "architecture",
+  timeout: 5000,
+});
 
 // Should have 3 specialist calls + 1 synthesis call
 console.assert(
@@ -115,24 +96,15 @@ const calledModels = chatCalls.map((c) => c.model);
 console.assert(calledModels.includes("coder"), "Should call coder");
 console.assert(calledModels.includes("critic"), "Should call critic");
 console.assert(calledModels.includes("generalist"), "Should call generalist");
-console.assert(
-  calledModels.includes("teamlead"),
-  "Should call teamlead for synthesis",
-);
+console.assert(calledModels.includes("teamlead"), "Should call teamlead for synthesis");
 
 // Check synthesis result
 console.assert(
   result.synthesis === "Synthesized answer from team.",
   `Expected synthesis content, got: ${result.synthesis}`,
 );
-console.assert(
-  result.agentResponses.length === 3,
-  `Expected 3 agent responses`,
-);
-console.assert(
-  result.category === "architecture",
-  `Expected architecture category`,
-);
+console.assert(result.agentResponses.length === 3, `Expected 3 agent responses`);
+console.assert(result.category === "architecture", `Expected architecture category`);
 
 // ─── Test 6: Single valid response → skip synthesis ──────
 
@@ -144,9 +116,7 @@ const mockRouterPartial = {
     chatCalls.push({ model, messages: params.messages });
     if (model === "coder") return makeResponse("Only coder responded.");
     // Others timeout
-    return new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("timeout")), 100),
-    );
+    return new Promise<never>((_, reject) => setTimeout(() => reject(new Error("timeout")), 100));
   },
 } as any;
 
@@ -168,9 +138,7 @@ console.assert(
 chatCalls = [];
 const mockRouterTimeout = {
   chat: async () => {
-    return new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("timeout")), 50),
-    );
+    return new Promise<never>((_, reject) => setTimeout(() => reject(new Error("timeout")), 50));
   },
 } as any;
 
@@ -185,9 +153,7 @@ console.assert(
   result3.synthesis === "No responses received.",
   `Expected no responses fallback, got: ${result3.synthesis}`,
 );
-console.assert(
-  result3.agentResponses.every((r) => r.timedOut || r.content === ""),
-);
+console.assert(result3.agentResponses.every((r) => r.timedOut || r.content === ""));
 
 // ─── Test 8: Agent responses have latency data ──────────
 
@@ -243,7 +209,7 @@ process.env.SYNTHESIS_TIMEOUT_MS = "100";
 // Re-import to pick up the new env value (module-level const).
 // Re-import the type module so SYNTHESIS_TIMEOUT picks up the new env value.
 const { ArbitrationRoom: ArbitrationRoomT } = await import(
-  "../src/pipeline/arbitration/index.ts?t=" + Date.now()
+  `../src/pipeline/arbitration/index.ts?t=${Date.now()}`
 );
 
 chatCalls = [];
@@ -262,11 +228,11 @@ const mockRouterSlowSynth = {
 } as any;
 const roomSlowSynth = new ArbitrationRoomT(mockRouterSlowSynth);
 const t0 = Date.now();
-const result5 = await roomSlowSynth.run(
-  "Should we add locks?",
-  "",
-  { agents: ["coder", "critic"], category: "review", timeout: 1000 },
-);
+const result5 = await roomSlowSynth.run("Should we add locks?", "", {
+  agents: ["coder", "critic"],
+  category: "review",
+  timeout: 1000,
+});
 const elapsed = Date.now() - t0;
 console.assert(
   result5.synthesis.startsWith("⚠ Synthesis timed out"),

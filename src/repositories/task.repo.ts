@@ -39,8 +39,7 @@ export class TaskRepository {
     },
   ): TaskRow | null => this.memory.updateTask(id, fields);
 
-  transitionTask = (id: string, to: TaskStatus): TaskRow =>
-    this.memory.transitionTask(id, to);
+  transitionTask = (id: string, to: TaskStatus): TaskRow => this.memory.transitionTask(id, to);
 
   deleteTask = (id: string): boolean => this.memory.deleteTask(id);
 
@@ -63,9 +62,7 @@ export class TaskRepository {
       const remaining = limit - live.items.length;
       const digestOffset = Math.max(0, offset - live.total);
       const digests =
-        remaining > 0
-          ? this.memory.searchTaskDigests(sinceUnix, remaining, digestOffset)
-          : [];
+        remaining > 0 ? this.memory.searchTaskDigests(sinceUnix, remaining, digestOffset) : [];
       const digestTotal = this.memory.countTaskDigestsSince(sinceUnix);
       return {
         items: [

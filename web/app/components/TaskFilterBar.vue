@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { StatusFilter, TaskScope } from "~/types/task";
-import { TASK_SCOPES } from "~/types/task";
 
 defineProps<{
   scope?: TaskScope;

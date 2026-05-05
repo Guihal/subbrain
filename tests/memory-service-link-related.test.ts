@@ -9,8 +9,8 @@
  * MemoryDB + real RAGPipeline with a fakeEmbed-backed router stub, fresh DB
  * per test.
  */
-import { describe, test, expect, beforeEach, afterEach } from "bun:test";
-import { existsSync, unlinkSync, mkdirSync } from "fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { existsSync, mkdirSync, unlinkSync } from "node:fs";
 import { MemoryDB } from "../src/db";
 import { RAGPipeline } from "../src/rag";
 import { MemoryService } from "../src/services/memory";
@@ -41,7 +41,7 @@ function mkRouter() {
       rerank: async () => ({ results: [] }),
     },
     scheduleRaw: async (_p: string, fn: () => Promise<any>) => fn(),
-    chat: async () => ({ choices: [{ message: { content: "{\"contradicts\":[]}" } }] }),
+    chat: async () => ({ choices: [{ message: { content: '{"contradicts":[]}' } }] }),
   } as any;
 }
 
@@ -54,7 +54,9 @@ function mkThrowingRouter() {
       rerank: async () => ({ results: [] }),
     },
     scheduleRaw: async (_p: string, fn: () => Promise<any>) => fn(),
-    chat: async () => { throw new Error("router_down"); },
+    chat: async () => {
+      throw new Error("router_down");
+    },
   } as any;
 }
 
@@ -125,13 +127,7 @@ describe("M-13 MemoryService → linkRelated post-hook", () => {
   test("2. with linkDeps + memoryDb → relates edge to neighbour (shared)", async () => {
     seedShared("m13-2-seed", "epsilon zeta eta m13 link-shared", "a,b");
     const router = mkRouter();
-    const svc = new MemoryService(
-      memory.memoryRepo,
-      rag,
-      memory.logRepo,
-      memory,
-      { router, log },
-    );
+    const svc = new MemoryService(memory.memoryRepo, rag, memory.logRepo, memory, { router, log });
     const newId = await svc.insertShared({
       category: "preference",
       content: "epsilon zeta eta m13 link-shared plus theta",
@@ -150,13 +146,7 @@ describe("M-13 MemoryService → linkRelated post-hook", () => {
   test("3. tag evolution propagates through service (M-05.1 chain)", async () => {
     seedShared("m13-3-seed", "iota kappa lambda m13 evolve", "a,b");
     const router = mkRouter();
-    const svc = new MemoryService(
-      memory.memoryRepo,
-      rag,
-      memory.logRepo,
-      memory,
-      { router, log },
-    );
+    const svc = new MemoryService(memory.memoryRepo, rag, memory.logRepo, memory, { router, log });
     await svc.insertShared({
       category: "preference",
       content: "iota kappa lambda m13 evolve plus mu",
@@ -176,13 +166,7 @@ describe("M-13 MemoryService → linkRelated post-hook", () => {
     // Throwing router → contradiction LLM call inside linkRelated will throw,
     // but linkRelated's own try/catch + service-level try/catch swallow it.
     const router = mkThrowingRouter();
-    const svc = new MemoryService(
-      memory.memoryRepo,
-      rag,
-      memory.logRepo,
-      memory,
-      { router, log },
-    );
+    const svc = new MemoryService(memory.memoryRepo, rag, memory.logRepo, memory, { router, log });
     const newId = await svc.insertShared({
       category: "preference",
       content: "nu xi omicron m13 throw plus pi",
@@ -206,13 +190,7 @@ describe("M-13 MemoryService → linkRelated post-hook", () => {
   test("5. insertContext same wiring → relates edge to context neighbour", async () => {
     seedContext("m13-5-seed", "rho sigma tau m13 ctx-link", "a,b");
     const router = mkRouter();
-    const svc = new MemoryService(
-      memory.memoryRepo,
-      rag,
-      memory.logRepo,
-      memory,
-      { router, log },
-    );
+    const svc = new MemoryService(memory.memoryRepo, rag, memory.logRepo, memory, { router, log });
     const newId = await svc.insertContext({
       title: "ctx-test",
       content: "rho sigma tau m13 ctx-link plus upsilon",

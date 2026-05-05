@@ -4,14 +4,10 @@
  * returned `capHit` so the orchestrator can refuse to advance the focus key
  * (skipped tail will be re-scanned next cycle).
  */
-import { randomUUID } from "crypto";
+import { randomUUID } from "node:crypto";
 import type { MemoryDB } from "../../../../db";
 import { logger } from "../../../../lib/logger";
-import {
-  type CandidateRow,
-  type Classifier,
-  classifyCandidate,
-} from "../tasks-classify";
+import { type CandidateRow, type Classifier, classifyCandidate } from "../tasks-classify";
 import { MAX_DURATION_MS, MAX_PER_CYCLE } from "./constants";
 
 const log = logger.child("night.stray");
@@ -47,9 +43,7 @@ export async function classifyAndUpsert(
     try {
       result = await classifyCandidate(router, row);
     } catch (err) {
-      log.warn(
-        `classify row=${row.id.slice(0, 8)} failed: ${(err as Error).message}`,
-      );
+      log.warn(`classify row=${row.id.slice(0, 8)} failed: ${(err as Error).message}`);
       continue;
     }
     if (!result || result.action !== "migrate") continue;
@@ -74,13 +68,9 @@ export async function classifyAndUpsert(
         }
       });
       migrated += 1;
-      log.info(
-        `migrated ${row.source_table}:${row.id.slice(0, 8)} scope=${result.scope}`,
-      );
+      log.info(`migrated ${row.source_table}:${row.id.slice(0, 8)} scope=${result.scope}`);
     } catch (err) {
-      log.warn(
-        `tx row=${row.id.slice(0, 8)} failed: ${(err as Error).message}`,
-      );
+      log.warn(`tx row=${row.id.slice(0, 8)} failed: ${(err as Error).message}`);
     }
   }
 

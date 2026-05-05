@@ -118,9 +118,7 @@ export class LogTable {
   /** M-04.1: count of vec_embeddings rows with layer='log' (for cap math). */
   countLogEmbeddings(): number {
     const row = this.db
-      .query<{ c: number }, []>(
-        "SELECT count(*) AS c FROM vec_embeddings WHERE layer='log'",
-      )
+      .query<{ c: number }, []>("SELECT count(*) AS c FROM vec_embeddings WHERE layer='log'")
       .get();
     return row?.c ?? 0;
   }
@@ -192,9 +190,7 @@ export class LogTable {
 
   countDistinctSessions(): number {
     const row = this.db
-      .query<{ count: number }, []>(
-        "SELECT COUNT(DISTINCT session_id) as count FROM layer4_log",
-      )
+      .query<{ count: number }, []>("SELECT COUNT(DISTINCT session_id) as count FROM layer4_log")
       .get();
     return row?.count ?? 0;
   }

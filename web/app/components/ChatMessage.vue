@@ -22,9 +22,7 @@ watch(
 
 const renderedContent = computed(() => {
   // Strip any residual <think> tags that weren't extracted during streaming
-  const clean = props.message.content
-    .replace(/<think>[\s\S]*?<\/think>/g, "")
-    .trim();
+  const clean = props.message.content.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
   return render(clean);
 });
 const renderedReasoning = computed(() =>

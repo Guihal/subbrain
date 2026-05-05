@@ -11,16 +11,14 @@ function peerToId(peerId: unknown): string {
     chatId?: { toString(): string };
     userId?: { toString(): string };
   };
-  return (
-    p?.channelId?.toString() ||
-    p?.chatId?.toString() ||
-    p?.userId?.toString() ||
-    ""
-  );
+  return p?.channelId?.toString() || p?.chatId?.toString() || p?.userId?.toString() || "";
 }
 
 function resolveChatName(
-  result: { chats?: { id?: { toString(): string }; title?: string }[]; users?: { id?: { toString(): string }; firstName?: string }[] },
+  result: {
+    chats?: { id?: { toString(): string }; title?: string }[];
+    users?: { id?: { toString(): string }; firstName?: string }[];
+  },
   peerId: string,
 ): string {
   if (Array.isArray(result.chats)) {

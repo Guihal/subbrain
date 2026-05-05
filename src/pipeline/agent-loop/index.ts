@@ -3,28 +3,28 @@
  * `step.ts`, tool dispatch in `tool-dispatch.ts`, persistence in `persist.ts`.
  */
 import type { MemoryDB } from "../../db";
+import type { Metrics } from "../../lib/metrics";
 import type { ModelRouter } from "../../lib/model-router";
-import type { RAGPipeline } from "../../rag";
 import type { ToolExecutor, ToolRegistry } from "../../mcp";
 import type { Tool } from "../../providers/types";
-import type { Metrics } from "../../lib/metrics";
-import type { ArbitrationRoom } from "../arbitration";
-import type { AgentLoopRequest, AgentLoopResult, AgentMode } from "./types";
-import { DynamicToolRegistry } from "./dynamic-tools";
-import { CodeToolRegistry } from "./code-tools";
+import type { RAGPipeline } from "../../rag";
 import { CodeToolsRepository } from "../../repositories/code-tools.repo";
+import type { ArbitrationRoom } from "../arbitration";
+import { CodeToolRegistry } from "./code-tools";
+import { DynamicToolRegistry } from "./dynamic-tools";
 import { loadPersistedDynamicTools, persistDynamicTools } from "./persist";
 import { runLoop } from "./run";
-import { runStreamLoop } from "./stream";
 import type { AgentLoopDeps } from "./shared";
+import { runStreamLoop } from "./stream";
+import type { AgentLoopRequest, AgentLoopResult, AgentMode } from "./types";
 
-export { DynamicToolRegistry } from "./dynamic-tools";
-export type { DynamicToolDef } from "./dynamic-tools";
 export { CodeToolRegistry } from "./code-tools";
+export type { DynamicToolDef } from "./dynamic-tools";
+export { DynamicToolRegistry } from "./dynamic-tools";
 export type {
   AgentLoopRequest,
-  AgentLoopStep,
   AgentLoopResult,
+  AgentLoopStep,
   AgentMode,
 } from "./types";
 
@@ -44,8 +44,12 @@ export class AgentLoop {
     loadPersistedDynamicTools(memory, this.dynamicTools);
   }
 
-  setMetrics(_m: Metrics): void {/* reserved */}
-  setRoom(room: ArbitrationRoom): void { this.room = room; }
+  setMetrics(_m: Metrics): void {
+    /* reserved */
+  }
+  setRoom(room: ArbitrationRoom): void {
+    this.room = room;
+  }
 
   run(req: AgentLoopRequest): Promise<AgentLoopResult> {
     return runLoop(this.deps(), req);

@@ -1,5 +1,5 @@
-import { describe, test, expect } from "bun:test";
-import { getMoscowNow, getMoscowDate } from "../src/lib/clock";
+import { describe, expect, test } from "bun:test";
+import { getMoscowDate, getMoscowNow } from "../src/lib/clock";
 
 describe("clock", () => {
   test("formats UTC 11:30 as MSK 14:30", () => {
@@ -14,9 +14,7 @@ describe("clock", () => {
   });
 
   test("current output matches expected shape", () => {
-    expect(getMoscowNow()).toMatch(
-      /^\d{4}-\d{2}-\d{2} \d{2}:\d{2} MSK \(UTC\+3\)$/,
-    );
+    expect(getMoscowNow()).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2} MSK \(UTC\+3\)$/);
   });
 
   test("getMoscowDate returns YYYY-MM-DD", () => {

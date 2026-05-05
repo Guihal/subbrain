@@ -33,7 +33,11 @@ const IMPORT_RE = /^\s*import\s+(type\s+)?[\s\S]*?from\s+["'](\.[^"']+)["']/gm;
 
 function walk(dir: string, out: string[] = []): string[] {
   let entries: string[];
-  try { entries = readdirSync(dir); } catch { return out; }
+  try {
+    entries = readdirSync(dir);
+  } catch {
+    return out;
+  }
   for (const entry of entries) {
     if (SKIP_DIRS.has(entry)) continue;
     const full = join(dir, entry);
@@ -106,9 +110,13 @@ for (const root of SCAN) {
 if (violations.length > 0) {
   console.error(`✗ ${violations.length} deep-import violation(s):`);
   for (const v of violations) {
-    console.error(`  ${v.file}:${v.line} → "${v.importPath}" (target: ${v.target}; use parent index.ts)`);
+    console.error(
+      `  ${v.file}:${v.line} → "${v.importPath}" (target: ${v.target}; use parent index.ts)`,
+    );
   }
-  console.error(`\nFix: import from the folder's index.ts (single public entry), or use \`import type\` if compile-time only.`);
+  console.error(
+    `\nFix: import from the folder's index.ts (single public entry), or use \`import type\` if compile-time only.`,
+  );
   if (strict) process.exit(1);
   console.error("(STRICT_FILE_RULES=0 — warn-only)");
 } else {

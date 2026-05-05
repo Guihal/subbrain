@@ -8,12 +8,12 @@
  * integration test.
  */
 
-import { describe, test, expect } from "bun:test";
-import { MemoryDB } from "../src/db";
-import { Metrics } from "../src/lib/metrics";
-import { unlinkSync } from "fs";
+import { describe, expect, test } from "bun:test";
+import { unlinkSync } from "node:fs";
 import { createApp } from "../src/app/bootstrap";
 import type { AppDeps } from "../src/app/deps";
+import { MemoryDB } from "../src/db";
+import { Metrics } from "../src/lib/metrics";
 import { AuthService } from "../src/services/auth.service";
 
 const TEST_DB = "data/test-bootstrap.db";

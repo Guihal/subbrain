@@ -1,4 +1,4 @@
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import {
   makeThinkSplitter,
   splitThinkTagsOnce,
@@ -124,17 +124,13 @@ describe("transformThinkTags — SSE stream rewriter", () => {
   }
 
   test("passes through [DONE] and non-data lines untouched", async () => {
-    const input = [
-      ": ping\n\n",
-      dataLine({ content: "hi" }),
-      "data: [DONE]\n\n",
-    ];
+    const input = [": ping\n\n", dataLine({ content: "hi" }), "data: [DONE]\n\n"];
     const out = await readAll(transformThinkTags(toStream(input)));
     expect(out).toContain(": ping\n\n");
     expect(out).toContain("data: [DONE]\n\n");
     const dataLines = out.split("\n").filter((l) => l.startsWith("data: {"));
     expect(dataLines.length).toBe(1);
-    const parsed = JSON.parse(dataLines[0]!.slice(6));
+    const parsed = JSON.parse(dataLines[0]?.slice(6));
     expect(parsed.choices[0].delta.content).toBe("hi");
     expect(parsed.choices[0].delta.reasoning_content).toBeUndefined();
   });
@@ -143,17 +139,17 @@ describe("transformThinkTags — SSE stream rewriter", () => {
     const input = [dataLine({ content: "vis <think>reason</think>end" })];
     const out = await readAll(transformThinkTags(toStream(input)));
     const parsed = JSON.parse(
-      out.split("\n").filter((l) => l.startsWith("data: {"))[0]!.slice(6),
+      out
+        .split("\n")
+        .filter((l) => l.startsWith("data: {"))[0]
+        ?.slice(6),
     );
     expect(parsed.choices[0].delta.content).toBe("vis end");
     expect(parsed.choices[0].delta.reasoning_content).toBe("reason");
   });
 
   test("partial tag straddles SSE frames", async () => {
-    const input = [
-      dataLine({ content: "open<thi" }),
-      dataLine({ content: "nk>mid</think>tail" }),
-    ];
+    const input = [dataLine({ content: "open<thi" }), dataLine({ content: "nk>mid</think>tail" })];
     const out = await readAll(transformThinkTags(toStream(input)));
     const chunks = out
       .split("\n")
@@ -168,12 +164,13 @@ describe("transformThinkTags — SSE stream rewriter", () => {
   });
 
   test("merges with existing reasoning_content field", async () => {
-    const input = [
-      dataLine({ content: "<think>inline</think>", reasoning_content: "pre-" }),
-    ];
+    const input = [dataLine({ content: "<think>inline</think>", reasoning_content: "pre-" })];
     const out = await readAll(transformThinkTags(toStream(input)));
     const parsed = JSON.parse(
-      out.split("\n").filter((l) => l.startsWith("data: {"))[0]!.slice(6),
+      out
+        .split("\n")
+        .filter((l) => l.startsWith("data: {"))[0]
+        ?.slice(6),
     );
     expect(parsed.choices[0].delta.content).toBe("");
     expect(parsed.choices[0].delta.reasoning_content).toBe("pre-inline");
@@ -185,7 +182,10 @@ describe("transformThinkTags — SSE stream rewriter", () => {
     const input = [full.slice(0, mid), full.slice(mid)];
     const out = await readAll(transformThinkTags(toStream(input)));
     const parsed = JSON.parse(
-      out.split("\n").filter((l) => l.startsWith("data: {"))[0]!.slice(6),
+      out
+        .split("\n")
+        .filter((l) => l.startsWith("data: {"))[0]
+        ?.slice(6),
     );
     expect(parsed.choices[0].delta.content).toBe("ac");
     expect(parsed.choices[0].delta.reasoning_content).toBe("b");

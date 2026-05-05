@@ -10,10 +10,8 @@
  * Float32Array vectors (sqlite-vec returns L2 on un-normalised vectors).
  */
 import type { MemoryDB } from "../../db";
+import { MEMORY_DEDUP_MODE_BY_CATEGORY } from "../../pipeline/agent-pipeline/post/validators";
 import type { RAGPipeline } from "../../rag";
-import {
-  MEMORY_DEDUP_MODE_BY_CATEGORY,
-} from "../../pipeline/agent-pipeline/post/validators";
 
 const EMBED_TIMEOUT_MS = 5000;
 const VEC_TOP = 3;
@@ -31,7 +29,9 @@ export interface DedupResult {
 }
 
 function cosineSimilarity(a: Float32Array, b: Float32Array): number {
-  let dot = 0, na = 0, nb = 0;
+  let dot = 0,
+    na = 0,
+    nb = 0;
   const len = Math.min(a.length, b.length);
   for (let i = 0; i < len; i++) {
     dot += a[i] * b[i];
@@ -59,7 +59,7 @@ export async function checkDuplicate(
   // Embed candidate (reuse if provided).
   let vec: Float32Array;
   try {
-    vec = embedding ?? await rag.embedContent(content, AbortSignal.timeout(EMBED_TIMEOUT_MS));
+    vec = embedding ?? (await rag.embedContent(content, AbortSignal.timeout(EMBED_TIMEOUT_MS)));
   } catch {
     // Embed unavailable → skip dedup, let write proceed.
     return { action: "fresh" };
@@ -106,7 +106,8 @@ export async function checkDuplicate(
     } else {
       // supersede mode
       if (sim >= SUPERSEDE_REJECT_COSINE) return { action: "reject", similarity: sim };
-      if (sim >= SUPERSEDE_ARCHIVE_COSINE) return { action: "supersede", supersedesId: c.id, similarity: sim };
+      if (sim >= SUPERSEDE_ARCHIVE_COSINE)
+        return { action: "supersede", supersedesId: c.id, similarity: sim };
     }
   }
 

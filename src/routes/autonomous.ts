@@ -1,7 +1,7 @@
 import { Elysia, t } from "elysia";
-import type { AgentService } from "../services/agent.service";
 import type { MemoryDB } from "../db";
 import { sseResponse } from "../lib/sse";
+import type { AgentService } from "../services/agent.service";
 import { sanitizeAgentId } from "../services/chat";
 
 /**

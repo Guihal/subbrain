@@ -44,9 +44,7 @@ function bumpAccessEnabled(): boolean {
 export function applyPersonaBoost(results: RAGResult[]): RAGResult[] {
   if (results.length === 0) return results;
   const boosted = results.map((r) =>
-    r.layer === "shared" && r.kind === "persona"
-      ? { ...r, score: r.score * PERSONA_BOOST }
-      : r,
+    r.layer === "shared" && r.kind === "persona" ? { ...r, score: r.score * PERSONA_BOOST } : r,
   );
   boosted.sort((a, b) => b.score - a.score);
   return boosted;

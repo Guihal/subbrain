@@ -103,7 +103,11 @@ function lookupCap(rel: string): number {
 
 function walk(dir: string, out: string[] = []): string[] {
   let entries: string[];
-  try { entries = readdirSync(dir); } catch { return out; }
+  try {
+    entries = readdirSync(dir);
+  } catch {
+    return out;
+  }
   for (const entry of entries) {
     if (SKIP_DIRS.has(entry)) continue;
     const full = join(dir, entry);
@@ -139,7 +143,9 @@ if (violations.length > 0) {
   for (const v of violations.sort((a, b) => b.lines - a.lines)) {
     console.error(`  ${v.path}: ${v.lines} > ${v.cap}`);
   }
-  console.error(`\nFix: split file or request whitelist entry via PR. See SKILL.md §1 + docs/tasks/refactor/28-file-size-150-limit.md`);
+  console.error(
+    `\nFix: split file or request whitelist entry via PR. See SKILL.md §1 + docs/tasks/refactor/28-file-size-150-limit.md`,
+  );
   if (strict) process.exit(1);
   console.error("(STRICT_FILE_RULES=0 — warn-only)");
 } else {

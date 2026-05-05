@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import type { MemoryRow, MemoryTab } from "~/composables/useMemory";
-
 const memory = useMemory();
 const {
   activeTab,

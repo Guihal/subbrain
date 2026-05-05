@@ -1,11 +1,7 @@
-import { Database } from "bun:sqlite";
+import type { Database } from "bun:sqlite";
 import type { ContextRow, MemoryStatus } from "../../types";
 import { updateRow } from "../update-row";
-import {
-  buildActiveFilter,
-  CONTEXT_UPDATABLE,
-  type InsertContextOpts,
-} from "./helpers";
+import { buildActiveFilter, CONTEXT_UPDATABLE, type InsertContextOpts } from "./helpers";
 
 export function insertContext(
   db: Database,
@@ -53,9 +49,7 @@ export function updateContext(
 }
 
 export function getContext(db: Database, id: string): ContextRow | null {
-  return db
-    .query("SELECT * FROM layer2_context WHERE id = ?")
-    .get(id) as ContextRow | null;
+  return db.query("SELECT * FROM layer2_context WHERE id = ?").get(id) as ContextRow | null;
 }
 
 /**
@@ -72,27 +66,17 @@ export function getContextMany(
   if (ids.length === 0) return [];
   const placeholders = ids.map(() => "?").join(",");
   const filter = buildActiveFilter("layer2_context", opts);
-  const agentFilter = opts?.agentId
-    ? " AND (agent_id = ? OR agent_id IS NULL)"
-    : "";
+  const agentFilter = opts?.agentId ? " AND (agent_id = ? OR agent_id IS NULL)" : "";
   const params: (string | number)[] = [...ids];
   if (opts?.agentId) params.push(opts.agentId);
   return db
-    .query(
-      `SELECT * FROM layer2_context WHERE id IN (${placeholders})${filter}${agentFilter}`,
-    )
+    .query(`SELECT * FROM layer2_context WHERE id IN (${placeholders})${filter}${agentFilter}`)
     .all(...params) as ContextRow[];
 }
 
-export function listContext(
-  db: Database,
-  limit = 50,
-  offset = 0,
-): ContextRow[] {
+export function listContext(db: Database, limit = 50, offset = 0): ContextRow[] {
   return db
-    .query(
-      "SELECT * FROM layer2_context ORDER BY updated_at DESC LIMIT ? OFFSET ?",
-    )
+    .query("SELECT * FROM layer2_context ORDER BY updated_at DESC LIMIT ? OFFSET ?")
     .all(limit, offset) as ContextRow[];
 }
 
@@ -113,17 +97,13 @@ export function listContextActive(
     )
     .all(limit, offset) as ContextRow[];
   const totalRow = db
-    .query(
-      `SELECT COUNT(*) AS c FROM layer2_context WHERE 1=1 ${filter}`,
-    )
+    .query(`SELECT COUNT(*) AS c FROM layer2_context WHERE 1=1 ${filter}`)
     .get() as { c: number };
   return { items, total: totalRow.c };
 }
 
 export function countContext(db: Database): number {
-  const row = db
-    .query("SELECT COUNT(*) AS c FROM layer2_context")
-    .get() as { c: number };
+  const row = db.query("SELECT COUNT(*) AS c FROM layer2_context").get() as { c: number };
   return row.c;
 }
 

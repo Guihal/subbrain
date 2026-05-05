@@ -1,18 +1,8 @@
-/**
- * M-05/M-05.1/M-05.2: post-insert edge hook.
- *  - M-05 (mig 14): top-N `relates` edges to same-layer vec neighbours.
- *  - M-05.1: merge inserted tags into drawn neighbours' CSV (no LLM).
- *  - M-05.2: one LLM call; verdicts ≥ threshold draw `contradicts` edges
- *    (weight = LLM confidence). Default OFF; best-effort.
- *
- * Env (call-time): LINK_EVOLVE_TAGS_ENABLED (def "true"), LINK_EVOLVE_MAX_TAGS
- * (10), LINK_CONTRADICT_ENABLED (def "false"), LINK_CONTRADICT_MIN_CONF (0.7),
- * CONTRADICT_MODEL_ROLE (def "memory").
- */
+/** M-05/M-05.1/M-05.2: post-insert edge hook. See docs/completed/05-rag-pipeline.md. */
 import type { MemoryDB } from "../../../db";
-import type { RAGPipeline } from "../../../rag";
-import type { ModelRouter } from "../../../lib/model-router";
 import type { RequestLogger } from "../../../lib/logger";
+import type { ModelRouter } from "../../../lib/model-router";
+import type { RAGPipeline } from "../../../rag";
 
 export const LINK_RELATED_TOP_N = 3;
 
@@ -28,8 +18,7 @@ function maxTags(): number {
   return Number.isFinite(n) && n > 0 ? n : MAX_TAGS_DEFAULT;
 }
 
-const detectEnabled = (): boolean =>
-  process.env.LINK_CONTRADICT_ENABLED?.toLowerCase() === "true";
+const detectEnabled = (): boolean => process.env.LINK_CONTRADICT_ENABLED?.toLowerCase() === "true";
 
 function minConf(): number {
   const n = Number.parseFloat(process.env.LINK_CONTRADICT_MIN_CONF ?? "");
@@ -41,13 +30,20 @@ const contradictModel = (): string => process.env.CONTRADICT_MODEL_ROLE ?? "memo
 /** Exported CSV splitter — caller-side use in `extractors.ts`. */
 export function parseTagsCsv(csv: string): string[] {
   if (!csv) return [];
-  return csv.split(",").map((t) => t.trim()).filter((t) => t.length > 0);
+  return csv
+    .split(",")
+    .map((t) => t.trim())
+    .filter((t) => t.length > 0);
 }
 
 function mergeUnique(a: string[], b: string[], cap: number): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
-  for (const t of [...a, ...b]) if (!seen.has(t)) { seen.add(t); out.push(t); }
+  for (const t of [...a, ...b])
+    if (!seen.has(t)) {
+      seen.add(t);
+      out.push(t);
+    }
   // Tail-truncate: drop oldest when over cap.
   return out.length > cap ? out.slice(out.length - cap) : out;
 }
@@ -68,9 +64,7 @@ function evolveNeighbour(
 ): void {
   if (insertedTags.length === 0) return;
   const row =
-    neighbourLayer === "context"
-      ? memory.getContext(neighbourId)
-      : memory.getShared(neighbourId);
+    neighbourLayer === "context" ? memory.getContext(neighbourId) : memory.getShared(neighbourId);
   if (!row) return; // deleted mid-flight.
   const currentTags = parseTagsCsv(row.tags ?? "");
   const merged = mergeUnique(currentTags, insertedTags, cap);
@@ -80,8 +74,15 @@ function evolveNeighbour(
   else memory.updateShared(neighbourId, { tags: csv });
 }
 
-interface ContradictionCandidate { id: string; layer: "context" | "shared"; content: string }
-interface ContradictionVerdict { id: string; confidence: number }
+interface ContradictionCandidate {
+  id: string;
+  layer: "context" | "shared";
+  content: string;
+}
+interface ContradictionVerdict {
+  id: string;
+  confidence: number;
+}
 
 /** Best-effort LLM call. Bad JSON / throw / non-array → `[]` + warn. */
 async function detectContradictions(
@@ -92,7 +93,7 @@ async function detectContradictions(
 ): Promise<ContradictionVerdict[]> {
   const sys =
     "You detect direct contradictions between memory snippets. " +
-    "Reply ONLY in JSON: {\"contradicts\":[{\"id\":\"<id>\",\"confidence\":0.0-1.0}]}. " +
+    'Reply ONLY in JSON: {"contradicts":[{"id":"<id>","confidence":0.0-1.0}]}. ' +
     "Empty array if no contradiction. Do NOT explain. " +
     "A contradiction means the new fact directly negates a candidate (opposite preference, " +
     "reversed decision, conflicting attribute). Loose-relatedness is NOT contradiction.";
@@ -105,7 +106,10 @@ async function detectContradictions(
     const resp = await router.chat(
       contradictModel(),
       {
-        messages: [{ role: "system", content: sys }, { role: "user", content: user }],
+        messages: [
+          { role: "system", content: sys },
+          { role: "user", content: user },
+        ],
         temperature: 0.0,
         max_tokens: 256,
       },
@@ -113,10 +117,12 @@ async function detectContradictions(
     );
     raw = resp.choices[0]?.message?.content ?? "";
   } catch (err) {
-    log.warn("post.extractors", `detectContradictions LLM call failed: ${err instanceof Error ? err.message : String(err)}`);
+    log.warn(
+      "post.extractors",
+      `detectContradictions LLM call failed: ${err instanceof Error ? err.message : String(err)}`,
+    );
     return [];
   }
-
   const first = raw.indexOf("{");
   const last = raw.lastIndexOf("}");
   if (first < 0 || last <= first) {
@@ -127,7 +133,10 @@ async function detectContradictions(
   try {
     parsed = JSON.parse(raw.slice(first, last + 1));
   } catch (err) {
-    log.warn("post.extractors", `detectContradictions JSON.parse failed: ${err instanceof Error ? err.message : String(err)}`);
+    log.warn(
+      "post.extractors",
+      `detectContradictions JSON.parse failed: ${err instanceof Error ? err.message : String(err)}`,
+    );
     return [];
   }
   const arr = (parsed as { contradicts?: unknown })?.contradicts;
@@ -171,15 +180,15 @@ export async function linkRelated(
       try {
         memory.linkEdge(insertedId, layer, n.id, n.layer, "relates", 1.0);
         drawn++;
-        if (n.layer === "context" || n.layer === "shared") {
+        if (n.layer === "context" || n.layer === "shared")
           drawnNeighbours.push({ id: n.id, layer: n.layer });
-        }
       } catch (err) {
-        log.warn("post.extractors", `linkRelated edge insert failed: ${err instanceof Error ? err.message : String(err)}`);
+        log.warn(
+          "post.extractors",
+          `linkRelated edge insert failed: ${err instanceof Error ? err.message : String(err)}`,
+        );
         continue;
       }
-      // M-05.1: best-effort tag evolution. RAG scoped to `[layer]` → n.layer
-      // is guaranteed context|shared (narrow for TS).
       if (
         insertedTags.length > 0 &&
         evolveEnabled() &&
@@ -188,12 +197,18 @@ export async function linkRelated(
         try {
           evolveNeighbour(memory, n.id, n.layer, insertedTags, maxTags());
         } catch (err) {
-          log.warn("post.extractors", `evolveNeighbour failed for ${n.id}: ${err instanceof Error ? err.message : String(err)}`);
+          log.warn(
+            "post.extractors",
+            `evolveNeighbour failed for ${n.id}: ${err instanceof Error ? err.message : String(err)}`,
+          );
         }
       }
     }
   } catch (err) {
-    log.warn("post.extractors", `linkRelated failed for ${insertedId}: ${err instanceof Error ? err.message : String(err)}`);
+    log.warn(
+      "post.extractors",
+      `linkRelated failed for ${insertedId}: ${err instanceof Error ? err.message : String(err)}`,
+    );
   }
 
   // M-05.2: contradiction detection (default off; one LLM call vs drawnNeighbours).
@@ -201,8 +216,7 @@ export async function linkRelated(
   try {
     const candidates: ContradictionCandidate[] = [];
     for (const n of drawnNeighbours) {
-      const row =
-        n.layer === "context" ? memory.getContext(n.id) : memory.getShared(n.id);
+      const row = n.layer === "context" ? memory.getContext(n.id) : memory.getShared(n.id);
       if (!row) continue; // deleted mid-flight.
       candidates.push({ id: n.id, layer: n.layer, content: row.content });
     }
@@ -216,10 +230,16 @@ export async function linkRelated(
       try {
         memory.linkEdge(insertedId, layer, cand.id, cand.layer, "contradicts", v.confidence);
       } catch (err) {
-        log.warn("post.extractors", `contradiction edge insert failed for ${cand.id}: ${err instanceof Error ? err.message : String(err)}`);
+        log.warn(
+          "post.extractors",
+          `contradiction edge insert failed for ${cand.id}: ${err instanceof Error ? err.message : String(err)}`,
+        );
       }
     }
   } catch (err) {
-    log.warn("post.extractors", `detectContradictions failed for ${insertedId}: ${err instanceof Error ? err.message : String(err)}`);
+    log.warn(
+      "post.extractors",
+      `detectContradictions failed for ${insertedId}: ${err instanceof Error ? err.message : String(err)}`,
+    );
   }
 }

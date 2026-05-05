@@ -1,6 +1,6 @@
-import { Database } from "bun:sqlite";
-import type { TgMessageRow, TgSearchHit } from "../types";
+import type { Database } from "bun:sqlite";
 import { sanitizeFtsQuery } from "../../lib/fts-utils";
+import type { TgMessageRow, TgSearchHit } from "../types";
 
 export interface TgMessageInsert {
   message_id: number;
@@ -27,14 +27,7 @@ export class TgMessagesTable {
       .query(
         "INSERT OR IGNORE INTO tg_messages (message_id, chat_id, chat_name, from_name, ts, text) VALUES (?, ?, ?, ?, ?, ?)",
       )
-      .run(
-        msg.message_id,
-        msg.chat_id,
-        msg.chat_name ?? "",
-        msg.from_name ?? "",
-        msg.ts,
-        msg.text,
-      );
+      .run(msg.message_id, msg.chat_id, msg.chat_name ?? "", msg.from_name ?? "", msg.ts, msg.text);
   }
 
   insertMany(rows: TgMessageInsert[]): number {
@@ -49,9 +42,7 @@ export class TgMessagesTable {
   }
 
   count(): number {
-    const row = this.db
-      .query("SELECT COUNT(*) AS c FROM tg_messages")
-      .get() as { c: number };
+    const row = this.db.query("SELECT COUNT(*) AS c FROM tg_messages").get() as { c: number };
     return row.c;
   }
 
@@ -99,9 +90,7 @@ export class TgMessagesTable {
 
   recentByChat(chatId: string, limit = 50): TgMessageRow[] {
     return this.db
-      .query(
-        "SELECT * FROM tg_messages WHERE chat_id = ? ORDER BY ts DESC LIMIT ?",
-      )
+      .query("SELECT * FROM tg_messages WHERE chat_id = ? ORDER BY ts DESC LIMIT ?")
       .all(chatId, limit) as TgMessageRow[];
   }
 }

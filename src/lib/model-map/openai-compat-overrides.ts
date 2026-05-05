@@ -32,9 +32,7 @@ export function applyOpenAICompatOverrides(
     if (enabled) {
       if (cur.primaryProvider === "openai-compat") continue;
       if (!cur.primaryProvider) {
-        throw new Error(
-          `applyOpenAICompatOverrides: role "${role}" has no primaryProvider`,
-        );
+        throw new Error(`applyOpenAICompatOverrides: role "${role}" has no primaryProvider`);
       }
       snapshots[role] = { ...cur };
       map[role] = {

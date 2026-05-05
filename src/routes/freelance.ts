@@ -4,21 +4,14 @@
  */
 import { Elysia, t } from "elysia";
 import type { MemoryDB } from "../db";
-import type { FreelanceScout } from "../scheduler/freelance";
 import type { FreelanceStatus } from "../db/types";
 import { paginate } from "../lib/api-envelope";
 import { NotFoundError } from "../lib/errors";
+import type { FreelanceScout } from "../scheduler/freelance";
 
-const STATUS_VALUES = t.Union([
-  t.Literal("new"),
-  t.Literal("taken"),
-  t.Literal("rejected"),
-]);
+const STATUS_VALUES = t.Union([t.Literal("new"), t.Literal("taken"), t.Literal("rejected")]);
 
-export function freelanceRoute(
-  memory: MemoryDB,
-  scout: FreelanceScout | null,
-) {
+export function freelanceRoute(memory: MemoryDB, scout: FreelanceScout | null) {
   return new Elysia({ prefix: "/v1/search/freelance" })
     .post("/start", () => {
       if (!scout) return { ok: false, error: "scout not configured" };
@@ -42,19 +35,15 @@ export function freelanceRoute(
       }
       return scout.status();
     })
-    .get(
-      "/leads",
-      ({ query }) => {
-        const status =
-          typeof query.status === "string" &&
-          ["new", "taken", "rejected"].includes(query.status)
-            ? (query.status as FreelanceStatus)
-            : undefined;
-        return paginate((limit, offset) => {
-          return memory.listFreelanceLeads({ status, limit, offset });
-        }, query);
-      },
-    )
+    .get("/leads", ({ query }) => {
+      const status =
+        typeof query.status === "string" && ["new", "taken", "rejected"].includes(query.status)
+          ? (query.status as FreelanceStatus)
+          : undefined;
+      return paginate((limit, offset) => {
+        return memory.listFreelanceLeads({ status, limit, offset });
+      }, query);
+    })
     .patch(
       "/leads/:id",
       ({ params, body }) => {

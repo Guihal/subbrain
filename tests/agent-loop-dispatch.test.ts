@@ -1,8 +1,5 @@
-import { describe, test, expect } from "bun:test";
-import {
-  normalizeToolCalls,
-  type NormalizedCall,
-} from "../src/pipeline/agent-loop/tool-dispatch";
+import { describe, expect, test } from "bun:test";
+import { type NormalizedCall, normalizeToolCalls } from "../src/pipeline/agent-loop/tool-dispatch";
 
 describe("normalizeToolCalls", () => {
   test("OpenAI flavor: {id, function:{name, arguments}}", () => {
@@ -49,12 +46,7 @@ describe("normalizeToolCalls", () => {
   });
 
   test("ignores junk / missing fields", () => {
-    const got = normalizeToolCalls([
-      null,
-      {},
-      { function: {} },
-      { type: "tool_use" },
-    ]);
+    const got = normalizeToolCalls([null, {}, { function: {} }, { type: "tool_use" }]);
     expect(got).toEqual([]);
   });
 
@@ -65,9 +57,7 @@ describe("normalizeToolCalls", () => {
   });
 
   test("Anthropic input without args → '{}'", () => {
-    const got = normalizeToolCalls([
-      { type: "tool_use", id: "x", name: "ping" },
-    ]);
+    const got = normalizeToolCalls([{ type: "tool_use", id: "x", name: "ping" }]);
     expect(got).toEqual([{ id: "x", name: "ping", args: "{}" }]);
   });
 });

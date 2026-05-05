@@ -1,7 +1,7 @@
-import { randomUUID } from "crypto";
+import { randomUUID } from "node:crypto";
 import type { MemoryDB } from "../../db";
 import type { TelegramBot } from "../../telegram/bot";
-import type { FeedItem, EvaluatedLead } from "./types";
+import type { EvaluatedLead, FeedItem } from "./types";
 
 export function isSeen(db: MemoryDB, url: string): boolean {
   return db.existsFreelanceByUrl(url);
@@ -41,21 +41,12 @@ export async function saveAndAlert(
 
 export function formatAlert(item: FeedItem, ev: EvaluatedLead): string {
   const budget = item.budget ? `${item.budget} RUB` : "?";
-  return [
-    `💼 ${item.source} ${budget} | ${ev.score}/10`,
-    item.title,
-    item.url,
-    ev.reason,
-  ]
+  return [`💼 ${item.source} ${budget} | ${ev.score}/10`, item.title, item.url, ev.reason]
     .filter(Boolean)
     .join("\n");
 }
 
-async function sendToChat(
-  bot: TelegramBot,
-  chatId: number,
-  text: string,
-): Promise<void> {
+async function sendToChat(bot: TelegramBot, chatId: number, text: string): Promise<void> {
   // Use bot.notify if chat matches owner, else raw sendMessage via grammy.
   interface BotInternal {
     ownerChatId?: number;

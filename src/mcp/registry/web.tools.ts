@@ -4,8 +4,9 @@
  * Все хендлеры заворачивают сырой ответ Playwright в ToolResult — так агент
  * и REST получают одинаковую структуру { success, data } / { success, error }.
  */
-import { t, type ToolRegistry } from "./tool-registry";
+
 import type { ToolResult } from "../types";
+import { type ToolRegistry, t } from "./tool-registry";
 
 async function proxy(
   exec: (name: string, args: Record<string, unknown>) => Promise<string>,
@@ -27,16 +28,10 @@ async function proxy(
           reject(new Error("aborted"));
           return;
         }
-        signal.addEventListener(
-          "abort",
-          () => reject(new Error("aborted")),
-          { once: true },
-        );
+        signal.addEventListener("abort", () => reject(new Error("aborted")), { once: true });
       })
     : null;
-  const raw = await (abortP
-    ? Promise.race([exec(name, args), abortP])
-    : exec(name, args));
+  const raw = await (abortP ? Promise.race([exec(name, args), abortP]) : exec(name, args));
   // Playwright-клиент при несконфигурированном браузере отдаёт JSON-строку
   // вида {"error":"..."} — прокинем как неуспех, чтобы сохранить семантику.
   try {
@@ -82,18 +77,12 @@ export function registerWebTools(registry: ToolRegistry): void {
     scope: "public",
     input: t.Object({}),
     handler: (_args, ctx, signal) =>
-      proxy(
-        (n, a) => ctx.executor.webCallTool(n, a),
-        "browser_snapshot",
-        {},
-        signal,
-      ),
+      proxy((n, a) => ctx.executor.webCallTool(n, a), "browser_snapshot", {}, signal),
   });
 
   registry.register({
     name: "web_click",
-    description:
-      "Click an element on the page by its ref number (from snapshot).",
+    description: "Click an element on the page by its ref number (from snapshot).",
     scope: "public",
     input: t.Object({
       element: t.String({ description: "Human-readable element description" }),
@@ -116,9 +105,7 @@ export function registerWebTools(registry: ToolRegistry): void {
       element: t.String(),
       ref: t.String(),
       text: t.String(),
-      submit: t.Optional(
-        t.Boolean({ description: "Press Enter after typing (default: false)" }),
-      ),
+      submit: t.Optional(t.Boolean({ description: "Press Enter after typing (default: false)" })),
     }),
     handler: (args, ctx, signal) => {
       const payload: Record<string, unknown> = {
@@ -127,12 +114,7 @@ export function registerWebTools(registry: ToolRegistry): void {
         text: args.text,
       };
       if (args.submit) payload.submit = true;
-      return proxy(
-        (n, a) => ctx.executor.webCallTool(n, a),
-        "browser_type",
-        payload,
-        signal,
-      );
+      return proxy((n, a) => ctx.executor.webCallTool(n, a), "browser_type", payload, signal);
     },
   });
 
@@ -142,18 +124,12 @@ export function registerWebTools(registry: ToolRegistry): void {
     scope: "public",
     input: t.Object({}),
     handler: (_args, ctx, signal) =>
-      proxy(
-        (n, a) => ctx.executor.webCallTool(n, a),
-        "browser_go_back",
-        {},
-        signal,
-      ),
+      proxy((n, a) => ctx.executor.webCallTool(n, a), "browser_go_back", {}, signal),
   });
 
   registry.register({
     name: "web_press_key",
-    description:
-      "Press a keyboard key in the browser (e.g. Enter, Escape, Tab, ArrowDown).",
+    description: "Press a keyboard key in the browser (e.g. Enter, Escape, Tab, ArrowDown).",
     scope: "public",
     input: t.Object({
       key: t.String({ description: "Key to press" }),
@@ -173,12 +149,8 @@ export function registerWebTools(registry: ToolRegistry): void {
       "Scroll the page. Positive dy scrolls down, negative up. Returns a fresh snapshot — use this to load more content on long / infinite-scroll pages.",
     scope: "public",
     input: t.Object({
-      dy: t.Optional(
-        t.Number({ description: "Vertical scroll in px (default 800, down)" }),
-      ),
-      dx: t.Optional(
-        t.Number({ description: "Horizontal scroll in px (default 0)" }),
-      ),
+      dy: t.Optional(t.Number({ description: "Vertical scroll in px (default 800, down)" })),
+      dx: t.Optional(t.Number({ description: "Horizontal scroll in px (default 0)" })),
     }),
     handler: (args, ctx, signal) =>
       proxy(

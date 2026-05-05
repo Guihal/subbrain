@@ -1,10 +1,10 @@
 /** M-06 reflect step — CoALA episodic→semantic. See plan §Тесты. */
-import { describe, test, expect, beforeAll, afterAll, beforeEach } from "bun:test";
-import { existsSync, unlinkSync } from "fs";
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
+import { existsSync, unlinkSync } from "node:fs";
 import { MemoryDB } from "../src/db";
+import { runReflect } from "../src/pipeline/night-cycle/steps/reflect";
 import { RAGPipeline } from "../src/rag";
 import { MemoryService } from "../src/services/memory";
-import { runReflect } from "../src/pipeline/night-cycle/steps/reflect";
 
 const TEST_DB = "data/test-mem6-reflect.db";
 const ENV_KEYS = [
@@ -28,10 +28,7 @@ function fakeEmbed(text: string): Float32Array {
   return vec;
 }
 
-function makeRouter(opts: {
-  reply: string | (() => string);
-  fail?: boolean;
-}): any {
+function makeRouter(opts: { reply: string | (() => string); fail?: boolean }): any {
   const router: any = {
     raw: {
       embed: async (req: { input: string[] }) => ({
@@ -152,14 +149,7 @@ describe("M-06 reflect (CoALA episodic→semantic)", () => {
     rag = new RAGPipeline(memory, router);
     const ids = ["src-1", "src-2", "src-3"];
     for (const id of ids) {
-      seedContext(
-        memory,
-        rag,
-        id,
-        "project",
-        `Project Subbrain uses Bun runtime — ${id}`,
-        5,
-      );
+      seedContext(memory, rag, id, "project", `Project Subbrain uses Bun runtime — ${id}`, 5);
     }
     const svc = new MemoryService(memory.memoryRepo, rag, memory.logRepo);
     const r = await runReflect({ memory, memoryService: svc, rag, router });
@@ -171,9 +161,10 @@ describe("M-06 reflect (CoALA episodic→semantic)", () => {
 
     // Verify the new shared row.
     const sharedRows = memory.db
-      .query<{ id: string; category: string; content: string; kind: string; source: string | null }, []>(
-        "SELECT id, category, content, kind, source FROM shared_memory WHERE source = 'reflect'",
-      )
+      .query<
+        { id: string; category: string; content: string; kind: string; source: string | null },
+        []
+      >("SELECT id, category, content, kind, source FROM shared_memory WHERE source = 'reflect'")
       .all();
     expect(sharedRows.length).toBe(1);
     expect(sharedRows[0].kind).toBe("semantic");
@@ -205,7 +196,7 @@ describe("M-06 reflect (CoALA episodic→semantic)", () => {
     expect(r.edges_created).toBe(0);
     const sharedCount = memory.db
       .query<{ c: number }, []>("SELECT count(*) AS c FROM shared_memory WHERE source = 'reflect'")
-      .get()!.c;
+      .get()?.c;
     expect(sharedCount).toBe(0);
   });
 
@@ -229,7 +220,7 @@ describe("M-06 reflect (CoALA episodic→semantic)", () => {
     // Existing row stays the only one with source != 'reflect'.
     const reflectRows = memory.db
       .query<{ c: number }, []>("SELECT count(*) AS c FROM shared_memory WHERE source = 'reflect'")
-      .get()!.c;
+      .get()?.c;
     expect(reflectRows).toBe(0);
   });
 

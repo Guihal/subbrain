@@ -1,16 +1,16 @@
+import { HttpError, redactSecrets } from "../lib/errors";
+import { fetchJson, fetchStream } from "../lib/http-client";
+import { createProxyStream } from "./stream-utils";
 import type {
-  LLMProvider,
   ChatParams,
   ChatResponse,
   EmbedParams,
   EmbedResponse,
+  LLMProvider,
+  ModelInfo,
   RerankParams,
   RerankResponse,
-  ModelInfo,
 } from "./types";
-import { createProxyStream } from "./stream-utils";
-import { fetchJson, fetchStream } from "../lib/http-client";
-import { HttpError, redactSecrets } from "../lib/errors";
 
 export class NvidiaProvider implements LLMProvider {
   private baseUrl: string;
@@ -32,11 +32,7 @@ export class NvidiaProvider implements LLMProvider {
 
   /** Clamp max_tokens if provider has a cap */
   private clamp(params: ChatParams): ChatParams {
-    if (
-      this.maxOutputTokens &&
-      params.max_tokens &&
-      params.max_tokens > this.maxOutputTokens
-    ) {
+    if (this.maxOutputTokens && params.max_tokens && params.max_tokens > this.maxOutputTokens) {
       return { ...params, max_tokens: this.maxOutputTokens };
     }
     return params;
@@ -113,8 +109,7 @@ export class NvidiaProvider implements LLMProvider {
     // is a separate host + path. Wire response shape differs too: {rankings:[{index,logit}]}
     // instead of our provider-neutral {results:[{index,relevance_score}]}.
     const url =
-      process.env.NVIDIA_RERANK_URL ||
-      "https://ai.api.nvidia.com/v1/retrieval/nvidia/reranking";
+      process.env.NVIDIA_RERANK_URL || "https://ai.api.nvidia.com/v1/retrieval/nvidia/reranking";
     try {
       const raw = await fetchJson<{
         rankings: { index: number; logit: number }[];
@@ -146,10 +141,9 @@ export class NvidiaProvider implements LLMProvider {
 
   async listModels(): Promise<ModelInfo[]> {
     try {
-      const data = await fetchJson<{ data: ModelInfo[] }>(
-        `${this.baseUrl}/models`,
-        { headers: this.headers() },
-      );
+      const data = await fetchJson<{ data: ModelInfo[] }>(`${this.baseUrl}/models`, {
+        headers: this.headers(),
+      });
       return data.data;
     } catch (e) {
       if (e instanceof HttpError) throw new ProviderError(e.status, e.body);

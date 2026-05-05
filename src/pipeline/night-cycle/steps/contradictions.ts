@@ -2,7 +2,7 @@ import type { MemoryDB } from "../../../db";
 import type { ModelRouter } from "../../../lib/model-router";
 import type { RAGPipeline } from "../../../rag";
 import { parseJson } from "../types";
-import { NIGHT_MODEL, nightLog as log } from "./shared";
+import { nightLog as log, NIGHT_MODEL } from "./shared";
 
 export async function resolveContradictions(
   memory: MemoryDB,
@@ -30,9 +30,7 @@ export async function resolveContradictions(
         continue;
       }
 
-      const relatedSummary = related
-        .map((r) => `${r.title}: ${r.snippet}`)
-        .join("\n");
+      const relatedSummary = related.map((r) => `${r.title}: ${r.snippet}`).join("\n");
 
       const response = await router.chat(
         NIGHT_MODEL,

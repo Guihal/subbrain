@@ -10,9 +10,9 @@
  * every agent (autonomous, free-agent, interactive) and must see them all.
  * Per-agent reports would need to thread an explicit agentId here.
  */
-import type { MemoryDB, LogRow, SharedRow } from "../db";
-import type { RAGPipeline } from "./pipeline";
+import type { LogRow, MemoryDB, SharedRow } from "../db";
 import { logger } from "../lib/logger";
+import type { RAGPipeline } from "./pipeline";
 
 const log = logger.child("report-context");
 
@@ -45,7 +45,7 @@ function isTechnicalLog(row: LogRow): boolean {
 
 function trim(s: string, max: number): string {
   const clean = s.replace(/\s+/g, " ").trim();
-  return clean.length > max ? clean.slice(0, max).trimEnd() + "…" : clean;
+  return clean.length > max ? `${clean.slice(0, max).trimEnd()}…` : clean;
 }
 
 function formatTs(unixSec: number): string {
@@ -57,11 +57,7 @@ function formatTs(unixSec: number): string {
   return `${mo}-${day} ${hh}:${mm}`;
 }
 
-async function collectFacts(
-  memory: MemoryDB,
-  topic: string,
-  limit: number,
-): Promise<SharedRow[]> {
+async function collectFacts(memory: MemoryDB, topic: string, limit: number): Promise<SharedRow[]> {
   if (!topic.trim()) return memory.listShared(limit);
   const hits = memory.searchShared(topic, limit);
   if (hits.length === 0) return memory.listShared(limit);
@@ -101,12 +97,7 @@ async function collectRag(
   }
 }
 
-function collectLogs(
-  memory: MemoryDB,
-  sinceHours: number,
-  limit: number,
-  nowMs: number,
-): LogRow[] {
+function collectLogs(memory: MemoryDB, sinceHours: number, limit: number, nowMs: number): LogRow[] {
   const sinceUnix = Math.floor(nowMs / 1000) - sinceHours * 3600;
   const rows = memory.getLogsSinceTime(sinceUnix, limit * 4);
   const filtered = rows.filter((r) => !isTechnicalLog(r));
@@ -118,24 +109,18 @@ function renderFacts(rows: SharedRow[]): string[] {
 }
 
 function renderLogs(rows: LogRow[]): string[] {
-  return rows.map(
-    (r) => `- [${formatTs(r.created_at)}] ${r.role}: ${trim(r.content, 220)}`,
-  );
+  return rows.map((r) => `- [${formatTs(r.created_at)}] ${r.role}: ${trim(r.content, 220)}`);
 }
 
 function renderRag(hits: RagHit[]): string[] {
-  return hits.map(
-    (h) => `- [${h.layer}] ${h.title}: ${trim(h.snippet, 200)}`,
-  );
+  return hits.map((h) => `- [${h.layer}] ${h.title}: ${trim(h.snippet, 200)}`);
 }
 
 /**
  * Собирает markdown с фактами, последними событиями и RAG-контекстом.
  * Пустые секции опускаются. Порядок: Факты → Последние события → Связанный контекст.
  */
-export async function buildReportContext(
-  opts: BuildReportContextOptions,
-): Promise<string> {
+export async function buildReportContext(opts: BuildReportContextOptions): Promise<string> {
   const {
     memory,
     rag,
@@ -152,11 +137,7 @@ export async function buildReportContext(
     Promise.resolve(collectLogs(memory, sinceHours, logLimit, nowMs)),
     collectRag(rag, topic, ragTopN),
   ]);
-  const unwrap = <T>(
-    r: PromiseSettledResult<T>,
-    name: string,
-    fallback: T,
-  ): T => {
+  const unwrap = <T>(r: PromiseSettledResult<T>, name: string, fallback: T): T => {
     if (r.status === "fulfilled") return r.value;
     log.warn(`${name} rejected: ${String(r.reason)}`);
     return fallback;
@@ -171,12 +152,10 @@ export async function buildReportContext(
   if (factsLines.length) sections.push(["## Факты", ...factsLines].join("\n"));
 
   const logsLines = renderLogs(logs);
-  if (logsLines.length)
-    sections.push(["## Последние события", ...logsLines].join("\n"));
+  if (logsLines.length) sections.push(["## Последние события", ...logsLines].join("\n"));
 
   const ragLines = renderRag(ragHits);
-  if (ragLines.length)
-    sections.push(["## Связанный контекст", ...ragLines].join("\n"));
+  if (ragLines.length) sections.push(["## Связанный контекст", ...ragLines].join("\n"));
 
   return sections.join("\n\n");
 }

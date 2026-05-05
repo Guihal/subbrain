@@ -5,12 +5,12 @@
  *
  * See docs/tasks/code-tools-poisoning-fix.md and ~/vault/RLM/Daily/2026-04-28.md.
  */
-import { describe, test, expect, beforeEach, afterEach } from "bun:test";
-import { unlinkSync, existsSync } from "node:fs";
-import { buildRegistry } from "../src/mcp/registry";
-import { ToolExecutor } from "../src/mcp/executor";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { existsSync, unlinkSync } from "node:fs";
 import { MemoryDB } from "../src/db";
 import type { ModelRouter } from "../src/lib/model-router";
+import { ToolExecutor } from "../src/mcp/executor";
+import { buildRegistry } from "../src/mcp/registry";
 
 const TEST_DB = "data/test-tg-spam-block.db";
 

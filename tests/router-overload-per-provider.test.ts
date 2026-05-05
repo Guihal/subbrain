@@ -1,4 +1,4 @@
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { ModelRouter } from "../src/lib/model-router";
 import type { LLMProvider } from "../src/providers/types";
 

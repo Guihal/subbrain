@@ -4,34 +4,22 @@
  * No network: classifier is a fake that returns canned JSON per-call.
  * JSONL log is written to a tmp path outside scripts/migration-log/.
  */
-import {
-  afterAll,
-  beforeEach,
-  describe,
-  expect,
-  test,
-} from "bun:test";
+import { afterAll, beforeEach, describe, expect, test } from "bun:test";
 import { randomUUID } from "node:crypto";
 import { existsSync, readFileSync, rmSync, unlinkSync } from "node:fs";
+import { type JsonlEntry, runMigration } from "../scripts/migrate-tasks-from-memory";
+import { runRollback } from "../scripts/rollback-migration";
 import { MemoryDB } from "../src/db";
-import type {
-  Classifier,
-  ClassifyResult,
-} from "../src/pipeline/night-cycle/prune/tasks-classify";
+import {
+  collectStrayTasks,
+  LAST_RUN_FOCUS_KEY,
+} from "../src/pipeline/night-cycle/prune/stray-tasks";
+import type { Classifier, ClassifyResult } from "../src/pipeline/night-cycle/prune/tasks-classify";
 import {
   classifyCandidate,
   hasBlacklistTag,
   hasTaskTag,
 } from "../src/pipeline/night-cycle/prune/tasks-classify";
-import {
-  collectStrayTasks,
-  LAST_RUN_FOCUS_KEY,
-} from "../src/pipeline/night-cycle/prune/stray-tasks";
-import {
-  runMigration,
-  type JsonlEntry,
-} from "../scripts/migrate-tasks-from-memory";
-import { runRollback } from "../scripts/rollback-migration";
 
 const DB_PATH = "data/test-migrate-tasks.db";
 const JSONL_DIR = "data/test-migrate-jsonl";
@@ -182,12 +170,7 @@ describe("runMigration", () => {
   });
 
   function seedSharedTask(id: string): void {
-    memory.insertShared(
-      id,
-      "general",
-      "need to finish X by Friday",
-      "task,todo",
-    );
+    memory.insertShared(id, "general", "need to finish X by Friday", "task,todo");
   }
 
   test("dry-run: no DB mutation, no JSONL", async () => {
@@ -258,9 +241,7 @@ describe("runMigration", () => {
       apply: true,
       jsonlPath: JSONL_PATH,
     });
-    const firstLines = readFileSync(JSONL_PATH, "utf8")
-      .split("\n")
-      .filter(Boolean).length;
+    const firstLines = readFileSync(JSONL_PATH, "utf8").split("\n").filter(Boolean).length;
     // mark task done so it stays in terminal state; re-run with same source id
     const created = memory.listTasks({ limit: 1, offset: 0 }).items[0];
     memory.transitionTask(created.id, "done");
@@ -272,9 +253,7 @@ describe("runMigration", () => {
     });
     expect(summary.migrated).toBe(0);
     expect(summary.skipped).toBe(1);
-    const secondLines = readFileSync(JSONL_PATH, "utf8")
-      .split("\n")
-      .filter(Boolean).length;
+    const secondLines = readFileSync(JSONL_PATH, "utf8").split("\n").filter(Boolean).length;
     expect(secondLines).toBe(firstLines);
   });
 });
@@ -343,9 +322,7 @@ describe("collectStrayTasks focus-key state", () => {
     const now = Math.floor(Date.now() / 1000);
     const id = randomUUID();
     memory.insertShared(id, "general", "do X", "task");
-    memory.db
-      .query(`UPDATE shared_memory SET created_at=? WHERE id=?`)
-      .run(now - 3 * 86400, id);
+    memory.db.query(`UPDATE shared_memory SET created_at=? WHERE id=?`).run(now - 3 * 86400, id);
     const classifier = makeClassifier({
       action: "migrate",
       scope: "global",
@@ -366,9 +343,7 @@ describe("collectStrayTasks focus-key state", () => {
     memory.setFocus(LAST_RUN_FOCUS_KEY, String(now - 3600));
     const id = randomUUID();
     memory.insertShared(id, "general", "do X", "task");
-    memory.db
-      .query(`UPDATE shared_memory SET created_at=? WHERE id=?`)
-      .run(now - 7200, id);
+    memory.db.query(`UPDATE shared_memory SET created_at=? WHERE id=?`).run(now - 7200, id);
     const classifier = makeClassifier({
       action: "migrate",
       scope: "global",
@@ -421,9 +396,7 @@ describe("collectStrayTasks focus-key state", () => {
     for (let i = 0; i < 22; i++) {
       const id = randomUUID();
       memory.insertShared(id, "general", `do ${i}`, "task");
-      memory.db
-        .query(`UPDATE shared_memory SET created_at=? WHERE id=?`)
-        .run(now - 100 - i, id);
+      memory.db.query(`UPDATE shared_memory SET created_at=? WHERE id=?`).run(now - 100 - i, id);
     }
     const classifier = makeClassifier({
       action: "keep",

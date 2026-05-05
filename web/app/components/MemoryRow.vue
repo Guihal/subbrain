@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from "vue";
-import { useMemory, type MemoryRow as Row, type EdgeInfo } from "~/composables/useMemory";
+import { type EdgeInfo, type MemoryRow as Row, useMemory } from "~/composables/useMemory";
 
 const props = defineProps<{
   row: Row;

@@ -1,14 +1,9 @@
-import { randomUUID } from "crypto";
+import { randomUUID } from "node:crypto";
 import type { SharedRow } from "../../db";
-import type { MemoryRepository } from "../../repositories";
 import type { RAGPipeline } from "../../rag";
+import type { MemoryRepository } from "../../repositories";
 import { embedWithTimeout } from "./embed";
-import type {
-  InsertSharedInput,
-  ListOpts,
-  PaginatedResult,
-  UpdateSharedPatch,
-} from "./types";
+import type { InsertSharedInput, ListOpts, PaginatedResult, UpdateSharedPatch } from "./types";
 
 export interface SharedDeps {
   repo: MemoryRepository;
@@ -47,21 +42,22 @@ export async function insertShared(deps: SharedDeps, input: InsertSharedInput): 
   const vec = await embedWithTimeout(deps.rag, input.content);
   if (!vec || vec.length === 0) throw new Error("embed_empty");
   deps.repo.transaction(() => {
-    deps.repo.insertShared(
-      id, input.category, input.content, input.tags ?? "", input.source,
-      {
-        confidence: input.confidence ?? null,
-        status: input.status,
-        kind: input.kind,
-        expires_at: input.expires_at ?? undefined,
-      },
-    );
+    deps.repo.insertShared(id, input.category, input.content, input.tags ?? "", input.source, {
+      confidence: input.confidence ?? null,
+      status: input.status,
+      kind: input.kind,
+      expires_at: input.expires_at ?? undefined,
+    });
     deps.repo.upsertEmbedding(id, "shared", vec);
   });
   return id;
 }
 
-export function patchShared(repo: MemoryRepository, id: string, patch: UpdateSharedPatch): SharedRow | null {
+export function patchShared(
+  repo: MemoryRepository,
+  id: string,
+  patch: UpdateSharedPatch,
+): SharedRow | null {
   repo.updateShared(id, patch);
   return repo.getShared(id);
 }

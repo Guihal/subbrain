@@ -4,9 +4,9 @@
  * hydration ("intentional — no regression"), so vec hits for shared had
  * empty snippet and title = id. With getSharedMany, snippet is populated.
  */
-import { describe, test, expect, beforeAll } from "bun:test";
-import { unlinkSync } from "fs";
-import { randomUUID } from "crypto";
+import { beforeAll, describe, expect, test } from "bun:test";
+import { randomUUID } from "node:crypto";
+import { unlinkSync } from "node:fs";
 import { MemoryDB } from "../src/db";
 import { RAGPipeline } from "../src/rag";
 
@@ -41,7 +41,9 @@ describe("RAG vec path — shared layer snippet hydration (PR 24)", () => {
   const seededIds: Record<string, string> = {};
 
   beforeAll(() => {
-    try { unlinkSync(TEST_DB); } catch {}
+    try {
+      unlinkSync(TEST_DB);
+    } catch {}
     memory = new MemoryDB(TEST_DB);
     rag = new RAGPipeline(memory, mkRouter());
 
@@ -61,23 +63,19 @@ describe("RAG vec path — shared layer snippet hydration (PR 24)", () => {
   });
 
   test("vecSearch shared returns hit with non-empty snippet + real title", async () => {
-    const results = await rag.vecSearch(
-      "SNMP discovery UDP 161",
-      ["shared"],
-      5,
-    );
+    const results = await rag.vecSearch("SNMP discovery UDP 161", ["shared"], 5);
     expect(results.length).toBeGreaterThan(0);
 
     const expectedId = seededIds["SNMP discovery uses UDP 161 for polling"];
     const hit = results.find((r) => r.id === expectedId);
     expect(hit).toBeDefined();
-    expect(hit!.layer).toBe("shared");
+    expect(hit?.layer).toBe("shared");
     // snippet hydrated (previously was "")
-    expect(hit!.snippet.length).toBeGreaterThan(0);
-    expect(hit!.snippet).toContain("SNMP");
+    expect(hit?.snippet.length).toBeGreaterThan(0);
+    expect(hit?.snippet).toContain("SNMP");
     // title is mapped from SharedRow.category (previously was id)
-    expect(hit!.title).toBe("tech");
-    expect(hit!.title).not.toBe(hit!.id);
+    expect(hit?.title).toBe("tech");
+    expect(hit?.title).not.toBe(hit?.id);
   });
 
   test("hybrid search (FTS+vec) for shared returns populated snippet", async () => {
@@ -91,7 +89,7 @@ describe("RAG vec path — shared layer snippet hydration (PR 24)", () => {
     const expectedId = seededIds["user prefers Bun runtime over node"];
     const hit = results.find((r) => r.id === expectedId);
     expect(hit).toBeDefined();
-    expect(hit!.snippet.length).toBeGreaterThan(0);
-    expect(hit!.snippet).toContain("Bun");
+    expect(hit?.snippet.length).toBeGreaterThan(0);
+    expect(hit?.snippet).toContain("Bun");
   });
 });

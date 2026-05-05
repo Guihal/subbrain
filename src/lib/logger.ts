@@ -42,21 +42,26 @@ export class Logger {
   log(entry: LogEntry): void {
     if (LEVEL_PRIORITY[entry.level] < LEVEL_PRIORITY[this.minLevel]) return;
 
-    const ts = new Date().toISOString().slice(11, 23);
-    const icon = LEVEL_ICON[entry.level];
-    const reqTag = entry.requestId ? ` [${entry.requestId.slice(0, 8)}]` : "";
-    const dur = entry.durationMs !== undefined ? ` ${entry.durationMs}ms` : "";
-    const model = entry.model ? ` (${entry.model})` : "";
-    const tokens =
+    const _ts = new Date().toISOString().slice(11, 23);
+    const _icon = LEVEL_ICON[entry.level];
+    const _reqTag = entry.requestId ? ` [${entry.requestId.slice(0, 8)}]` : "";
+    const _dur = entry.durationMs === undefined ? "" : ` ${entry.durationMs}ms`;
+    const _model = entry.model ? ` (${entry.model})` : "";
+    const _tokens =
       entry.tokensIn || entry.tokensOut
         ? ` [${entry.tokensIn ?? 0}→${entry.tokensOut ?? 0} tok]`
         : "";
-    console.log(
-      `${ts} ${icon} [${entry.stage}]${reqTag}${model}${dur}${tokens} ${entry.message}`,
-    );
+
+    const line = `${_ts} ${_icon}${_reqTag} [${entry.stage}] ${entry.message}${_dur}${_model}${_tokens}`;
+
+    // Console fallback when no memory DB attached (tests, early bootstrap).
+    if (!this.memory) {
+      console.log(line);
+      return;
+    }
 
     // DB logging — write to Layer 4 for detailed entries.
-    if (this.memory && entry.level !== "debug") {
+    if (entry.level !== "debug") {
       const role = `_log_${entry.level}`;
       try {
         this.memory.appendLog(
@@ -129,10 +134,13 @@ export class Logger {
         let val: string;
         if (typeof v === "string") val = v;
         else {
-          try { val = JSON.stringify(v ?? null); }
-          catch { val = String(v); }
+          try {
+            val = JSON.stringify(v ?? null);
+          } catch {
+            val = String(v);
+          }
         }
-        parts.push(`${k}=${val.length > 500 ? val.slice(0, 500) + "…" : val}`);
+        parts.push(`${k}=${val.length > 500 ? `${val.slice(0, 500)}…` : val}`);
       }
     }
     // Write-path secret redaction: strip any api_key / Bearer / sk- / ghp_
@@ -161,16 +169,23 @@ export class RequestLogger {
     });
   }
 
-  debug = (stage: string, message: string, extra?: Partial<LogEntry>) => this.emit("debug", stage, message, extra);
-  info = (stage: string, message: string, extra?: Partial<LogEntry>) => this.emit("info", stage, message, extra);
-  warn = (stage: string, message: string, extra?: Partial<LogEntry>) => this.emit("warn", stage, message, extra);
-  error = (stage: string, message: string, extra?: Partial<LogEntry>) => this.emit("error", stage, message, extra);
+  debug = (stage: string, message: string, extra?: Partial<LogEntry>) =>
+    this.emit("debug", stage, message, extra);
+  info = (stage: string, message: string, extra?: Partial<LogEntry>) =>
+    this.emit("info", stage, message, extra);
+  warn = (stage: string, message: string, extra?: Partial<LogEntry>) =>
+    this.emit("warn", stage, message, extra);
+  error = (stage: string, message: string, extra?: Partial<LogEntry>) =>
+    this.emit("error", stage, message, extra);
 }
 
 // ─── Scoped Logger (stage-prefixed) ──────────────────────
 
 export class ScopedLogger {
-  constructor(private parent: Logger, private stage: string) {}
+  constructor(
+    private parent: Logger,
+    private stage: string,
+  ) {}
 
   private emit(level: LogLevel, message: string, extra?: Partial<LogEntry>): void {
     this.parent.log({ level, stage: this.stage, message, ...extra });

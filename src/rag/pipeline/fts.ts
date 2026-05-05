@@ -1,5 +1,5 @@
 import type { MemoryDB } from "../../db";
-import { sanitizeFtsQuery, type RAGResult } from "../types";
+import { type RAGResult, sanitizeFtsQuery } from "../types";
 
 /**
  * FTS5-only search (no RPM cost, fast).
@@ -31,7 +31,11 @@ export function ftsSearch(
   // pending / rejected rows are filtered at SQL level inside searchContext /
   // searchShared. Archive has no status column — unchanged.
   if (layers.includes("context")) {
-    for (const r of memory.searchContext(ftsQuery, limit, { activeOnly: true, notStale: true, agentId })) {
+    for (const r of memory.searchContext(ftsQuery, limit, {
+      activeOnly: true,
+      notStale: true,
+      agentId,
+    })) {
       results.push({
         id: r.id,
         layer: "context",

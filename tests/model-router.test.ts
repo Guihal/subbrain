@@ -1,7 +1,7 @@
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
+import { UpstreamExhaustedError } from "../src/lib/errors";
 import { ModelRouter } from "../src/lib/model-router";
 import { ProviderError } from "../src/providers/nvidia";
-import { UpstreamExhaustedError } from "../src/lib/errors";
 import type { LLMProvider } from "../src/providers/types";
 
 function mockProvider(status: number): LLMProvider {

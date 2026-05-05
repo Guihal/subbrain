@@ -1,6 +1,8 @@
 # docs/tasks
 
-Поделённые на отдельные файлы задачи из итерации 2026-04-20. Каждая — самостоятельный PR после общего рефакторинга (`docs/01-refactor-plan.md`).
+Активные task-contracts. Новый главный план лежит в
+[`docs/specs/subbrain-main.md`](../specs/subbrain-main.md). Старые
+мастер-доки перенесены в [`docs/old/неактуальное/`](../old/неактуальное/).
 
 ## Продуктовые таски
 
@@ -12,7 +14,12 @@
 
 ## Рефакторинг
 
-[refactor/](refactor/) — 15 PR-таск-файлов под мастер-план [docs/01-refactor-plan.md](../01-refactor-plan.md).
+[refactor/](refactor/) — legacy PR-таск-файлы. Их можно исполнять, но
+контекстные ссылки на старые audit/plan docs теперь исторические.
+
+## Agent-teams
+
+[agent-teams/](agent-teams/) — новые планы под Kimi K2.6 в agent-teams режиме.
 
 ## Порядок исполнения
 

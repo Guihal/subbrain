@@ -1,6 +1,6 @@
-import { Database } from "bun:sqlite";
+import type { Database } from "bun:sqlite";
 import type { TaskRow, TaskScope, TaskStatus } from "../types";
-import { TERMINAL_STATUSES, InvalidTransitionError, canTransition } from "./task-transitions";
+import { canTransition, InvalidTransitionError, TERMINAL_STATUSES } from "./task-transitions";
 
 export { InvalidTransitionError };
 
@@ -79,13 +79,11 @@ export class TasksTable {
       if (ins.changes === 1) {
         return { id: newId, created: true, skipped: false };
       }
-      const existing = this.db
-        .query(`SELECT id FROM tasks WHERE source = ?`)
-        .get(source) as { id: string } | null;
+      const existing = this.db.query(`SELECT id FROM tasks WHERE source = ?`).get(source) as {
+        id: string;
+      } | null;
       if (!existing) {
-        throw new Error(
-          `upsertBySource: conflict without row for source=${source}`,
-        );
+        throw new Error(`upsertBySource: conflict without row for source=${source}`);
       }
       const upd = this.db
         .query(
@@ -96,12 +94,7 @@ export class TasksTable {
              updated_at = unixepoch()
            WHERE source = ? AND status IN ('open','in_progress')`,
         )
-        .run(
-          fields.title,
-          fields.description ?? "",
-          fields.priority ?? 0,
-          source,
-        );
+        .run(fields.title, fields.description ?? "", fields.priority ?? 0, source);
       if (upd.changes === 1) {
         return { id: existing.id, created: false, skipped: false };
       }
@@ -110,11 +103,7 @@ export class TasksTable {
   }
 
   get(id: string): TaskRow | null {
-    return (
-      (this.db.query(`SELECT * FROM tasks WHERE id = ?`).get(id) as
-        | TaskRow
-        | null) ?? null
-    );
+    return (this.db.query(`SELECT * FROM tasks WHERE id = ?`).get(id) as TaskRow | null) ?? null;
   }
 
   list(opts: {
@@ -144,9 +133,7 @@ export class TasksTable {
       )
       .all(...params, opts.limit, opts.offset) as TaskRow[];
     const total = (
-      this.db
-        .query(`SELECT COUNT(*) AS c FROM tasks ${whereSql}`)
-        .get(...params) as { c: number }
+      this.db.query(`SELECT COUNT(*) AS c FROM tasks ${whereSql}`).get(...params) as { c: number }
     ).c;
     return { items, total };
   }
@@ -203,9 +190,7 @@ export class TasksTable {
     if (sets.length === 0) return this.get(id);
     sets.push("updated_at = unixepoch()");
     params.push(id);
-    this.db
-      .query(`UPDATE tasks SET ${sets.join(", ")} WHERE id = ?`)
-      .run(...params);
+    this.db.query(`UPDATE tasks SET ${sets.join(", ")} WHERE id = ?`).run(...params);
     return this.get(id);
   }
 
@@ -241,9 +226,7 @@ export class TasksTable {
   /** Hard-delete tasks of given status whose updated_at is older than now-ageSec. */
   deleteStaleByStatus(status: "open" | "in_progress", ageSec: number): number {
     return this.db
-      .query(
-        `DELETE FROM tasks WHERE status = ? AND updated_at < unixepoch() - ?`,
-      )
+      .query(`DELETE FROM tasks WHERE status = ? AND updated_at < unixepoch() - ?`)
       .run(status, ageSec).changes;
   }
 
@@ -268,9 +251,7 @@ export class TasksTable {
       )
       .all(...params, opts.limit, opts.offset) as TaskRow[];
     const total = (
-      this.db
-        .query(`SELECT COUNT(*) AS c FROM tasks ${whereSql}`)
-        .get(...params) as { c: number }
+      this.db.query(`SELECT COUNT(*) AS c FROM tasks ${whereSql}`).get(...params) as { c: number }
     ).c;
     return { items, total };
   }

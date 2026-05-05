@@ -1,6 +1,6 @@
 import { Elysia } from "elysia";
-import type { TelegramBot } from "../telegram";
 import { logger } from "../lib/logger";
+import type { TelegramBot } from "../telegram";
 
 /**
  * Public Telegram webhook route — mounted BEFORE authMiddleware.
@@ -14,10 +14,7 @@ export function telegramPublicRoute(bot: TelegramBot | null) {
   const route = new Elysia();
 
   if (!bot) {
-    route.post(
-      "/telegram/webhook",
-      () => new Response("Bot not configured", { status: 404 }),
-    );
+    route.post("/telegram/webhook", () => new Response("Bot not configured", { status: 404 }));
     return route;
   }
 

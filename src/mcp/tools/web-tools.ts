@@ -2,7 +2,6 @@
  * Web browsing tools (Playwright MCP) extracted from ToolExecutor.
  */
 import type { PlaywrightClient } from "../playwright";
-import type { ToolResult } from "../types";
 
 export class WebTools {
   private playwright: PlaywrightClient | null = null;

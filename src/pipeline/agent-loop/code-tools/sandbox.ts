@@ -26,10 +26,7 @@ const UNSAFE_PATTERNS: { re: RegExp; name: string }[] = [
  * The tool code must export a default async function:
  *   export default async (input: string): Promise<string> => { ... }
  */
-export async function executeSandboxed(
-  code: string,
-  input: string,
-): Promise<CodeToolExecResult> {
+export async function executeSandboxed(code: string, input: string): Promise<CodeToolExecResult> {
   const start = Date.now();
 
   if (typeof Worker === "undefined") {
@@ -106,10 +103,7 @@ const __userModule = {};
 `;
 
   try {
-    const result = await runWorkerWithTimeout(
-      workerScript,
-      CODE_TOOL_LIMITS.TIMEOUT_MS,
-    );
+    const result = await runWorkerWithTimeout(workerScript, CODE_TOOL_LIMITS.TIMEOUT_MS);
     const durationMs = Date.now() - start;
 
     if (result.error) {

@@ -13,7 +13,9 @@ export function attachMonitor(
     try {
       if (!event.message) return;
       const msg = event.message;
-      const p = msg.peerId as { channelId?: { toString(): string }; chatId?: { toString(): string } } | undefined;
+      const p = msg.peerId as
+        | { channelId?: { toString(): string }; chatId?: { toString(): string } }
+        | undefined;
       const chatId = p?.channelId?.toString() || p?.chatId?.toString();
       if (!chatId) return;
 

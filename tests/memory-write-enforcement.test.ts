@@ -8,12 +8,12 @@
  * returning near-identical vectors for dedup scenarios.
  */
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, unlinkSync } from "fs";
+import { existsSync, unlinkSync } from "node:fs";
 import { MemoryDB } from "../src/db";
-import { RAGPipeline } from "../src/rag";
-import { writeShared, type SharedWriteDeps } from "../src/mcp/tools/memory/write-shared";
 import { writeContextCase } from "../src/mcp/tools/memory/write-context";
+import { type SharedWriteDeps, writeShared } from "../src/mcp/tools/memory/write-shared";
 import { defaultExpiresAt } from "../src/pipeline/agent-pipeline/post/validators";
+import { RAGPipeline } from "../src/rag";
 
 const TEST_DB = "data/test-write-enforcement.db";
 const NOW_SEC = () => Math.floor(Date.now() / 1000);
@@ -36,7 +36,9 @@ function mkRouter(embedFn?: (text: string) => Float32Array) {
   return {
     raw: {
       embed: async (req: { input: string[] }) => ({
-        data: req.input.map((t, i) => ({ embedding: Array.from(embedFn ? embedFn(t) : unitVec(i)) })),
+        data: req.input.map((t, i) => ({
+          embedding: Array.from(embedFn ? embedFn(t) : unitVec(i)),
+        })),
       }),
       rerank: async () => ({ results: [] }),
     },
@@ -59,8 +61,14 @@ function makeDeps(embedFn?: (text: string) => Float32Array): SharedWriteDeps {
   return { memory, getRag: () => rag, memoryService: null };
 }
 
-beforeAll(() => { cleanup(); memory = new MemoryDB(TEST_DB); });
-afterAll(() => { memory.close(); cleanup(); });
+beforeAll(() => {
+  cleanup();
+  memory = new MemoryDB(TEST_DB);
+});
+afterAll(() => {
+  memory.close();
+  cleanup();
+});
 beforeEach(() => {
   // Clean shared + context between tests.
   memory.db.run("DELETE FROM shared_memory");
@@ -71,32 +79,56 @@ beforeEach(() => {
 // ─── Whitelist enforcement ───────────────────────────────────────────────────
 
 describe("whitelist — reject mode", () => {
-  beforeAll(() => { process.env.MEMORY_VALIDATORS_ENFORCE = "reject"; });
-  afterAll(() => { delete process.env.MEMORY_VALIDATORS_ENFORCE; });
+  beforeAll(() => {
+    process.env.MEMORY_VALIDATORS_ENFORCE = "reject";
+  });
+  afterAll(() => {
+    delete process.env.MEMORY_VALIDATORS_ENFORCE;
+  });
 
   test("non-whitelist shared category → validation_failed", async () => {
     const deps = makeDeps();
-    const r = await writeShared(deps, { id: "x1", category: "free-agent-digest",
-      content: "test content", tags: "", confidence: 0.9, status: "active" });
+    const r = await writeShared(deps, {
+      id: "x1",
+      category: "free-agent-digest",
+      content: "test content",
+      tags: "",
+      confidence: 0.9,
+      status: "active",
+    });
     expect(r.success).toBe(false);
     expect((r as any).error?.code).toBe("validation_failed");
   });
 
   test("whitelist category passes", async () => {
     const deps = makeDeps();
-    const r = await writeShared(deps, { id: "x2", category: "preference",
-      content: "user prefers dark mode", tags: "", confidence: 0.9, status: "active" });
+    const r = await writeShared(deps, {
+      id: "x2",
+      category: "preference",
+      content: "user prefers dark mode",
+      tags: "",
+      confidence: 0.9,
+      status: "active",
+    });
     expect(r.success).toBe(true);
   });
 });
 
 describe("whitelist — warn mode (default)", () => {
-  beforeAll(() => { delete process.env.MEMORY_VALIDATORS_ENFORCE; });
+  beforeAll(() => {
+    delete process.env.MEMORY_VALIDATORS_ENFORCE;
+  });
 
   test("non-whitelist shared category logs but inserts", async () => {
     const deps = makeDeps();
-    const r = await writeShared(deps, { id: "x3", category: "free-agent-digest",
-      content: "digest content", tags: "", confidence: 0.9, status: "active" });
+    const r = await writeShared(deps, {
+      id: "x3",
+      category: "free-agent-digest",
+      content: "digest content",
+      tags: "",
+      confidence: 0.9,
+      status: "active",
+    });
     // warn mode → inserts despite invalid category
     expect(r.success).toBe(true);
   });
@@ -105,13 +137,23 @@ describe("whitelist — warn mode (default)", () => {
 // ─── TIME_BOUND enforcement ──────────────────────────────────────────────────
 
 describe("TIME_BOUND categories — reject mode", () => {
-  beforeAll(() => { process.env.MEMORY_VALIDATORS_ENFORCE = "reject"; });
-  afterAll(() => { delete process.env.MEMORY_VALIDATORS_ENFORCE; });
+  beforeAll(() => {
+    process.env.MEMORY_VALIDATORS_ENFORCE = "reject";
+  });
+  afterAll(() => {
+    delete process.env.MEMORY_VALIDATORS_ENFORCE;
+  });
 
   test("plan without expires_at → validation_failed (fails whitelist on shared layer)", async () => {
     const deps = makeDeps();
-    const r = await writeShared(deps, { id: "tb1", category: "plan",
-      content: "some plan", tags: "", confidence: 0.9, status: "active" });
+    const r = await writeShared(deps, {
+      id: "tb1",
+      category: "plan",
+      content: "some plan",
+      tags: "",
+      confidence: 0.9,
+      status: "active",
+    });
     // "plan" isn't in shared whitelist → fails whitelist first
     expect(r.success).toBe(false);
     expect((r as any).error?.code).toBe("validation_failed");
@@ -130,8 +172,14 @@ describe("default expires_at by category", () => {
   test("shared preference → expires_at null (immortal)", async () => {
     process.env.MEMORY_VALIDATORS_ENFORCE = "reject";
     const deps = makeDeps();
-    const r = await writeShared(deps, { id: "ttl1", category: "preference",
-      content: "user prefers vim", tags: "", confidence: 0.9, status: "active" });
+    const r = await writeShared(deps, {
+      id: "ttl1",
+      category: "preference",
+      content: "user prefers vim",
+      tags: "",
+      confidence: 0.9,
+      status: "active",
+    });
     expect(r.success).toBe(true);
     const row = memory.getShared("ttl1");
     expect(row?.expires_at).toBeNull();
@@ -141,12 +189,18 @@ describe("default expires_at by category", () => {
   test("shared goal → expires_at +180d", async () => {
     process.env.MEMORY_VALIDATORS_ENFORCE = "reject";
     const deps = makeDeps();
-    const r = await writeShared(deps, { id: "ttl2", category: "goal",
-      content: "learn rust", tags: "", confidence: 0.9, status: "active" });
+    const r = await writeShared(deps, {
+      id: "ttl2",
+      category: "goal",
+      content: "learn rust",
+      tags: "",
+      confidence: 0.9,
+      status: "active",
+    });
     expect(r.success).toBe(true);
     const row = memory.getShared("ttl2");
     expect(row?.expires_at).not.toBeNull();
-    expect(row!.expires_at!).toBeGreaterThan(NOW_SEC() + 179 * 86400);
+    expect(row!.expires_at).toBeGreaterThan(NOW_SEC() + 179 * 86400);
     delete process.env.MEMORY_VALIDATORS_ENFORCE;
   });
 
@@ -154,8 +208,15 @@ describe("default expires_at by category", () => {
     process.env.MEMORY_VALIDATORS_ENFORCE = "reject";
     const deps = makeDeps();
     const customExpiry = NOW_SEC() + 7 * 86400;
-    const r = await writeShared(deps, { id: "ttl3", category: "preference",
-      content: "short-lived pref", tags: "", confidence: 0.9, status: "active", expires_at: customExpiry });
+    const r = await writeShared(deps, {
+      id: "ttl3",
+      category: "preference",
+      content: "short-lived pref",
+      tags: "",
+      confidence: 0.9,
+      status: "active",
+      expires_at: customExpiry,
+    });
     expect(r.success).toBe(true);
     const row = memory.getShared("ttl3");
     expect(row?.expires_at).toBe(customExpiry);
@@ -166,18 +227,34 @@ describe("default expires_at by category", () => {
 // ─── Dedup — strict mode (cosine ≥ 0.92) ────────────────────────────────────
 
 describe("dedup strict mode (profile category)", () => {
-  beforeAll(() => { process.env.MEMORY_VALIDATORS_ENFORCE = "reject"; });
-  afterAll(() => { delete process.env.MEMORY_VALIDATORS_ENFORCE; });
+  beforeAll(() => {
+    process.env.MEMORY_VALIDATORS_ENFORCE = "reject";
+  });
+  afterAll(() => {
+    delete process.env.MEMORY_VALIDATORS_ENFORCE;
+  });
 
   test("cosine ≥ 0.92 → duplicate rejected", async () => {
     // Both writes embed to identical vector → cosine = 1.0
     const deps = makeDeps(() => unitVec(1));
-    const r1 = await writeShared(deps, { id: "dup1", category: "profile",
-      content: "user is a developer", tags: "", confidence: 0.9, status: "active" });
+    const r1 = await writeShared(deps, {
+      id: "dup1",
+      category: "profile",
+      content: "user is a developer",
+      tags: "",
+      confidence: 0.9,
+      status: "active",
+    });
     expect(r1.success).toBe(true);
 
-    const r2 = await writeShared(deps, { id: "dup2", category: "profile",
-      content: "user is a developer same fact", tags: "", confidence: 0.9, status: "active" });
+    const r2 = await writeShared(deps, {
+      id: "dup2",
+      category: "profile",
+      content: "user is a developer same fact",
+      tags: "",
+      confidence: 0.9,
+      status: "active",
+    });
     expect(r2.success).toBe(false);
     expect((r2 as any).error?.code).toBe("validation_failed");
     expect((r2 as any).error?.message).toContain("duplicate");
@@ -190,12 +267,24 @@ describe("dedup strict mode (profile category)", () => {
       callCount++;
       return callCount % 2 === 0 ? orthogonalVec(callCount) : unitVec(callCount);
     });
-    const r1 = await writeShared(deps, { id: "fresh1", category: "profile",
-      content: "unique fact about user", tags: "", confidence: 0.9, status: "active" });
+    const r1 = await writeShared(deps, {
+      id: "fresh1",
+      category: "profile",
+      content: "unique fact about user",
+      tags: "",
+      confidence: 0.9,
+      status: "active",
+    });
     expect(r1.success).toBe(true);
 
-    const r2 = await writeShared(deps, { id: "fresh2", category: "profile",
-      content: "completely different fact", tags: "", confidence: 0.9, status: "active" });
+    const r2 = await writeShared(deps, {
+      id: "fresh2",
+      category: "profile",
+      content: "completely different fact",
+      tags: "",
+      confidence: 0.9,
+      status: "active",
+    });
     expect(r2.success).toBe(true);
     expect((r2 as any).data?.id).toBe("fresh2");
   });
@@ -204,8 +293,12 @@ describe("dedup strict mode (profile category)", () => {
 // ─── Dedup — supersede mode (preference category, cosine 0.88) ──────────────
 
 describe("dedup supersede mode (preference category)", () => {
-  beforeAll(() => { process.env.MEMORY_VALIDATORS_ENFORCE = "reject"; });
-  afterAll(() => { delete process.env.MEMORY_VALIDATORS_ENFORCE; });
+  beforeAll(() => {
+    process.env.MEMORY_VALIDATORS_ENFORCE = "reject";
+  });
+  afterAll(() => {
+    delete process.env.MEMORY_VALIDATORS_ENFORCE;
+  });
 
   test("cosine 0.88 → insert new row, superseded_by set on old row", async () => {
     // Deterministic vectors: base = e[0]; v2 = 0.88*e[0] + sqrt(1-0.88²)*e[1] → cosine(base,v2)=0.88.
@@ -223,46 +316,74 @@ describe("dedup supersede mode (preference category)", () => {
     let embedCallIndex = 0;
     // Calls 0,1 → base (write1 dedup check + write1 doInsert = stored for sup1).
     // Calls 2+ → v2 (write2 dedup check candidate + write2 doInsert for sup2).
-    const embedFn = (_t: string) => embedCallIndex++ < 2 ? base : v2;
+    const embedFn = (_t: string) => (embedCallIndex++ < 2 ? base : v2);
     const deps = makeDeps(embedFn);
 
-    const r1 = await writeShared(deps, { id: "sup1", category: "preference",
-      content: "user prefers light mode", tags: "", confidence: 0.9, status: "active" });
+    const r1 = await writeShared(deps, {
+      id: "sup1",
+      category: "preference",
+      content: "user prefers light mode",
+      tags: "",
+      confidence: 0.9,
+      status: "active",
+    });
     expect(r1.success).toBe(true);
 
-    const r2 = await writeShared(deps, { id: "sup2", category: "preference",
-      content: "user prefers light theme (updated)", tags: "", confidence: 0.9, status: "active" });
+    const r2 = await writeShared(deps, {
+      id: "sup2",
+      category: "preference",
+      content: "user prefers light theme (updated)",
+      tags: "",
+      confidence: 0.9,
+      status: "active",
+    });
     expect(r2.success).toBe(true);
     expect((r2 as any).data?.superseded).toBe("sup1");
 
     // Critical: old row must have superseded_by = sup2.
     const oldRow = memory.getShared("sup1");
     expect(oldRow).not.toBeNull();
-    expect(oldRow!.superseded_by).toBe("sup2");
+    expect(oldRow?.superseded_by).toBe("sup2");
   });
 });
 
 // ─── Context write enforcement ───────────────────────────────────────────────
 
 describe("writeContextCase enforcement", () => {
-  beforeAll(() => { process.env.MEMORY_VALIDATORS_ENFORCE = "reject"; });
-  afterAll(() => { delete process.env.MEMORY_VALIDATORS_ENFORCE; });
+  beforeAll(() => {
+    process.env.MEMORY_VALIDATORS_ENFORCE = "reject";
+  });
+  afterAll(() => {
+    delete process.env.MEMORY_VALIDATORS_ENFORCE;
+  });
 
   test("non-whitelist context category → validation_failed", async () => {
-    const deps = makeDeps();
-    const r = await writeContextCase(memory, "ctx1",
+    const _deps = makeDeps();
+    const r = await writeContextCase(
+      memory,
+      "ctx1",
       { layer: "context", content: "some content", category: "random-garbage" },
-      null, 0.9, "active", rag);
+      null,
+      0.9,
+      "active",
+      rag,
+    );
     expect(r).not.toBeNull();
-    expect(r!.success).toBe(false);
+    expect(r?.success).toBe(false);
     expect((r as any).error?.code).toBe("validation_failed");
   });
 
   test("valid context category inserts and returns null (no error)", async () => {
-    const deps = makeDeps();
-    const r = await writeContextCase(memory, "ctx2",
+    const _deps = makeDeps();
+    const r = await writeContextCase(
+      memory,
+      "ctx2",
       { layer: "context", content: "architecture decision", category: "architecture" },
-      null, 0.9, "active", rag);
+      null,
+      0.9,
+      "active",
+      rag,
+    );
     expect(r).toBeNull();
     const row = memory.getContext("ctx2");
     expect(row).not.toBeNull();

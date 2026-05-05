@@ -42,9 +42,9 @@ export function parseCommand(raw: string): Command {
     const list = addMatch[1].toLowerCase() as TaskKind;
     const { text: body, due } = parseDue(addMatch[2]);
     if (!body) return { kind: "unknown" };
-    return due !== undefined
-      ? { kind: "add", list, text: body, due }
-      : { kind: "add", list, text: body };
+    return due === undefined
+      ? { kind: "add", list, text: body }
+      : { kind: "add", list, text: body, due };
   }
 
   const doneMatch = text.match(/^done\s+([wh]\d+)$/i);
@@ -76,7 +76,7 @@ function nextId(list: TaskKind, tasks: Task[]): string {
   let max = 0;
   for (const t of tasks) {
     const m = t.id.match(/^[wh](\d+)$/);
-    if (m) max = Math.max(max, parseInt(m[1], 10));
+    if (m) max = Math.max(max, Number.parseInt(m[1], 10));
   }
   return `${p}${max + 1}`;
 }
@@ -86,11 +86,7 @@ export interface ApplyResult {
   receipt: string;
 }
 
-export function applyCommand(
-  state: TaskState,
-  cmd: Command,
-  now: number,
-): ApplyResult {
+export function applyCommand(state: TaskState, cmd: Command, now: number): ApplyResult {
   if (cmd.kind === "unknown") {
     return { state, receipt: "? команда не распознана" };
   }
@@ -105,9 +101,7 @@ export function applyCommand(
     return { state: next, receipt: `✓ ${cmd.list}: ${id} добавлена` };
   }
   if (cmd.kind === "done") {
-    const key: keyof TaskState = cmd.id.startsWith("w")
-      ? "tasks.work"
-      : "tasks.home";
+    const key: keyof TaskState = cmd.id.startsWith("w") ? "tasks.work" : "tasks.home";
     const before = state[key];
     const after = before.filter((t) => t.id !== cmd.id);
     if (after.length === before.length) {
@@ -122,7 +116,8 @@ export function applyCommand(
     return { state, receipt: `${cmd.list}: пусто` };
   }
   const lines = arr.map(
-    (t) => `${t.id}: ${t.text}${t.due ? ` (до ${new Date(t.due * 1000).toISOString().slice(0, 16).replace("T", " ")})` : ""}`,
+    (t) =>
+      `${t.id}: ${t.text}${t.due ? ` (до ${new Date(t.due * 1000).toISOString().slice(0, 16).replace("T", " ")})` : ""}`,
   );
   return { state, receipt: `${cmd.list}:\n${lines.join("\n")}` };
 }
@@ -158,16 +153,13 @@ export function collectRemindCandidates(
   return out;
 }
 
-export function buildRemindPrompt(
-  candidates: RemindCandidate[],
-  state: TaskState,
-): string {
+export function buildRemindPrompt(candidates: RemindCandidate[], state: TaskState): string {
   const workN = state["tasks.work"].length;
   const homeN = state["tasks.home"].length;
   const overdueN = candidates.filter((c) => c.reason === "overdue").length;
-  const top = candidates.slice(0, 6).map(
-    (c) => `- [${c.list}/${c.reason}] ${c.task.id}: ${c.task.text}`,
-  );
+  const top = candidates
+    .slice(0, 6)
+    .map((c) => `- [${c.list}/${c.reason}] ${c.task.id}: ${c.task.text}`);
   return [
     `Ты — ассистент. Сформируй 1-2 строки напоминания про задачи.`,
     `Счётчики: work=${workN}, home=${homeN}, overdue=${overdueN}.`,

@@ -1,18 +1,18 @@
 import type { MemoryDB } from "../../db";
-import type { ModelRouter } from "../../lib/model-router";
 import { applyForgettingCurve } from "../../lib/memory-decay";
+import type { ModelRouter } from "../../lib/model-router";
 import type { RAGResult, RAGSearchOptions } from "../types";
-import { ftsSearch } from "./fts";
-import { vecSearch } from "./vec";
-import { dedupeById, rrfMerge } from "./rrf";
 import {
-  SALIENCE_BOOST_FACTOR,
   applyPersonaBoost,
   applySalienceBoost,
   bumpAccessAsync,
+  SALIENCE_BOOST_FACTOR,
 } from "./boosts";
-import { EmbedCache, embedContent, embedBatch } from "./embed";
+import { EmbedCache, embedBatch, embedContent } from "./embed";
+import { ftsSearch } from "./fts";
 import { rerank } from "./rerank";
+import { dedupeById, rrfMerge } from "./rrf";
+import { vecSearch } from "./vec";
 
 export type { RAGResult, RAGSearchOptions } from "../types";
 
@@ -121,7 +121,9 @@ export class RAGPipeline {
   }
 
   /** Cache stats for observability. */
-  get cacheStats() { return this.embedCache.stats; }
+  get cacheStats() {
+    return this.embedCache.stats;
+  }
 
   // ─── FTS / vec public methods (consumed by tests + agent-loop helpers) ───
 
@@ -165,7 +167,12 @@ export class RAGPipeline {
    * Embed and store a memory entry's content. Call this after memory_write
    * to keep vec index in sync.
    */
-  async indexEntry(id: string, layer: string, content: string, signal?: AbortSignal): Promise<void> {
+  async indexEntry(
+    id: string,
+    layer: string,
+    content: string,
+    signal?: AbortSignal,
+  ): Promise<void> {
     const vec = await this.embedContent(content, signal);
     this.memory.upsertEmbedding(id, layer, vec);
   }

@@ -35,7 +35,7 @@ export function mcpProtocolRoute(
     new Elysia({ prefix: "/mcp" })
       // ── SSE endpoint ──────────────────────────────────────────
       .get("/sse", ({ headers, set, request }) => {
-        const auth = headers["authorization"] ?? "";
+        const auth = headers.authorization ?? "";
         if (auth !== `Bearer ${authToken}`) {
           set.status = 401;
           return "Unauthorized";
@@ -86,7 +86,7 @@ export function mcpProtocolRoute(
       .post(
         "/messages",
         async ({ body, query, headers, set }) => {
-          const auth = headers["authorization"] ?? "";
+          const auth = headers.authorization ?? "";
           if (auth !== `Bearer ${authToken}`) {
             set.status = 401;
             return "Unauthorized";
@@ -138,11 +138,7 @@ export function mcpProtocolRoute(
             } else if (method === "ping") {
               response = jsonrpc(id, {});
             } else {
-              response = jsonrpcError(
-                id,
-                -32601,
-                `Method not found: ${method}`,
-              );
+              response = jsonrpcError(id, -32601, `Method not found: ${method}`);
             }
           } catch (err) {
             response = jsonrpcError(id, -32000, (err as Error).message);

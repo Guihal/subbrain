@@ -5,7 +5,7 @@
  * search-vec.ts (FTS5 + sqlite-vec + cross-layer M-09), helpers.ts
  * (filters + ALLOW maps + InsertSharedOpts).
  */
-import { Database } from "bun:sqlite";
+import type { Database } from "bun:sqlite";
 import type {
   AgentMemRow,
   FtsResult,
@@ -14,9 +14,9 @@ import type {
   SharedRow,
   VecResult,
 } from "../../types";
-import * as crud from "./shared-crud";
 import * as agent from "./agent-mem";
 import * as sv from "./search-vec";
+import * as crud from "./shared-crud";
 
 export type { InsertSharedOpts } from "./helpers";
 
@@ -63,8 +63,7 @@ export class SharedTable {
   ): SharedRow[] => crud.getSharedMany(this.db, ids, opts);
   getSharedByCategory = (category: string): SharedRow[] =>
     crud.getSharedByCategory(this.db, category);
-  updateShared = (id: string, fields: SharedFields): void =>
-    crud.updateShared(this.db, id, fields);
+  updateShared = (id: string, fields: SharedFields): void => crud.updateShared(this.db, id, fields);
   deleteShared = (id: string): void => crud.deleteShared(this.db, id);
 
   // ─── agent_memory ────────────────────────────────
@@ -74,18 +73,15 @@ export class SharedTable {
     agent.updateAgentMemoryContent(this.db, id, content);
   insertAgentMemory = (id: string, agentId: string, content: string, tags: string = ""): void =>
     agent.insertAgentMemory(this.db, id, agentId, content, tags);
-  getAgentMemories = (agentId: string): AgentMemRow[] =>
-    agent.getAgentMemories(this.db, agentId);
+  getAgentMemories = (agentId: string): AgentMemRow[] => agent.getAgentMemories(this.db, agentId);
   listAllAgentMemories = (
     limit: number = 50,
     offset: number = 0,
     agentId?: string,
   ): AgentMemRow[] => agent.listAllAgentMemories(this.db, limit, offset, agentId);
-  countAgentMemories = (agentId?: string): number =>
-    agent.countAgentMemories(this.db, agentId);
+  countAgentMemories = (agentId?: string): number => agent.countAgentMemories(this.db, agentId);
   listAgentIds = (): string[] => agent.listAgentIds(this.db);
-  getAgentMemory = (id: string): AgentMemRow | null =>
-    agent.getAgentMemory(this.db, id);
+  getAgentMemory = (id: string): AgentMemRow | null => agent.getAgentMemory(this.db, id);
   updateAgentMemory = (id: string, fields: { content?: string; tags?: string }): void =>
     agent.updateAgentMemory(this.db, id, fields);
   deleteAgentMemory = (id: string): void => agent.deleteAgentMemory(this.db, id);

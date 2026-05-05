@@ -3,10 +3,10 @@
  * Uses AbortSignal.any to compose external signal with per-call timeout.
  */
 
-import type { ModelRouter } from "../../lib/model-router";
 import type { Metrics } from "../../lib/metrics";
+import type { ModelRouter } from "../../lib/model-router";
 import { buildSynthesisSystemPrompt } from "./prompts";
-import { getSynthesisTimeout, type AgentResponse } from "./types";
+import { type AgentResponse, getSynthesisTimeout } from "./types";
 import { getWeight, type TaskCategory } from "./weights";
 
 const SYNTHESIS_TIMEOUT_SENTINEL: unique symbol = Symbol("synthesis_timeout");
@@ -21,17 +21,12 @@ interface SynthesisDeps {
  * times out. Picks top-2 by category weight so the agent still gets the
  * highest-signal opinions and a clear marker that synthesis failed.
  */
-export function fallbackSynthesis(
-  responses: AgentResponse[],
-  category: TaskCategory,
-): string {
+export function fallbackSynthesis(responses: AgentResponse[], category: TaskCategory): string {
   const ranked = [...responses].sort(
     (a, b) => getWeight(b.role, category) - getWeight(a.role, category),
   );
   const top = ranked.slice(0, 2);
-  const sections = top
-    .map((r) => `### ${r.role}\n${r.content}`)
-    .join("\n\n---\n\n");
+  const sections = top.map((r) => `### ${r.role}\n${r.content}`).join("\n\n---\n\n");
   return `⚠ Synthesis timed out (${getSynthesisTimeout()}ms) — раздаю top-${top.length} ответов специалистов как есть:\n\n${sections}`;
 }
 
@@ -68,9 +63,7 @@ export async function runSynthesis(
     if (synthTimer) clearTimeout(synthTimer);
   });
   const synthesisTimedOut = raced === SYNTHESIS_TIMEOUT_SENTINEL;
-  const synthesis = synthesisTimedOut
-    ? fallbackSynthesis(responses, category)
-    : (raced as string);
+  const synthesis = synthesisTimedOut ? fallbackSynthesis(responses, category) : (raced as string);
   deps.metrics?.record({
     model: "teamlead",
     priority: "critical",

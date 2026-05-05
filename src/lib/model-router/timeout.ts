@@ -1,14 +1,9 @@
 import { ProviderError } from "../../providers/nvidia";
 
-export function withTimeout<T>(
-  promise: Promise<T>,
-  ms: number,
-  label: string,
-): Promise<T> {
+export function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const timer = setTimeout(
-      () =>
-        reject(new ProviderError(408, `Request timeout after ${ms}ms: ${label}`)),
+      () => reject(new ProviderError(408, `Request timeout after ${ms}ms: ${label}`)),
       ms,
     );
     promise.then(

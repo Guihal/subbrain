@@ -4,8 +4,8 @@
  * propagated to all in-flight calls.
  */
 
-import type { ModelRouter } from "../../lib/model-router";
 import type { Metrics } from "../../lib/metrics";
+import type { ModelRouter } from "../../lib/model-router";
 import { buildSpecialistSystemPrompt } from "./prompts";
 import type { AgentResponse, RoomConfig } from "./types";
 import type { TaskCategory } from "./weights";
@@ -74,11 +74,7 @@ async function callSpecialist(
   category: TaskCategory,
   controller?: AbortController,
 ): Promise<AgentResponse> {
-  const systemPrompt = buildSpecialistSystemPrompt(
-    role,
-    category,
-    executiveSummary,
-  );
+  const systemPrompt = buildSpecialistSystemPrompt(role, category, executiveSummary);
 
   const start = Date.now();
 

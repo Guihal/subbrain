@@ -8,7 +8,7 @@
  * back to "preference" only when the tag is missing.
  * Operation is atomic via db.transaction().
  */
-import { randomUUID } from "crypto";
+import { randomUUID } from "node:crypto";
 import type { ArchiveRow, MemoryDB } from "../../db";
 
 export interface RestoreResult {
@@ -39,9 +39,7 @@ export function restoreFromArchive(
 ): RestoreResult {
   const layer = parseOriginalLayer(row.tags);
   if (!layer) {
-    throw new Error(
-      `archive row ${archiveId} has no original_layer tag — cannot restore`,
-    );
+    throw new Error(`archive row ${archiveId} has no original_layer tag — cannot restore`);
   }
 
   const restoredId = randomUUID();

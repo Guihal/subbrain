@@ -35,9 +35,7 @@ export function computeRecallScore(
   const baseStrengthDays = 1 + Math.log(1 + Math.max(0, accessCount));
   const salienceFactor = 0.5 + Math.max(0, Math.min(1, salience));
   const kindMult =
-    kind === "episodic" ? decayMultEpisodic()
-    : kind === "procedural" ? decayMultProcedural()
-    : 1.0;
+    kind === "episodic" ? decayMultEpisodic() : kind === "procedural" ? decayMultProcedural() : 1.0;
   const tauSeconds = baseStrengthDays * salienceFactor * kindMult * SECONDS_PER_DAY;
   if (tauSeconds <= 0) return 0;
   return Math.exp(-dt / tauSeconds);
@@ -60,8 +58,7 @@ export function applyForgettingCurve(
 ): RAGResult[] {
   const skipPersona = options?.skipPersona ?? true;
   return rows.map((r) => {
-    const isPersona =
-      skipPersona && r.layer === "shared" && r.kind === "persona";
+    const isPersona = skipPersona && r.layer === "shared" && r.kind === "persona";
     const recall = isPersona
       ? 1.0
       : computeRecallScore(

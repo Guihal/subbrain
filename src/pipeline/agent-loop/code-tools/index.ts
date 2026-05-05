@@ -5,12 +5,12 @@
  * and the auto-disable threshold logic. Raw SQL lives in
  * `src/db/tables/code-tools.ts` (guardrail #6 / PR B-2).
  */
-import { randomUUID } from "crypto";
+import { randomUUID } from "node:crypto";
 import type { CodeToolsRepository } from "../../../repositories/code-tools.repo";
-import type { CodeTool } from "./types";
-import { CODE_TOOL_LIMITS } from "./types";
 import type { AgentMode } from "../types";
 import { isHiddenInMode } from "./scheduled-blacklist";
+import type { CodeTool } from "./types";
+import { CODE_TOOL_LIMITS } from "./types";
 
 function hydrate(row: CodeTool | null): CodeTool | null {
   if (!row) return null;
@@ -23,9 +23,7 @@ export class CodeToolRegistry {
 
   create(name: string, description: string, code: string): CodeTool {
     if (code.length > CODE_TOOL_LIMITS.MAX_CODE_SIZE) {
-      throw new Error(
-        `Code exceeds max size: ${code.length} > ${CODE_TOOL_LIMITS.MAX_CODE_SIZE}`,
-      );
+      throw new Error(`Code exceeds max size: ${code.length} > ${CODE_TOOL_LIMITS.MAX_CODE_SIZE}`);
     }
     const id = randomUUID();
     this.repo.insert(id, name, description, code);
@@ -41,15 +39,10 @@ export class CodeToolRegistry {
   }
 
   list(includeDisabled = false): CodeTool[] {
-    return this.repo
-      .list(includeDisabled)
-      .map((r) => ({ ...r, enabled: !!r.enabled }));
+    return this.repo.list(includeDisabled).map((r) => ({ ...r, enabled: !!r.enabled }));
   }
 
-  update(
-    name: string,
-    updates: { description?: string; code?: string },
-  ): CodeTool {
+  update(name: string, updates: { description?: string; code?: string }): CodeTool {
     const tool = this.getByName(name);
     if (!tool) throw new Error(`Code tool not found: ${name}`);
     if (updates.code && updates.code.length > CODE_TOOL_LIMITS.MAX_CODE_SIZE) {
@@ -98,21 +91,21 @@ export class CodeToolRegistry {
     return this.list()
       .filter((t) => !isHiddenInMode(t.name, mode))
       .map((t) => ({
-      type: "function" as const,
-      function: {
-        name: `code_${t.name}`,
-        description: `[Code Tool] ${t.description}`,
-        parameters: {
-          type: "object",
-          properties: {
-            input: {
-              type: "string",
-              description: "Input data for the tool (text, JSON, URL, etc.)",
+        type: "function" as const,
+        function: {
+          name: `code_${t.name}`,
+          description: `[Code Tool] ${t.description}`,
+          parameters: {
+            type: "object",
+            properties: {
+              input: {
+                type: "string",
+                description: "Input data for the tool (text, JSON, URL, etc.)",
+              },
             },
-          },
-          required: ["input"],
-        } as Record<string, unknown>,
-      },
-    }));
+            required: ["input"],
+          } as Record<string, unknown>,
+        },
+      }));
   }
 }

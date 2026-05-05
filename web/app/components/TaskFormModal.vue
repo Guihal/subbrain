@@ -1,11 +1,5 @@
 <script setup lang="ts">
-import type {
-  CreateBody,
-  PatchBody,
-  TaskRow,
-  TaskScope,
-} from "~/types/task";
-import { TASK_SCOPES } from "~/types/task";
+import type { CreateBody, PatchBody, TaskRow, TaskScope } from "~/types/task";
 
 const props = defineProps<{
   modelValue: boolean;
@@ -32,7 +26,7 @@ function unixToLocalMsk(unix: number | null): string {
 function localMskToUnix(local: string): number | null {
   if (!local) return null;
   const norm = local.slice(0, 16);
-  const d = new Date(norm + ":00+03:00");
+  const d = new Date(`${norm}:00+03:00`);
   return Number.isFinite(d.getTime()) ? Math.floor(d.getTime() / 1000) : null;
 }
 

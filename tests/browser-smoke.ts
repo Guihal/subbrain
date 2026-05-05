@@ -25,7 +25,7 @@ async function chromeProcCount(): Promise<number> {
     stdout: "pipe",
   });
   const out = await new Response(proc.stdout).text();
-  return parseInt(out.trim(), 10) || 0;
+  return Number.parseInt(out.trim(), 10) || 0;
 }
 
 async function waitForStable(label: string): Promise<number> {

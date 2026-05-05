@@ -259,9 +259,7 @@ export function migrate(db: Database): void {
 
   // ─── Migrations ─────────────────────────────────────────
   // Add 'telegram' to chats.source CHECK constraint (SQLite requires table rebuild)
-  const version = db
-    .query<{ user_version: number }, []>("PRAGMA user_version")
-    .get()!.user_version;
+  const version = db.query<{ user_version: number },[]>("PRAGMA user_version").get()?.user_version ?? 0;
   if (version < 1) {
     db.exec(`
       CREATE TABLE IF NOT EXISTS chats_new (
@@ -621,9 +619,7 @@ export function migrate(db: Database): void {
       // upgrade), (b) partial-rerun where triggers already populated some
       // rows. count=0 → seed from layer4_log; count>0 → triggers are in
       // charge, no double-insert.
-      const ftsCount = db
-        .query<{ c: number }, []>("SELECT count(*) AS c FROM fts_log")
-        .get()!.c;
+      const ftsCount = db.query<{ c: number }, []>("SELECT count(*) AS c FROM fts_log").get()?.c;
       if (ftsCount === 0) {
         db.query(
           `INSERT INTO fts_log(rowid, role, content)
@@ -761,7 +757,7 @@ export function migrate(db: Database): void {
       for (const sql of mig14Stmts) db.query(sql).run();
       const edgeCount = db
         .query<{ c: number }, []>("SELECT count(*) AS c FROM memory_edges")
-        .get()!.c;
+        .get()?.c;
       if (edgeCount === 0) {
         db.query(
           `INSERT OR IGNORE INTO memory_edges

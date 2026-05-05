@@ -1,7 +1,7 @@
 /**
  * Tests for createProxyStream (src/providers/stream-utils.ts).
  */
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { createProxyStream } from "../src/providers/stream-utils";
 
 /** Collect all chunks from a stream into a single string */
@@ -37,9 +37,7 @@ describe("createProxyStream", () => {
   });
 
   test("emits error frame on fetch failure", async () => {
-    const stream = createProxyStream(() =>
-      Promise.reject(new Error("Network failure")),
-    );
+    const stream = createProxyStream(() => Promise.reject(new Error("Network failure")));
     const text = await drain(stream);
     expect(text).toContain("Network failure");
     expect(text).toContain("stream_error");

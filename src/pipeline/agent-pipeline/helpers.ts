@@ -1,9 +1,10 @@
 /**
  * Utility functions for the agent pipeline.
  */
+
+import { getPersonaBio } from "../../lib/personas";
 import type { Message } from "../../providers/types";
 import type { PreProcessingOutput } from "./types";
-import { getPersonaBio } from "../../lib/personas";
 
 export function extractLastUserMessage(messages: Message[]): string {
   for (let i = messages.length - 1; i >= 0; i--) {
@@ -18,10 +19,7 @@ export function isFirstMessage(messages: Message[]): boolean {
   return !messages.some((m) => m.role === "assistant");
 }
 
-export function buildSystemPrompt(
-  pre: PreProcessingOutput,
-  model: string,
-): string {
+export function buildSystemPrompt(pre: PreProcessingOutput, model: string): string {
   const parts: string[] = [];
 
   parts.push(getPersonaBio(model));
@@ -53,10 +51,7 @@ export function buildSystemPrompt(
   return parts.join("\n");
 }
 
-export function injectSystemPrompt(
-  messages: Message[],
-  systemAddition?: string,
-): Message[] {
+export function injectSystemPrompt(messages: Message[], systemAddition?: string): Message[] {
   if (!systemAddition) return messages;
 
   const result = [...messages];
@@ -65,7 +60,7 @@ export function injectSystemPrompt(
   if (sysIdx >= 0) {
     result[sysIdx] = {
       ...result[sysIdx],
-      content: systemAddition + "\n\n" + (result[sysIdx].content || ""),
+      content: `${systemAddition}\n\n${result[sysIdx].content || ""}`,
     };
   } else {
     result.unshift({ role: "system", content: systemAddition });

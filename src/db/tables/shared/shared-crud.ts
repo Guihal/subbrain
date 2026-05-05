@@ -1,11 +1,7 @@
-import { Database } from "bun:sqlite";
+import type { Database } from "bun:sqlite";
 import type { MemoryKind, MemoryStatus, SharedRow } from "../../types";
 import { updateRow } from "../update-row";
-import {
-  buildActiveFilter,
-  type InsertSharedOpts,
-  SHARED_UPDATABLE,
-} from "./helpers";
+import { buildActiveFilter, type InsertSharedOpts, SHARED_UPDATABLE } from "./helpers";
 
 export function insertShared(
   db: Database,
@@ -26,17 +22,24 @@ export function insertShared(
 }
 
 export function getAllShared(db: Database): SharedRow[] {
-  return db
-    .query("SELECT * FROM shared_memory ORDER BY updated_at DESC")
-    .all() as SharedRow[];
+  return db.query("SELECT * FROM shared_memory ORDER BY updated_at DESC").all() as SharedRow[];
 }
 
 // M-07: optional `kind` filter. Composes with category AND-wise.
-function whereCategoryKind(category?: string, kind?: MemoryKind): { sql: string; params: (string | number)[] } {
+function whereCategoryKind(
+  category?: string,
+  kind?: MemoryKind,
+): { sql: string; params: (string | number)[] } {
   const where: string[] = [];
   const params: (string | number)[] = [];
-  if (category) { where.push("category = ?"); params.push(category); }
-  if (kind) { where.push("kind = ?"); params.push(kind); }
+  if (category) {
+    where.push("category = ?");
+    params.push(category);
+  }
+  if (kind) {
+    where.push("kind = ?");
+    params.push(kind);
+  }
   return { sql: where.length ? `WHERE ${where.join(" AND ")}` : "", params };
 }
 
@@ -69,33 +72,27 @@ export function listSharedActive(
     activeOnly: true,
     notStale: true,
   });
-  const where = category
-    ? `WHERE category = ? ${filter}`
-    : `WHERE 1=1 ${filter}`;
+  const where = category ? `WHERE category = ? ${filter}` : `WHERE 1=1 ${filter}`;
   const params: (string | number)[] = category ? [category] : [];
   const items = db
-    .query(
-      `SELECT * FROM shared_memory ${where} ORDER BY updated_at DESC LIMIT ? OFFSET ?`,
-    )
+    .query(`SELECT * FROM shared_memory ${where} ORDER BY updated_at DESC LIMIT ? OFFSET ?`)
     .all(...params, limit, offset) as SharedRow[];
-  const totalRow = db
-    .query(`SELECT COUNT(*) AS c FROM shared_memory ${where}`)
-    .get(...params) as { c: number };
+  const totalRow = db.query(`SELECT COUNT(*) AS c FROM shared_memory ${where}`).get(...params) as {
+    c: number;
+  };
   return { items, total: totalRow.c };
 }
 
 export function countShared(db: Database, category?: string, kind?: MemoryKind): number {
   const { sql, params } = whereCategoryKind(category, kind);
-  const row = db
-    .query(`SELECT COUNT(*) AS c FROM shared_memory ${sql}`)
-    .get(...params) as { c: number };
+  const row = db.query(`SELECT COUNT(*) AS c FROM shared_memory ${sql}`).get(...params) as {
+    c: number;
+  };
   return row.c;
 }
 
 export function getShared(db: Database, id: string): SharedRow | null {
-  return db
-    .query("SELECT * FROM shared_memory WHERE id = ?")
-    .get(id) as SharedRow | null;
+  return db.query("SELECT * FROM shared_memory WHERE id = ?").get(id) as SharedRow | null;
 }
 
 /**
@@ -113,17 +110,13 @@ export function getSharedMany(
   const placeholders = ids.map(() => "?").join(",");
   const filter = buildActiveFilter("shared_memory", opts);
   return db
-    .query(
-      `SELECT * FROM shared_memory WHERE id IN (${placeholders})${filter}`,
-    )
+    .query(`SELECT * FROM shared_memory WHERE id IN (${placeholders})${filter}`)
     .all(...ids) as SharedRow[];
 }
 
 export function getSharedByCategory(db: Database, category: string): SharedRow[] {
   return db
-    .query(
-      "SELECT * FROM shared_memory WHERE category = ? ORDER BY updated_at DESC",
-    )
+    .query("SELECT * FROM shared_memory WHERE category = ? ORDER BY updated_at DESC")
     .all(category) as SharedRow[];
 }
 

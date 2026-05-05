@@ -1,9 +1,10 @@
 /**
  * Types and interfaces for the agent pipeline.
  */
-import type { Message, ChatResponse } from "../../providers/types";
-import type { RAGResult } from "../../rag";
+
 import type { SharedRow } from "../../db";
+import type { ChatResponse, Message } from "../../providers/types";
+import type { RAGResult } from "../../rag";
 
 export interface PipelineRequest {
   model: string;

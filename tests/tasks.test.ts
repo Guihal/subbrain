@@ -2,14 +2,14 @@
  * Phase 1 Task Store — TasksTable CRUD, upsertBySource idempotency,
  * transition matrix, DB CHECK invariant, ordering.
  */
-import { describe, test, expect, beforeEach, afterEach } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { randomUUID } from "node:crypto";
-import { unlinkSync, existsSync } from "node:fs";
+import { existsSync, unlinkSync } from "node:fs";
 import { MemoryDB } from "../src/db";
 import {
-  TERMINAL_STATUSES,
   canTransition,
   InvalidTransitionError,
+  TERMINAL_STATUSES,
 } from "../src/db/tables/task-transitions";
 
 const DB_PATH = "data/test-tasks.db";
@@ -169,12 +169,8 @@ describe("TasksTable.transition", () => {
       scope: "global",
     });
     memory.transitionTask(row.id, "done");
-    expect(() => memory.transitionTask(row.id, "open")).toThrow(
-      InvalidTransitionError,
-    );
-    expect(() => memory.transitionTask(row.id, "in_progress")).toThrow(
-      InvalidTransitionError,
-    );
+    expect(() => memory.transitionTask(row.id, "open")).toThrow(InvalidTransitionError);
+    expect(() => memory.transitionTask(row.id, "in_progress")).toThrow(InvalidTransitionError);
   });
 
   test("concurrent done race — one wins, other rejected", () => {
@@ -238,11 +234,7 @@ describe("TasksTable.upsertBySource", () => {
 
   test("upsert on terminal source → skipped=true, row unchanged", () => {
     const source = "tg:peer=1:msg=9";
-    const first = memory.upsertTaskBySource(
-      source,
-      { scope: "tg", title: "orig" },
-      randomUUID(),
-    );
+    const first = memory.upsertTaskBySource(source, { scope: "tg", title: "orig" }, randomUUID());
     expect(first.created).toBe(true);
     expect(first.skipped).toBe(false);
 
@@ -299,19 +291,15 @@ describe("DB CHECK invariant", () => {
       title: "t",
       scope: "global",
     });
-    expect(() =>
-      memory.db
-        .query(`UPDATE tasks SET status='done' WHERE id=?`)
-        .run(row.id),
-    ).toThrow(/CHECK/i);
+    expect(() => memory.db.query(`UPDATE tasks SET status='done' WHERE id=?`).run(row.id)).toThrow(
+      /CHECK/i,
+    );
   });
 
   test("manual INSERT done without completed_at throws", () => {
     expect(() =>
       memory.db
-        .query(
-          `INSERT INTO tasks (id,title,scope,status) VALUES (?,?,'global','done')`,
-        )
+        .query(`INSERT INTO tasks (id,title,scope,status) VALUES (?,?,'global','done')`)
         .run(randomUUID(), "x"),
     ).toThrow(/CHECK/i);
   });
@@ -353,9 +341,7 @@ describe("listActive ordering (priority DESC, due_at ASC NULLS LAST, id ASC)", (
       priority: 5,
       due_at: 50,
     });
-    const order = memory
-      .listTasksActive("global", 10)
-      .map((r) => r.title);
+    const order = memory.listTasksActive("global", 10).map((r) => r.title);
     // priority=5 group: earlyDue (50) < high (200) < null-due (null last)
     // then priority=1: low
     expect(order).toEqual(["early", "high", "null-due", "low"]);

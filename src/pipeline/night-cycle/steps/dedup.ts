@@ -3,7 +3,7 @@ import type { ModelRouter } from "../../../lib/model-router";
 import type { RAGPipeline } from "../../../rag";
 import type { CompressedEntry } from "../types";
 import { parseJson } from "../types";
-import { NIGHT_MODEL, nightLog as log } from "./shared";
+import { nightLog as log, NIGHT_MODEL } from "./shared";
 
 export async function dedup(
   entry: CompressedEntry,
@@ -12,16 +12,11 @@ export async function dedup(
   rag?: RAGPipeline,
 ): Promise<boolean> {
   try {
-    const existing = memory.searchArchive(
-      entry.tags.split(",").slice(0, 3).join(" OR "),
-      5,
-    );
+    const existing = memory.searchArchive(entry.tags.split(",").slice(0, 3).join(" OR "), 5);
 
     if (existing.length === 0) return false;
 
-    const existingSummary = existing
-      .map((e) => `[${e.id}] ${e.title}: ${e.snippet}`)
-      .join("\n");
+    const existingSummary = existing.map((e) => `[${e.id}] ${e.title}: ${e.snippet}`).join("\n");
 
     const response = await router.chat(
       NIGHT_MODEL,

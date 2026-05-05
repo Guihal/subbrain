@@ -1,14 +1,14 @@
 /**
  * Tests for Telegram tool handlers (src/mcp/telegram-tools.ts).
  */
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import {
-  tgListChats,
-  tgReadChat,
-  tgSearchMessages,
   tgExcludeChat,
   tgIncludeChat,
+  tgListChats,
   tgListExcluded,
+  tgReadChat,
+  tgSearchMessages,
 } from "../src/mcp/telegram-tools";
 
 // ─── Mock objects ─────────────────────────────────────────
@@ -19,8 +19,9 @@ const mockUserbot = {
     Array.from({ length: limit }, (_, i) => ({ id: `chat-${i}`, title: `Chat ${i}` })),
   readChat: async (chatId: string, limit: number) =>
     Array.from({ length: limit }, (_, i) => ({ id: i, chatId, text: `msg-${i}` })),
-  searchMessages: async (query: string, limit: number) =>
-    [{ id: 1, text: `Found: ${query}`, chatId: "chat-1" }],
+  searchMessages: async (query: string, _limit: number) => [
+    { id: 1, text: `Found: ${query}`, chatId: "chat-1" },
+  ],
 } as any;
 
 const disconnectedUserbot = {
@@ -30,9 +31,7 @@ const disconnectedUserbot = {
 const mockMemory = {
   excludeTgChat: (_chatId: string, _chatTitle: string, _reason: string) => {},
   includeTgChat: (_chatId: string) => {},
-  getExcludedTgChats: () => [
-    { chat_id: "chat-1", chat_title: "Private Chat", reason: "private" },
-  ],
+  getExcludedTgChats: () => [{ chat_id: "chat-1", chat_title: "Private Chat", reason: "private" }],
 } as any;
 
 // ─── Tests ────────────────────────────────────────────────

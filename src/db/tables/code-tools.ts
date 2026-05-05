@@ -13,22 +13,16 @@ export class CodeToolsTable {
 
   insert(id: string, name: string, description: string, code: string): void {
     this.db
-      .query(
-        "INSERT INTO code_tools (id, name, description, code) VALUES (?, ?, ?, ?)",
-      )
+      .query("INSERT INTO code_tools (id, name, description, code) VALUES (?, ?, ?, ?)")
       .run(id, name, description, code);
   }
 
   get(id: string): CodeTool | null {
-    return this.db
-      .query("SELECT * FROM code_tools WHERE id = ?")
-      .get(id) as CodeTool | null;
+    return this.db.query("SELECT * FROM code_tools WHERE id = ?").get(id) as CodeTool | null;
   }
 
   getByName(name: string): CodeTool | null {
-    return this.db
-      .query("SELECT * FROM code_tools WHERE name = ?")
-      .get(name) as CodeTool | null;
+    return this.db.query("SELECT * FROM code_tools WHERE name = ?").get(name) as CodeTool | null;
   }
 
   list(includeDisabled = false): CodeTool[] {
@@ -48,9 +42,7 @@ export class CodeToolsTable {
   }
 
   delete(name: string): boolean {
-    const result = this.db
-      .query("DELETE FROM code_tools WHERE name = ?")
-      .run(name);
+    const result = this.db.query("DELETE FROM code_tools WHERE name = ?").run(name);
     return result.changes > 0;
   }
 
@@ -72,9 +64,7 @@ export class CodeToolsTable {
 
   disable(name: string): void {
     this.db
-      .query(
-        "UPDATE code_tools SET enabled = 0, updated_at = unixepoch() WHERE name = ?",
-      )
+      .query("UPDATE code_tools SET enabled = 0, updated_at = unixepoch() WHERE name = ?")
       .run(name);
   }
 }

@@ -33,7 +33,11 @@ export async function readChat(
   if (excluded.has(chatId)) {
     throw new Error(`Chat ${chatId} is excluded from reading`);
   }
-  const entity = await withTimeout(client.getEntity(chatId), TG_OP_TIMEOUT_MS, `getEntity(${chatId})`);
+  const entity = await withTimeout(
+    client.getEntity(chatId),
+    TG_OP_TIMEOUT_MS,
+    `getEntity(${chatId})`,
+  );
   const messages = await withTimeout(
     client.getMessages(entity, { limit, ...(offsetId ? { offsetId } : {}) }),
     TG_OP_TIMEOUT_MS,
@@ -43,9 +47,10 @@ export async function readChat(
     .filter((m) => m.message)
     .map((m) => ({
       id: m.id,
-      sender: (m.sender as { firstName?: string; title?: string } | null)?.firstName
-        || (m.sender as { firstName?: string; title?: string } | null)?.title
-        || "Unknown",
+      sender:
+        (m.sender as { firstName?: string; title?: string } | null)?.firstName ||
+        (m.sender as { firstName?: string; title?: string } | null)?.title ||
+        "Unknown",
       text: m.message || "",
       date: new Date(m.date * 1000).toISOString(),
       ...(m.replyTo ? { replyToId: (m.replyTo as { replyToMsgId?: number }).replyToMsgId } : {}),

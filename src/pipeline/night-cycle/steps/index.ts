@@ -1,24 +1,24 @@
-export { scrubPII } from "./scrub";
-export { translate } from "./translate";
-export { compress } from "./compress";
-export { verify } from "./verify";
-export { dedup } from "./dedup";
 export { extractAntiPatterns } from "./anti-patterns";
+export { compress } from "./compress";
 export { resolveContradictions } from "./contradictions";
-export { runMemoryDedup } from "./memory-dedup";
-export { decaySalience } from "./decay-salience";
-export { runReflect, type ReflectResult, type ReflectDeps } from "./reflect";
 export {
-  runCrossLayerDedup,
-  type CrossLayerResult,
   type CrossLayerDeps,
+  type CrossLayerResult,
+  runCrossLayerDedup,
 } from "./cross-layer-dedup";
+export { decaySalience } from "./decay-salience";
+export { dedup } from "./dedup";
 export {
-  runEmbedLog,
-  type EmbedLogResult,
   type EmbedLogDeps,
+  type EmbedLogResult,
+  runEmbedLog,
 } from "./embed-log";
 export {
-  runFocusRewrite,
   type FocusRewriteDeps,
+  runFocusRewrite,
 } from "./focus-rewrite";
+export { runMemoryDedup } from "./memory-dedup";
+export { type ReflectDeps, type ReflectResult, runReflect } from "./reflect";
+export { scrubPII } from "./scrub";
+export { translate } from "./translate";
+export { verify } from "./verify";

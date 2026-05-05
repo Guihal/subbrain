@@ -1,8 +1,8 @@
-import type { ChatParams, ChatResponse } from "../../providers/types";
 import { ProviderError } from "../../providers/nvidia";
-import type { ModelTarget, Priority, ProviderName } from "../model-map";
+import type { ChatParams, ChatResponse } from "../../providers/types";
 import { UpstreamExhaustedError } from "../errors";
-import { REQUEST_TIMEOUT, MAX_FALLBACK_ATTEMPTS, type Backend } from "./constants";
+import type { ModelTarget, Priority, ProviderName } from "../model-map";
+import { type Backend, MAX_FALLBACK_ATTEMPTS, REQUEST_TIMEOUT } from "./constants";
 import { withTimeout } from "./timeout";
 
 export interface DispatchDeps {

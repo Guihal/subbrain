@@ -1,9 +1,6 @@
 import type { TaskStatus } from "../types";
 
-export const TERMINAL_STATUSES: ReadonlySet<TaskStatus> = new Set([
-  "done",
-  "cancelled",
-]);
+export const TERMINAL_STATUSES: ReadonlySet<TaskStatus> = new Set(["done", "cancelled"]);
 
 export class InvalidTransitionError extends Error {
   constructor(
@@ -25,8 +22,7 @@ export class InvalidTransitionError extends Error {
 export function canTransition(from: TaskStatus, to: TaskStatus): boolean {
   if (from === to) return !TERMINAL_STATUSES.has(from);
   if (TERMINAL_STATUSES.has(from)) return false;
-  if (from === "open" && (to === "in_progress" || TERMINAL_STATUSES.has(to)))
-    return true;
+  if (from === "open" && (to === "in_progress" || TERMINAL_STATUSES.has(to))) return true;
   if (from === "in_progress" && TERMINAL_STATUSES.has(to)) return true;
   return false;
 }

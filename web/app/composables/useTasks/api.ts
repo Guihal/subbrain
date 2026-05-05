@@ -43,9 +43,7 @@ export function createTaskApi(deps: TaskApiDeps) {
     loading.value = true;
     error.value = null;
     try {
-      const env = await api<ListEnvelope<TaskRow>>(
-        `/v1/tasks?${buildParams(filters).toString()}`,
-      );
+      const env = await api<ListEnvelope<TaskRow>>(`/v1/tasks?${buildParams(filters).toString()}`);
       items.value = env.items;
       total.value = env.total;
     } catch (e) {

@@ -17,23 +17,15 @@ function freshDb(): MemoryDB {
   return new MemoryDB(DB_PATH);
 }
 
-function seedTask(
-  memory: MemoryDB,
-  status: "open" | "in_progress",
-  updatedAt: number,
-): string {
+function seedTask(memory: MemoryDB, status: "open" | "in_progress", updatedAt: number): string {
   const id = randomUUID();
   memory.insertTask({ id, title: `task ${id}`, scope: "global" });
-  memory.db
-    .query(`UPDATE tasks SET status=?, updated_at=? WHERE id=?`)
-    .run(status, updatedAt, id);
+  memory.db.query(`UPDATE tasks SET status=?, updated_at=? WHERE id=?`).run(status, updatedAt, id);
   return id;
 }
 
 function countTasks(memory: MemoryDB): number {
-  return (
-    memory.db.query(`SELECT COUNT(*) AS c FROM tasks`).get() as { c: number }
-  ).c;
+  return (memory.db.query(`SELECT COUNT(*) AS c FROM tasks`).get() as { c: number }).c;
 }
 
 afterAll(() => {
@@ -99,9 +91,7 @@ describe("pruneStaleTasks", () => {
     const id = randomUUID();
     memory.insertTask({ id, title: "done", scope: "global" });
     memory.db
-      .query(
-        `UPDATE tasks SET status='done', completed_at=?, updated_at=? WHERE id=?`,
-      )
+      .query(`UPDATE tasks SET status='done', completed_at=?, updated_at=? WHERE id=?`)
       .run(now - 100 * 86400, now - 100 * 86400, id);
     const r = pruneStaleTasks(memory);
     expect(r.openDeleted).toBe(0);

@@ -22,12 +22,12 @@
  * which already handles step-level throws via `result.errors`.
  */
 import type { MemoryDB } from "../../../db";
-import type { ModelRouter } from "../../../lib/model-router";
 import type { ScopedLogger } from "../../../lib/logger";
+import type { ModelRouter } from "../../../lib/model-router";
 import { PROTECTED_FOCUS_KEYS } from "../prune/focus";
+import type { FocusRewriteResult } from "../types";
 import { stripThinkTags } from "../types";
 import { NIGHT_MODEL, nightLog } from "./shared";
-import type { FocusRewriteResult } from "../types";
 
 const REWRITE_TOP_K_DEFAULT = 30;
 const MAX_FOCUS_LEN_DEFAULT = 500;
@@ -50,17 +50,11 @@ export interface FocusRewriteDeps {
 }
 
 function readEnv(): { enabled: boolean; topK: number; maxLen: number } {
-  const enabled =
-    (process.env.NIGHT_CYCLE_FOCUS_REWRITE_ENABLED ?? "").toLowerCase() ===
-    "true";
-  const rawTopK = parseInt(process.env.FOCUS_REWRITE_TOP_K ?? "", 10);
-  const topK =
-    Number.isFinite(rawTopK) && rawTopK >= 1 ? rawTopK : REWRITE_TOP_K_DEFAULT;
-  const rawMaxLen = parseInt(process.env.FOCUS_REWRITE_MAX_LEN ?? "", 10);
-  const maxLen =
-    Number.isFinite(rawMaxLen) && rawMaxLen >= 32
-      ? rawMaxLen
-      : MAX_FOCUS_LEN_DEFAULT;
+  const enabled = (process.env.NIGHT_CYCLE_FOCUS_REWRITE_ENABLED ?? "").toLowerCase() === "true";
+  const rawTopK = Number.parseInt(process.env.FOCUS_REWRITE_TOP_K ?? "", 10);
+  const topK = Number.isFinite(rawTopK) && rawTopK >= 1 ? rawTopK : REWRITE_TOP_K_DEFAULT;
+  const rawMaxLen = Number.parseInt(process.env.FOCUS_REWRITE_MAX_LEN ?? "", 10);
+  const maxLen = Number.isFinite(rawMaxLen) && rawMaxLen >= 32 ? rawMaxLen : MAX_FOCUS_LEN_DEFAULT;
   return { enabled, topK, maxLen };
 }
 
@@ -75,14 +69,8 @@ const FOCUS_REWRITE_PROMPT = `Ты обновляешь focus-блок layer1_fo
 
 Output: ТОЛЬКО новый value (no JSON, no fences). Никаких meta-комментариев.`;
 
-function buildUserContent(
-  key: string,
-  currentValue: string,
-  topShared: SharedTop[],
-): string {
-  const list = topShared
-    .map((t) => `[${t.kind}] ${t.category}: ${t.content}`)
-    .join("\n");
+function buildUserContent(key: string, currentValue: string, topShared: SharedTop[]): string {
+  const list = topShared.map((t) => `[${t.kind}] ${t.category}: ${t.content}`).join("\n");
   return `key: ${key}\ncurrent: ${currentValue}\n\ntop_shared:\n${list}`;
 }
 
@@ -108,9 +96,7 @@ async function rewriteFocusBlock(
   return stripThinkTags(raw).trim();
 }
 
-export async function runFocusRewrite(
-  deps: FocusRewriteDeps,
-): Promise<FocusRewriteResult> {
+export async function runFocusRewrite(deps: FocusRewriteDeps): Promise<FocusRewriteResult> {
   const log = deps.log ?? nightLog.child("focus-rewrite");
   const { enabled, topK, maxLen } = readEnv();
   if (!enabled) {
@@ -118,9 +104,7 @@ export async function runFocusRewrite(
   }
 
   const all = deps.memory.getAllFocus();
-  const editable = Object.entries(all).filter(
-    ([k]) => !PROTECTED_FOCUS_KEYS.has(k),
-  );
+  const editable = Object.entries(all).filter(([k]) => !PROTECTED_FOCUS_KEYS.has(k));
   if (editable.length === 0) {
     log.info("no editable focus keys → skip");
     return { rewritten: 0, skipped: 0, errors: 0 };
@@ -137,17 +121,8 @@ export async function runFocusRewrite(
   let errors = 0;
   for (const [key, currentValue] of editable) {
     try {
-      const newValue = await rewriteFocusBlock(
-        deps.router,
-        key,
-        currentValue,
-        topShared,
-      );
-      if (
-        newValue.length > 0 &&
-        newValue !== currentValue &&
-        newValue.length <= maxLen
-      ) {
+      const newValue = await rewriteFocusBlock(deps.router, key, currentValue, topShared);
+      if (newValue.length > 0 && newValue !== currentValue && newValue.length <= maxLen) {
         deps.memory.setShadowFocus(key, newValue);
         rewritten++;
         log.info(`shadow key=${key} len=${newValue.length}`);

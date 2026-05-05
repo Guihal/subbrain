@@ -1,4 +1,4 @@
-import type { MemoryDB, FtsResult } from "../../../db";
+import type { FtsResult, MemoryDB } from "../../../db";
 import type { ToolResult } from "../../types";
 
 export function searchMemory(
@@ -36,10 +36,7 @@ export function searchMemory(
     const q = query.toLowerCase();
     const focus = memory.getAllFocus();
     results.focus = Object.entries(focus)
-      .filter(
-        ([k, v]) =>
-          k.toLowerCase().includes(q) || v.toLowerCase().includes(q),
-      )
+      .filter(([k, v]) => k.toLowerCase().includes(q) || v.toLowerCase().includes(q))
       .slice(0, n)
       .map(([k, v]) => ({
         id: k,

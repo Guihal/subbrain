@@ -3,12 +3,12 @@
  * `steps/anti-patterns.ts` only does the LLM extraction; this wrapper
  * adds the embed + transactional archive write.
  */
-import { randomUUID } from "crypto";
+import { randomUUID } from "node:crypto";
 import type { LogRow, MemoryDB } from "../../db";
+import { getMoscowDate } from "../../lib/clock";
+import { logger } from "../../lib/logger";
 import type { ModelRouter } from "../../lib/model-router";
 import type { RAGPipeline } from "../../rag";
-import { logger } from "../../lib/logger";
-import { getMoscowDate } from "../../lib/clock";
 import { extractAntiPatterns } from "./steps";
 import type { NightCycleResult } from "./types";
 
@@ -31,7 +31,7 @@ export async function runAntiPatternsStep(
       memory.transaction(() => {
         memory.insertArchive(
           apId,
-          "Anti-patterns: " + getMoscowDate(),
+          `Anti-patterns: ${getMoscowDate()}`,
           antiPatterns,
           "anti-patterns,night-cycle",
           [],
@@ -42,9 +42,7 @@ export async function runAntiPatternsStep(
       });
       result.antiPatternsFound = 1;
     } catch (err) {
-      log.warn(
-        `anti-patterns_retry_next_cycle id=${apId} reason=${(err as Error).message}`,
-      );
+      log.warn(`anti-patterns_retry_next_cycle id=${apId} reason=${(err as Error).message}`);
     }
   } catch (err) {
     const msg = (err as Error).message;

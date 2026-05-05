@@ -1,26 +1,17 @@
 <script setup lang="ts">
-const {
-  messages,
-  currentChatId,
-  streaming,
-  loadChats,
-  loadModels,
-  sendMessage,
-  checkHealth,
-} = useChat();
+const { messages, currentChatId, streaming, loadChats, loadModels, sendMessage, checkHealth } =
+  useChat();
 
 const sidebarOpen = useState("sidebar-open", () => false);
 const messagesContainer = ref<HTMLElement>();
 
 // Auto-scroll on new messages
 watch(
-  () =>
-    messages.value.length && messages.value[messages.value.length - 1]?.content,
+  () => messages.value.length && messages.value[messages.value.length - 1]?.content,
   () => {
     nextTick(() => {
       if (messagesContainer.value) {
-        messagesContainer.value.scrollTop =
-          messagesContainer.value.scrollHeight;
+        messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight;
       }
     });
   },
@@ -33,8 +24,7 @@ watch(
     if (streaming.value) {
       nextTick(() => {
         if (messagesContainer.value) {
-          messagesContainer.value.scrollTop =
-            messagesContainer.value.scrollHeight;
+          messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight;
         }
       });
     }

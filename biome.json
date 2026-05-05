@@ -1,0 +1,210 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.4.4/schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true,
+    "defaultBranch": "main"
+  },
+  "files": {
+    "ignoreUnknown": true,
+    "includes": [
+      "src/**",
+      "scripts/**",
+      "tests/**",
+      "web/app/**",
+      "web/server/**",
+      "!**/node_modules",
+      "!**/.nuxt",
+      "!**/.output",
+      "!**/dist",
+      "!**/build",
+      "!**/data",
+      "!**/*.db",
+      "!**/*.sqlite",
+      "!**/coverage"
+    ]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100,
+    "lineEnding": "lf",
+    "useEditorconfig": true
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "double",
+      "trailingCommas": "all",
+      "semicolons": "always",
+      "arrowParentheses": "always",
+      "bracketSameLine": false
+    },
+    "globals": [
+      "Bun",
+      "useState",
+      "useEffect",
+      "useRef",
+      "useMemo",
+      "useCallback",
+      "computed",
+      "ref",
+      "watch",
+      "onMounted",
+      "nextTick",
+      "useApi",
+      "useChat",
+      "useChatState",
+      "useChatMode",
+      "useTasksPage",
+      "useTasks",
+      "useMemory",
+      "useMemoryPage",
+      "useMemoryEditor",
+      "useRuntimeConfig",
+      "useMarkdown",
+      "useChatPersistence",
+      "defineAppConfig",
+      "useChatSend",
+      "useChatStream",
+      "triggerRef",
+      "useFreelance",
+      "useEventListener",
+      "onUnmounted",
+      "$fetch",
+      "describe",
+      "test",
+      "it",
+      "expect",
+      "beforeAll",
+      "afterAll",
+      "beforeEach",
+      "afterEach"
+    ]
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "suspicious": {
+        "noExplicitAny": "warn",
+        "noConsole": { "level": "error", "options": { "allow": ["warn", "error"] } },
+        "noEmptyBlockStatements": "warn",
+        "noEvolvingTypes": "warn",
+        "useAwait": "warn",
+        "noDoubleEquals": "error",
+        "noImplicitAnyLet": "warn",
+        "noShadowRestrictedNames": "error",
+        "noVar": "error",
+        "noAssignInExpressions": "warn",
+        "noConfusingVoidType": "error",
+        "noDuplicateObjectKeys": "error",
+        "useDefaultSwitchClauseLast": "error",
+        "useGuardForIn": "error"
+      },
+      "style": {
+        "useImportType": "error",
+        "useExportType": "error",
+        "useNodejsImportProtocol": "error",
+        "noNonNullAssertion": "warn",
+        "useConst": "warn",
+        "useTemplate": "error",
+        "useShorthandFunctionType": "error",
+        "noParameterAssign": "warn",
+        "noUselessElse": "error",
+        "noNegationElse": "error",
+        "useNumberNamespace": "error",
+        "useDefaultParameterLast": "error",
+        "useShorthandAssign": "error"
+      },
+      "correctness": {
+        "noUnusedVariables": "error",
+        "noUnusedImports": "error",
+        "noUnusedFunctionParameters": "error",
+        "noUnusedPrivateClassMembers": "error",
+        "noUnusedLabels": "error",
+        "noUndeclaredVariables": "error",
+        "noConstantCondition": "error",
+        "useExhaustiveDependencies": "off"
+      },
+      "complexity": {
+        "noUselessTypeConstraint": "error",
+        "useOptionalChain": "error",
+        "noBannedTypes": "warn",
+        "noUselessFragments": "error",
+        "useFlatMap": "error",
+        "noForEach": "off",
+        "noUselessTernary": "error",
+        "noUselessCatch": "error",
+        "noUselessConstructor": "error",
+        "noUselessRename": "error",
+        "noStaticOnlyClass": "error",
+        "noThisInStatic": "error",
+        "useArrowFunction": "error",
+        "useDateNow": "error",
+        "noExtraBooleanCast": "error"
+      },
+      "performance": {
+        "noDelete": "error",
+        "noAccumulatingSpread": "error"
+      },
+      "security": {
+        "noDangerouslySetInnerHtml": "error",
+        "noGlobalEval": "error"
+      },
+      "nursery": {
+        "noFloatingPromises": "warn",
+        "noShadow": "warn"
+      }
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["scripts/**", "tests/**", "**/*.test.ts", "**/*.spec.ts", "**/*.live.ts"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noConsole": "off"
+          },
+          "nursery": {
+            "noFloatingPromises": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/*.vue"],
+      "linter": {
+        "rules": {
+          "style": {
+            "useConst": "off"
+          },
+          "correctness": {
+            "noUnusedVariables": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/db/schema.ts", "src/db/tables/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "useTemplate": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/repositories/memory/index.ts"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noUnsafeDeclarationMerging": "off"
+          }
+        }
+      }
+    }
+  ]
+}

@@ -6,19 +6,13 @@
  * worth retrying). Returns `false` only when scrub or translate yielded
  * `null`; the caller enqueues the session_id for the next cycle.
  */
-import { randomUUID } from "crypto";
+import { randomUUID } from "node:crypto";
 import type { LogRow, MemoryDB } from "../../db";
+import { logger } from "../../lib/logger";
 import type { ModelRouter } from "../../lib/model-router";
 import type { RAGPipeline } from "../../rag";
-import { logger } from "../../lib/logger";
-import { type NightCycleResult, buildConversationText } from "./types";
-import {
-  scrubPII,
-  translate,
-  compress,
-  verify,
-  dedup,
-} from "./steps";
+import { compress, dedup, scrubPII, translate, verify } from "./steps";
+import { buildConversationText, type NightCycleResult } from "./types";
 
 const log = logger.child("night.session");
 
@@ -37,9 +31,7 @@ export async function processSession(
       return true;
     }
 
-    log.info(
-      `[${label}] session=${sessionId.slice(0, 8)} chars=${conversationText.length}`,
-    );
+    log.info(`[${label}] session=${sessionId.slice(0, 8)} chars=${conversationText.length}`);
 
     const scrubbed = await scrubPII(conversationText, router);
     if (scrubbed === null) {
@@ -101,4 +93,3 @@ export async function processSession(
     return true;
   }
 }
-

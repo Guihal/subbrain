@@ -1,5 +1,5 @@
-import { Database } from "bun:sqlite";
-import type { ChatRow, ChatMessageRow, TgExcludedChatRow } from "../types";
+import type { Database } from "bun:sqlite";
+import type { ChatMessageRow, ChatRow, TgExcludedChatRow } from "../types";
 
 export class ChatsTable {
   constructor(public readonly db: Database) {}
@@ -86,9 +86,9 @@ export class ChatsTable {
   }
 
   getExcludedTgChatIds(): Set<string> {
-    const rows = this.db
-      .query("SELECT chat_id FROM tg_excluded_chats")
-      .all() as { chat_id: string }[];
+    const rows = this.db.query("SELECT chat_id FROM tg_excluded_chats").all() as {
+      chat_id: string;
+    }[];
     return new Set(rows.map((r) => r.chat_id));
   }
 

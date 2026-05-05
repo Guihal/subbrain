@@ -18,21 +18,18 @@ const JSON_401 = { "Content-Type": "application/json" };
  *     access, so it now requires Bearer like every other route.
  */
 export function authMiddleware(authService: AuthService) {
-  return new Elysia({ name: "auth" }).onBeforeHandle(
-    { as: "global" },
-    ({ request, path }) => {
-      if (path === "/health") return;
-      if (path === "/" || path === "/index.html" || path.startsWith("/public/"))
-        return;
-      if (path === "/telegram/webhook") return;
+  return new Elysia({ name: "auth" }).onBeforeHandle({ as: "global" }, ({ request, path }) => {
+    if (path === "/health") return;
+    if (path === "/" || path === "/index.html" || path.startsWith("/public/")) return;
+    if (path === "/telegram/webhook") return;
 
-      const header = request.headers.get("authorization");
-      if (!authService.validateBearer(header)) {
-        return new Response(
-          JSON.stringify({ error: { message: "Unauthorized" } }),
-          { status: 401, headers: JSON_401 },
-        );
-      }
-    },
-  );
+    const header = request.headers.get("authorization");
+    if (!authService.validateBearer(header)) {
+      return new Response(JSON.stringify({ error: { message: "Unauthorized" } }), {
+        status: 401,
+        headers: JSON_401,
+      });
+    }
+    return;
+  });
 }

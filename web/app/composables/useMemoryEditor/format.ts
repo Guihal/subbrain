@@ -20,9 +20,7 @@ export function badgeColor(row: MemoryRow): string {
     case "context":
       return "text-purple-400";
     case "archive":
-      return row.confidence !== null && row.confidence >= 0.8
-        ? "text-green-400"
-        : "text-gray-400";
+      return row.confidence !== null && row.confidence >= 0.8 ? "text-green-400" : "text-gray-400";
     case "agent":
       return "text-orange-400";
     case "log":

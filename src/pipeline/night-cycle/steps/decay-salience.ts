@@ -33,8 +33,6 @@ export async function decaySalience(memory: MemoryDB): Promise<DecaySalienceResu
     counts[layer] = memory.memoryRepo.decaySalience(layer, now);
   }
 
-  log.info(
-    `done: shared=${counts.shared}, context=${counts.context}, archive=${counts.archive}`,
-  );
+  log.info(`done: shared=${counts.shared}, context=${counts.context}, archive=${counts.archive}`);
   return counts;
 }

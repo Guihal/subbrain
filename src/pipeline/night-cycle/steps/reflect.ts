@@ -1,20 +1,8 @@
-/**
- * M-06: night-cycle reflect step (CoALA episodic → semantic consolidation).
- *
- * Group active layer2_context rows by `title` (post-extractor category), age
- * > 24h, access_count ≥ N, not superseded, not stale. Whitelist:
- * project|decision|bug|architecture|learning. For each group ≥ MIN_GROUP:
- * `memory` virtual role extracts one consolidated semantic fact (literal
- * "NULL" → skip). Skip-guard: `findDuplicate(...,'shared',cat,fact)` cosine
- * ≥ 0.85 vs same-category existing → skip. Else `insertShared kind='semantic'
- * source='reflect'` + `linkEdge(srcContext,'context',newId,'shared',
- * 'derives',1.0)` per source. Disabled via REFLECT_ENABLED=false. LLM/embed
- * errors → `llm_failures++`, never thrown.
- */
+/** M-06: night-cycle reflect (CoALA episodic → semantic). See docs/completed/05-rag-pipeline.md. */
 import type { MemoryDB } from "../../../db";
-import type { MemoryService } from "../../../services/memory";
 import type { ModelRouter } from "../../../lib/model-router";
 import type { RAGPipeline } from "../../../rag";
+import type { MemoryService } from "../../../services/memory";
 import { findDuplicate } from "../../agent-pipeline/post/dedupe";
 import { stripThinkTags } from "../types";
 import { NIGHT_MODEL, nightLog } from "./shared";
@@ -55,9 +43,9 @@ interface GroupRow {
 
 function readEnv(): { enabled: boolean; minAccess: number; minGroup: number; maxGroups: number } {
   const enabled = (process.env.REFLECT_ENABLED ?? "true").toLowerCase() !== "false";
-  const minAccess = parseInt(process.env.REFLECT_MIN_ACCESS ?? "3", 10);
-  const minGroup = parseInt(process.env.REFLECT_MIN_GROUP ?? "3", 10);
-  const maxGroups = parseInt(process.env.REFLECT_MAX_GROUPS ?? "5", 10);
+  const minAccess = Number.parseInt(process.env.REFLECT_MIN_ACCESS ?? "3", 10);
+  const minGroup = Number.parseInt(process.env.REFLECT_MIN_GROUP ?? "3", 10);
+  const maxGroups = Number.parseInt(process.env.REFLECT_MAX_GROUPS ?? "5", 10);
   return {
     enabled,
     minAccess: Number.isFinite(minAccess) && minAccess >= 1 ? minAccess : 3,
@@ -66,7 +54,12 @@ function readEnv(): { enabled: boolean; minAccess: number; minGroup: number; max
   };
 }
 
-function selectGroups(memory: MemoryDB, minAccess: number, minGroup: number, maxGroups: number): GroupRow[] {
+function selectGroups(
+  memory: MemoryDB,
+  minAccess: number,
+  minGroup: number,
+  maxGroups: number,
+): GroupRow[] {
   return memory.memoryRepo.reflectGroups(CONTEXT_WHITELIST, minAccess, minGroup, maxGroups);
 }
 
@@ -115,7 +108,9 @@ async function processGroup(
   // Skip-guard: existing shared row covers same-category fact.
   const dup = await findDuplicate(deps.memory, deps.rag, "shared", group.category, fact);
   if (dup.id) {
-    log.info(`skip-guard hit: category=${group.category} dup=${dup.id.slice(0, 8)} (${dup.source})`);
+    log.info(
+      `skip-guard hit: category=${group.category} dup=${dup.id.slice(0, 8)} (${dup.source})`,
+    );
     return { promoted: false, edges: 0 };
   }
 
@@ -123,9 +118,7 @@ async function processGroup(
   // skips the actual insert + edge linking. Caller uses this to preview what
   // a real reflect would do without mutating shared_memory.
   if (deps.dryRun) {
-    log.info(
-      `dryRun: category=${group.category} sources=${ids.length} (no insert)`,
-    );
+    log.info(`dryRun: category=${group.category} sources=${ids.length} (no insert)`);
     return { promoted: true, edges: 0 };
   }
 
@@ -165,7 +158,7 @@ export async function runReflect(deps: ReflectDeps): Promise<ReflectResult> {
   // `memory_reflect{category:"learning"}` returned groups_examined=0 if
   // learning sat at rank 6+ in the unfiltered top. Night-cycle path stays
   // capped (no filter → same behavior as before).
-  let groups = deps.categoryFilter
+  const groups = deps.categoryFilter
     ? selectGroups(deps.memory, cfg.minAccess, cfg.minGroup, Number.MAX_SAFE_INTEGER)
         .filter((g) => g.category === deps.categoryFilter)
         .slice(0, cfg.maxGroups)

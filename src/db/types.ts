@@ -233,12 +233,7 @@ export interface FreelanceLeadRow {
 }
 
 // ─── Tasks (Phase 1 of tasks-vs-memory split) ────────────────────────
-export type TaskScope =
-  | "global"
-  | "autonomous"
-  | "free-agent"
-  | "freelance"
-  | "tg";
+export type TaskScope = "global" | "autonomous" | "free-agent" | "freelance" | "tg";
 
 export type TaskStatus = "open" | "in_progress" | "done" | "cancelled";
 
@@ -261,5 +256,3 @@ export interface SchedulerStateRow {
   value: string;
   updated_at: number;
 }
-
-

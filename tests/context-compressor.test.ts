@@ -1,13 +1,8 @@
-import { describe, test, expect } from "bun:test";
-import { unlinkSync } from "fs";
+import { describe, expect, test } from "bun:test";
+import { unlinkSync } from "node:fs";
 import { MemoryDB } from "../src/db";
-import {
-  compressContext,
-  shouldCompress,
-  SOFT_LIMIT,
-} from "../src/pipeline/context-compressor";
-import type { Message } from "../src/providers/types";
-import type { ChatResponse } from "../src/providers/types";
+import { compressContext, SOFT_LIMIT, shouldCompress } from "../src/pipeline/context-compressor";
+import type { ChatResponse, Message } from "../src/providers/types";
 
 const TEST_DB = "data/test-compressor.db";
 
@@ -26,11 +21,17 @@ function bigMessages(n: number, charsEach: number): Message[] {
 function mkRouter(reply: string) {
   return {
     chat: async (): Promise<ChatResponse> => ({
-      id: "r", object: "chat.completion", created: 0, model: "flash",
-      choices: [{
-        index: 0, finish_reason: "stop",
-        message: { role: "assistant", content: reply },
-      }],
+      id: "r",
+      object: "chat.completion",
+      created: 0,
+      model: "flash",
+      choices: [
+        {
+          index: 0,
+          finish_reason: "stop",
+          message: { role: "assistant", content: reply },
+        },
+      ],
       usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
     }),
   } as any;
@@ -45,18 +46,22 @@ describe("context-compressor", () => {
   });
 
   test("collapses middle, preserves head+tail, writes facts", async () => {
-    try { unlinkSync(TEST_DB); } catch {}
+    try {
+      unlinkSync(TEST_DB);
+    } catch {}
     const memory = new MemoryDB(TEST_DB);
     const messages = bigMessages(200, 2000);
     const before = messages.length;
 
-    const router = mkRouter(JSON.stringify({
-      summary: "compressed recap",
-      facts: [
-        { category: "finding", content: "earth is round" },
-        { category: "user", content: "likes caveman mode" },
-      ],
-    }));
+    const router = mkRouter(
+      JSON.stringify({
+        summary: "compressed recap",
+        facts: [
+          { category: "finding", content: "earth is round" },
+          { category: "user", content: "likes caveman mode" },
+        ],
+      }),
+    );
 
     const ok = await compressContext(messages, router, memory);
     expect(ok).toBe(true);
@@ -83,7 +88,9 @@ describe("context-compressor", () => {
     const messages = bigMessages(200, 2000);
     const snapshot = [...messages];
     const router = {
-      chat: async () => { throw new Error("upstream down"); },
+      chat: async () => {
+        throw new Error("upstream down");
+      },
     } as any;
 
     const ok = await compressContext(messages, router, null);

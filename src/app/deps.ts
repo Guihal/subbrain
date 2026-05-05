@@ -1,26 +1,21 @@
-import { createProviders } from "../providers";
+import { MemoryDB } from "../db";
+import { logger } from "../lib/logger";
+import { Metrics } from "../lib/metrics";
 import { applyOpenAICompatOverrides } from "../lib/model-map";
 import { ModelRouter } from "../lib/model-router";
-import { MemoryDB } from "../db";
-import { ToolExecutor, PlaywrightClient, buildRegistry } from "../mcp";
 import type { ToolRegistry } from "../mcp";
+import { buildRegistry, PlaywrightClient, ToolExecutor } from "../mcp";
+import { AgentLoop, AgentPipeline, ArbitrationRoom, NightCycle } from "../pipeline";
+import { createProviders } from "../providers";
 import { RAGPipeline } from "../rag";
-import {
-  AgentPipeline,
-  ArbitrationRoom,
-  NightCycle,
-  AgentLoop,
-} from "../pipeline";
-import { TelegramBot, Userbot } from "../telegram";
-import { TelegramPoller } from "../scheduler/telegram-poller";
-import { FreelanceScout, type FreelanceScoutConfig } from "../scheduler/freelance";
 import { FREE_AGENT_TASK } from "../scheduler/free-agent";
-import { Metrics } from "../lib/metrics";
-import { AuthService } from "../services/auth.service";
-import { MemoryService } from "../services/memory";
-import { ChatService } from "../services/chat";
+import { FreelanceScout, type FreelanceScoutConfig } from "../scheduler/freelance";
+import { TelegramPoller } from "../scheduler/telegram-poller";
 import { AgentService } from "../services/agent.service";
-import { logger } from "../lib/logger";
+import { AuthService } from "../services/auth.service";
+import { ChatService } from "../services/chat";
+import { MemoryService } from "../services/memory";
+import { TelegramBot, Userbot } from "../telegram";
 
 export interface AppConfig {
   port: number;
@@ -91,15 +86,13 @@ export function loadConfig(): AppConfig {
   }
   const autonomousEnabled =
     process.env.AUTONOMOUS_ENABLED === "true" ||
-    (process.env.AUTONOMOUS_ENABLED !== "false" &&
-      process.env.NODE_ENV === "production");
+    (process.env.AUTONOMOUS_ENABLED !== "false" && process.env.NODE_ENV === "production");
   if (process.env.AUTONOMOUS_TASK?.trim()) {
     throw new Error(
       "AUTONOMOUS_TASK env is obsolete. Use POST /v1/tasks scope=autonomous. Unset and restart.",
     );
   }
-  const autonomousTask =
-    `Ты — личный ИИ-ассистент пользователя в автономном режиме. Профиль, стек и миссия — в shared_memory.
+  const autonomousTask = `Ты — личный ИИ-ассистент пользователя в автономном режиме. Профиль, стек и миссия — в shared_memory.
 Каждый запуск выбери ОДНУ задачу из списка ниже и выполни её до конца:
 
 1. **Телеграм-дайджест** — используй \`tg_list_chats\` → \`tg_read_chat\` для обзора непрочитанных сообщений + \`web_navigate\` для поиска актуальных новостей. Сохрани выжимку в память + отправь сводку через tg_send_message.
@@ -117,18 +110,9 @@ export function loadConfig(): AppConfig {
     dbPath: process.env.DB_PATH || "data/subbrain.db",
     autonomous: {
       enabled: autonomousEnabled,
-      intervalMinutes: Math.max(
-        1,
-        Number(process.env.AUTONOMOUS_INTERVAL_MINUTES) || 30,
-      ),
-      startupDelayMs: Math.max(
-        0,
-        Number(process.env.AUTONOMOUS_STARTUP_DELAY_MS) || 30_000,
-      ),
-      maxSteps: Math.min(
-        100,
-        Math.max(1, Number(process.env.AUTONOMOUS_MAX_STEPS) || 100),
-      ),
+      intervalMinutes: Math.max(1, Number(process.env.AUTONOMOUS_INTERVAL_MINUTES) || 30),
+      startupDelayMs: Math.max(0, Number(process.env.AUTONOMOUS_STARTUP_DELAY_MS) || 30_000),
+      maxSteps: Math.min(100, Math.max(1, Number(process.env.AUTONOMOUS_MAX_STEPS) || 100)),
       task: autonomousTask,
     },
     nightCycle: {
@@ -143,54 +127,31 @@ export function loadConfig(): AppConfig {
     telegramPoller: {
       enabled: process.env.TG_POLLER === "true",
       remindChatId: process.env.TG_REMIND_CHAT_ID || "",
-      pollIntervalMs: Math.max(
-        60_000,
-        (Number(process.env.TG_POLL_INTERVAL_MIN) || 10) * 60_000,
-      ),
+      pollIntervalMs: Math.max(60_000, (Number(process.env.TG_POLL_INTERVAL_MIN) || 10) * 60_000),
       remindIntervalMs: Math.max(
         60_000,
         (Number(process.env.TG_REMIND_INTERVAL_MIN) || 30) * 60_000,
       ),
-      staleHours: Math.max(
-        1,
-        Number(process.env.TG_REMIND_STALE_HOURS) || 6,
-      ),
+      staleHours: Math.max(1, Number(process.env.TG_REMIND_STALE_HOURS) || 6),
       remindModel: process.env.TG_REMIND_MODEL || "flash",
     },
     freelance: {
       enabled: process.env.FREELANCE_SCOUT === "true",
-      pollMs: Math.max(
-        60_000,
-        (Number(process.env.FREELANCE_POLL_MIN) || 30) * 60_000,
-      ),
+      pollMs: Math.max(60_000, (Number(process.env.FREELANCE_POLL_MIN) || 30) * 60_000),
       categories: (process.env.FREELANCE_CATEGORIES || "web,backend,bots,scripts")
         .split(",")
         .map((s) => s.trim().toLowerCase())
         .filter(Boolean),
       minBudget: Number(process.env.FREELANCE_MIN_BUDGET) || 2000,
       maxBudget: Number(process.env.FREELANCE_MAX_BUDGET) || 30000,
-      threshold: Math.max(
-        1,
-        Math.min(10, Number(process.env.FREELANCE_THRESHOLD) || 7),
-      ),
-      tgChatId: process.env.FREELANCE_TG_CHAT_ID
-        ? Number(process.env.FREELANCE_TG_CHAT_ID)
-        : null,
+      threshold: Math.max(1, Math.min(10, Number(process.env.FREELANCE_THRESHOLD) || 7)),
+      tgChatId: process.env.FREELANCE_TG_CHAT_ID ? Number(process.env.FREELANCE_TG_CHAT_ID) : null,
     },
     freeAgent: {
       enabled: process.env.FREE_AGENT === "true",
-      intervalMinutes: Math.max(
-        5,
-        Number(process.env.FREE_AGENT_INTERVAL_MIN) || 60,
-      ),
-      startupDelayMs: Math.max(
-        0,
-        Number(process.env.FREE_AGENT_STARTUP_DELAY_MS) || 60_000,
-      ),
-      maxSteps: Math.min(
-        100,
-        Math.max(1, Number(process.env.FREE_AGENT_MAX_STEPS) || 50),
-      ),
+      intervalMinutes: Math.max(5, Number(process.env.FREE_AGENT_INTERVAL_MIN) || 60),
+      startupDelayMs: Math.max(0, Number(process.env.FREE_AGENT_STARTUP_DELAY_MS) || 60_000),
+      maxSteps: Math.min(100, Math.max(1, Number(process.env.FREE_AGENT_MAX_STEPS) || 50)),
       task: process.env.FREE_AGENT_TASK || FREE_AGENT_TASK,
     },
   };
@@ -217,13 +178,10 @@ export async function initDeps(config: AppConfig = loadConfig()): Promise<AppDep
   // insertShared/insertContext fire the linkRelated post-hook (relates edges
   // + A-MEM tag evolution + optional contradiction detection). Service uses
   // a synthetic RequestLogger ("memory-svc") since calls aren't request-bound.
-  const memoryService = new MemoryService(
-    memory.memoryRepo,
-    rag,
-    memory.logRepo,
-    memory,
-    { router, log: logger.forRequest("memory-svc", "memory-svc") },
-  );
+  const memoryService = new MemoryService(memory.memoryRepo, rag, memory.logRepo, memory, {
+    router,
+    log: logger.forRequest("memory-svc", "memory-svc"),
+  });
   // M-FINAL2: thread MemoryService into MemoryTools so the MCP `memory_write`
   // shared-layer path delegates to the single embed-first + transactional
   // implementation (mirrors compressor + extractors). Without this, the MCP
@@ -330,10 +288,7 @@ function initTelegramPoller(opts: {
     return null;
   }
   if (!opts.userbot || !opts.telegramBot) {
-    logger.warn(
-      "tg-poller",
-      "Enabled but userbot or bot not configured — skipped",
-    );
+    logger.warn("tg-poller", "Enabled but userbot or bot not configured — skipped");
     return null;
   }
   const userbot = opts.userbot;
@@ -366,10 +321,7 @@ function initUserbot(memory: MemoryDB, tools: ToolExecutor): Userbot | null {
   const apiHash = process.env.TG_API_HASH || "";
   const session = process.env.TG_SESSION || "";
   if (!apiId || !apiHash || !session) {
-    logger.info(
-      "userbot",
-      "Userbot not configured (set TG_API_ID + TG_API_HASH + TG_SESSION)",
-    );
+    logger.info("userbot", "Userbot not configured (set TG_API_ID + TG_API_HASH + TG_SESSION)");
     return null;
   }
   const userbot = new Userbot({ apiId, apiHash, session, memory });
@@ -379,9 +331,7 @@ function initUserbot(memory: MemoryDB, tools: ToolExecutor): Userbot | null {
       tools.setUserbot(userbot);
       logger.info("userbot", "MTProto userbot connected");
     })
-    .catch((err) =>
-      logger.error("userbot", `Userbot connect failed: ${err.message}`),
-    );
+    .catch((err) => logger.error("userbot", `Userbot connect failed: ${err.message}`));
   return userbot;
 }
 
@@ -395,10 +345,7 @@ function initTelegramBot(opts: {
   const token = process.env.TG_BOT_TOKEN;
   const ownerChatId = Number(process.env.TG_OWNER_CHAT_ID);
   if (!token || !ownerChatId) {
-    logger.info(
-      "telegram",
-      "Bot not configured (set TG_BOT_TOKEN + TG_OWNER_CHAT_ID)",
-    );
+    logger.info("telegram", "Bot not configured (set TG_BOT_TOKEN + TG_OWNER_CHAT_ID)");
     return null;
   }
   const webhookSecret = process.env.TG_WEBHOOK_SECRET || opts.authToken;
@@ -410,11 +357,7 @@ function initTelegramBot(opts: {
     pipeline: opts.pipeline,
     router: opts.router,
   });
-  bot
-    .init()
-    .catch((err) =>
-      logger.error("telegram", `Bot init failed: ${err.message}`),
-    );
+  bot.init().catch((err) => logger.error("telegram", `Bot init failed: ${err.message}`));
   // Use notifyOrThrow so tgSendMessage sees real delivery errors (TG-1).
   opts.tools.setBotNotify((text) => bot.notifyOrThrow(text));
   bot.setReportSender(async (text) => {

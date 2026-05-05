@@ -1,4 +1,4 @@
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { executeSandboxed } from "../src/pipeline/agent-loop/code-tools/sandbox";
 
 describe("code-tool sandbox", () => {

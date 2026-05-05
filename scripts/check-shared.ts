@@ -1,4 +1,5 @@
 import { Database } from "bun:sqlite";
+
 const db = new Database("data/subbrain.db", { readonly: true });
 const rows = db.query("SELECT * FROM shared_memory").all();
 console.log("count:", rows.length);

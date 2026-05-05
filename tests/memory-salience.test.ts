@@ -12,17 +12,11 @@
  *   7. RAG rerank applies salience boost (hot row outranks cold).
  *   8. Persona + salience boosts compound multiplicatively.
  */
-import {
-  describe,
-  test,
-  expect,
-  beforeAll,
-  afterAll,
-} from "bun:test";
-import { existsSync, unlinkSync } from "fs";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { existsSync, unlinkSync } from "node:fs";
 import { MemoryDB } from "../src/db";
-import { RAGPipeline } from "../src/rag";
 import { decaySalience } from "../src/pipeline/night-cycle/steps/decay-salience";
+import { RAGPipeline } from "../src/rag";
 
 const TEST_DB = "data/test-mem3-salience.db";
 
@@ -77,22 +71,25 @@ describe("M-03 — salience: migration 13 + reinforce + decay + rerank boost", (
   test("migration 13 applied + salience + last_decayed_at columns on 3 layers", () => {
     const ver = memory.db
       .query<{ user_version: number }, []>("PRAGMA user_version")
-      .get()!.user_version;
+      .get()?.user_version;
     expect(ver).toBeGreaterThanOrEqual(13);
 
     for (const table of ["shared_memory", "layer2_context", "layer3_archive"]) {
-      const cols = memory.db
-        .query(`PRAGMA table_info(${table})`)
-        .all() as { name: string; notnull: number; dflt_value: string | null; type: string }[];
+      const cols = memory.db.query(`PRAGMA table_info(${table})`).all() as {
+        name: string;
+        notnull: number;
+        dflt_value: string | null;
+        type: string;
+      }[];
       const sal = cols.find((c) => c.name === "salience");
       const ldec = cols.find((c) => c.name === "last_decayed_at");
       expect(sal).toBeDefined();
-      expect(sal!.notnull).toBe(1);
-      expect(sal!.dflt_value).toBe("0.5");
-      expect(sal!.type.toUpperCase()).toBe("REAL");
+      expect(sal?.notnull).toBe(1);
+      expect(sal?.dflt_value).toBe("0.5");
+      expect(sal?.type.toUpperCase()).toBe("REAL");
       expect(ldec).toBeDefined();
-      expect(ldec!.notnull).toBe(0);
-      expect(ldec!.type.toUpperCase()).toBe("INTEGER");
+      expect(ldec?.notnull).toBe(0);
+      expect(ldec?.type.toUpperCase()).toBe("INTEGER");
     }
   });
 
@@ -100,7 +97,7 @@ describe("M-03 — salience: migration 13 + reinforce + decay + rerank boost", (
     const m2 = new MemoryDB(TEST_DB);
     const ver = m2.db
       .query<{ user_version: number }, []>("PRAGMA user_version")
-      .get()!.user_version;
+      .get()?.user_version;
     expect(ver).toBeGreaterThanOrEqual(13);
     m2.close();
   });
@@ -228,12 +225,8 @@ describe("M-03 — salience: migration 13 + reinforce + decay + rerank boost", (
     memory.insertShared("hot", "preference", "honeydew melon hot", "");
     memory.insertShared("cold", "preference", "honeydew melon cold", "");
     // Pin salience: hot=0.95, cold=0.05 (force above floor).
-    memory.db
-      .query("UPDATE shared_memory SET salience = ? WHERE id = ?")
-      .run(0.95, "hot");
-    memory.db
-      .query("UPDATE shared_memory SET salience = ? WHERE id = ?")
-      .run(0.05, "cold");
+    memory.db.query("UPDATE shared_memory SET salience = ? WHERE id = ?").run(0.95, "hot");
+    memory.db.query("UPDATE shared_memory SET salience = ? WHERE id = ?").run(0.05, "cold");
 
     const router = mkRouter();
     const rag = new RAGPipeline(memory, router);
@@ -259,9 +252,7 @@ describe("M-03 — salience: migration 13 + reinforce + decay + rerank boost", (
     // Row B: semantic kind (force via UPDATE).
     memory.insertShared("compound-A", "preference", "papaya tropical A", "");
     memory.insertShared("compound-B", "preference", "papaya tropical B", "");
-    memory.db
-      .query("UPDATE shared_memory SET kind = ? WHERE id = ?")
-      .run("semantic", "compound-B");
+    memory.db.query("UPDATE shared_memory SET kind = ? WHERE id = ?").run("semantic", "compound-B");
     memory.db
       .query("UPDATE shared_memory SET salience = ? WHERE id IN (?, ?)")
       .run(0.9, "compound-A", "compound-B");
@@ -282,6 +273,6 @@ describe("M-03 — salience: migration 13 + reinforce + decay + rerank boost", (
     // Persona row (A) should rank above semantic row (B): same salience,
     // same base score, persona boost 1.1× wins on top of identical
     // salience boost.
-    expect(a!.score).toBeGreaterThan(b!.score);
+    expect(a?.score).toBeGreaterThan(b?.score);
   });
 });

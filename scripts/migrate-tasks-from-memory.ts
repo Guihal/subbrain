@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+import { randomUUID } from "node:crypto";
 /**
  * One-shot migration: pull task-like rows from shared_memory + layer2_context
  * into the `tasks` table (Phase-1 store). Per-row LLM classification decides
@@ -19,12 +20,10 @@
  * and the source row is already gone.
  */
 import { appendFileSync, mkdirSync } from "node:fs";
-import { randomUUID } from "node:crypto";
 import { MemoryDB } from "../src/db";
 import { getMoscowDate } from "../src/lib/clock";
 import { logger } from "../src/lib/logger";
 import { ModelRouter } from "../src/lib/model-router";
-import { createProviders } from "../src/providers";
 import {
   type CandidateRow,
   type Classifier,
@@ -34,6 +33,7 @@ import {
   hasCompletedStatusTag,
   hasTaskTag,
 } from "../src/pipeline/night-cycle/prune/tasks-classify";
+import { createProviders } from "../src/providers";
 
 const log = logger.child("migrate.tasks");
 
@@ -164,7 +164,7 @@ export async function runMigration(
           new_task_id: newTaskId,
           ts: Math.floor(Date.now() / 1000),
         };
-        appendFileSync(opts.jsonlPath, JSON.stringify(entry) + "\n");
+        appendFileSync(opts.jsonlPath, `${JSON.stringify(entry)}\n`);
         summary.migrated += 1;
       } else {
         summary.skipped += 1;
@@ -196,16 +196,14 @@ export function collectCandidates(memory: MemoryDB): CandidateRow[] {
     });
   }
   const context = memory.db
-    .query(
-      `SELECT id, title, content, tags, agent_id FROM layer2_context`,
-    )
+    .query(`SELECT id, title, content, tags, agent_id FROM layer2_context`)
     .all() as Array<{
-      id: string;
-      title: string;
-      content: string;
-      tags: string;
-      agent_id: string | null;
-    }>;
+    id: string;
+    title: string;
+    content: string;
+    tags: string;
+    agent_id: string | null;
+  }>;
   for (const r of context) {
     if (!hasTaskTag(r.tags)) continue;
     if (hasBlacklistTag(r.tags)) continue;
@@ -226,12 +224,9 @@ async function main(): Promise<void> {
   const apply = process.argv.includes("--apply");
   const confirm = process.argv.includes("--confirm");
   const dbPath = process.env.DB_PATH ?? "data/subbrain.db";
-  const isProd =
-    dbPath.endsWith("subbrain.db") && !dbPath.includes("test");
+  const isProd = dbPath.endsWith("subbrain.db") && !dbPath.includes("test");
   if (apply && isProd && !confirm) {
-    console.error(
-      "migrate-tasks: --apply on prod DB requires --confirm",
-    );
+    console.error("migrate-tasks: --apply on prod DB requires --confirm");
     process.exit(1);
   }
   const jsonlPath = `scripts/migration-log/tasks-${getMoscowDate()}.jsonl`;

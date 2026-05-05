@@ -1,15 +1,15 @@
-export { pruneShared } from "./shared";
 export { pruneContext } from "./context";
 export { pruneFocus } from "./focus";
-export { pruneCompletedTasks, type Embedder } from "./tasks";
+export { pruneShared } from "./shared";
 export { pruneStaleTasks, type StaleTasksResult } from "./stale-tasks";
 export { collectStrayTasks, LAST_RUN_FOCUS_KEY } from "./stray-tasks";
+export { type Embedder, pruneCompletedTasks } from "./tasks";
 export {
+  type CandidateRow,
+  type Classifier,
+  type ClassifyResult,
   classifyCandidate,
   hasBlacklistTag,
   hasCompletedStatusTag,
   hasTaskTag,
-  type CandidateRow,
-  type Classifier,
-  type ClassifyResult,
 } from "./tasks-classify";

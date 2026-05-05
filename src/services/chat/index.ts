@@ -5,23 +5,24 @@
  * via `isOverloadedFor`, PR 23) → persist+hydrate+compress → pipeline vs
  * router → SSE wrap. Route is just TypeBox + headers + `handle()`.
  */
-import { ProviderError } from "../../providers";
-import { MODEL_MAP, resolveModel } from "../../lib/model-map";
+
+import { logger } from "../../lib/logger";
 import { normalizeMessages } from "../../lib/messages";
-import { shouldCompress, compressContext } from "../../pipeline/context-compressor";
+import { MODEL_MAP, resolveModel } from "../../lib/model-map";
 import type { ModelRouter } from "../../lib/model-router";
+import { maskSecrets } from "../../lib/redact";
 import type { AgentPipeline } from "../../pipeline";
+import { compressContext, shouldCompress } from "../../pipeline/context-compressor";
+import { ProviderError } from "../../providers";
+import type { Message } from "../../providers/types";
 import type { ChatRepository, MemoryRepository } from "../../repositories";
 import type { MemoryService } from "../memory";
-import type { Message } from "../../providers/types";
-import { logger } from "../../lib/logger";
-import { maskSecrets } from "../../lib/redact";
 import type { ChatCompletionRequest, ChatMeta } from "./meta";
-import { persistUser, maybeHydrate, compressorMemory } from "./persist";
-import { runPipeline, runDirect } from "./run";
+import { compressorMemory, maybeHydrate, persistUser } from "./persist";
+import { runDirect, runPipeline } from "./run";
 
 export type { ChatCompletionRequest, ChatMeta } from "./meta";
-export { sanitizeAgentId, extractChatMeta } from "./meta";
+export { extractChatMeta, sanitizeAgentId } from "./meta";
 export { wrapStreamForChat } from "./sse-wrap";
 
 export class ChatService {
@@ -60,7 +61,11 @@ export class ChatService {
     persistUser(this.chatRepo, meta, model, messages);
     messages = maybeHydrate(this.chatRepo, meta, messages);
     if (shouldCompress(messages)) {
-      await compressContext(messages, this.router, compressorMemory(this.memoryService, this.memoryRepo));
+      await compressContext(
+        messages,
+        this.router,
+        compressorMemory(this.memoryService, this.memoryRepo),
+      );
     }
     const params = { ...rest, messages } as Record<string, unknown>;
     const deps = { router: this.router, pipeline: this.pipeline, chatRepo: this.chatRepo };

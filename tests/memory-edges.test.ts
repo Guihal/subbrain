@@ -2,17 +2,23 @@
  * M-05 (mig 14): memory_edges schema + EdgesTable / EdgeRepository +
  * `linkRelated` extractor hook. Backfill from layer2_context.derived_from.
  */
-import { describe, test, expect, beforeAll, afterAll } from "bun:test";
-import { existsSync, unlinkSync } from "fs";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { existsSync, unlinkSync } from "node:fs";
 import { MemoryDB } from "../src/db";
 import { EdgesTable } from "../src/db/tables/edges";
-import { EdgeRepository } from "../src/repositories/edges.repo";
-import { RAGPipeline } from "../src/rag";
 import { writeContext } from "../src/pipeline/agent-pipeline/post/extractors";
+import { RAGPipeline } from "../src/rag";
+import { EdgeRepository } from "../src/repositories/edges.repo";
 
 const TEST_DB = "data/test-mem5-edges.db";
 
-const log = { info: () => {}, warn: () => {}, error: () => {}, debug: () => {}, child: () => log } as any;
+const log = {
+  info: () => {},
+  warn: () => {},
+  error: () => {},
+  debug: () => {},
+  child: () => log,
+} as any;
 
 function fakeEmbed(text: string): Float32Array {
   const vec = new Float32Array(2048);
@@ -65,7 +71,7 @@ describe("M-05 memory_edges schema (mig 14)", () => {
       .query<{ c: number }, []>(
         "SELECT count(*) AS c FROM sqlite_master WHERE type='index' AND name LIKE 'idx_edges%'",
       )
-      .get()!.c;
+      .get()?.c;
     expect(idx).toBe(3);
   });
 
@@ -187,11 +193,11 @@ describe("M-05 backfill from derived_from + linkRelated hook", () => {
   test("backfill is idempotent under PK constraint", () => {
     const before = memory.db
       .query<{ c: number }, []>("SELECT count(*) AS c FROM memory_edges WHERE kind='derives'")
-      .get()!.c;
+      .get()?.c;
     memory.db.query(BACKFILL_SQL).run();
     const after = memory.db
       .query<{ c: number }, []>("SELECT count(*) AS c FROM memory_edges WHERE kind='derives'")
-      .get()!.c;
+      .get()?.c;
     expect(after).toBe(before);
   });
 
@@ -205,7 +211,12 @@ describe("M-05 backfill from derived_from + linkRelated hook", () => {
       memory,
       rag,
       mkRouter(),
-      { category: "decision", content: "seed content NEW alpha beta gamma", tags: "", confidence: 0.9 },
+      {
+        category: "decision",
+        content: "seed content NEW alpha beta gamma",
+        tags: "",
+        confidence: 0.9,
+      },
       "req-link-1",
       log,
     );
@@ -220,13 +231,20 @@ describe("M-05 backfill from derived_from + linkRelated hook", () => {
 
   test("linkRelated swallows errors → write still ok if RAG fails", async () => {
     const original = rag.search.bind(rag);
-    (rag as any).search = async () => { throw new Error("simulated RAG failure"); };
+    (rag as any).search = async () => {
+      throw new Error("simulated RAG failure");
+    };
     try {
       const r = await writeContext(
         memory,
         rag,
-      mkRouter(),
-        { category: "decision", content: "rag fail fact for linkRelated", tags: "", confidence: 0.9 },
+        mkRouter(),
+        {
+          category: "decision",
+          content: "rag fail fact for linkRelated",
+          tags: "",
+          confidence: 0.9,
+        },
         "req-link-fail-1",
         log,
       );

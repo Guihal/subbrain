@@ -32,10 +32,7 @@ export function useApi() {
   }
 
   /** Raw fetch (for streaming) */
-  async function rawFetch(
-    path: string,
-    opts: RequestInit = {},
-  ): Promise<Response> {
+  async function rawFetch(path: string, opts: RequestInit = {}): Promise<Response> {
     const t = await ensureToken();
     return fetch(`${base}${path}`, {
       ...opts,

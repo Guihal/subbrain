@@ -21,10 +21,7 @@ export interface SendReportOptions {
   memory?: MemoryDB;
   rag?: RAGPipeline | null;
   /** Override для тестов: альтернативный сборщик контекста. */
-  buildContext?: (args: {
-    topic?: string;
-    sinceHours?: number;
-  }) => Promise<string>;
+  buildContext?: (args: { topic?: string; sinceHours?: number }) => Promise<string>;
 }
 
 function reportRagEnabled(): boolean {
@@ -35,7 +32,10 @@ function reportRagEnabled(): boolean {
 
 function extractTopic(text: string): string {
   const firstLine = text.split("\n", 1)[0] ?? "";
-  return firstLine.replace(/^[#\s*_>-]+/, "").slice(0, 120).trim();
+  return firstLine
+    .replace(/^[#\s*_>-]+/, "")
+    .slice(0, 120)
+    .trim();
 }
 
 export async function sendReport(
@@ -69,9 +69,7 @@ export async function sendReport(
   if (!context.trim()) return ctx.executor.tgSendMessage(text);
 
   const trimmedContext = truncateReportContext(context, CONTEXT_MAX_BYTES);
-  const joined = trimmedContext
-    ? `${trimmedContext}\n\n---\n\n${text}`
-    : text;
+  const joined = trimmedContext ? `${trimmedContext}\n\n---\n\n${text}` : text;
   const final = truncateReportContext(joined, REPORT_MAX_BYTES) || text;
 
   return ctx.executor.tgSendMessage(final);

@@ -11,7 +11,11 @@ export function listArchive(repo: MemoryRepository, opts: ListOpts): PaginatedRe
   return { items: repo.listArchive(opts.limit, opts.offset), total: repo.countArchive() };
 }
 
-export function patchArchive(repo: MemoryRepository, id: string, patch: UpdateArchivePatch): ArchiveRow | null {
+export function patchArchive(
+  repo: MemoryRepository,
+  id: string,
+  patch: UpdateArchivePatch,
+): ArchiveRow | null {
   repo.updateArchive(id, patch);
   return repo.getArchive(id);
 }

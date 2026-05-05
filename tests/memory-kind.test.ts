@@ -11,25 +11,16 @@
  *  7. RAG persona boost ranks persona above semantic on identical query.
  *  8. `GET /v1/memory/shared?kind=persona` filters correctly.
  */
-import {
-  describe,
-  test,
-  expect,
-  beforeAll,
-  afterAll,
-} from "bun:test";
-import { existsSync, unlinkSync } from "fs";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { existsSync, unlinkSync } from "node:fs";
 import { Elysia } from "elysia";
 import { MemoryDB } from "../src/db";
-import { RAGPipeline } from "../src/rag";
-import { MemoryService } from "../src/services/memory";
-import { memoryRoute } from "../src/routes/memory";
-import {
-  categoryToKind,
-  type MemoryKind,
-} from "../src/pipeline/agent-pipeline/post/validators";
-import { writeShared } from "../src/pipeline/agent-pipeline/post/extractors";
 import { logger } from "../src/lib/logger";
+import { writeShared } from "../src/pipeline/agent-pipeline/post/extractors";
+import { categoryToKind, type MemoryKind } from "../src/pipeline/agent-pipeline/post/validators";
+import { RAGPipeline } from "../src/rag";
+import { memoryRoute } from "../src/routes/memory";
+import { MemoryService } from "../src/services/memory";
 
 const TEST_DB = "data/test-mem7-kind.db";
 const log = logger.child("test-mem7");
@@ -87,38 +78,35 @@ describe("Migration 12 — kind column + backfill", () => {
   });
 
   test("user_version >= 12", () => {
-    const row = memory.db
-      .query<{ user_version: number }, []>("PRAGMA user_version")
-      .get()!;
+    const row = memory.db.query<{ user_version: number }, []>("PRAGMA user_version").get()!;
     expect(row.user_version).toBeGreaterThanOrEqual(12);
   });
 
   test("shared_memory has kind column with TEXT NOT NULL DEFAULT 'semantic'", () => {
-    const cols = memory.db
-      .query("PRAGMA table_info(shared_memory)")
-      .all() as { name: string; type: string; notnull: number; dflt_value: string | null }[];
+    const cols = memory.db.query("PRAGMA table_info(shared_memory)").all() as {
+      name: string;
+      type: string;
+      notnull: number;
+      dflt_value: string | null;
+    }[];
     const kind = cols.find((c) => c.name === "kind");
     expect(kind).toBeDefined();
-    expect(kind!.type).toBe("TEXT");
-    expect(kind!.notnull).toBe(1);
+    expect(kind?.type).toBe("TEXT");
+    expect(kind?.notnull).toBe(1);
     // SQLite stores DEFAULT verbatim incl. quotes for TEXT.
-    expect(kind!.dflt_value).toBe("'semantic'");
+    expect(kind?.dflt_value).toBe("'semantic'");
   });
 
   test("two CHECK triggers + idx_shared_kind exist", () => {
     const triggers = memory.db
-      .query(
-        "SELECT name FROM sqlite_master WHERE type='trigger' AND name LIKE 'trg_shared_kind%'",
-      )
+      .query("SELECT name FROM sqlite_master WHERE type='trigger' AND name LIKE 'trg_shared_kind%'")
       .all() as { name: string }[];
     expect(triggers.map((t) => t.name).sort()).toEqual([
       "trg_shared_kind_check",
       "trg_shared_kind_check_upd",
     ]);
     const idx = memory.db
-      .query(
-        "SELECT name FROM sqlite_master WHERE type='index' AND name='idx_shared_kind'",
-      )
+      .query("SELECT name FROM sqlite_master WHERE type='index' AND name='idx_shared_kind'")
       .get() as { name: string } | null;
     expect(idx?.name).toBe("idx_shared_kind");
   });
@@ -144,21 +132,19 @@ describe("Migration 12 — kind column + backfill", () => {
                        END`,
       )
       .run();
-    expect(memory.getShared("p-row")!.kind).toBe("persona");
-    expect(memory.getShared("pref-row")!.kind).toBe("persona");
-    expect(memory.getShared("rel-row")!.kind).toBe("persona");
-    expect(memory.getShared("goal-row")!.kind).toBe("semantic");
-    expect(memory.getShared("skill-row")!.kind).toBe("semantic");
+    expect(memory.getShared("p-row")?.kind).toBe("persona");
+    expect(memory.getShared("pref-row")?.kind).toBe("persona");
+    expect(memory.getShared("rel-row")?.kind).toBe("persona");
+    expect(memory.getShared("goal-row")?.kind).toBe("semantic");
+    expect(memory.getShared("skill-row")?.kind).toBe("semantic");
   });
 
   test("idempotent: closing + reopening DB does not throw, kinds preserved", () => {
     memory.close();
     memory = new MemoryDB(TEST_DB);
-    const row = memory.db
-      .query<{ user_version: number }, []>("PRAGMA user_version")
-      .get()!;
+    const row = memory.db.query<{ user_version: number }, []>("PRAGMA user_version").get()!;
     expect(row.user_version).toBeGreaterThanOrEqual(12);
-    expect(memory.getShared("p-row")!.kind).toBe("persona");
+    expect(memory.getShared("p-row")?.kind).toBe("persona");
   });
 
   test("CHECK trigger blocks invalid kind on INSERT", () => {
@@ -227,8 +213,8 @@ describe("MemoryService.insertShared persists kind", () => {
       category: "goal",
       content: "ship feature",
     });
-    expect(memory.getShared(idP)!.kind).toBe("persona");
-    expect(memory.getShared(idS)!.kind).toBe("semantic");
+    expect(memory.getShared(idP)?.kind).toBe("persona");
+    expect(memory.getShared(idS)?.kind).toBe("semantic");
   });
 });
 
@@ -261,7 +247,7 @@ describe("extractors.writeShared derives kind from category", () => {
       log,
     );
     expect(r.ok).toBe(true);
-    expect(memory.getShared(r.id!)!.kind).toBe("persona");
+    expect(memory.getShared(r.id!)?.kind).toBe("persona");
   });
 
   test("category='goal' → kind='semantic'", async () => {
@@ -278,7 +264,7 @@ describe("extractors.writeShared derives kind from category", () => {
       log,
     );
     expect(r.ok).toBe(true);
-    expect(memory.getShared(r.id!)!.kind).toBe("semantic");
+    expect(memory.getShared(r.id!)?.kind).toBe("semantic");
   });
 });
 
@@ -295,7 +281,9 @@ describe("RAG persona boost", () => {
     // RRF scores close enough that the 1.1× boost flips ranking.
     const idA = "persona-a";
     const idB = "semantic-b";
-    memory.insertShared(idA, "preference", "user prefers Hyprland tiling", "", "test", { kind: "persona" });
+    memory.insertShared(idA, "preference", "user prefers Hyprland tiling", "", "test", {
+      kind: "persona",
+    });
     memory.insertShared(idB, "goal", "ship Hyprland config", "", "test", { kind: "semantic" });
     // Embed both rows so vec search returns them too.
     memory.upsertEmbedding(idA, "shared", fakeEmbed("user prefers Hyprland tiling"));
@@ -335,7 +323,7 @@ describe("GET /v1/memory/shared?kind=persona filters", () => {
     const rag = new RAGPipeline(memory, mkRouter());
     const svc = new MemoryService(memory.memoryRepo, rag, memory.logRepo);
     app = new Elysia().use(memoryRoute(svc, memory)).listen(0);
-    base = `http://localhost:${app.server!.port}`;
+    base = `http://localhost:${app.server?.port}`;
     memory.insertShared("k-prof", "profile", "row prof", "", "test", { kind: "persona" });
     memory.insertShared("k-pref", "preference", "row pref", "", "test", { kind: "persona" });
     memory.insertShared("k-goal", "goal", "row goal", "", "test", { kind: "semantic" });
@@ -413,7 +401,7 @@ describe("M-07.1: MemoryTools.write derives kind from category", () => {
     });
     expect(r.success).toBe(true);
     const id = (r.data as { id: string }).id;
-    expect(memory.getShared(id)!.kind).toBe("persona");
+    expect(memory.getShared(id)?.kind).toBe("persona");
   });
 
   test("layer='shared' category='goal' → kind='semantic'", async () => {
@@ -427,7 +415,7 @@ describe("M-07.1: MemoryTools.write derives kind from category", () => {
     });
     expect(r.success).toBe(true);
     const id = (r.data as { id: string }).id;
-    expect(memory.getShared(id)!.kind).toBe("semantic");
+    expect(memory.getShared(id)?.kind).toBe("semantic");
   });
 
   test("layer='shared' with injected MemoryService also derives kind='persona'", async () => {
@@ -443,7 +431,7 @@ describe("M-07.1: MemoryTools.write derives kind from category", () => {
     });
     expect(r.success).toBe(true);
     const id = (r.data as { id: string }).id;
-    expect(memory.getShared(id)!.kind).toBe("persona");
+    expect(memory.getShared(id)?.kind).toBe("persona");
   });
 });
 
@@ -480,7 +468,11 @@ describe("M-07.1: context-compressor persists kind from category", () => {
         content: string,
         tags?: string,
         source?: string,
-        opts?: { confidence?: number | null; status?: import("../src/db").MemoryStatus; kind?: import("../src/db").MemoryKind },
+        opts?: {
+          confidence?: number | null;
+          status?: import("../src/db").MemoryStatus;
+          kind?: import("../src/db").MemoryKind;
+        },
       ) =>
         svc.insertShared({
           category,
@@ -515,8 +507,8 @@ describe("M-07.1: context-compressor persists kind from category", () => {
       { kind: semantic },
     )) as string;
 
-    expect(memory.getShared(personaId)!.kind).toBe("persona");
-    expect(memory.getShared(semanticId)!.kind).toBe("semantic");
+    expect(memory.getShared(personaId)?.kind).toBe("persona");
+    expect(memory.getShared(semanticId)?.kind).toBe("semantic");
   });
 
   test("compressContext end-to-end: persona facts land with kind='persona'", async () => {
@@ -578,7 +570,7 @@ describe("M-07.1: context-compressor persists kind from category", () => {
     const fnd = all.find((r) => r.content === "vec_embeddings layer column needed");
     expect(pref).toBeDefined();
     expect(fnd).toBeDefined();
-    expect(pref!.kind).toBe("persona");
-    expect(fnd!.kind).toBe("semantic");
+    expect(pref?.kind).toBe("persona");
+    expect(fnd?.kind).toBe("semantic");
   });
 });

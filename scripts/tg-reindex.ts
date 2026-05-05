@@ -9,8 +9,8 @@
  * Requires: TG_API_ID, TG_API_HASH, TG_SESSION, DB_PATH (optional).
  */
 import { MemoryDB } from "../src/db";
-import { Userbot } from "../src/telegram";
 import { logger } from "../src/lib/logger";
+import { Userbot } from "../src/telegram";
 
 const log = logger.child("tg-reindex");
 
@@ -23,10 +23,7 @@ async function main(): Promise<void> {
     process.exit(1);
   }
   const dbPath = process.env.DB_PATH || "data/subbrain.db";
-  const perChat = Math.max(
-    1,
-    Math.min(2000, Number(process.env.TG_REINDEX_PER_CHAT) || 200),
-  );
+  const perChat = Math.max(1, Math.min(2000, Number(process.env.TG_REINDEX_PER_CHAT) || 200));
 
   const memory = new MemoryDB(dbPath);
   const userbot = new Userbot({ apiId, apiHash, session, memory });
@@ -34,9 +31,7 @@ async function main(): Promise<void> {
 
   const dialogs = await userbot.listChats(500);
   const active = dialogs.filter((d) => !d.excluded);
-  log.info(
-    `Backfilling ${active.length}/${dialogs.length} chats (${perChat} msgs each)`,
-  );
+  log.info(`Backfilling ${active.length}/${dialogs.length} chats (${perChat} msgs each)`);
 
   let total = 0;
   for (const d of active) {
@@ -56,9 +51,7 @@ async function main(): Promise<void> {
       total += n;
       log.info(`  ${d.name} (${d.id}): +${n}`);
     } catch (err) {
-      log.warn(
-        `  ${d.name} (${d.id}) failed: ${err instanceof Error ? err.message : err}`,
-      );
+      log.warn(`  ${d.name} (${d.id}) failed: ${err instanceof Error ? err.message : err}`);
     }
   }
 

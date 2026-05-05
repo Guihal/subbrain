@@ -11,10 +11,10 @@
  * FTS5-only tests work offline.
  */
 
+import { unlinkSync } from "node:fs";
 import { MemoryDB } from "../src/db";
-import { RAGPipeline } from "../src/rag";
 import { ToolExecutor } from "../src/mcp/executor";
-import { unlinkSync } from "fs";
+import { RAGPipeline } from "../src/rag";
 
 const TEST_DB = "data/test-rag.db";
 
@@ -60,15 +60,8 @@ const mockRouter = {} as any;
 const rag = new RAGPipeline(memory, mockRouter);
 
 // FTS5-only search
-const ftsResults = rag.ftsSearch(
-  "Bun runtime",
-  ["context", "archive", "shared"],
-  10,
-);
-console.assert(
-  ftsResults.length > 0,
-  "FTS5: should find results for 'Bun runtime'",
-);
+const ftsResults = rag.ftsSearch("Bun runtime", ["context", "archive", "shared"], 10);
+console.assert(ftsResults.length > 0, "FTS5: should find results for 'Bun runtime'");
 console.assert(
   ftsResults.some((r) => r.id === "ctx-1"),
   "FTS5: should find ctx-1 (Bun Runtime)",

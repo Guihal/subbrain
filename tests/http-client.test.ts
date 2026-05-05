@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { fetchJson, fetchStream } from "../src/lib/http-client";
 import { HttpAbortError, HttpError } from "../src/lib/errors";
+import { fetchJson, fetchStream } from "../src/lib/http-client";
 
 let server: ReturnType<typeof Bun.serve>;
 let baseUrl = "";
@@ -99,11 +99,7 @@ describe("AbortSignal composition", () => {
     const ctrl = new AbortController();
     setTimeout(() => ctrl.abort(), 50);
     try {
-      await fetchJson(
-        `${baseUrl}/json`,
-        {},
-        { signal: ctrl.signal, timeoutMs: 5000 },
-      );
+      await fetchJson(`${baseUrl}/json`, {}, { signal: ctrl.signal, timeoutMs: 5000 });
       expect.unreachable();
     } catch (e) {
       expect(e).toBeInstanceOf(HttpAbortError);
@@ -129,16 +125,8 @@ describe("AbortSignal composition", () => {
     resetState();
     state.delayMs = 1000;
     const ctrl = new AbortController();
-    const p1 = fetchJson(
-      `${baseUrl}/json`,
-      {},
-      { signal: ctrl.signal, timeoutMs: 5000 },
-    );
-    const p2 = fetchJson(
-      `${baseUrl}/json`,
-      {},
-      { signal: ctrl.signal, timeoutMs: 10_000 },
-    );
+    const p1 = fetchJson(`${baseUrl}/json`, {}, { signal: ctrl.signal, timeoutMs: 5000 });
+    const p2 = fetchJson(`${baseUrl}/json`, {}, { signal: ctrl.signal, timeoutMs: 10_000 });
     setTimeout(() => ctrl.abort(), 50);
     const results = await Promise.allSettled([p1, p2]);
     for (const r of results) {

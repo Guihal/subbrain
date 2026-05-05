@@ -5,9 +5,10 @@
  * Также здесь живёт `tg_send_report` — обёртка над `tg_send_message`,
  * автоматически обогащающая текст через `report_context`.
  */
-import { t, type ToolRegistry } from "./tool-registry";
+
 import { buildReportContext } from "../../rag";
 import { sendReport } from "../tools/telegram-report";
+import { type ToolRegistry, t } from "./tool-registry";
 
 export function registerReportTools(registry: ToolRegistry): void {
   registry.register({
@@ -21,9 +22,7 @@ export function registerReportTools(registry: ToolRegistry): void {
           description: "Тема отчёта. Пусто — берём last shared facts.",
         }),
       ),
-      since_hours: t.Optional(
-        t.Number({ description: "Окно raw_log в часах (default: 24)" }),
-      ),
+      since_hours: t.Optional(t.Number({ description: "Окно raw_log в часах (default: 24)" })),
     }),
     handler: async (args, ctx) => {
       try {
@@ -50,12 +49,8 @@ export function registerReportTools(registry: ToolRegistry): void {
     scope: "public",
     input: t.Object({
       text: t.String({ description: "Текст отчёта" }),
-      topic: t.Optional(
-        t.String({ description: "Тема (default: первая строка text)" }),
-      ),
-      since_hours: t.Optional(
-        t.Number({ description: "Окно raw_log (default: 24)" }),
-      ),
+      topic: t.Optional(t.String({ description: "Тема (default: первая строка text)" })),
+      since_hours: t.Optional(t.Number({ description: "Окно raw_log (default: 24)" })),
     }),
     handler: (args, ctx) =>
       sendReport(ctx, args.text, {

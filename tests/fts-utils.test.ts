@@ -1,7 +1,7 @@
 /**
  * Tests for FTS5 query sanitization utilities (src/lib/fts-utils.ts).
  */
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { sanitizeFtsQuery } from "../src/lib/fts-utils";
 
 describe("sanitizeFtsQuery", () => {

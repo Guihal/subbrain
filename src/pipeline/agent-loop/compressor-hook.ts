@@ -2,10 +2,11 @@
  * Thin wrapper over `context-compressor` for the agent loop.
  * Returns `true` when compression fired so callers can emit SSE events.
  */
-import type { Message } from "../../providers/types";
-import type { ModelRouter } from "../../lib/model-router";
+
 import type { MemoryDB } from "../../db";
-import { shouldCompress, compressContext } from "../context-compressor";
+import type { ModelRouter } from "../../lib/model-router";
+import type { Message } from "../../providers/types";
+import { compressContext, shouldCompress } from "../context-compressor";
 
 export async function maybeCompress(
   messages: Message[],

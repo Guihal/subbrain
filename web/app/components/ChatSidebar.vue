@@ -1,12 +1,9 @@
 <script setup lang="ts">
-import type { Chat } from "~/composables/useChat";
-
 const emit = defineEmits<{
   select: [];
 }>();
 
-const { chats, currentChatId, createNewChat, openChat, deleteChat, health } =
-  useChat();
+const { chats, currentChatId, createNewChat, openChat, deleteChat, health } = useChat();
 
 const confirmDelete = ref<string | null>(null);
 const activeTab = ref<"all" | "my" | "autonomous">("all");

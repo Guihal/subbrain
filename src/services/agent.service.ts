@@ -21,10 +21,10 @@
  * intentional so callers don't start reaching for memory through the
  * AgentService back-door.
  */
-import type { AgentLoop } from "../pipeline/agent-loop";
-import type { AgentLoopResult, AgentMode } from "../pipeline/agent-loop";
-import type { ScheduleContext } from "../pipeline/agent-loop/types";
+
 import type { Priority } from "../lib/model-map";
+import type { AgentLoop, AgentLoopResult, AgentMode } from "../pipeline/agent-loop";
+import type { ScheduleContext } from "../pipeline/agent-loop/types";
 import type { ChatRepository } from "../repositories";
 
 export interface AgentRunOpts {
@@ -42,11 +42,7 @@ export interface AgentRunOpts {
 export class AgentService {
   constructor(
     private readonly agentLoop: AgentLoop,
-    // Reserved for future: direct chat ops (e.g. persisting a handle for
-    // scheduled runs). Keep tied to ChatRepository so we don't re-open the
-    // door to the MemoryDB god-object.
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    private readonly _chat: ChatRepository,
+    readonly _chat: ChatRepository,
   ) {}
 
   async run(opts: AgentRunOpts): Promise<AgentLoopResult> {

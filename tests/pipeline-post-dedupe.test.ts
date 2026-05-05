@@ -3,16 +3,19 @@
  * wording) updates the existing row instead of inserting a duplicate.
  * Confidence bumped, updated_at advances.
  */
-import { describe, test, expect, beforeAll, afterAll } from "bun:test";
-import { existsSync, unlinkSync } from "fs";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { existsSync, unlinkSync } from "node:fs";
 import { MemoryDB } from "../src/db";
+import { writeContext, writeShared } from "../src/pipeline/agent-pipeline/post/extractors";
 import { RAGPipeline } from "../src/rag";
-import { writeShared, writeContext } from "../src/pipeline/agent-pipeline/post/extractors";
 
 const TEST_DB = "data/test-post-dedupe.db";
 
 const log = {
-  info: () => {}, warn: () => {}, error: () => {}, debug: () => {},
+  info: () => {},
+  warn: () => {},
+  error: () => {},
+  debug: () => {},
 } as any;
 
 // Deterministic embed: bag-of-chars hash → 2048 dims. Two strings sharing
@@ -118,7 +121,12 @@ describe("post/extractors dedupe-on-write (MEM-6)", () => {
       memory,
       rag,
       mkRouter(),
-      { category: "preference", content: "Любит TypeScript строгий режим", tags: "ts", confidence: 0.9 },
+      {
+        category: "preference",
+        content: "Любит TypeScript строгий режим",
+        tags: "ts",
+        confidence: 0.9,
+      },
       log,
     );
     const r2 = await writeShared(

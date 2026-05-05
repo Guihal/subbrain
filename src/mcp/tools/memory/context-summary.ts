@@ -1,10 +1,7 @@
 import type { MemoryDB } from "../../../db";
 import type { ToolResult } from "../../types";
 
-export function contextSummary(
-  memory: MemoryDB,
-  sessionId: string,
-): ToolResult {
+export function contextSummary(memory: MemoryDB, sessionId: string): ToolResult {
   const logs = memory.getLogsBySession(sessionId, 50);
   const focus = memory.getAllFocus();
 

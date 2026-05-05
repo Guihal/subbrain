@@ -1,7 +1,7 @@
 import type { Page } from "playwright";
-import type { FeedItem } from "./types";
 import type { FreelanceSource } from "../../db/types";
 import { parseFor } from "./parsers";
+import type { FeedItem } from "./types";
 
 const FEED_URLS: Record<FreelanceSource, string> = {
   "fl.ru": "https://www.fl.ru/projects/",

@@ -1,7 +1,7 @@
-import { describe, test, expect, beforeAll, afterAll } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { randomUUID } from "node:crypto";
+import { unlinkSync } from "node:fs";
 import { MemoryDB } from "../src/db";
-import { randomUUID } from "crypto";
-import { unlinkSync } from "fs";
 
 const TEST_DB = "data/test.db";
 
@@ -62,18 +62,11 @@ describe("MemoryDB", () => {
     );
     const arc = db.getArchive(arcId);
     expect(arc?.confidence).toBe(0.9);
-    expect(JSON.parse(arc!.source_request_ids).length).toBe(2);
+    expect(JSON.parse(arc?.source_request_ids).length).toBe(2);
   });
 
   test("Layer 4 (Log): appendLog + getByRequest", () => {
-    const logId = db.appendLog(
-      reqId,
-      sessId,
-      "flash",
-      "user",
-      "What is 2+2?",
-      5,
-    );
+    const logId = db.appendLog(reqId, sessId, "flash", "user", "What is 2+2?", 5);
     expect(logId).toBeGreaterThan(0);
     const logs = db.getLogsByRequest(reqId);
     expect(logs.length).toBe(1);

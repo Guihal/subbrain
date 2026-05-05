@@ -1,4 +1,4 @@
-import { Database } from "bun:sqlite";
+import type { Database } from "bun:sqlite";
 import type { ArchiveRow } from "../../types";
 
 /**
@@ -36,9 +36,7 @@ export function reflectGroups(
                HAVING n >= ?
                 ORDER BY n DESC
                 LIMIT ?`;
-  return db
-    .query(sql)
-    .all(minAccess, olderThan, now, ...whitelist, minGroup, maxGroups) as {
+  return db.query(sql).all(minAccess, olderThan, now, ...whitelist, minGroup, maxGroups) as {
     category: string;
     n: number;
     ids: string;

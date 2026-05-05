@@ -1,5 +1,5 @@
 import type { Ref } from "vue";
-import type { ListLayer, ListEnvelope, MemoryRow } from "./types";
+import type { ListEnvelope, ListLayer, MemoryRow } from "./types";
 
 type ApiFn = ReturnType<typeof useApi>["api"];
 
@@ -30,18 +30,13 @@ export function useMemoryLayer<T extends { id: string | number }>(
   deps: LayerDeps,
   opts: LayerOpts,
 ) {
-  const state = useState<ListEnvelope<T>>(
-    `memory-${layer}`,
-    () => ({ items: [], total: 0 }),
-  );
+  const state = useState<ListEnvelope<T>>(`memory-${layer}`, () => ({ items: [], total: 0 }));
 
   async function load() {
     deps.loading.value = true;
     deps.error.value = null;
     try {
-      state.value = await deps.api<ListEnvelope<T>>(
-        `/v1/memory/${layer}${qs(opts.buildQuery())}`,
-      );
+      state.value = await deps.api<ListEnvelope<T>>(`/v1/memory/${layer}${qs(opts.buildQuery())}`);
       if (opts.onAfterLoad) await opts.onAfterLoad();
     } catch (e) {
       deps.error.value = (e as Error).message;

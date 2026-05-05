@@ -4,8 +4,9 @@
  *
  * Usage: bun scripts/tg-login.ts
  */
-import { Userbot } from "../src/telegram";
+
 import { MemoryDB } from "../src/db";
+import { Userbot } from "../src/telegram";
 
 const apiId = Number(process.env.TG_API_ID);
 const apiHash = process.env.TG_API_HASH || "";

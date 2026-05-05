@@ -17,11 +17,26 @@
 import type { ToolLog } from "../../../mcp/registry/tool-registry";
 
 const SANDBOX_FORBIDDEN: Array<{ re: RegExp; hint: string }> = [
-  { re: /\brequire\s*\(/, hint: "require() blocked in sandbox; use fetch() to /v1/* HTTP endpoints" },
-  { re: /^\s*import\s+(?!type\b)/m, hint: "static `import` (any form) breaks in sandbox Function-context; use fetch()-based pattern" },
-  { re: /\bfrom\s+["']node:/, hint: "node:* imports unavailable in sandbox; use fetch() to internal /v1/* endpoints" },
-  { re: /\bimport\s*\(\s*["']node:/, hint: "node:* imports unavailable in sandbox; dynamic import() is also blocked at runtime" },
-  { re: /\bfrom\s+["']child_process["']/, hint: "child_process unavailable; no shell access in sandbox" },
+  {
+    re: /\brequire\s*\(/,
+    hint: "require() blocked in sandbox; use fetch() to /v1/* HTTP endpoints",
+  },
+  {
+    re: /^\s*import\s+(?!type\b)/m,
+    hint: "static `import` (any form) breaks in sandbox Function-context; use fetch()-based pattern",
+  },
+  {
+    re: /\bfrom\s+["']node:/,
+    hint: "node:* imports unavailable in sandbox; use fetch() to internal /v1/* endpoints",
+  },
+  {
+    re: /\bimport\s*\(\s*["']node:/,
+    hint: "node:* imports unavailable in sandbox; dynamic import() is also blocked at runtime",
+  },
+  {
+    re: /\bfrom\s+["']child_process["']/,
+    hint: "child_process unavailable; no shell access in sandbox",
+  },
 ];
 
 export interface FactPattern {
@@ -63,9 +78,7 @@ export interface FactCheckResult {
 }
 
 export function checkHardcodedFacts(code: string): FactCheckResult {
-  const matched = HARDCODED_FACT_PATTERNS.filter((p) => p.re.test(code)).map(
-    (p) => p.label,
-  );
+  const matched = HARDCODED_FACT_PATTERNS.filter((p) => p.re.test(code)).map((p) => p.label);
   if (matched.length === 0) return { matched: [], severity: "ok" };
   if (matched.length === 1) return { matched, severity: "warn" };
   return { matched, severity: "reject" };
@@ -78,11 +91,7 @@ export type GuardError = { success: false; error: string };
  * still passes (logs only). Single early-return shape for create/edit
  * handlers.
  */
-export function applyCodeToolGuards(
-  code: string,
-  name: string,
-  log: ToolLog,
-): GuardError | null {
+export function applyCodeToolGuards(code: string, name: string, log: ToolLog): GuardError | null {
   for (const { re, hint } of SANDBOX_FORBIDDEN) {
     if (re.test(code)) {
       return { success: false, error: `sandbox_violation: ${hint}` };

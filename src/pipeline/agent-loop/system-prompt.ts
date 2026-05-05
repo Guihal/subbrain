@@ -4,17 +4,12 @@
  */
 import type { MemoryDB, TaskScope } from "../../db";
 import type { ModelRouter } from "../../lib/model-router";
-import type { RAGPipeline, RAGResult } from "../../rag";
 import { getPersonaBio } from "../../lib/personas";
-import {
-  getCurrentDate,
-  MAX_STEPS,
-  MAX_CONTEXT_TOKENS,
-  MAX_DYNAMIC_TOOLS,
-} from "./types";
-import type { ScheduleContext, AgentMode } from "./types";
+import type { RAGPipeline, RAGResult } from "../../rag";
 import { runPre } from "../agent-pipeline/phases/pre";
 import { renderActiveTasks, renderTgStatus } from "./prompt-blocks/tasks";
+import type { AgentMode, ScheduleContext } from "./types";
+import { getCurrentDate, MAX_CONTEXT_TOKENS, MAX_DYNAMIC_TOOLS, MAX_STEPS } from "./types";
 
 function deriveTaskScope(s?: ScheduleContext): TaskScope {
   if (s?.source === "autonomous") return "autonomous";
@@ -36,8 +31,7 @@ export async function buildAgentSystemPrompt(
   // only the authoring section in the prompt + creation primitives disappear.
   // `SCHEDULED_ALLOW_CODE_TOOL_CREATE=1` opts back in for manual ops runs.
   const allowCodeToolAuthoring =
-    agentMode === "interactive" ||
-    process.env.SCHEDULED_ALLOW_CODE_TOOL_CREATE === "1";
+    agentMode === "interactive" || process.env.SCHEDULED_ALLOW_CODE_TOOL_CREATE === "1";
   const parts: string[] = [];
 
   // Persona
@@ -227,9 +221,7 @@ Code tools creation disabled in scheduled mode. Use existing tools only (\`list_
       });
       const { preOutput } = preResult;
       if (preOutput.executiveSummary) {
-        parts.push(
-          `\n## Executive Summary (собрано гиппокампом)\n${preOutput.executiveSummary}`,
-        );
+        parts.push(`\n## Executive Summary (собрано гиппокампом)\n${preOutput.executiveSummary}`);
       }
       // Still include focus directives separately (they're always critical)
       if (Object.keys(preOutput.focusEntries).length > 0) {
@@ -238,7 +230,7 @@ Code tools creation disabled in scheduled mode. Use existing tools only (\`list_
           parts.push(`- **${key}:** ${value}`);
         }
       }
-    } catch (err) {
+    } catch (_err) {
       // Degraded: fall back to raw memory
       const focus = memory.getAllFocus();
       if (Object.keys(focus).length > 0) {

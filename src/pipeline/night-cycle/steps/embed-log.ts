@@ -30,8 +30,8 @@
  * them per case without spawning a subprocess.
  */
 import type { MemoryDB } from "../../../db";
-import type { RAGPipeline } from "../../../rag";
 import { logger } from "../../../lib/logger";
+import type { RAGPipeline } from "../../../rag";
 
 const log = logger.child("night.embed-log");
 
@@ -58,13 +58,11 @@ interface Cfg {
 }
 
 function readEnv(): Cfg {
-  const enabled =
-    (process.env.LOG_EMBED_ENABLED ?? "true").toLowerCase() !== "false";
-  const capRaw = parseInt(process.env.LOG_EMBED_CAP ?? "", 10);
+  const enabled = (process.env.LOG_EMBED_ENABLED ?? "true").toLowerCase() !== "false";
+  const capRaw = Number.parseInt(process.env.LOG_EMBED_CAP ?? "", 10);
   const cap = Number.isFinite(capRaw) && capRaw >= 0 ? capRaw : DEFAULT_CAP;
-  const batchRaw = parseInt(process.env.LOG_EMBED_BATCH ?? "", 10);
-  let batch =
-    Number.isFinite(batchRaw) && batchRaw >= MIN_BATCH ? batchRaw : DEFAULT_BATCH;
+  const batchRaw = Number.parseInt(process.env.LOG_EMBED_BATCH ?? "", 10);
+  let batch = Number.isFinite(batchRaw) && batchRaw >= MIN_BATCH ? batchRaw : DEFAULT_BATCH;
   if (batch > MAX_BATCH) batch = MAX_BATCH;
   return { enabled, cap, batch };
 }
@@ -110,9 +108,7 @@ export async function runEmbedLog(deps: EmbedLogDeps): Promise<EmbedLogResult> {
       batches.map(async (b) => {
         const vecs = await rag.embedBatch(b.map((r) => r.content));
         if (vecs.length !== b.length) {
-          throw new Error(
-            `embed shape mismatch: got ${vecs.length} vecs for ${b.length} rows`,
-          );
+          throw new Error(`embed shape mismatch: got ${vecs.length} vecs for ${b.length} rows`);
         }
         memory.db.transaction(() => {
           for (let i = 0; i < b.length; i++) {

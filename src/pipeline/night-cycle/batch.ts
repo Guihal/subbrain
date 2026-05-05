@@ -4,16 +4,16 @@
  * `process-session.ts`.
  */
 import type { LogRow, MemoryDB } from "../../db";
+import { logger } from "../../lib/logger";
 import type { ModelRouter } from "../../lib/model-router";
 import type { RAGPipeline } from "../../rag";
-import { logger } from "../../lib/logger";
 import { processSession } from "./process-session";
 import {
   MAX_PII_ATTEMPTS,
   parseRetryQueue,
   RETRY_FOCUS_KEY,
-  upsertRetry,
   type RetryEntry,
+  upsertRetry,
 } from "./retry-queue";
 import type { NightCycleResult } from "./types";
 
@@ -25,10 +25,7 @@ interface Deps {
   rag: RAGPipeline;
 }
 
-export async function runRetryPass(
-  deps: Deps,
-  result: NightCycleResult,
-): Promise<RetryEntry[]> {
+export async function runRetryPass(deps: Deps, result: NightCycleResult): Promise<RetryEntry[]> {
   const queue = parseRetryQueue(deps.memory.getFocus(RETRY_FOCUS_KEY));
   if (queue.length > 0) {
     log.info(`Retry pass: ${queue.length} session(s) in queue`);

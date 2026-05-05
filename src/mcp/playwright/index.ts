@@ -1,18 +1,9 @@
 /// <reference lib="dom" />
-/**
- * Direct Playwright browser wrapper (replaces the out-of-process @playwright/mcp
- * server, which hung on CDP WebSocket handshake — see docs/02-audit.md BROWSER-1).
- *
- * Public API: `callTool(name, args)`. Ref system: each snapshot tags every
- * interactive element in the live DOM with `data-pw-ref="N"`; subsequent
- * clicks/types select by that attribute. Refs are fresh per snapshot —
- * the agent must always call web_snapshot after a navigation or click before
- * referring to elements by ref.
- */
+/** Direct Playwright browser wrapper. See docs/02-audit.md BROWSER-1. */
 import type { Browser, BrowserContext, Page } from "playwright";
 import { logger } from "../../lib/logger";
-import { launchBrowser, newScopeContext, trackClient, untrackClient } from "./lifecycle";
 import * as a from "./actions";
+import { launchBrowser, newScopeContext, trackClient, untrackClient } from "./lifecycle";
 
 const log = logger.child("playwright");
 
@@ -39,7 +30,11 @@ export class PlaywrightClient {
   async closeScope(name: string): Promise<void> {
     const s = this.scopes.get(name);
     if (!s) return;
-    try { await s.ctx.close(); } catch { /* ignore */ }
+    try {
+      await s.ctx.close();
+    } catch {
+      /* ignore */
+    }
     this.scopes.delete(name);
   }
 
@@ -48,22 +43,40 @@ export class PlaywrightClient {
       await this.ensureLaunched();
       const p = this.page!;
       switch (name) {
-        case "browser_navigate":   return await a.navigate(p, String(args.url ?? ""));
-        case "browser_snapshot":   return await a.snapshot(p);
-        case "browser_click":      return await a.click(p, String(args.ref ?? ""));
-        case "browser_type":       return await a.type(p, String(args.ref ?? ""), String(args.text ?? ""), Boolean(args.submit));
-        case "browser_go_back":    return await a.goBack(p);
-        case "browser_press_key":  return await a.pressKey(p, String(args.key ?? ""));
-        case "browser_scroll":     return await a.scroll(p, Number(args.dy ?? 800), Number(args.dx ?? 0));
-        case "browser_screenshot": return await a.screenshot(p, Boolean(args.full_page));
-        case "browser_close":      await this.close(); return "OK";
-        default: return JSON.stringify({ error: `Unknown tool: ${name}` });
+        case "browser_navigate":
+          return await a.navigate(p, String(args.url ?? ""));
+        case "browser_snapshot":
+          return await a.snapshot(p);
+        case "browser_click":
+          return await a.click(p, String(args.ref ?? ""));
+        case "browser_type":
+          return await a.type(
+            p,
+            String(args.ref ?? ""),
+            String(args.text ?? ""),
+            Boolean(args.submit),
+          );
+        case "browser_go_back":
+          return await a.goBack(p);
+        case "browser_press_key":
+          return await a.pressKey(p, String(args.key ?? ""));
+        case "browser_scroll":
+          return await a.scroll(p, Number(args.dy ?? 800), Number(args.dx ?? 0));
+        case "browser_screenshot":
+          return await a.screenshot(p, Boolean(args.full_page));
+        case "browser_close":
+          await this.close();
+          return "OK";
+        default:
+          return JSON.stringify({ error: `Unknown tool: ${name}` });
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       log.warn(`${name} failed: ${msg}`);
       // On fatal errors (crashed page, closed browser), reset for next call.
-      if (/Target page, context or browser has been closed|browserContext|Protocol error/i.test(msg)) {
+      if (
+        /Target page, context or browser has been closed|browserContext|Protocol error/i.test(msg)
+      ) {
         await this.close();
       }
       return JSON.stringify({ error: msg });
@@ -76,11 +89,23 @@ export class PlaywrightClient {
 
   async close(): Promise<void> {
     for (const [, s] of this.scopes) {
-      try { await s.ctx.close(); } catch { /* ignore */ }
+      try {
+        await s.ctx.close();
+      } catch {
+        /* ignore */
+      }
     }
     this.scopes.clear();
-    try { await this.context?.close(); } catch { /* ignore */ }
-    try { await this.browser?.close(); } catch { /* ignore */ }
+    try {
+      await this.context?.close();
+    } catch {
+      /* ignore */
+    }
+    try {
+      await this.browser?.close();
+    } catch {
+      /* ignore */
+    }
     this.browser = null;
     this.context = null;
     this.page = null;

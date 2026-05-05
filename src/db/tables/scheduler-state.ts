@@ -1,4 +1,4 @@
-import { Database } from "bun:sqlite";
+import type { Database } from "bun:sqlite";
 import type { SchedulerStateRow } from "../types";
 
 /**
@@ -32,9 +32,7 @@ export class SchedulerStateTable {
   }
 
   delete(key: string): boolean {
-    return (
-      this.db.query(`DELETE FROM scheduler_state WHERE key = ?`).run(key).changes > 0
-    );
+    return this.db.query(`DELETE FROM scheduler_state WHERE key = ?`).run(key).changes > 0;
   }
 
   /**

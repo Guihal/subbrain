@@ -1,4 +1,4 @@
-import type { MemoryTable, InsertContextOpts } from "../../db/tables/memory";
+import type { InsertContextOpts, MemoryTable } from "../../db/tables/memory";
 import type { MemoryStatus } from "../../db/types";
 
 /**
@@ -23,13 +23,16 @@ export function makeMemHelpers(mem: MemoryTable) {
     clearShadowFocus: () => mem.clearShadowFocus(),
 
     // M-11 helper
-    selectTopSharedForFocusRewrite: (limit: number) =>
-      mem.selectTopSharedForFocusRewrite(limit),
+    selectTopSharedForFocusRewrite: (limit: number) => mem.selectTopSharedForFocusRewrite(limit),
 
     // Layer 2: context
     insertContext: (
-      id: string, title: string, content: string,
-      tags?: string, derivedFrom?: string[], agentId?: string,
+      id: string,
+      title: string,
+      content: string,
+      tags?: string,
+      derivedFrom?: string[],
+      agentId?: string,
       opts?: InsertContextOpts,
     ) => mem.insertContext(id, title, content, tags, derivedFrom, agentId, opts),
     updateContext: (
@@ -52,17 +55,20 @@ export function makeMemHelpers(mem: MemoryTable) {
       opts?: { activeOnly?: boolean; notStale?: boolean; agentId?: string },
     ) => mem.getContextMany(ids, opts),
     listContext: (limit?: number, offset?: number) => mem.listContext(limit, offset),
-    listContextActive: (limit?: number, offset?: number) =>
-      mem.listContextActive(limit, offset),
+    listContextActive: (limit?: number, offset?: number) => mem.listContextActive(limit, offset),
     countContext: () => mem.countContext(),
     getAllContext: () => mem.getAllContext(),
     deleteContext: (id: string) => mem.deleteContext(id),
 
     // Layer 3: archive (M-12 mig 15: confidence REAL [0..1] | null)
     insertArchive: (
-      id: string, title: string, content: string,
-      tags?: string, sourceRequestIds?: string[],
-      confidence?: number | null, agentId?: string,
+      id: string,
+      title: string,
+      content: string,
+      tags?: string,
+      sourceRequestIds?: string[],
+      confidence?: number | null,
+      agentId?: string,
     ) => mem.insertArchive(id, title, content, tags, sourceRequestIds, confidence, agentId),
     getArchive: (id: string) => mem.getArchive(id),
     getArchiveMany: (ids: string[]) => mem.getArchiveMany(ids),

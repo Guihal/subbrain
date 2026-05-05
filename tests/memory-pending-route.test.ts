@@ -6,11 +6,11 @@
  * `{ error: { message } }` envelope the UI expects.
  */
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { Elysia } from "elysia";
 import { existsSync, unlinkSync } from "node:fs";
+import { Elysia } from "elysia";
 import { MemoryDB } from "../src/db";
-import { memoryRoute } from "../src/routes/memory";
 import { AppError } from "../src/lib/errors";
+import { memoryRoute } from "../src/routes/memory";
 
 const TEST_DB = "data/test-memory-pending-route.db";
 
@@ -68,24 +68,14 @@ beforeAll(() => {
     confidence: 0.95,
     status: "active",
   });
-  memory.insertContext(
-    "cp-1",
-    "ctx-title",
-    "pending context 1",
-    "",
-    [],
-    undefined,
-    { confidence: 0.4, status: "pending" },
-  );
-  memory.insertContext(
-    "ca-1",
-    "ctx-title-2",
-    "active context",
-    "",
-    [],
-    undefined,
-    { confidence: 0.9, status: "active" },
-  );
+  memory.insertContext("cp-1", "ctx-title", "pending context 1", "", [], undefined, {
+    confidence: 0.4,
+    status: "pending",
+  });
+  memory.insertContext("ca-1", "ctx-title-2", "active context", "", [], undefined, {
+    confidence: 0.9,
+    status: "active",
+  });
 });
 
 afterAll(() => {
@@ -124,8 +114,8 @@ describe("memory pending route (PR 22b)", () => {
       total: number;
     };
     expect(body.total).toBe(1);
-    expect(body.items[0]!.id).toBe("cp-1");
-    expect(body.items[0]!.status).toBe("pending");
+    expect(body.items[0]?.id).toBe("cp-1");
+    expect(body.items[0]?.status).toBe("pending");
   });
 
   test("GET /v1/memory/pending without layer → 422", async () => {
@@ -146,7 +136,7 @@ describe("memory pending route (PR 22b)", () => {
     });
     expect(res.status).toBe(200);
     const row = memory.getShared("sp-1");
-    expect(row!.status).toBe("active");
+    expect(row?.status).toBe("active");
   });
 
   test("PATCH context/:id/status {rejected} → 200 + row flipped", async () => {
@@ -157,7 +147,7 @@ describe("memory pending route (PR 22b)", () => {
     });
     expect(res.status).toBe(200);
     const row = memory.getContext("cp-1");
-    expect(row!.status).toBe("rejected");
+    expect(row?.status).toBe("rejected");
   });
 
   test("PATCH with invalid status → 422", async () => {
@@ -208,6 +198,6 @@ describe("memory pending route (PR 22b)", () => {
       total: number;
     };
     expect(body.total).toBe(1);
-    expect(body.items[0]!.id).toBe("sp-2");
+    expect(body.items[0]?.id).toBe("sp-2");
   });
 });

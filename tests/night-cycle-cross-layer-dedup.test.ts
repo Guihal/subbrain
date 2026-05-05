@@ -1,10 +1,10 @@
 /** M-09 night-cycle cross-layer dedup + archive→shared promote. See plan §Тесты. */
-import { describe, test, expect, beforeEach, afterAll } from "bun:test";
-import { existsSync, unlinkSync } from "fs";
+import { afterAll, beforeEach, describe, expect, test } from "bun:test";
+import { existsSync, unlinkSync } from "node:fs";
 import { MemoryDB } from "../src/db";
+import { runCrossLayerDedup } from "../src/pipeline/night-cycle/steps/cross-layer-dedup";
 import { RAGPipeline } from "../src/rag";
 import { MemoryService } from "../src/services/memory";
-import { runCrossLayerDedup } from "../src/pipeline/night-cycle/steps/cross-layer-dedup";
 
 const TEST_DB = "data/test-mem9-crosslayer.db";
 const ENV_KEYS = [
@@ -69,7 +69,13 @@ function fakeRouter(): any {
   };
 }
 
-function seedContext(memory: MemoryDB, id: string, title: string, content: string, v: Float32Array): void {
+function seedContext(
+  memory: MemoryDB,
+  id: string,
+  title: string,
+  content: string,
+  v: Float32Array,
+): void {
   memory.insertContext(id, title, content, "");
   memory.upsertEmbedding(id, "context", v);
 }
@@ -87,7 +93,13 @@ function seedArchive(
     memory.db.query("UPDATE layer3_archive SET access_count = ? WHERE id = ?").run(opts.access, id);
   }
 }
-function seedShared(memory: MemoryDB, id: string, category: string, content: string, v: Float32Array): void {
+function seedShared(
+  memory: MemoryDB,
+  id: string,
+  category: string,
+  content: string,
+  v: Float32Array,
+): void {
   memory.insertShared(id, category, content, "");
   memory.upsertEmbedding(id, "shared", v);
 }
@@ -125,10 +137,15 @@ describe("M-09 cross-layer dedup + archive→shared promote", () => {
   });
 
   test("context↔archive: cos≥0.92 same category → supersedes edge + superseded_by on context (older)", async () => {
-    seedArchive(memory, "arc-1", "project", "Project uses Bun runtime", V_DUP_A, { access: 1, confidence: 0.4 });
+    seedArchive(memory, "arc-1", "project", "Project uses Bun runtime", V_DUP_A, {
+      access: 1,
+      confidence: 0.4,
+    });
     // Backdate context to make it OLDER than archive (so context is stale).
     seedContext(memory, "ctx-1", "project", "Project uses Bun runtime extended", V_DUP_B);
-    memory.db.query("UPDATE layer2_context SET updated_at = updated_at - 1000 WHERE id = ?").run("ctx-1");
+    memory.db
+      .query("UPDATE layer2_context SET updated_at = updated_at - 1000 WHERE id = ?")
+      .run("ctx-1");
 
     const r = await runCrossLayerDedup({ memory, memoryService: svc });
     expect(r.supersedes_added).toBeGreaterThanOrEqual(1);
@@ -147,8 +164,13 @@ describe("M-09 cross-layer dedup + archive→shared promote", () => {
   test("archive↔shared: edge added but archive.superseded_by NOT written (no column)", async () => {
     seedShared(memory, "shr-1", "project", "Project uses Bun runtime", V_DUP_A);
     // Older archive becomes the stale side.
-    seedArchive(memory, "arc-2", "project", "Project uses Bun runtime variant", V_DUP_B, { access: 1, confidence: 0.4 });
-    memory.db.query("UPDATE layer3_archive SET updated_at = updated_at - 1000 WHERE id = ?").run("arc-2");
+    seedArchive(memory, "arc-2", "project", "Project uses Bun runtime variant", V_DUP_B, {
+      access: 1,
+      confidence: 0.4,
+    });
+    memory.db
+      .query("UPDATE layer3_archive SET updated_at = updated_at - 1000 WHERE id = ?")
+      .run("arc-2");
 
     const r = await runCrossLayerDedup({ memory, memoryService: svc });
     expect(r.supersedes_added).toBeGreaterThanOrEqual(1);
@@ -166,7 +188,9 @@ describe("M-09 cross-layer dedup + archive→shared promote", () => {
   test("context↔shared: older shared row gets superseded_by", async () => {
     seedContext(memory, "ctx-3", "project", "fresh context fact", V_DUP_A);
     seedShared(memory, "shr-3", "project", "old shared fact", V_DUP_B);
-    memory.db.query("UPDATE shared_memory SET updated_at = updated_at - 1000 WHERE id = ?").run("shr-3");
+    memory.db
+      .query("UPDATE shared_memory SET updated_at = updated_at - 1000 WHERE id = ?")
+      .run("shr-3");
 
     const r = await runCrossLayerDedup({ memory, memoryService: svc });
     expect(r.supersedes_added).toBeGreaterThanOrEqual(1);
@@ -181,7 +205,10 @@ describe("M-09 cross-layer dedup + archive→shared promote", () => {
   });
 
   test("archive→shared promote: access≥5 + confidence≥0.7 + no shared dup → new shared + derives edge", async () => {
-    seedArchive(memory, "arc-p", "project", "Project standard fact", V_DUP_A, { access: 10, confidence: 0.8 });
+    seedArchive(memory, "arc-p", "project", "Project standard fact", V_DUP_A, {
+      access: 10,
+      confidence: 0.8,
+    });
     // Existing UNRELATED shared row in same category — should NOT block (cosine far).
     seedShared(memory, "shr-other", "decision", "Decision about deploys", V_FAR);
 
@@ -207,7 +234,10 @@ describe("M-09 cross-layer dedup + archive→shared promote", () => {
 
   test("below cosine threshold → no supersede edge", async () => {
     seedContext(memory, "ctx-low", "project", "totally unrelated", V_DUP_A);
-    seedArchive(memory, "arc-low", "project", "different topic entirely", V_FAR, { access: 0, confidence: 0.5 });
+    seedArchive(memory, "arc-low", "project", "different topic entirely", V_FAR, {
+      access: 0,
+      confidence: 0.5,
+    });
 
     const r = await runCrossLayerDedup({ memory, memoryService: svc });
     expect(r.supersedes_added).toBe(0);
@@ -217,20 +247,28 @@ describe("M-09 cross-layer dedup + archive→shared promote", () => {
   });
 
   test("below access threshold → no promote", async () => {
-    seedArchive(memory, "arc-na", "project", "infrequent fact", V_DUP_A, { access: 2, confidence: 0.9 });
+    seedArchive(memory, "arc-na", "project", "infrequent fact", V_DUP_A, {
+      access: 2,
+      confidence: 0.9,
+    });
 
     const r = await runCrossLayerDedup({ memory, memoryService: svc });
     expect(r.promoted_to_shared).toBe(0);
     const promoted = memory.db
-      .query<{ c: number }, []>("SELECT count(*) AS c FROM shared_memory WHERE source = 'archive-promote'")
-      .get()!.c;
+      .query<{ c: number }, []>(
+        "SELECT count(*) AS c FROM shared_memory WHERE source = 'archive-promote'",
+      )
+      .get()?.c;
     expect(promoted).toBe(0);
     restoreEnv(envSnap);
   });
 
   test("CROSS_LAYER_DEDUP_ENABLED=false → no-op zeros", async () => {
     process.env.CROSS_LAYER_DEDUP_ENABLED = "false";
-    seedArchive(memory, "arc-off", "project", "would-promote fact", V_DUP_A, { access: 10, confidence: 0.9 });
+    seedArchive(memory, "arc-off", "project", "would-promote fact", V_DUP_A, {
+      access: 10,
+      confidence: 0.9,
+    });
     seedContext(memory, "ctx-off", "project", "would-supersede", V_DUP_B);
 
     const r = await runCrossLayerDedup({ memory, memoryService: svc });
@@ -246,19 +284,27 @@ describe("M-09 cross-layer dedup + archive→shared promote", () => {
 
   test("skip-guard: same-category shared row cos≥0.85 already exists → no promote", async () => {
     seedShared(memory, "shr-existing", "project", "Existing shared fact about Bun", V_DUP_A);
-    seedArchive(memory, "arc-dup", "project", "Archive copy of Bun fact", V_DUP_B, { access: 8, confidence: 0.85 });
+    seedArchive(memory, "arc-dup", "project", "Archive copy of Bun fact", V_DUP_B, {
+      access: 8,
+      confidence: 0.85,
+    });
 
     const r = await runCrossLayerDedup({ memory, memoryService: svc });
     expect(r.promoted_to_shared).toBe(0);
     const promoted = memory.db
-      .query<{ c: number }, []>("SELECT count(*) AS c FROM shared_memory WHERE source = 'archive-promote'")
-      .get()!.c;
+      .query<{ c: number }, []>(
+        "SELECT count(*) AS c FROM shared_memory WHERE source = 'archive-promote'",
+      )
+      .get()?.c;
     expect(promoted).toBe(0);
     restoreEnv(envSnap);
   });
 
   test("idempotent rerun: 2nd run promotes 0 (skip-guard hits prior insert)", async () => {
-    seedArchive(memory, "arc-idem", "project", "Stable global fact", V_DUP_A, { access: 10, confidence: 0.9 });
+    seedArchive(memory, "arc-idem", "project", "Stable global fact", V_DUP_A, {
+      access: 10,
+      confidence: 0.9,
+    });
     // The newly-inserted shared row will be embedded with V_FAR by fakeRouter,
     // so on rerun the skip-guard would NOT fire on cosine alone. Override the
     // router to embed the promoted row with V_DUP_A so the 2nd run sees a
@@ -281,8 +327,10 @@ describe("M-09 cross-layer dedup + archive→shared promote", () => {
     expect(r2.promoted_to_shared).toBe(0);
 
     const promoted = memory.db
-      .query<{ c: number }, []>("SELECT count(*) AS c FROM shared_memory WHERE source = 'archive-promote'")
-      .get()!.c;
+      .query<{ c: number }, []>(
+        "SELECT count(*) AS c FROM shared_memory WHERE source = 'archive-promote'",
+      )
+      .get()?.c;
     expect(promoted).toBe(1);
     restoreEnv(envSnap);
   });

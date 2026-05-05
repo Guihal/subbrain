@@ -9,10 +9,7 @@ import type { RAGPipeline } from "../../../rag";
 
 export const EMBED_TIMEOUT_MS = 5000;
 
-export async function embedWithTimeout(
-  rag: RAGPipeline,
-  content: string,
-): Promise<Float32Array> {
+export async function embedWithTimeout(rag: RAGPipeline, content: string): Promise<Float32Array> {
   let timer: ReturnType<typeof setTimeout> | null = null;
   try {
     return await Promise.race([

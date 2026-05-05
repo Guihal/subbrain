@@ -21,7 +21,11 @@ const TRANSITIONAL_SQL_ROUTES = new Set<string>();
 
 function walk(dir: string, ext: RegExp, out: string[] = []): string[] {
   let entries: string[];
-  try { entries = readdirSync(dir); } catch { return out; }
+  try {
+    entries = readdirSync(dir);
+  } catch {
+    return out;
+  }
   for (const entry of entries) {
     if (SKIP_DIRS.has(entry)) continue;
     const full = join(dir, entry);

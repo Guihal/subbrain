@@ -1,8 +1,5 @@
-import { describe, test, expect } from "bun:test";
-import {
-  shouldRunHippocampus,
-  SKIP_USER_PREFIXES,
-} from "../src/pipeline/agent-pipeline/post/gate";
+import { describe, expect, test } from "bun:test";
+import { SKIP_USER_PREFIXES, shouldRunHippocampus } from "../src/pipeline/agent-pipeline/post/gate";
 import { MIN_EXTRACTION_LENGTH } from "../src/pipeline/agent-pipeline/types";
 
 describe("post/gate.shouldRunHippocampus — length gate", () => {

@@ -7,8 +7,9 @@
  * new contract so a future hand-edit to the CHECK (or to the migration's
  * user_version bump) trips CI.
  */
+
+import type { Database } from "bun:sqlite";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { Database } from "bun:sqlite";
 import { existsSync, unlinkSync } from "node:fs";
 import { migrate, openDatabase } from "../src/db/schema";
 
@@ -47,9 +48,7 @@ describe("schema migrations — layer4_log role CHECK (migration 7 / OBS-1)", ()
   });
 
   test("user_version is at least 7 after migrate()", () => {
-    const { user_version } = db
-      .query<{ user_version: number }, []>("PRAGMA user_version")
-      .get()!;
+    const { user_version } = db.query<{ user_version: number }, []>("PRAGMA user_version").get()!;
     expect(user_version).toBeGreaterThanOrEqual(7);
   });
 
@@ -70,16 +69,12 @@ describe("schema migrations — layer4_log role CHECK (migration 7 / OBS-1)", ()
   });
 
   test("unknown role still rejected by CHECK", () => {
-    expect(() => insertLog(db, "garbage_role")).toThrow(
-      /CHECK constraint failed/i,
-    );
+    expect(() => insertLog(db, "garbage_role")).toThrow(/CHECK constraint failed/i);
   });
 
   test("migration is idempotent — running migrate() twice does not throw", () => {
     expect(() => migrate(db)).not.toThrow();
-    const { user_version } = db
-      .query<{ user_version: number }, []>("PRAGMA user_version")
-      .get()!;
+    const { user_version } = db.query<{ user_version: number }, []>("PRAGMA user_version").get()!;
     expect(user_version).toBeGreaterThanOrEqual(7);
   });
 
@@ -87,15 +82,11 @@ describe("schema migrations — layer4_log role CHECK (migration 7 / OBS-1)", ()
     // Simulate a DB that had rows before the rebuild step: the inner
     // `INSERT INTO layer4_log_new SELECT * FROM layer4_log` must preserve them.
     insertLog(db, "assistant");
-    const before = db
-      .query<{ c: number }, []>("SELECT COUNT(*) AS c FROM layer4_log")
-      .get()!.c;
+    const before = db.query<{ c: number }, []>("SELECT COUNT(*) AS c FROM layer4_log").get()?.c;
     // Re-run migrate is a no-op (version already at 7+). But we ensure the
     // migrated table retains the row invariant.
     migrate(db);
-    const after = db
-      .query<{ c: number }, []>("SELECT COUNT(*) AS c FROM layer4_log")
-      .get()!.c;
+    const after = db.query<{ c: number }, []>("SELECT COUNT(*) AS c FROM layer4_log").get()?.c;
     expect(after).toBe(before);
   });
 });

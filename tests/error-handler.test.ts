@@ -1,4 +1,4 @@
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { Elysia } from "elysia";
 import { AppError, NotFoundError, UpstreamExhaustedError } from "../src/lib/errors";
 

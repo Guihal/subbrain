@@ -2,16 +2,15 @@
  * Hippocampus tool definitions + dispatcher: memory_search (FTS) and rag_search (hybrid+rerank).
  */
 import type { MemoryDB } from "../../../db";
-import type { RAGPipeline, RAGResult } from "../../../rag";
 import type { Tool } from "../../../providers/types";
+import type { RAGPipeline, RAGResult } from "../../../rag";
 
 export const HIPPO_TOOLS: Tool[] = [
   {
     type: "function",
     function: {
       name: "memory_search",
-      description:
-        "FTS5 full-text search across memory layers. Fast, no RPM cost.",
+      description: "FTS5 full-text search across memory layers. Fast, no RPM cost.",
       parameters: {
         type: "object",
         properties: {

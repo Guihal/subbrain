@@ -9,17 +9,21 @@
  * place the row back without tripping WHITELIST_SHARED on next sweep.
  * Used by POST /v1/memory/restore to move rows back.
  */
-import { randomUUID } from "crypto";
+import { randomUUID } from "node:crypto";
 import type { MemoryDB } from "../../../db";
-import type { RAGPipeline } from "../../../rag";
-import { WHITELIST_SHARED, MAX_SHARED_CONTENT, MAX_CONTEXT_CONTENT } from "../../agent-pipeline/post/validators";
 import { logger } from "../../../lib/logger";
+import type { RAGPipeline } from "../../../rag";
+import {
+  MAX_CONTEXT_CONTENT,
+  MAX_SHARED_CONTENT,
+  WHITELIST_SHARED,
+} from "../../agent-pipeline/post/validators";
 import { buildEmbeddingMap, cosine, type LayerName } from "./phase-b-embed";
 
 const log = logger.child("night.janitor");
 
 const DEDUP_THRESHOLD = () => {
-  const v = parseFloat(process.env.JANITOR_DEDUP_THRESHOLD ?? "");
+  const v = Number.parseFloat(process.env.JANITOR_DEDUP_THRESHOLD ?? "");
   return Number.isFinite(v) && v > 0 && v <= 1 ? v : 0.92;
 };
 const FRESH_WINDOW_SEC = 7 * 86400;
@@ -38,12 +42,7 @@ interface RawRow {
   created_at: number;
 }
 
-function archiveRow(
-  memory: MemoryDB,
-  row: RawRow,
-  layer: LayerName,
-  tagPrefix: string,
-): void {
+function archiveRow(memory: MemoryDB, row: RawRow, layer: LayerName, tagPrefix: string): void {
   let arcTag = `${tagPrefix},original_layer:${layer}`;
   if (layer === "shared" && row.category) {
     arcTag += `,original_category:${row.category}`;
@@ -66,7 +65,8 @@ async function dedupLayer(
 ): Promise<number> {
   const cutoff = Math.floor(Date.now() / 1000) - FRESH_WINDOW_SEC;
   const all = layer === "shared" ? memory.getAllShared() : memory.getAllContext();
-  const rows = (all as RawRow[]).filter(r => r.created_at >= cutoff)
+  const rows = (all as RawRow[])
+    .filter((r) => r.created_at >= cutoff)
     .sort((a, b) => b.created_at - a.created_at);
   if (rows.length < 2) return 0;
 

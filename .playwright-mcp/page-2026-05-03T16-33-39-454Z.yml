@@ -1,0 +1,1446 @@
+- generic [active] [ref=e1]:
+  - main [ref=e2]:
+    - region "Notifications alt+T"
+    - generic [ref=e8]:
+      - generic [ref=e9]:
+        - button "Open Menu" [ref=e10] [cursor=pointer]
+        - link "NVIDIA" [ref=e11] [cursor=pointer]:
+          - /url: /
+          - img "NVIDIA" [ref=e12]
+      - generic [ref=e13]:
+        - generic [ref=e14]:
+          - generic [ref=e15]:
+            - textbox [disabled] [ref=e17] [cursor=pointer]:
+              - /placeholder: Search
+            - generic [ref=e18]: Ctrl+K
+          - button "Search" [ref=e19] [cursor=pointer]
+        - generic [ref=e20]:
+          - button "Help" [ref=e21] [cursor=pointer]: "?"
+          - button "Login" [ref=e23] [cursor=pointer]
+    - generic [ref=e24]:
+      - generic [ref=e26]:
+        - generic [ref=e28]:
+          - heading "Models" [level=1] [ref=e29]
+          - paragraph [ref=e30]: Deploy and scale models on your GPU infrastructure of choice with NVIDIA NIM inference microservices
+        - tablist [ref=e31]:
+          - tab "Optimized by NVIDIA" [selected] [ref=e32] [cursor=pointer]
+          - tab "Launch from Hugging Face Beta" [ref=e33] [cursor=pointer]:
+            - text: Launch from Hugging Face
+            - generic [ref=e34]: Beta
+        - progressbar [ref=e35]
+        - generic [ref=e37]:
+          - complementary [ref=e38]:
+            - generic [ref=e39]:
+              - generic [ref=e40]:
+                - heading "Filters (1)" [level=2] [ref=e41]:
+                  - img [ref=e42]
+                  - text: Filters (1)
+                - button "Close" [ref=e44] [cursor=pointer]
+              - generic [ref=e45]:
+                - menuitemcheckbox "Free Endpoint 50" [checked] [ref=e46] [cursor=pointer]:
+                  - generic [ref=e48]:
+                    - switch [checked] [ref=e49]
+                    - checkbox [checked]
+                  - generic [ref=e51]: Free Endpoint
+                  - generic [ref=e53]: "50"
+                - menuitemcheckbox "Partner Endpoint 16" [ref=e54] [cursor=pointer]:
+                  - generic [ref=e56]:
+                    - switch [ref=e57]
+                    - checkbox
+                  - generic [ref=e59]: Partner Endpoint
+                  - generic [ref=e61]: "16"
+                - menuitemcheckbox "Download Available 3" [ref=e62] [cursor=pointer]:
+                  - generic [ref=e64]:
+                    - switch [ref=e65]
+                    - checkbox
+                  - generic [ref=e67]: Download Available
+                  - generic [ref=e69]: "3"
+              - generic [ref=e70]:
+                - generic [ref=e71]:
+                  - button "Use Case" [expanded] [ref=e72] [cursor=pointer]:
+                    - generic [ref=e73]: Use Case
+                    - img
+                  - region "Use Case" [ref=e74]:
+                    - generic [ref=e75]:
+                      - menu [ref=e76]:
+                        - menuitemcheckbox "Image-to-Text" [ref=e77] [cursor=pointer]:
+                          - img [ref=e80]
+                          - generic [ref=e82]: Image-to-Text
+                          - generic [ref=e84]: "6"
+                        - menuitemcheckbox "Synthetic Data Generation" [ref=e85] [cursor=pointer]:
+                          - img [ref=e88]
+                          - generic [ref=e90]: Synthetic Data Generation
+                          - generic [ref=e92]: "5"
+                        - menuitemcheckbox "Retrieval Augmented Generation" [ref=e93] [cursor=pointer]:
+                          - img [ref=e96]
+                          - generic [ref=e98]: Retrieval Augmented Generation
+                          - generic [ref=e100]: "4"
+                        - menuitemcheckbox "Code Generation" [ref=e101] [cursor=pointer]:
+                          - img [ref=e104]
+                          - generic [ref=e106]: Code Generation
+                          - generic [ref=e108]: "2"
+                        - menuitemcheckbox "Text-to-Embedding" [ref=e109] [cursor=pointer]:
+                          - img [ref=e112]
+                          - generic [ref=e114]: Text-to-Embedding
+                          - generic [ref=e116]: "2"
+                      - button "Show more" [ref=e117] [cursor=pointer]
+                - generic [ref=e118]:
+                  - button "Inference Providers" [expanded] [ref=e119] [cursor=pointer]:
+                    - generic [ref=e120]: Inference Providers
+                    - img
+                  - region "Inference Providers" [ref=e121]:
+                    - generic [ref=e122]:
+                      - menu [ref=e123]:
+                        - menuitemcheckbox "Deep Infra" [ref=e124] [cursor=pointer]:
+                          - img [ref=e127]
+                          - generic [ref=e129]: Deep Infra
+                          - generic [ref=e131]: "11"
+                        - menuitemcheckbox "Bitdeer AI" [ref=e132] [cursor=pointer]:
+                          - img [ref=e135]
+                          - generic [ref=e137]: Bitdeer AI
+                          - generic [ref=e139]: "6"
+                        - menuitemcheckbox "Together AI" [ref=e140] [cursor=pointer]:
+                          - img [ref=e143]
+                          - generic [ref=e145]: Together AI
+                          - generic [ref=e147]: "5"
+                        - menuitemcheckbox "GMI Cloud" [ref=e148] [cursor=pointer]:
+                          - img [ref=e151]
+                          - generic [ref=e153]: GMI Cloud
+                          - generic [ref=e155]: "5"
+                        - menuitemcheckbox "Vultr" [ref=e156] [cursor=pointer]:
+                          - img [ref=e159]
+                          - generic [ref=e161]: Vultr
+                          - generic [ref=e163]: "2"
+                      - button "Show more" [ref=e164] [cursor=pointer]
+                - generic [ref=e165]:
+                  - button "Publisher" [expanded] [ref=e166] [cursor=pointer]:
+                    - generic [ref=e167]: Publisher
+                    - img
+                  - region "Publisher" [ref=e168]:
+                    - generic [ref=e169]:
+                      - menu [ref=e170]:
+                        - menuitemcheckbox "NVIDIA" [ref=e171] [cursor=pointer]:
+                          - img [ref=e174]
+                          - generic [ref=e176]:
+                            - img [ref=e177]
+                            - text: NVIDIA
+                          - generic [ref=e180]: "23"
+                        - menuitemcheckbox "Mistral AI" [ref=e181] [cursor=pointer]:
+                          - img [ref=e184]
+                          - generic [ref=e186]:
+                            - img [ref=e187]
+                            - text: Mistral AI
+                          - generic [ref=e190]: "5"
+                        - menuitemcheckbox "Google" [ref=e191] [cursor=pointer]:
+                          - img [ref=e194]
+                          - generic [ref=e196]:
+                            - img [ref=e197]
+                            - text: Google
+                          - generic [ref=e200]: "5"
+                        - menuitemcheckbox "Meta" [ref=e201] [cursor=pointer]:
+                          - img [ref=e204]
+                          - generic [ref=e206]:
+                            - img [ref=e207]
+                            - text: Meta
+                          - generic [ref=e210]: "4"
+                        - menuitemcheckbox "Moonshotai" [ref=e211] [cursor=pointer]:
+                          - img [ref=e214]
+                          - generic [ref=e216]:
+                            - img [ref=e217]
+                            - text: Moonshotai
+                          - generic [ref=e220]: "3"
+                      - button "Show more" [ref=e221] [cursor=pointer]
+                - generic [ref=e222]:
+                  - button "GPU Types" [expanded] [ref=e223] [cursor=pointer]:
+                    - generic [ref=e224]: GPU Types
+                    - img
+                  - region "GPU Types" [ref=e225]:
+                    - generic [ref=e226]:
+                      - menu [ref=e227]:
+                        - menuitemcheckbox "A100 SXM4 80GB" [ref=e228] [cursor=pointer]:
+                          - img [ref=e231]
+                          - generic [ref=e233]: A100 SXM4 80GB
+                          - generic [ref=e235]: "0"
+                        - menuitemcheckbox "B200" [ref=e236] [cursor=pointer]:
+                          - img [ref=e239]
+                          - generic [ref=e241]: B200
+                          - generic [ref=e243]: "0"
+                        - menuitemcheckbox "GB200" [ref=e244] [cursor=pointer]:
+                          - img [ref=e247]
+                          - generic [ref=e249]: GB200
+                          - generic [ref=e251]: "0"
+                        - menuitemcheckbox "GH200 144G HBM3e" [ref=e252] [cursor=pointer]:
+                          - img [ref=e255]
+                          - generic [ref=e257]: GH200 144G HBM3e
+                          - generic [ref=e259]: "0"
+                        - menuitemcheckbox "H100 80GB HBM3" [ref=e260] [cursor=pointer]:
+                          - img [ref=e263]
+                          - generic [ref=e265]: H100 80GB HBM3
+                          - generic [ref=e267]: "0"
+                      - button "Show more" [ref=e268] [cursor=pointer]
+              - generic [ref=e269]:
+                - button "Reset" [ref=e270] [cursor=pointer]
+                - button "Apply" [disabled] [ref=e271]
+          - generic [ref=e272]:
+            - generic [ref=e273]:
+              - generic [ref=e274]:
+                - generic [ref=e275]: 50 models
+                - generic [ref=e276]:
+                  - textbox "Refine models" [ref=e278]
+                  - button "Search" [ref=e279] [cursor=pointer]
+              - generic [ref=e281]:
+                - generic [ref=e283]: Sort By
+                - combobox [ref=e284]
+                - combobox "Sort By" [ref=e285] [cursor=pointer]:
+                  - generic [ref=e286]: Most Recent
+                  - img
+            - generic [ref=e287]:
+              - generic [ref=e290] [cursor=pointer]:
+                - generic [ref=e293]:
+                  - generic [ref=e294]:
+                    - link "Z.ai" [ref=e296]:
+                      - /url: /z-ai
+                    - generic [ref=e298]: Free Endpoint
+                  - heading "glm-4.7" [level=3] [ref=e299]:
+                    - link "glm-4.7" [ref=e300]:
+                      - /url: /z-ai/glm-4.7
+                - generic [ref=e301]: GLM-4.7 is a multilingual agentic coding partner with stronger reasoning, tool use, and UI skills.
+                - generic [ref=e302]:
+                  - generic [ref=e304]:
+                    - link "Tool Calling" [ref=e306]:
+                      - /url: /models?filters=nimType%3Anim_type_preview&pageSize=96&label=Tool+Calling
+                      - generic [ref=e307]: Tool Calling
+                    - button "+3" [ref=e308]
+                  - generic [ref=e309]:
+                    - generic [ref=e311]:
+                      - img [ref=e312]
+                      - generic "7.38M API calls in the last 30 days" [ref=e314]: 7.38M
+                    - separator [ref=e316]
+                    - generic [ref=e317]:
+                      - img [ref=e318]
+                      - generic "April 17, 2026" [ref=e320]: 2w
+              - generic [ref=e323] [cursor=pointer]:
+                - generic [ref=e326]:
+                  - generic [ref=e327]:
+                    - link "NVIDIA" [ref=e329]:
+                      - /url: /nvidia
+                    - generic [ref=e331]: Free Endpoint
+                  - heading "nemotron-3-content-safety" [level=3] [ref=e332]:
+                    - link "nemotron-3-content-safety" [ref=e333]:
+                      - /url: /nvidia/nemotron-3-content-safety
+                - generic [ref=e334]: Multilingual, multimodal model for detecting unsafe and toxic content.
+                - generic [ref=e335]:
+                  - generic [ref=e337]:
+                    - link "llm safety" [ref=e339]:
+                      - /url: /models?filters=nimType%3Anim_type_preview&pageSize=96&label=llm+safety
+                      - generic [ref=e340]: llm safety
+                    - button "+3" [ref=e341]
+                  - generic [ref=e342]:
+                    - generic [ref=e344]:
+                      - img [ref=e345]
+                      - generic "35.6K API calls in the last 30 days" [ref=e347]: 35.6K
+                    - separator [ref=e349]
+                    - generic [ref=e350]:
+                      - img [ref=e351]
+                      - generic "April 16, 2026" [ref=e353]: 2w
+              - generic [ref=e356] [cursor=pointer]:
+                - generic [ref=e359]:
+                  - generic [ref=e360]:
+                    - link "NVIDIA" [ref=e362]:
+                      - /url: /nvidia
+                    - generic [ref=e363]:
+                      - generic [ref=e364]: Downloadable
+                      - generic [ref=e365]: Free Endpoint
+                  - heading "synthetic-video-detector" [level=3] [ref=e366]:
+                    - link "synthetic-video-detector" [ref=e367]:
+                      - /url: /nvidia/synthetic-video-detector
+                - generic [ref=e368]: NVIDIA Synthetic Video Detector is an AI-powered micro-service for detecting AI‑generated (synthetic) videos.
+                - generic [ref=e369]:
+                  - generic [ref=e371]:
+                    - link "broadcast" [ref=e373]:
+                      - /url: /models?filters=nimType%3Anim_type_preview&pageSize=96&label=broadcast
+                      - generic [ref=e374]: broadcast
+                    - button "+4" [ref=e375]
+                  - generic [ref=e376]:
+                    - generic [ref=e378]:
+                      - img [ref=e379]
+                      - generic "31.91K API calls in the last 30 days" [ref=e381]: 31.91K
+                    - separator [ref=e383]
+                    - generic [ref=e384]:
+                      - img [ref=e385]
+                      - generic "April 16, 2026" [ref=e387]: 2w
+              - generic [ref=e390] [cursor=pointer]:
+                - generic [ref=e393]:
+                  - generic [ref=e394]:
+                    - link "NVIDIA" [ref=e396]:
+                      - /url: /nvidia
+                    - generic [ref=e397]:
+                      - generic [ref=e398]: Downloadable
+                      - generic [ref=e399]: Free Endpoint
+                  - heading "Active Speaker Detection" [level=3] [ref=e400]:
+                    - link "Active Speaker Detection" [ref=e401]:
+                      - /url: /nvidia/active-speaker-detection
+                - generic [ref=e402]: Detect and track speaker identities across video frames.
+                - generic [ref=e403]:
+                  - generic [ref=e405]:
+                    - link "localization" [ref=e407]:
+                      - /url: /models?filters=nimType%3Anim_type_preview&pageSize=96&label=localization
+                      - generic [ref=e408]: localization
+                    - button "+4" [ref=e409]
+                  - generic [ref=e410]:
+                    - generic [ref=e412]:
+                      - img [ref=e413]
+                      - generic "1.01K API calls in the last 30 days" [ref=e415]: 1.01K
+                    - separator [ref=e417]
+                    - generic [ref=e418]:
+                      - img [ref=e419]
+                      - generic "April 16, 2026" [ref=e421]: 2w
+              - generic [ref=e424] [cursor=pointer]:
+                - generic [ref=e427]:
+                  - generic [ref=e428]:
+                    - link "Minimaxai" [ref=e430]:
+                      - /url: /minimaxai
+                    - generic [ref=e432]: Free Endpoint
+                  - heading "minimax-m2.7" [level=3] [ref=e433]:
+                    - link "minimax-m2.7" [ref=e434]:
+                      - /url: /minimaxai/minimax-m2.7
+                - generic [ref=e435]: MiniMax M2.7 is a 230B-parameter text-to-text AI model excelling in coding, reasoning, and office tasks.
+                - generic [ref=e436]:
+                  - generic [ref=e438]:
+                    - link "coding" [ref=e440]:
+                      - /url: /models?filters=nimType%3Anim_type_preview&pageSize=96&label=coding
+                      - generic [ref=e441]: coding
+                    - button "+2" [ref=e442]
+                  - generic [ref=e443]:
+                    - generic [ref=e446]:
+                      - img [ref=e447]
+                      - generic "6.15M API calls in the last 30 days" [ref=e449]: 6.15M
+                    - separator [ref=e451]
+                    - generic [ref=e452]:
+                      - img [ref=e453]
+                      - generic "April 12, 2026" [ref=e455]: 3w
+              - generic [ref=e458] [cursor=pointer]:
+                - generic [ref=e461]:
+                  - generic [ref=e462]:
+                    - link "NVIDIA" [ref=e464]:
+                      - /url: /nvidia
+                    - generic [ref=e466]: Free Endpoint
+                  - heading "nemotron-voicechat" [level=3] [ref=e467]:
+                    - link "nemotron-voicechat" [ref=e468]:
+                      - /url: /nvidia/nemotron-voicechat
+                - generic [ref=e469]: Nemotron 3 Voicechat
+                - generic [ref=e470]:
+                  - generic [ref=e472]:
+                    - link "English" [ref=e474]:
+                      - /url: /models?filters=nimType%3Anim_type_preview&pageSize=96&label=English
+                      - generic [ref=e475]: English
+                    - button "+2" [ref=e476]
+                  - generic [ref=e477]:
+                    - generic [ref=e479]:
+                      - img [ref=e480]
+                      - generic "2.8K API calls in the last 30 days" [ref=e482]: 2.8K
+                    - separator [ref=e484]
+                    - generic [ref=e485]:
+                      - img [ref=e486]
+                      - generic "March 16, 2026" [ref=e488]: 1mo
+              - generic [ref=e491] [cursor=pointer]:
+                - generic [ref=e494]:
+                  - generic [ref=e495]:
+                    - link "NVIDIA" [ref=e497]:
+                      - /url: /nvidia
+                    - generic [ref=e499]: Free Endpoint
+                  - heading "gliner-pii" [level=3] [ref=e500]:
+                    - link "gliner-pii" [ref=e501]:
+                      - /url: /nvidia/gliner-pii
+                - generic [ref=e502]: GLiNER PII detects Personally Identifiable Information in text.
+                - generic [ref=e503]:
+                  - generic [ref=e505]:
+                    - link "PII Detection" [ref=e507]:
+                      - /url: /models?filters=nimType%3Anim_type_preview&pageSize=96&label=PII+Detection
+                      - generic [ref=e508]: PII Detection
+                    - button "+1" [ref=e509]
+                  - generic [ref=e510]:
+                    - generic [ref=e512]:
+                      - img [ref=e513]
+                      - generic "131K API calls in the last 30 days" [ref=e515]: 131K
+                    - separator [ref=e517]
+                    - generic [ref=e518]:
+                      - img [ref=e519]
+                      - generic "March 3, 2026" [ref=e521]: 2mo
+              - generic [ref=e524] [cursor=pointer]:
+                - generic [ref=e527]:
+                  - generic [ref=e528]:
+                    - link "NVIDIA" [ref=e530]:
+                      - /url: /nvidia
+                    - generic [ref=e532]: Free Endpoint
+                  - heading "cosmos-transfer2.5-2b" [level=3] [ref=e533]:
+                    - link "cosmos-transfer2.5-2b" [ref=e534]:
+                      - /url: /nvidia/cosmos-transfer2_5-2b
+                - generic [ref=e535]: Generates physics-aware video world states for physical AI development using text prompts and multiple spatial control inputs derived from real-world data or simulation.
+                - generic [ref=e536]:
+                  - generic [ref=e538]:
+                    - link "Synthetic Data Generation" [ref=e540]:
+                      - /url: /models?filters=nimType%3Anim_type_preview%2Cusecase%3Ausecase_sdg&pageSize=96
+                      - generic [ref=e541]: Synthetic Data Generation
+                    - button "+4" [ref=e542]
+                  - generic [ref=e544]:
+                    - img [ref=e545]
+                    - generic "February 26, 2026" [ref=e547]: 2mo
+              - generic [ref=e550] [cursor=pointer]:
+                - generic [ref=e553]:
+                  - generic [ref=e554]:
+                    - link "Stepfun-ai" [ref=e556]:
+                      - /url: /stepfun-ai
+                    - generic [ref=e558]: Free Endpoint
+                  - heading "step-3.5-flash" [level=3] [ref=e559]:
+                    - link "step-3.5-flash" [ref=e560]:
+                      - /url: /stepfun-ai/step-3.5-flash
+                - generic [ref=e561]: 200B open-source reasoning engine with sparse MoE powering frontier agentic AI.
+                - generic [ref=e562]:
+                  - generic [ref=e564]:
+                    - link "Agentic" [ref=e566]:
+                      - /url: /models?filters=nimType%3Anim_type_preview&pageSize=96&label=Agentic
+                      - generic [ref=e567]: Agentic
+                    - button "+2" [ref=e568]
+                  - generic [ref=e569]:
+                    - generic [ref=e571]:
+                      - img [ref=e572]
+                      - generic "9.28M API calls in the last 30 days" [ref=e574]: 9.28M
+                    - separator [ref=e576]
+                    - generic [ref=e577]:
+                      - img [ref=e578]
+                      - generic "February 2, 2026" [ref=e580]: 3mo
+              - generic [ref=e583] [cursor=pointer]:
+                - generic [ref=e586]:
+                  - generic [ref=e587]:
+                    - link "NVIDIA" [ref=e589]:
+                      - /url: /nvidia
+                    - generic [ref=e591]: Free Endpoint
+                  - heading "nemotron-content-safety-reasoning-4b" [level=3] [ref=e592]:
+                    - link "nemotron-content-safety-reasoning-4b" [ref=e593]:
+                      - /url: /nvidia/nemotron-content-safety-reasoning-4b
+                - generic [ref=e594]: A context‑aware safety model that applies reasoning to enforce domain‑specific policies.
+                - generic [ref=e595]:
+                  - generic [ref=e597]:
+                    - link "NeMo Guardrails" [ref=e599]:
+                      - /url: /models?filters=nimType%3Anim_type_preview&pageSize=96&label=NeMo+Guardrails
+                      - generic [ref=e600]: NeMo Guardrails
+                    - button "+3" [ref=e601]
+                  - generic [ref=e602]:
+                    - generic [ref=e604]:
+                      - img [ref=e605]
+                      - generic "243K API calls in the last 30 days" [ref=e607]: 243K
+                    - separator [ref=e609]
+                    - generic [ref=e610]:
+                      - img [ref=e611]
+                      - generic "January 22, 2026" [ref=e613]: 3mo
+              - generic [ref=e616] [cursor=pointer]:
+                - generic [ref=e619]:
+                  - generic [ref=e620]:
+                    - link "DeepSeek AI" [ref=e622]:
+                      - /url: /deepseek-ai
+                    - generic [ref=e623]:
+                      - generic [ref=e624]: Deprecation in 2d
+                      - generic [ref=e625]: Free Endpoint
+                  - heading "deepseek-v3.2" [level=3] [ref=e626]:
+                    - link "deepseek-v3.2" [ref=e627]:
+                      - /url: /deepseek-ai/deepseek-v3_2
+                - generic [ref=e628]: State-of-the-art 685B reasoning LLM with sparse attention, long context, and integrated agentic tools.
+                - generic [ref=e629]:
+                  - generic [ref=e631]:
+                    - link "long context" [ref=e633]:
+                      - /url: /models?filters=nimType%3Anim_type_preview&pageSize=96&label=long+context
+                      - generic [ref=e634]: long context
+                    - button "+2" [ref=e635]
+                  - generic [ref=e636]:
+                    - generic [ref=e638]:
+                      - img [ref=e639]
+                      - generic "7.69M API calls in the last 30 days" [ref=e641]: 7.69M
+                    - separator [ref=e643]
+                    - generic [ref=e644]:
+                      - img [ref=e645]
+                      - generic "December 16, 2025" [ref=e647]: 4mo
+              - generic [ref=e650] [cursor=pointer]:
+                - generic [ref=e653]:
+                  - generic [ref=e654]:
+                    - link "NVIDIA" [ref=e656]:
+                      - /url: /nvidia
+                    - generic [ref=e658]: Free Endpoint
+                  - heading "riva-translate-4b-instruct-v1_1" [level=3] [ref=e659]:
+                    - link "riva-translate-4b-instruct-v1_1" [ref=e660]:
+                      - /url: /nvidia/riva-translate-4b-instruct-v1_1
+                - generic [ref=e661]: Translation model in 12 languages with few-shots example prompts capability.
+                - generic [ref=e662]:
+                  - generic [ref=e664]:
+                    - link "nvidia nim" [ref=e666]:
+                      - /url: /models?filters=nimType%3Anim_type_preview&pageSize=96&label=nvidia+nim
+                      - generic [ref=e667]: nvidia nim
+                    - button "+2" [ref=e668]
+                  - generic [ref=e669]:
+                    - generic [ref=e671]:
+                      - img [ref=e672]
+                      - generic "237K API calls in the last 30 days" [ref=e674]: 237K
+                    - separator [ref=e676]
+                    - generic [ref=e677]:
+                      - img [ref=e678]
+                      - generic "December 12, 2025" [ref=e680]: 4mo
+              - generic [ref=e683] [cursor=pointer]:
+                - generic [ref=e686]:
+                  - generic [ref=e687]:
+                    - link "Mistral AI" [ref=e689]:
+                      - /url: /mistralai
+                    - generic [ref=e690]:
+                      - generic [ref=e691]: Deprecation in 9d
+                      - generic [ref=e692]: Free Endpoint
+                  - heading "devstral-2-123b-instruct-2512" [level=3] [ref=e693]:
+                    - link "devstral-2-123b-instruct-2512" [ref=e694]:
+                      - /url: /mistralai/devstral-2-123b-instruct-2512
+                - generic [ref=e695]: State-of-the-art open code model with deep reasoning, 256k context, and unmatched efficiency.
+                - generic [ref=e696]:
+                  - generic [ref=e698]:
+                    - link "coding" [ref=e700]:
+                      - /url: /models?filters=nimType%3Anim_type_preview&pageSize=96&label=coding
+                      - generic [ref=e701]: coding
+                    - button "+3" [ref=e702]
+                  - generic [ref=e703]:
+                    - generic [ref=e705]:
+                      - img [ref=e706]
+                      - generic "2.62M API calls in the last 30 days" [ref=e708]: 2.62M
+                    - separator [ref=e710]
+                    - generic [ref=e711]:
+                      - img [ref=e712]
+                      - generic "December 9, 2025" [ref=e714]: 4mo
+              - generic [ref=e717] [cursor=pointer]:
+                - generic [ref=e720]:
+                  - generic [ref=e721]:
+                    - link "Moonshotai" [ref=e723]:
+                      - /url: /moonshotai
+                    - generic [ref=e724]:
+                      - generic [ref=e725]: Deprecation in 10d
+                      - generic [ref=e726]: Free Endpoint
+                  - heading "kimi-k2-thinking" [level=3] [ref=e727]:
+                    - link "kimi-k2-thinking" [ref=e728]:
+                      - /url: /moonshotai/kimi-k2-thinking
+                - generic [ref=e729]: Open reasoning model with 256K context window, native INT4 quantization and enhanced tool use.
+                - generic [ref=e730]:
+                  - generic [ref=e732]:
+                    - link "Conversational" [ref=e734]:
+                      - /url: /models?filters=nimType%3Anim_type_preview&pageSize=96&label=Conversational
+                      - generic [ref=e735]: Conversational
+                    - button "+3" [ref=e736]
+                  - generic [ref=e737]:
+                    - generic [ref=e739]:
+                      - img [ref=e740]
+                      - generic "2.82M API calls in the last 30 days" [ref=e742]: 2.82M
+                    - separator [ref=e744]
+                    - generic [ref=e745]:
+                      - img [ref=e746]
+                      - generic "December 9, 2025" [ref=e748]: 4mo
+              - generic [ref=e751] [cursor=pointer]:
+                - generic [ref=e754]:
+                  - generic [ref=e755]:
+                    - link "Mistral AI" [ref=e757]:
+                      - /url: /mistralai
+                    - generic [ref=e759]: Free Endpoint
+                  - heading "mistral-large-3-675b-instruct-2512" [level=3] [ref=e760]:
+                    - link "mistral-large-3-675b-instruct-2512" [ref=e761]:
+                      - /url: /mistralai/mistral-large-3-675b-instruct-2512
+                - generic [ref=e762]: A state-of-the-art general purpose MoE VLM ideal for chat, agentic and instruction based use cases.
+                - generic [ref=e763]:
+                  - generic [ref=e765]:
+                    - link "language generation" [ref=e767]:
+                      - /url: /models?filters=nimType%3Anim_type_preview&pageSize=96&label=language+generation
+                      - generic [ref=e768]: language generation
+                    - button "+3" [ref=e769]
+                  - generic [ref=e770]:
+                    - generic [ref=e772]:
+                      - img [ref=e773]
+                      - generic "3.92M API calls in the last 30 days" [ref=e775]: 3.92M
+                    - separator [ref=e777]
+                    - generic [ref=e778]:
+                      - img [ref=e779]
+                      - generic "December 2, 2025" [ref=e781]: 5mo
+              - generic [ref=e784] [cursor=pointer]:
+                - generic [ref=e787]:
+                  - generic [ref=e788]:
+                    - link "NVIDIA" [ref=e790]:
+                      - /url: /nvidia
+                    - generic [ref=e792]: Free Endpoint
+                  - heading "streampetr" [level=3] [ref=e793]:
+                    - link "streampetr" [ref=e794]:
+                      - /url: /nvidia/streampetr
+                - generic [ref=e795]: StreamPETR offers efficient 3D object detection for autonomous driving by propagating sparse object queries temporally.
+                - generic [ref=e796]:
+                  - generic [ref=e798]:
+                    - link "autonomous vehicles" [ref=e800]:
+                      - /url: /models?filters=nimType%3Anim_type_preview&pageSize=96&label=autonomous+vehicles
+                      - generic [ref=e801]: autonomous vehicles
+                    - button "+3" [ref=e802]
+                  - generic [ref=e803]:
+                    - generic [ref=e805]:
+                      - img [ref=e806]
+                      - generic "10.17K API calls in the last 30 days" [ref=e808]: 10.17K
+                    - separator [ref=e810]
+                    - generic [ref=e811]:
+                      - img [ref=e812]
+                      - generic "November 13, 2025" [ref=e814]: 5mo
+              - generic [ref=e817] [cursor=pointer]:
+                - generic [ref=e820]:
+                  - generic [ref=e821]:
+                    - link "NVIDIA" [ref=e823]:
+                      - /url: /nvidia
+                    - generic [ref=e825]: Free Endpoint
+                  - heading "llama-3.1-nemotron-safety-guard-8b-v3" [level=3] [ref=e826]:
+                    - link "llama-3.1-nemotron-safety-guard-8b-v3" [ref=e827]:
+                      - /url: /nvidia/llama-3_1-nemotron-safety-guard-8b-v3
+                - generic [ref=e828]: Leading multilingual content safety model for enhancing the safety and moderation capabilities of LLMs
+                - generic [ref=e829]:
+                  - generic [ref=e831]:
+                    - link "content moderation" [ref=e833]:
+                      - /url: /models?filters=nimType%3Anim_type_preview&pageSize=96&label=content+moderation
+                      - generic [ref=e834]: content moderation
+                    - button "+4" [ref=e835]
+                  - generic [ref=e836]:
+                    - generic [ref=e838]:
+                      - img [ref=e839]
+                      - generic "116K API calls in the last 30 days" [ref=e841]: 116K
+                    - separator [ref=e843]
+                    - generic [ref=e844]:
+                      - img [ref=e845]
+                      - generic "October 28, 2025" [ref=e847]: 6mo
+              - generic [ref=e850] [cursor=pointer]:
+                - generic [ref=e853]:
+                  - generic [ref=e854]:
+                    - link "DeepSeek AI" [ref=e856]:
+                      - /url: /deepseek-ai
+                    - generic [ref=e857]:
+                      - generic [ref=e858]: Deprecation in 2d
+                      - generic [ref=e859]: Free Endpoint
+                  - heading "deepseek-v3.1-terminus" [level=3] [ref=e860]:
+                    - link "deepseek-v3.1-terminus" [ref=e861]:
+                      - /url: /deepseek-ai/deepseek-v3_1-terminus
+                - generic [ref=e862]: "DeepSeek-V3.1: hybrid inference LLM with Think/Non-Think modes, stronger agents, 128K context, strict function calling."
+                - generic [ref=e863]:
+                  - generic [ref=e865]:
+                    - link "tool calling" [ref=e867]:
+                      - /url: /models?filters=nimType%3Anim_type_preview&pageSize=96&label=tool+calling
+                      - generic [ref=e868]: tool calling
+                    - button "+3" [ref=e869]
+                  - generic [ref=e870]:
+                    - generic [ref=e872]:
+                      - img [ref=e873]
+                      - generic "5.7M API calls in the last 30 days" [ref=e875]: 5.7M
+                    - separator [ref=e877]
+                    - generic [ref=e878]:
+                      - img [ref=e879]
+                      - generic "October 7, 2025" [ref=e881]: 6mo
+              - generic [ref=e884] [cursor=pointer]:
+                - generic [ref=e887]:
+                  - generic [ref=e888]:
+                    - link "Moonshotai" [ref=e890]:
+                      - /url: /moonshotai
+                    - generic [ref=e891]:
+                      - generic [ref=e892]: Deprecation in 3d
+                      - generic [ref=e893]: Free Endpoint
+                  - heading "kimi-k2-instruct-0905" [level=3] [ref=e894]:
+                    - link "kimi-k2-instruct-0905" [ref=e895]:
+                      - /url: /moonshotai/kimi-k2-instruct-0905
+                - generic [ref=e896]: Follow-on version of Kimi-K2-Instruct with longer context window and enhanced reasoning capabilities.
+                - generic [ref=e897]:
+                  - generic [ref=e899]:
+                    - link "long-context" [ref=e901]:
+                      - /url: /models?filters=nimType%3Anim_type_preview&pageSize=96&label=long-context
+                      - generic [ref=e902]: long-context
+                    - button "+3" [ref=e903]
+                  - generic [ref=e904]:
+                    - generic [ref=e906]:
+                      - img [ref=e907]
+                      - generic "7.75M API calls in the last 30 days" [ref=e909]: 7.75M
+                    - separator [ref=e911]
+                    - generic [ref=e912]:
+                      - img [ref=e913]
+                      - generic "September 19, 2025" [ref=e915]: 7mo
+              - generic [ref=e918] [cursor=pointer]:
+                - generic [ref=e921]:
+                  - generic [ref=e922]:
+                    - link "ByteDance" [ref=e924]:
+                      - /url: /bytedance
+                    - generic [ref=e926]: Free Endpoint
+                  - heading "seed-oss-36b-instruct" [level=3] [ref=e927]:
+                    - link "seed-oss-36b-instruct" [ref=e928]:
+                      - /url: /bytedance/seed-oss-36b-instruct
+                - generic [ref=e929]: ByteDance open-source LLM with long-context, reasoning, and agentic intelligence.
+                - generic [ref=e930]:
+                  - generic [ref=e932]:
+                    - link "thinking budget" [ref=e934]:
+                      - /url: /models?filters=nimType%3Anim_type_preview&pageSize=96&label=thinking+budget
+                      - generic [ref=e935]: thinking budget
+                    - button "+2" [ref=e936]
+                  - generic [ref=e937]:
+                    - generic [ref=e939]:
+                      - img [ref=e940]
+                      - generic "1.11M API calls in the last 30 days" [ref=e942]: 1.11M
+                    - separator [ref=e944]
+                    - generic [ref=e945]:
+                      - img [ref=e946]
+                      - generic "September 5, 2025" [ref=e948]: 7mo
+              - generic [ref=e951] [cursor=pointer]:
+                - generic [ref=e954]:
+                  - generic [ref=e955]:
+                    - link "Qwen" [ref=e957]:
+                      - /url: /qwen
+                    - generic [ref=e959]: Free Endpoint
+                  - heading "qwen3-coder-480b-a35b-instruct" [level=3] [ref=e960]:
+                    - link "qwen3-coder-480b-a35b-instruct" [ref=e961]:
+                      - /url: /qwen/qwen3-coder-480b-a35b-instruct
+                - generic [ref=e962]: Excels in agentic coding and browser use and supports 256K context, delivering top results.
+                - generic [ref=e963]:
+                  - generic [ref=e965]:
+                    - link "agentic coding" [ref=e967]:
+                      - /url: /models?filters=nimType%3Anim_type_preview&pageSize=96&label=agentic+coding
+                      - generic [ref=e968]: agentic coding
+                    - button "+3" [ref=e969]
+                  - generic [ref=e970]:
+                    - generic [ref=e973]:
+                      - img [ref=e974]
+                      - generic "3.26M API calls in the last 30 days" [ref=e976]: 3.26M
+                    - separator [ref=e978]
+                    - generic [ref=e979]:
+                      - img [ref=e980]
+                      - generic "September 2, 2025" [ref=e982]: 8mo
+              - generic [ref=e985] [cursor=pointer]:
+                - generic [ref=e988]:
+                  - generic [ref=e989]:
+                    - link "NVIDIA" [ref=e991]:
+                      - /url: /nvidia
+                    - generic [ref=e993]: Free Endpoint
+                  - heading "llama-3_2-nemoretriever-300m-embed-v1" [level=3] [ref=e994]:
+                    - link "llama-3_2-nemoretriever-300m-embed-v1" [ref=e995]:
+                      - /url: /nvidia/llama-3_2-nemoretriever-300m-embed-v1
+                - generic [ref=e996]: Multilingual, cross-lingual embedding model for long-document QA retrieval, supporting 26 languages.
+                - generic [ref=e997]:
+                  - generic [ref=e999]:
+                    - link "Text-to-Embedding" [ref=e1001]:
+                      - /url: /models?filters=nimType%3Anim_type_preview%2Cusecase%3Ausecase_text_to_embedding&pageSize=96
+                      - generic [ref=e1002]: Text-to-Embedding
+                    - button "+2" [ref=e1003]
+                  - generic [ref=e1004]:
+                    - generic [ref=e1006]:
+                      - img [ref=e1007]
+                      - generic "412K API calls in the last 30 days" [ref=e1009]: 412K
+                    - separator [ref=e1011]
+                    - generic [ref=e1012]:
+                      - img [ref=e1013]
+                      - generic "July 24, 2025" [ref=e1015]: 9mo
+              - generic [ref=e1018] [cursor=pointer]:
+                - generic [ref=e1021]:
+                  - generic [ref=e1022]:
+                    - link "Moonshotai" [ref=e1024]:
+                      - /url: /moonshotai
+                    - generic [ref=e1025]:
+                      - generic [ref=e1026]: Deprecation in 10d
+                      - generic [ref=e1027]: Free Endpoint
+                  - heading "kimi-k2-instruct" [level=3] [ref=e1028]:
+                    - link "kimi-k2-instruct" [ref=e1029]:
+                      - /url: /moonshotai/kimi-k2-instruct
+                - generic [ref=e1030]: State-of-the-art open mixture-of-experts model with strong reasoning, coding, and agentic capabilities
+                - generic [ref=e1031]:
+                  - generic [ref=e1033]:
+                    - link "coding" [ref=e1035]:
+                      - /url: /models?filters=nimType%3Anim_type_preview&pageSize=96&label=coding
+                      - generic [ref=e1036]: coding
+                    - button "+3" [ref=e1037]
+                  - generic [ref=e1038]:
+                    - generic [ref=e1041]:
+                      - img [ref=e1042]
+                      - generic "12.72M API calls in the last 30 days" [ref=e1044]: 12.72M
+                    - separator [ref=e1046]
+                    - generic [ref=e1047]:
+                      - img [ref=e1048]
+                      - generic "July 18, 2025" [ref=e1050]: 9mo
+              - generic [ref=e1053] [cursor=pointer]:
+                - generic [ref=e1056]:
+                  - generic [ref=e1057]:
+                    - link "Mistral AI" [ref=e1059]:
+                      - /url: /mistralai
+                    - generic [ref=e1060]:
+                      - generic [ref=e1061]: Deprecation in 9d
+                      - generic [ref=e1062]: Free Endpoint
+                  - heading "magistral-small-2506" [level=3] [ref=e1063]:
+                    - link "magistral-small-2506" [ref=e1064]:
+                      - /url: /mistralai/magistral-small-2506
+                - generic [ref=e1065]: High performance reasoning model optimized for efficiency and edge deployment
+                - generic [ref=e1066]:
+                  - generic [ref=e1068]:
+                    - link "coding" [ref=e1070]:
+                      - /url: /models?filters=nimType%3Anim_type_preview&pageSize=96&label=coding
+                      - generic [ref=e1071]: coding
+                    - button "+3" [ref=e1072]
+                  - generic [ref=e1073]:
+                    - generic [ref=e1076]:
+                      - img [ref=e1077]
+                      - generic "1.2M API calls in the last 30 days" [ref=e1079]: 1.2M
+                    - separator [ref=e1081]
+                    - generic [ref=e1082]:
+                      - img [ref=e1083]
+                      - generic "July 10, 2025" [ref=e1085]: 9mo
+              - generic [ref=e1088] [cursor=pointer]:
+                - generic [ref=e1091]:
+                  - generic [ref=e1092]:
+                    - link "Meta" [ref=e1094]:
+                      - /url: /meta
+                    - generic [ref=e1096]: Free Endpoint
+                  - heading "llama-guard-4-12b" [level=3] [ref=e1097]:
+                    - link "llama-guard-4-12b" [ref=e1098]:
+                      - /url: /meta/llama-guard-4-12b
+                - generic [ref=e1099]: Multi-modal model to classify safety for input prompts as well output responses.
+                - generic [ref=e1100]:
+                  - generic [ref=e1102]:
+                    - link "LLM Multimodal Safety" [ref=e1104]:
+                      - /url: /models?filters=nimType%3Anim_type_preview&pageSize=96&label=LLM+Multimodal+Safety
+                      - generic [ref=e1105]: LLM Multimodal Safety
+                    - button "+3" [ref=e1106]
+                  - generic [ref=e1107]:
+                    - generic [ref=e1109]:
+                      - img [ref=e1110]
+                      - generic "189K API calls in the last 30 days" [ref=e1112]: 189K
+                    - separator [ref=e1114]
+                    - generic [ref=e1115]:
+                      - img [ref=e1116]
+                      - generic "July 1, 2025" [ref=e1118]: 10mo
+              - generic [ref=e1121] [cursor=pointer]:
+                - generic [ref=e1124]:
+                  - generic [ref=e1125]:
+                    - link "Google" [ref=e1127]:
+                      - /url: /google
+                    - generic [ref=e1129]: Free Endpoint
+                  - heading "gemma-3n-e4b-it" [level=3] [ref=e1130]:
+                    - link "gemma-3n-e4b-it" [ref=e1131]:
+                      - /url: /google/gemma-3n-e4b-it
+                - generic [ref=e1132]: An edge computing AI model which accepts text, audio and image input, ideal for resource-constrained environments
+                - generic [ref=e1133]:
+                  - generic [ref=e1135]:
+                    - link "language generation" [ref=e1137]:
+                      - /url: /models?filters=nimType%3Anim_type_preview&pageSize=96&label=language+generation
+                      - generic [ref=e1138]: language generation
+                    - button "+3" [ref=e1139]
+                  - generic [ref=e1140]:
+                    - generic [ref=e1143]:
+                      - img [ref=e1144]
+                      - generic "1.3M API calls in the last 30 days" [ref=e1146]: 1.3M
+                    - separator [ref=e1148]
+                    - generic [ref=e1149]:
+                      - img [ref=e1150]
+                      - generic "July 15, 2025" [ref=e1152]: 9mo
+              - generic [ref=e1155] [cursor=pointer]:
+                - generic [ref=e1158]:
+                  - generic [ref=e1159]:
+                    - link "Google" [ref=e1161]:
+                      - /url: /google
+                    - generic [ref=e1163]: Free Endpoint
+                  - heading "gemma-3n-e2b-it" [level=3] [ref=e1164]:
+                    - link "gemma-3n-e2b-it" [ref=e1165]:
+                      - /url: /google/gemma-3n-e2b-it
+                - generic [ref=e1166]: An edge computing AI model which accepts text, audio and image input, ideal for resource-constrained environments
+                - generic [ref=e1167]:
+                  - generic [ref=e1169]:
+                    - link "language generation" [ref=e1171]:
+                      - /url: /models?filters=nimType%3Anim_type_preview&pageSize=96&label=language+generation
+                      - generic [ref=e1172]: language generation
+                    - button "+3" [ref=e1173]
+                  - generic [ref=e1174]:
+                    - generic [ref=e1176]:
+                      - img [ref=e1177]
+                      - generic "395K API calls in the last 30 days" [ref=e1179]: 395K
+                    - separator [ref=e1181]
+                    - generic [ref=e1182]:
+                      - img [ref=e1183]
+                      - generic "July 15, 2025" [ref=e1185]: 9mo
+              - generic [ref=e1188] [cursor=pointer]:
+                - generic [ref=e1191]:
+                  - generic [ref=e1192]:
+                    - link "NVIDIA" [ref=e1194]:
+                      - /url: /nvidia
+                    - generic [ref=e1196]: Free Endpoint
+                  - heading "cosmos-transfer1-7b" [level=3] [ref=e1197]:
+                    - link "cosmos-transfer1-7b" [ref=e1198]:
+                      - /url: /nvidia/cosmos-transfer1-7b
+                - generic [ref=e1199]: Generates physics-aware video world states for physical AI development using text prompts and multiple spatial control inputs derived from real-world data or simulation.
+                - generic [ref=e1200]:
+                  - generic [ref=e1202]:
+                    - link "Synthetic Data Generation" [ref=e1204]:
+                      - /url: /models?filters=nimType%3Anim_type_preview%2Cusecase%3Ausecase_sdg&pageSize=96
+                      - generic [ref=e1205]: Synthetic Data Generation
+                    - button "+4" [ref=e1206]
+                  - generic [ref=e1207]:
+                    - generic [ref=e1209]:
+                      - img [ref=e1210]
+                      - generic "181 API calls in the last 30 days" [ref=e1212]: "181"
+                    - separator [ref=e1214]
+                    - generic [ref=e1215]:
+                      - img [ref=e1216]
+                      - generic "June 30, 2025" [ref=e1218]: 10mo
+              - generic [ref=e1221] [cursor=pointer]:
+                - generic [ref=e1224]:
+                  - generic [ref=e1225]:
+                    - link "Mistral AI" [ref=e1227]:
+                      - /url: /mistralai
+                    - generic [ref=e1229]: Free Endpoint
+                  - heading "mistral-nemotron" [level=3] [ref=e1230]:
+                    - link "mistral-nemotron" [ref=e1231]:
+                      - /url: /mistralai/mistral-nemotron
+                - generic [ref=e1232]: Built for agentic workflows, this model excels in coding, instruction following, and function calling
+                - generic [ref=e1233]:
+                  - generic [ref=e1235]:
+                    - link "language generation" [ref=e1237]:
+                      - /url: /models?filters=nimType%3Anim_type_preview&pageSize=96&label=language+generation
+                      - generic [ref=e1238]: language generation
+                    - button "+2" [ref=e1239]
+                  - generic [ref=e1240]:
+                    - generic [ref=e1242]:
+                      - img [ref=e1243]
+                      - generic "6.04M API calls in the last 30 days" [ref=e1245]: 6.04M
+                    - separator [ref=e1247]
+                    - generic [ref=e1248]:
+                      - img [ref=e1249]
+                      - generic "June 12, 2025" [ref=e1251]: 10mo
+              - generic [ref=e1254] [cursor=pointer]:
+                - generic [ref=e1257]:
+                  - generic [ref=e1258]:
+                    - link "NVIDIA" [ref=e1260]:
+                      - /url: /nvidia
+                    - generic [ref=e1262]: Free Endpoint
+                  - heading "magpie-tts-zeroshot" [level=3] [ref=e1263]:
+                    - link "magpie-tts-zeroshot" [ref=e1264]:
+                      - /url: /nvidia/magpie-tts-zeroshot
+                - generic [ref=e1265]: Expressive and engaging text-to-speech, generated from a short audio sample.
+                - generic [ref=e1266]:
+                  - generic [ref=e1268]:
+                    - link "TTS" [ref=e1270]:
+                      - /url: /models?filters=nimType%3Anim_type_preview&pageSize=96&label=TTS
+                      - generic [ref=e1271]: TTS
+                    - button "+3" [ref=e1272]
+                  - generic [ref=e1273]:
+                    - generic [ref=e1275]:
+                      - img [ref=e1276]
+                      - generic "3.88K API calls in the last 30 days" [ref=e1278]: 3.88K
+                    - separator [ref=e1280]
+                    - generic [ref=e1281]:
+                      - img [ref=e1282]
+                      - generic "June 12, 2025" [ref=e1284]: 10mo
+              - generic [ref=e1287] [cursor=pointer]:
+                - generic [ref=e1290]:
+                  - generic [ref=e1291]:
+                    - link "Mistral AI" [ref=e1293]:
+                      - /url: /mistralai
+                    - generic [ref=e1294]:
+                      - generic [ref=e1295]: Deprecation in 9d
+                      - generic [ref=e1296]: Free Endpoint
+                  - heading "mistral-medium-3-instruct" [level=3] [ref=e1297]:
+                    - link "mistral-medium-3-instruct" [ref=e1298]:
+                      - /url: /mistralai/mistral-medium-3-instruct
+                - generic [ref=e1299]: Powerful, multimodal language model designed for enterprise applications, including software development, data analysis, and reasoning.
+                - generic [ref=e1300]:
+                  - generic [ref=e1302]:
+                    - link "language generation" [ref=e1304]:
+                      - /url: /models?filters=nimType%3Anim_type_preview&pageSize=96&label=language+generation
+                      - generic [ref=e1305]: language generation
+                    - button "+3" [ref=e1306]
+                  - generic [ref=e1307]:
+                    - generic [ref=e1309]:
+                      - img [ref=e1310]
+                      - generic "834K API calls in the last 30 days" [ref=e1312]: 834K
+                    - separator [ref=e1314]
+                    - generic [ref=e1315]:
+                      - img [ref=e1316]
+                      - generic "July 11, 2025" [ref=e1318]: 9mo
+              - generic [ref=e1321] [cursor=pointer]:
+                - generic [ref=e1324]:
+                  - generic [ref=e1325]:
+                    - link "Meta" [ref=e1327]:
+                      - /url: /meta
+                    - generic [ref=e1329]: Free Endpoint
+                  - heading "llama-4-maverick-17b-128e-instruct" [level=3] [ref=e1330]:
+                    - link "llama-4-maverick-17b-128e-instruct" [ref=e1331]:
+                      - /url: /meta/llama-4-maverick-17b-128e-instruct
+                - generic [ref=e1332]: A general purpose multimodal, multilingual 128 MoE model with 17B parameters.
+                - generic [ref=e1333]:
+                  - generic [ref=e1335]:
+                    - link "language generation" [ref=e1337]:
+                      - /url: /models?filters=nimType%3Anim_type_preview&pageSize=96&label=language+generation
+                      - generic [ref=e1338]: language generation
+                    - button "+3" [ref=e1339]
+                  - generic [ref=e1340]:
+                    - generic [ref=e1342]:
+                      - img [ref=e1343]
+                      - generic "15.53M API calls in the last 30 days" [ref=e1345]: 15.53M
+                    - separator [ref=e1347]
+                    - generic [ref=e1348]:
+                      - img [ref=e1349]
+                      - generic "July 17, 2025" [ref=e1351]: 9mo
+              - generic [ref=e1354] [cursor=pointer]:
+                - generic [ref=e1357]:
+                  - generic [ref=e1358]:
+                    - link "NVIDIA" [ref=e1360]:
+                      - /url: /nvidia
+                    - generic [ref=e1362]: Free Endpoint
+                  - heading "cosmos-predict1-5b" [level=3] [ref=e1363]:
+                    - link "cosmos-predict1-5b" [ref=e1364]:
+                      - /url: /nvidia/cosmos-predict1-5b
+                - generic [ref=e1365]: Generates future frames of a physics-aware world state based on simply an image or short video prompt for physical AI development.
+                - generic [ref=e1366]:
+                  - generic [ref=e1368]:
+                    - link "Synthetic Data Generation" [ref=e1370]:
+                      - /url: /models?filters=nimType%3Anim_type_preview%2Cusecase%3Ausecase_sdg&pageSize=96
+                      - generic [ref=e1371]: Synthetic Data Generation
+                    - button "+4" [ref=e1372]
+                  - generic [ref=e1373]:
+                    - generic [ref=e1375]:
+                      - img [ref=e1376]
+                      - generic "443 API calls in the last 30 days" [ref=e1378]: "443"
+                    - separator [ref=e1380]
+                    - generic [ref=e1381]:
+                      - img [ref=e1382]
+                      - generic "March 18, 2025" [ref=e1384]: 1y
+              - generic [ref=e1387] [cursor=pointer]:
+                - generic [ref=e1390]:
+                  - generic [ref=e1391]:
+                    - link "NVIDIA" [ref=e1393]:
+                      - /url: /nvidia
+                    - generic [ref=e1395]: Free Endpoint
+                  - heading "sparsedrive" [level=3] [ref=e1396]:
+                    - link "sparsedrive" [ref=e1397]:
+                      - /url: /nvidia/sparsedrive
+                - generic [ref=e1398]: End-to-end autonomous driving stack integrating perception, prediction, and planning with sparse scene representations for efficiency and safety.
+                - generic [ref=e1399]:
+                  - generic [ref=e1401]:
+                    - link "autonomous vehicles" [ref=e1403]:
+                      - /url: /models?filters=nimType%3Anim_type_preview&pageSize=96&label=autonomous+vehicles
+                      - generic [ref=e1404]: autonomous vehicles
+                    - button "+3" [ref=e1405]
+                  - generic [ref=e1406]:
+                    - generic [ref=e1408]:
+                      - img [ref=e1409]
+                      - generic "54 API calls in the last 30 days" [ref=e1411]: "54"
+                    - separator [ref=e1413]
+                    - generic [ref=e1414]:
+                      - img [ref=e1415]
+                      - generic "July 20, 2025" [ref=e1417]: 9mo
+              - generic [ref=e1420] [cursor=pointer]:
+                - generic [ref=e1423]:
+                  - generic [ref=e1424]:
+                    - link "NVIDIA" [ref=e1426]:
+                      - /url: /nvidia
+                    - generic [ref=e1428]: Free Endpoint
+                  - heading "bevformer" [level=3] [ref=e1429]:
+                    - link "bevformer" [ref=e1430]:
+                      - /url: /nvidia/bevformer
+                - generic [ref=e1431]: Advanced transformer for multi-frame bird's-eye-view 3D perception in autonomous driving.
+                - generic [ref=e1432]:
+                  - generic [ref=e1434]:
+                    - link "autonomous vehicles" [ref=e1436]:
+                      - /url: /models?filters=nimType%3Anim_type_preview&pageSize=96&label=autonomous+vehicles
+                      - generic [ref=e1437]: autonomous vehicles
+                    - button "+3" [ref=e1438]
+                  - generic [ref=e1439]:
+                    - generic [ref=e1441]:
+                      - img [ref=e1442]
+                      - generic "106 API calls in the last 30 days" [ref=e1444]: "106"
+                    - separator [ref=e1446]
+                    - generic [ref=e1447]:
+                      - img [ref=e1448]
+                      - generic "July 20, 2025" [ref=e1450]: 9mo
+              - generic [ref=e1453] [cursor=pointer]:
+                - generic [ref=e1456]:
+                  - generic [ref=e1457]:
+                    - link "NVIDIA" [ref=e1459]:
+                      - /url: /nvidia
+                    - generic [ref=e1461]: Free Endpoint
+                  - heading "nv-embedcode-7b-v1" [level=3] [ref=e1462]:
+                    - link "nv-embedcode-7b-v1" [ref=e1463]:
+                      - /url: /nvidia/nv-embedcode-7b-v1
+                - generic [ref=e1464]: The NV-EmbedCode model is a 7B Mistral-based embedding model optimized for code retrieval, supporting text, code, and hybrid queries.
+                - generic [ref=e1465]:
+                  - generic [ref=e1467]:
+                    - link "nemo retriever" [ref=e1469]:
+                      - /url: /models?filters=nimType%3Anim_type_preview&pageSize=96&label=nemo+retriever
+                      - generic [ref=e1470]: nemo retriever
+                    - button "+2" [ref=e1471]
+                  - generic [ref=e1472]:
+                    - generic [ref=e1474]:
+                      - img [ref=e1475]
+                      - generic "92.99K API calls in the last 30 days" [ref=e1477]: 92.99K
+                    - separator [ref=e1479]
+                    - generic [ref=e1480]:
+                      - img [ref=e1481]
+                      - generic "May 29, 2025" [ref=e1483]: 11mo
+              - generic [ref=e1486] [cursor=pointer]:
+                - generic [ref=e1489]:
+                  - generic [ref=e1490]:
+                    - link "Google" [ref=e1492]:
+                      - /url: /google
+                    - generic [ref=e1493]:
+                      - generic [ref=e1494]: Deprecation in 10d
+                      - generic [ref=e1495]: Free Endpoint
+                  - heading "gemma-3-27b-it" [level=3] [ref=e1496]:
+                    - link "gemma-3-27b-it" [ref=e1497]:
+                      - /url: /google/gemma-3-27b-it
+                - generic [ref=e1498]: Cutting-edge open multimodal model exceling in high-quality reasoning from images.
+                - generic [ref=e1499]:
+                  - generic [ref=e1501]:
+                    - link "Vision Assistant" [ref=e1503]:
+                      - /url: /models?filters=nimType%3Anim_type_preview&pageSize=96&label=Vision+Assistant
+                      - generic [ref=e1504]: Vision Assistant
+                    - button "+3" [ref=e1505]
+                  - generic [ref=e1506]:
+                    - generic [ref=e1508]:
+                      - img [ref=e1509]
+                      - generic "4.07M API calls in the last 30 days" [ref=e1511]: 4.07M
+                    - separator [ref=e1513]
+                    - generic [ref=e1514]:
+                      - img [ref=e1515]
+                      - generic "May 24, 2025" [ref=e1517]: 11mo
+              - generic [ref=e1520] [cursor=pointer]:
+                - generic [ref=e1523]:
+                  - generic [ref=e1524]:
+                    - link "Microsoft" [ref=e1526]:
+                      - /url: /microsoft
+                    - generic [ref=e1528]: Free Endpoint
+                  - heading "phi-4-multimodal-instruct" [level=3] [ref=e1529]:
+                    - link "phi-4-multimodal-instruct" [ref=e1530]:
+                      - /url: /microsoft/phi-4-multimodal-instruct
+                - generic [ref=e1531]: Cutting-edge open multimodal model exceling in high-quality reasoning from image and audio inputs.
+                - generic [ref=e1532]:
+                  - generic [ref=e1534]:
+                    - link "Speech Recognition" [ref=e1536]:
+                      - /url: /models?filters=nimType%3Anim_type_preview&pageSize=96&label=Speech+Recognition
+                      - generic [ref=e1537]: Speech Recognition
+                    - button "+4" [ref=e1538]
+                  - generic [ref=e1539]:
+                    - generic [ref=e1541]:
+                      - img [ref=e1542]
+                      - generic "450K API calls in the last 30 days" [ref=e1544]: 450K
+                    - separator [ref=e1546]
+                    - generic [ref=e1547]:
+                      - img [ref=e1548]
+                      - generic "May 24, 2025" [ref=e1550]: 11mo
+              - generic [ref=e1553] [cursor=pointer]:
+                - generic [ref=e1556]:
+                  - generic [ref=e1557]:
+                    - link "NVIDIA" [ref=e1559]:
+                      - /url: /nvidia
+                    - generic [ref=e1561]: Free Endpoint
+                  - heading "usdcode" [level=3] [ref=e1562]:
+                    - link "usdcode" [ref=e1563]:
+                      - /url: /nvidia/usdcode
+                - generic [ref=e1564]: State-of-the-art LLM that answers OpenUSD knowledge queries and generates USD-Python code.
+                - generic [ref=e1565]:
+                  - generic [ref=e1567]:
+                    - link "Digital Twin" [ref=e1569]:
+                      - /url: /models?filters=nimType%3Anim_type_preview%2Cusecase%3Ausecase_digital_twin&pageSize=96
+                      - generic [ref=e1570]: Digital Twin
+                    - button "+4" [ref=e1571]
+                  - generic [ref=e1573]:
+                    - img [ref=e1574]
+                    - generic "July 7, 2025" [ref=e1576]: 10mo
+              - generic [ref=e1579] [cursor=pointer]:
+                - generic [ref=e1582]:
+                  - generic [ref=e1583]:
+                    - link "NVIDIA" [ref=e1585]:
+                      - /url: /nvidia
+                    - generic [ref=e1586]:
+                      - generic [ref=e1587]: Downloadable
+                      - generic [ref=e1588]: Free Endpoint
+                  - heading "studiovoice" [level=3] [ref=e1589]:
+                    - link "studiovoice" [ref=e1590]:
+                      - /url: /nvidia/studiovoice
+                - generic [ref=e1591]: Enhance input speech recorded with low-quality microphones in noisy or reverberant environments, producing studio-quality speech.
+                - generic [ref=e1592]:
+                  - generic [ref=e1594]:
+                    - link "communications" [ref=e1596]:
+                      - /url: /models?filters=nimType%3Anim_type_preview&pageSize=96&label=communications
+                      - generic [ref=e1597]: communications
+                    - button "+3" [ref=e1598]
+                  - generic [ref=e1599]:
+                    - generic [ref=e1601]:
+                      - img [ref=e1602]
+                      - generic "2.79K API calls in the last 30 days" [ref=e1604]: 2.79K
+                    - separator [ref=e1606]
+                    - generic [ref=e1607]:
+                      - img [ref=e1608]
+                      - generic "June 13, 2025" [ref=e1610]: 10mo
+              - generic [ref=e1613] [cursor=pointer]:
+                - generic [ref=e1616]:
+                  - generic [ref=e1617]:
+                    - link "Abacus.AI" [ref=e1619]:
+                      - /url: /abacusai
+                    - generic [ref=e1621]: Free Endpoint
+                  - heading "dracarys-llama-3.1-70b-instruct" [level=3] [ref=e1622]:
+                    - link "dracarys-llama-3.1-70b-instruct" [ref=e1623]:
+                      - /url: /abacusai/dracarys-llama-3_1-70b-instruct
+                - generic [ref=e1624]: Fine-tuned Llama 3.1 70B model for code generation, summarization, and multi-language tasks.
+                - generic [ref=e1625]:
+                  - generic [ref=e1627]:
+                    - link "Code Generation" [ref=e1629]:
+                      - /url: /models?filters=nimType%3Anim_type_preview&pageSize=96&label=Code+Generation
+                      - generic [ref=e1630]: Code Generation
+                    - button "+1" [ref=e1631]
+                  - generic [ref=e1632]:
+                    - generic [ref=e1634]:
+                      - img [ref=e1635]
+                      - generic "433K API calls in the last 30 days" [ref=e1637]: 433K
+                    - separator [ref=e1639]
+                    - generic [ref=e1640]:
+                      - img [ref=e1641]
+                      - generic "May 22, 2025" [ref=e1643]: 11mo
+              - generic [ref=e1646] [cursor=pointer]:
+                - generic [ref=e1649]:
+                  - generic [ref=e1650]:
+                    - link "Meta" [ref=e1652]:
+                      - /url: /meta
+                    - generic [ref=e1654]: Free Endpoint
+                  - heading "esm2-650m" [level=3] [ref=e1655]:
+                    - link "esm2-650m" [ref=e1656]:
+                      - /url: /meta/esm2-650m
+                - generic [ref=e1657]: Generates embeddings of proteins from their amino acid sequences.
+                - generic [ref=e1658]:
+                  - generic [ref=e1660]:
+                    - link "nim" [ref=e1662]:
+                      - /url: /models?filters=nimType%3Anim_type_preview&pageSize=96&label=nim
+                      - generic [ref=e1663]: nim
+                    - button "+4" [ref=e1664]
+                  - generic [ref=e1665]:
+                    - generic [ref=e1667]:
+                      - img [ref=e1668]
+                      - generic "9.14K API calls in the last 30 days" [ref=e1670]: 9.14K
+                    - separator [ref=e1672]
+                    - generic [ref=e1673]:
+                      - img [ref=e1674]
+                      - generic "March 10, 2025" [ref=e1676]: 1y
+              - generic [ref=e1679] [cursor=pointer]:
+                - generic [ref=e1682]:
+                  - generic [ref=e1683]:
+                    - link "NVIDIA" [ref=e1685]:
+                      - /url: /nvidia
+                    - generic [ref=e1687]: Free Endpoint
+                  - heading "nemotron-mini-4b-instruct" [level=3] [ref=e1688]:
+                    - link "nemotron-mini-4b-instruct" [ref=e1689]:
+                      - /url: /nvidia/nemotron-mini-4b-instruct
+                - generic [ref=e1690]: Optimized SLM for on-device inference and fine-tuned for roleplay, RAG and function calling
+                - generic [ref=e1691]:
+                  - generic [ref=e1693]:
+                    - link "Chat" [ref=e1695]:
+                      - /url: /models?filters=nimType%3Anim_type_preview&pageSize=96&label=Chat
+                      - generic [ref=e1696]: Chat
+                    - button "+2" [ref=e1697]
+                  - generic [ref=e1698]:
+                    - generic [ref=e1700]:
+                      - img [ref=e1701]
+                      - generic "456K API calls in the last 30 days" [ref=e1703]: 456K
+                    - separator [ref=e1705]
+                    - generic [ref=e1706]:
+                      - img [ref=e1707]
+                      - generic "August 26, 2024" [ref=e1709]: 1y
+              - generic [ref=e1712] [cursor=pointer]:
+                - generic [ref=e1715]:
+                  - generic [ref=e1716]:
+                    - link "Google" [ref=e1718]:
+                      - /url: /google
+                    - generic [ref=e1720]: Free Endpoint
+                  - heading "gemma-2-2b-it" [level=3] [ref=e1721]:
+                    - link "gemma-2-2b-it" [ref=e1722]:
+                      - /url: /google/gemma-2-2b-it
+                - generic [ref=e1723]: Advanced small language generative AI model for edge applications
+                - generic [ref=e1724]:
+                  - generic [ref=e1726]:
+                    - link "Chat" [ref=e1728]:
+                      - /url: /models?filters=nimType%3Anim_type_preview&pageSize=96&label=Chat
+                      - generic [ref=e1729]: Chat
+                    - button "+3" [ref=e1730]
+                  - generic [ref=e1731]:
+                    - generic [ref=e1733]:
+                      - img [ref=e1734]
+                      - generic "478K API calls in the last 30 days" [ref=e1736]: 478K
+                    - separator [ref=e1738]
+                    - generic [ref=e1739]:
+                      - img [ref=e1740]
+                      - generic "May 22, 2025" [ref=e1742]: 11mo
+              - generic [ref=e1745] [cursor=pointer]:
+                - generic [ref=e1748]:
+                  - generic [ref=e1749]:
+                    - link "NVIDIA" [ref=e1751]:
+                      - /url: /nvidia
+                    - generic [ref=e1753]: Free Endpoint
+                  - heading "usdvalidate" [level=3] [ref=e1754]:
+                    - link "usdvalidate" [ref=e1755]:
+                      - /url: /nvidia/usdvalidate
+                - generic [ref=e1756]: Verify compatibility of OpenUSD assets with instant RTX render and rule-based validation.
+                - generic [ref=e1757]:
+                  - generic [ref=e1759]:
+                    - link "Validation" [ref=e1761]:
+                      - /url: /models?filters=nimType%3Anim_type_preview&pageSize=96&label=Validation
+                      - generic [ref=e1762]: Validation
+                    - button "+5" [ref=e1763]
+                  - generic [ref=e1764]:
+                    - generic [ref=e1766]:
+                      - img [ref=e1767]
+                      - generic "361 API calls in the last 30 days" [ref=e1769]: "361"
+                    - separator [ref=e1771]
+                    - generic [ref=e1772]:
+                      - img [ref=e1773]
+                      - generic "January 8, 2025" [ref=e1775]: 1y
+              - generic [ref=e1778] [cursor=pointer]:
+                - generic [ref=e1781]:
+                  - generic [ref=e1782]:
+                    - link "NVIDIA" [ref=e1784]:
+                      - /url: /nvidia
+                    - generic [ref=e1786]: Free Endpoint
+                  - heading "nv-embed-v1" [level=3] [ref=e1787]:
+                    - link "nv-embed-v1" [ref=e1788]:
+                      - /url: /nvidia/nv-embed-v1
+                - generic [ref=e1789]: Generates high-quality numerical embeddings from text inputs.
+                - generic [ref=e1790]:
+                  - generic [ref=e1792]:
+                    - link "Non-Commercial Use Only" [ref=e1794]:
+                      - /url: /models?filters=nimType%3Anim_type_preview&pageSize=96&label=Non-Commercial+Use+Only
+                      - generic [ref=e1795]: Non-Commercial Use Only
+                    - button "+2" [ref=e1796]
+                  - generic [ref=e1797]:
+                    - generic [ref=e1799]:
+                      - img [ref=e1800]
+                      - generic "3.26M API calls in the last 30 days" [ref=e1802]: 3.26M
+                    - separator [ref=e1804]
+                    - generic [ref=e1805]:
+                      - img [ref=e1806]
+                      - generic "July 22, 2025" [ref=e1808]: 9mo
+              - generic [ref=e1811] [cursor=pointer]:
+                - generic [ref=e1814]:
+                  - generic [ref=e1815]:
+                    - link "Upstage" [ref=e1817]:
+                      - /url: /upstage
+                    - generic [ref=e1819]: Free Endpoint
+                  - heading "solar-10.7b-instruct" [level=3] [ref=e1820]:
+                    - link "solar-10.7b-instruct" [ref=e1821]:
+                      - /url: /upstage/solar-10_7b-instruct
+                - generic [ref=e1822]: Excels in NLP tasks, particularly in instruction-following, reasoning, and mathematics.
+                - generic [ref=e1823]:
+                  - generic [ref=e1825]:
+                    - link "Non-Commercial Use Only" [ref=e1827]:
+                      - /url: /models?filters=nimType%3Anim_type_preview&pageSize=96&label=Non-Commercial+Use+Only
+                      - generic [ref=e1828]: Non-Commercial Use Only
+                    - button "+4" [ref=e1829]
+                  - generic [ref=e1830]:
+                    - generic [ref=e1832]:
+                      - img [ref=e1833]
+                      - generic "231K API calls in the last 30 days" [ref=e1835]: 231K
+                    - separator [ref=e1837]
+                    - generic [ref=e1838]:
+                      - img [ref=e1839]
+                      - generic "April 10, 2025" [ref=e1841]: 1y
+              - generic [ref=e1844] [cursor=pointer]:
+                - generic [ref=e1847]:
+                  - generic [ref=e1848]:
+                    - link "Google" [ref=e1850]:
+                      - /url: /google
+                    - generic [ref=e1852]: Free Endpoint
+                  - heading "paligemma" [level=3] [ref=e1853]:
+                    - link "paligemma" [ref=e1854]:
+                      - /url: /google/google-paligemma
+                - generic [ref=e1855]: Vision language model adept at comprehending text and visual inputs to produce informative responses
+                - generic [ref=e1856]:
+                  - generic [ref=e1858]:
+                    - link "image" [ref=e1860]:
+                      - /url: /models?filters=nimType%3Anim_type_preview&pageSize=96&label=image
+                      - generic [ref=e1861]: image
+                    - button "+8" [ref=e1862]
+                  - generic [ref=e1863]:
+                    - generic [ref=e1865]:
+                      - img [ref=e1866]
+                      - generic "22.13K API calls in the last 30 days" [ref=e1868]: 22.13K
+                    - separator [ref=e1870]
+                    - generic [ref=e1871]:
+                      - img [ref=e1872]
+                      - generic "August 26, 2024" [ref=e1874]: 1y
+              - generic [ref=e1877] [cursor=pointer]:
+                - generic [ref=e1880]:
+                  - generic [ref=e1881]:
+                    - link "NVIDIA" [ref=e1883]:
+                      - /url: /nvidia
+                    - generic [ref=e1885]: Free Endpoint
+                  - heading "rerank-qa-mistral-4b" [level=3] [ref=e1886]:
+                    - link "rerank-qa-mistral-4b" [ref=e1887]:
+                      - /url: /nvidia/rerank-qa-mistral-4b
+                - generic [ref=e1888]: GPU-accelerated model optimized for providing a probability score that a given passage contains the information to answer a question.
+                - generic [ref=e1889]:
+                  - generic [ref=e1891]:
+                    - link "Ranking" [ref=e1893]:
+                      - /url: /models?filters=nimType%3Anim_type_preview&pageSize=96&label=Ranking
+                      - generic [ref=e1894]: Ranking
+                    - button "+2" [ref=e1895]
+                  - generic [ref=e1896]:
+                    - generic [ref=e1898]:
+                      - img [ref=e1899]
+                      - generic "312K API calls in the last 30 days" [ref=e1901]: 312K
+                    - separator [ref=e1903]
+                    - generic [ref=e1904]:
+                      - img [ref=e1905]
+                      - generic "January 17, 2025" [ref=e1907]: 1y
+              - generic [ref=e1910] [cursor=pointer]:
+                - generic [ref=e1913]:
+                  - generic [ref=e1914]:
+                    - link "Meta" [ref=e1916]:
+                      - /url: /meta
+                    - generic [ref=e1918]: Free Endpoint
+                  - heading "esmfold" [level=3] [ref=e1919]:
+                    - link "esmfold" [ref=e1920]:
+                      - /url: /meta/esmfold
+                - generic [ref=e1921]: Predicts the 3D structure of a protein from its amino acid sequence.
+                - generic [ref=e1922]:
+                  - generic [ref=e1924]:
+                    - link "biology" [ref=e1926]:
+                      - /url: /models?filters=nimType%3Anim_type_preview&pageSize=96&label=biology
+                      - generic [ref=e1927]: biology
+                    - button "+4" [ref=e1928]
+                  - generic [ref=e1929]:
+                    - generic [ref=e1931]:
+                      - img [ref=e1932]
+                      - generic "282K API calls in the last 30 days" [ref=e1934]: 282K
+                    - separator [ref=e1936]
+                    - generic [ref=e1937]:
+                      - img [ref=e1938]
+                      - generic "June 12, 2025" [ref=e1940]: 10mo
+            - generic [ref=e1941]:
+              - generic [ref=e1942]:
+                - text: Items per page
+                - combobox "Page size" [ref=e1943] [cursor=pointer]:
+                  - generic [ref=e1944]: "96"
+                  - img
+              - generic [ref=e1945]:
+                - button "Go to first page" [disabled] [ref=e1946]:
+                  - img [ref=e1947]
+                - button "Go to previous page" [disabled] [ref=e1948]:
+                  - img [ref=e1949]
+                - tablist [ref=e1951]:
+                  - tab "1" [selected] [ref=e1953] [cursor=pointer]
+                - button "Go to next page" [disabled] [ref=e1954]:
+                  - img [ref=e1955]
+                - button "Go to last page" [disabled] [ref=e1956]:
+                  - img [ref=e1957]
+              - generic [ref=e1958]:
+                - spinbutton "Page number" [ref=e1961]: "1"
+                - generic [ref=e1962]: of 1 pages
+      - generic [ref=e1963]:
+        - generic [ref=e1964]:
+          - link "Terms of Use" [ref=e1965] [cursor=pointer]:
+            - /url: https://assets.ngc.nvidia.com/products/api-catalog/legal/NVIDIA_Technology_Access_TOU.pdf
+          - separator [ref=e1966]
+          - link "Privacy Policy" [ref=e1967] [cursor=pointer]:
+            - /url: https://www.nvidia.com/en-us/about-nvidia/privacy-policy/
+          - separator [ref=e1968]
+          - link "Your Privacy Choices" [ref=e1969] [cursor=pointer]:
+            - /url: https://www.nvidia.com/en-us/about-nvidia/privacy-center/
+          - separator [ref=e1970]
+          - link "Contact" [ref=e1971] [cursor=pointer]:
+            - /url: https://developer.nvidia.com/contact
+        - paragraph [ref=e1972]: Copyright © 2026 NVIDIA Corporation
+  - alert [ref=e1973]

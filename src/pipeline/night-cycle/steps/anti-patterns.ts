@@ -1,7 +1,7 @@
 import type { LogRow } from "../../../db";
 import type { ModelRouter } from "../../../lib/model-router";
 import { buildConversationText, stripThinkTags } from "../types";
-import { NIGHT_MODEL, nightLog as log } from "./shared";
+import { nightLog as log, NIGHT_MODEL } from "./shared";
 
 export async function extractAntiPatterns(
   logs: LogRow[],

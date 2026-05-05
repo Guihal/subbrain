@@ -1,15 +1,10 @@
-import type { LLMProvider, ChatParams, ChatResponse } from "../providers/types";
-import { ProviderError } from "../providers/nvidia";
-import {
-  resolveModel,
-  getFallback,
-  type Priority,
-  type ProviderName,
-} from "./model-map";
-import { RateLimiter } from "./rate-limiter";
-import { PROVIDER_RPM, type Backend } from "./model-router/constants";
+import type { ProviderError } from "../providers/nvidia";
+import type { ChatParams, ChatResponse, LLMProvider } from "../providers/types";
+import { getFallback, type Priority, type ProviderName, resolveModel } from "./model-map";
+import { type Backend, PROVIDER_RPM } from "./model-router/constants";
 import { runChatDispatch } from "./model-router/dispatch";
 import { createFallbackStream } from "./model-router/stream";
+import { RateLimiter } from "./rate-limiter";
 
 /** Per-provider reserved slot count; drops into direct-mode below this. */
 const RESERVED_SLOTS = 8;
@@ -115,13 +110,7 @@ export class ModelRouter {
     const fallback = getFallback(virtualModel);
     const backend = this.getBackend(primary.provider);
     return backend.limiter.schedule(priority, async () =>
-      createFallbackStream(
-        this.backends,
-        primary,
-        fallback,
-        params,
-        this.handleProviderError,
-      ),
+      createFallbackStream(this.backends, primary, fallback, params, this.handleProviderError),
     );
   }
 

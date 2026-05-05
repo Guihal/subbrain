@@ -9,12 +9,20 @@ export type DedupMode = "strict" | "supersede";
 
 export const MEMORY_DEDUP_MODE_BY_CATEGORY: Record<string, DedupMode> = {
   // shared — stable (strict)
-  profile: "strict", skill: "strict", architecture: "strict",
+  profile: "strict",
+  skill: "strict",
+  architecture: "strict",
   // shared — dynamic (supersede)
-  preference: "supersede", goal: "supersede", relationship: "supersede",
-  style: "supersede", constraint: "supersede",
+  preference: "supersede",
+  goal: "supersede",
+  relationship: "supersede",
+  style: "supersede",
+  constraint: "supersede",
   // context — supersede
-  decision: "supersede", learning: "supersede", project: "supersede", bug: "supersede",
+  decision: "supersede",
+  learning: "supersede",
+  project: "supersede",
+  bug: "supersede",
 };
 
 const D = 86400;

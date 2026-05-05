@@ -1,18 +1,18 @@
+import { MODEL_MAP, type ProviderName } from "../lib/model-map";
+import { MiniMaxProvider } from "./minimax";
+import { NvidiaProvider } from "./nvidia";
+import { OpenAICompatProvider } from "./openai-compat";
 import type {
-  LLMProvider,
   ChatParams,
   ChatResponse,
   EmbedResponse,
-  RerankResponse,
+  LLMProvider,
   ModelInfo,
+  RerankResponse,
 } from "./types";
-import { NvidiaProvider } from "./nvidia";
-import { MiniMaxProvider } from "./minimax";
-import { OpenAICompatProvider } from "./openai-compat";
-import { MODEL_MAP, type ProviderName } from "../lib/model-map";
 
-export type { LLMProvider } from "./types";
 export { ProviderError } from "./nvidia";
+export type { LLMProvider } from "./types";
 
 /** Create a single NVIDIA provider (legacy, for embed/rerank) */
 export function createProvider(): LLMProvider {
@@ -32,9 +32,7 @@ export function createProvider(): LLMProvider {
  * NVIDIA is always included because embed + rerank use it directly
  * (see `ModelRouter.scheduleRaw` / `.raw`).
  */
-export function collectRequiredProviders(
-  map: typeof MODEL_MAP = MODEL_MAP,
-): Set<ProviderName> {
+export function collectRequiredProviders(map: typeof MODEL_MAP = MODEL_MAP): Set<ProviderName> {
   const required = new Set<ProviderName>(["nvidia"]);
   for (const route of Object.values(map)) {
     if (route.primaryProvider) required.add(route.primaryProvider);
@@ -75,9 +73,7 @@ function makeAbsentProvider(name: ProviderName): LLMProvider {
  *   provider is fail-fast; unreferenced providers are replaced with a stub
  *   that throws on any call.
  */
-export async function createProviders(): Promise<
-  Record<ProviderName, LLMProvider>
-> {
+export async function createProviders(): Promise<Record<ProviderName, LLMProvider>> {
   const required = collectRequiredProviders();
 
   // NVIDIA — always mandatory
@@ -91,13 +87,10 @@ export async function createProviders(): Promise<
   // OpenRouter — optional
   let openrouter: LLMProvider;
   if (required.has("openrouter")) {
-    const orUrl =
-      process.env.OPENROUTER_BASE_URL || "https://openrouter.ai/api/v1";
+    const orUrl = process.env.OPENROUTER_BASE_URL || "https://openrouter.ai/api/v1";
     const orKey = process.env.OPENROUTER_API_KEY;
     if (!orKey) {
-      throw new Error(
-        "OPENROUTER_API_KEY must be set (referenced by MODEL_MAP)",
-      );
+      throw new Error("OPENROUTER_API_KEY must be set (referenced by MODEL_MAP)");
     }
     openrouter = new NvidiaProvider(orUrl, orKey, {
       "HTTP-Referer": "https://subbrain.local",
@@ -112,19 +105,16 @@ export async function createProviders(): Promise<
   // misconfiguration). When unreferenced, stub out.
   let minimax: LLMProvider;
   if (required.has("minimax")) {
-    const minimaxUrl =
-      process.env.MINIMAX_BASE_URL || "https://api.minimax.io/v1";
+    const minimaxUrl = process.env.MINIMAX_BASE_URL || "https://api.minimax.io/v1";
     const minimaxKey = process.env.MINIMAX_API_KEY;
-    if (!minimaxKey) {
+    if (minimaxKey) {
+      minimax = new MiniMaxProvider(minimaxUrl, minimaxKey);
+    } else {
       // NOTE: pre-23b behaviour silently redirected to NVIDIA NIM when the
       // key was absent. Keep that fallback for dev ergonomics (MiniMax routes
       // currently fall back to NVIDIA anyway) but log loudly.
-      console.warn(
-        "[providers] MINIMAX_API_KEY not set; using NVIDIA NIM as MiniMax backend",
-      );
+      console.warn("[providers] MINIMAX_API_KEY not set; using NVIDIA NIM as MiniMax backend");
       minimax = new NvidiaProvider(nvidiaUrl, nvidiaKey);
-    } else {
-      minimax = new MiniMaxProvider(minimaxUrl, minimaxKey);
     }
   } else {
     minimax = makeAbsentProvider("minimax");
@@ -134,8 +124,7 @@ export async function createProviders(): Promise<
   // docs/completed/03-model-router.md "OpenAI-compat provider".
   let openaiCompat: LLMProvider;
   if (required.has("openai-compat")) {
-    const url =
-      process.env.OPENAI_COMPAT_BASE_URL || "http://cliproxy:8080/v1";
+    const url = process.env.OPENAI_COMPAT_BASE_URL || "http://cliproxy:8080/v1";
     const key = process.env.OPENAI_COMPAT_API_KEY || "cliproxy-local";
     openaiCompat = new OpenAICompatProvider(url, key);
   } else {

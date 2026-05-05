@@ -1,5 +1,5 @@
 import type { ModelRouter } from "../../lib/model-router";
-import type { FeedItem, EvaluatedLead } from "./types";
+import type { EvaluatedLead, FeedItem } from "./types";
 
 const PROMPT = `Оцени задачу по шкале 1-10, насколько быстро пара "разработчик + Claude Code" её закроет.
 10 = час работы. 1 = невозможно / риски / домен, где Claude не силён.

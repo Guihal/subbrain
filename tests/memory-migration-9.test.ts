@@ -3,8 +3,8 @@
  * Verifies the additive migration applies, columns exist with NULL default,
  * and the trigger blocks a row from superseding itself.
  */
-import { describe, test, expect, beforeAll, afterAll } from "bun:test";
-import { existsSync, unlinkSync } from "fs";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { existsSync, unlinkSync } from "node:fs";
 import { MemoryDB } from "../src/db";
 
 const TEST_DB = "data/test-mig9.db";
@@ -30,16 +30,15 @@ describe("Migration 9 — expires_at + superseded_by", () => {
   });
 
   test("user_version >= 9", () => {
-    const row = memory.db
-      .query<{ user_version: number }, []>("PRAGMA user_version")
-      .get()!;
+    const row = memory.db.query<{ user_version: number }, []>("PRAGMA user_version").get()!;
     expect(row.user_version).toBeGreaterThanOrEqual(9);
   });
 
   test("shared_memory has expires_at + superseded_by columns, NULL default", () => {
-    const cols = memory.db
-      .query("PRAGMA table_info(shared_memory)")
-      .all() as { name: string; dflt_value: string | null }[];
+    const cols = memory.db.query("PRAGMA table_info(shared_memory)").all() as {
+      name: string;
+      dflt_value: string | null;
+    }[];
     const expires = cols.find((c) => c.name === "expires_at");
     const sup = cols.find((c) => c.name === "superseded_by");
     expect(expires).toBeDefined();
@@ -47,17 +46,15 @@ describe("Migration 9 — expires_at + superseded_by", () => {
   });
 
   test("layer2_context has expires_at + superseded_by columns", () => {
-    const cols = memory.db
-      .query("PRAGMA table_info(layer2_context)")
-      .all() as { name: string }[];
+    const cols = memory.db.query("PRAGMA table_info(layer2_context)").all() as { name: string }[];
     expect(cols.some((c) => c.name === "expires_at")).toBe(true);
     expect(cols.some((c) => c.name === "superseded_by")).toBe(true);
   });
 
   test("idx_shared_active and idx_context_active indexes exist", () => {
-    const idx = memory.db
-      .query("SELECT name FROM sqlite_master WHERE type = 'index'")
-      .all() as { name: string }[];
+    const idx = memory.db.query("SELECT name FROM sqlite_master WHERE type = 'index'").all() as {
+      name: string;
+    }[];
     const names = idx.map((r) => r.name);
     expect(names).toContain("idx_shared_active");
     expect(names).toContain("idx_context_active");
@@ -67,8 +64,8 @@ describe("Migration 9 — expires_at + superseded_by", () => {
     memory.insertShared("row-mig9-default", "preference", "default test", "");
     const row = memory.getShared("row-mig9-default");
     expect(row).not.toBeNull();
-    expect(row!.expires_at).toBeNull();
-    expect(row!.superseded_by).toBeNull();
+    expect(row?.expires_at).toBeNull();
+    expect(row?.superseded_by).toBeNull();
   });
 
   test("trigger blocks self-supersede on shared_memory", () => {
@@ -89,12 +86,12 @@ describe("Migration 9 — expires_at + superseded_by", () => {
     memory.insertShared("a-row", "profile", "row a", "");
     memory.insertShared("b-row", "profile", "row b", "");
     memory.updateShared("a-row", { superseded_by: "b-row" });
-    expect(memory.getShared("a-row")!.superseded_by).toBe("b-row");
+    expect(memory.getShared("a-row")?.superseded_by).toBe("b-row");
   });
 
   test("setting superseded_by to literal 'expired' is allowed", () => {
     memory.insertShared("exp-row", "profile", "expired row", "");
     memory.updateShared("exp-row", { superseded_by: "expired" });
-    expect(memory.getShared("exp-row")!.superseded_by).toBe("expired");
+    expect(memory.getShared("exp-row")?.superseded_by).toBe("expired");
   });
 });

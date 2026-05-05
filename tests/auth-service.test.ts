@@ -7,7 +7,7 @@
  * `tests/auth-coverage.test.ts`; do not duplicate those here.
  */
 
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { AuthService } from "../src/services/auth.service";
 
 describe("AuthService.validateBearer", () => {

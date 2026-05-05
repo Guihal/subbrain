@@ -4,13 +4,13 @@
  * One step == one LLM call, regardless of how many tool_calls that call emits.
  */
 import type { MemoryDB } from "../../../db";
-import type { ModelRouter } from "../../../lib/model-router";
-import type { RAGPipeline, RAGResult } from "../../../rag";
-import type { Message } from "../../../providers/types";
-import { logger } from "../../../lib/logger";
 import { getMoscowNow } from "../../../lib/clock";
+import { logger } from "../../../lib/logger";
+import type { ModelRouter } from "../../../lib/model-router";
+import type { Message } from "../../../providers/types";
+import type { RAGPipeline, RAGResult } from "../../../rag";
 
-import { HIPPO_TOOLS, executeHippoTool } from "./rag-inject";
+import { executeHippoTool, HIPPO_TOOLS } from "./rag-inject";
 
 const log = logger.child("pre");
 
@@ -65,10 +65,7 @@ export async function buildExecutiveSummary(args: {
    */
   agentId?: string | null;
 }): Promise<ExecutiveSummaryResult> {
-  const {
-    router, memory, rag, userMessage, seedContext, onProgress,
-    agentId = null,
-  } = args;
+  const { router, memory, rag, userMessage, seedContext, onProgress, agentId = null } = args;
 
   onProgress?.("🧠 Гиппокамп (агентный режим) собирает контекст...\n");
 
@@ -114,8 +111,7 @@ export async function buildExecutiveSummary(args: {
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err);
       const isAbort =
-        err instanceof Error &&
-        (err.name === "AbortError" || err.name === "TimeoutError");
+        err instanceof Error && (err.name === "AbortError" || err.name === "TimeoutError");
       if (isAbort) {
         log.warn(`Hippocampus aborted by time budget at step ${steps}: ${errMsg}`);
         onProgress?.("⏱️ Гиппокамп отменён таймаутом — финализация...\n");
@@ -155,9 +151,7 @@ export async function buildExecutiveSummary(args: {
         toolArgs = {};
       }
 
-      log.debug(
-        `Hippocampus tool: ${tc.function.name}(${JSON.stringify(toolArgs).slice(0, 200)})`,
-      );
+      log.debug(`Hippocampus tool: ${tc.function.name}(${JSON.stringify(toolArgs).slice(0, 200)})`);
       onProgress?.(
         `  🔧 ${tc.function.name}(${((toolArgs.query as string) || "").slice(0, 60)})\n`,
       );
@@ -190,10 +184,7 @@ export async function buildExecutiveSummary(args: {
         "You've reached the search limit. Now produce the Executive Summary based on everything you've gathered.",
     });
     try {
-      const finalizeBudget = Math.max(
-        5_000,
-        HIPPO_TIMEOUT_MS - (Date.now() - start),
-      );
+      const finalizeBudget = Math.max(5_000, HIPPO_TIMEOUT_MS - (Date.now() - start));
       const final = await router.chat(
         "coder",
         {
@@ -205,9 +196,7 @@ export async function buildExecutiveSummary(args: {
         "normal",
       );
       summary =
-        final.choices[0]?.message?.content ||
-        final.choices[0]?.message?.reasoning_content ||
-        "";
+        final.choices[0]?.message?.content || final.choices[0]?.message?.reasoning_content || "";
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err);
       log.warn(`Hippocampus finalisation chat failed: ${errMsg}`);
@@ -219,11 +208,8 @@ export async function buildExecutiveSummary(args: {
   if (!summary) {
     const lines: string[] = [];
     if (timedOut)
-      lines.push(
-        `_[Гиппокамп: таймаут ${HIPPO_TIMEOUT_MS / 1000}s после ${steps} шагов]_`,
-      );
-    else if (errored)
-      lines.push(`_[Гиппокамп: ошибка после ${steps} шагов]_`);
+      lines.push(`_[Гиппокамп: таймаут ${HIPPO_TIMEOUT_MS / 1000}s после ${steps} шагов]_`);
+    else if (errored) lines.push(`_[Гиппокамп: ошибка после ${steps} шагов]_`);
     else lines.push(`_[Гиппокамп: пустой ответ после ${steps} шагов]_`);
 
     if (allRagResults.length > 0) {

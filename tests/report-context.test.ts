@@ -1,13 +1,10 @@
-import { describe, test, expect, beforeEach, afterEach } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { unlinkSync } from "node:fs";
 import { MemoryDB } from "../src/db";
-import {
-  buildReportContext,
-  truncateReportContext,
-} from "../src/rag/report-context";
-import { sendReport } from "../src/mcp/tools/telegram-report";
 import type { ToolContext } from "../src/mcp/registry/tool-registry";
+import { sendReport } from "../src/mcp/tools/telegram-report";
 import type { ToolResult } from "../src/mcp/types";
+import { buildReportContext, truncateReportContext } from "../src/rag/report-context";
 
 const TEST_DB = "data/test-report-context.db";
 
@@ -35,13 +32,7 @@ describe("buildReportContext", () => {
 
   test("section order: Facts → Events → Related context", async () => {
     memory.insertShared("sh-1", "preference", "User prefers Bun over Node");
-    memory.appendLog(
-      "req-1",
-      "sess-1",
-      "teamlead",
-      "user",
-      "Plan report on Q4",
-    );
+    memory.appendLog("req-1", "sess-1", "teamlead", "user", "Plan report on Q4");
 
     const md = await buildReportContext({
       memory,
@@ -97,14 +88,7 @@ describe("buildReportContext", () => {
       .query(
         "INSERT INTO layer4_log (request_id, session_id, agent_id, role, content, created_at) VALUES (?, ?, ?, ?, ?, ?)",
       )
-      .run(
-        "r1",
-        "s1",
-        "coder",
-        "user",
-        "ancient entry",
-        tsNow - 72 * 3600,
-      );
+      .run("r1", "s1", "coder", "user", "ancient entry", tsNow - 72 * 3600);
 
     const md = await buildReportContext({
       memory,
@@ -119,9 +103,9 @@ describe("buildReportContext", () => {
 
 describe("truncateReportContext", () => {
   test("drops Events then Related before Facts", () => {
-    const facts = "## Факты\n- " + "f".repeat(50);
-    const events = "## Последние события\n- " + "e".repeat(1000);
-    const related = "## Связанный контекст\n- " + "r".repeat(1000);
+    const facts = `## Факты\n- ${"f".repeat(50)}`;
+    const events = `## Последние события\n- ${"e".repeat(1000)}`;
+    const related = `## Связанный контекст\n- ${"r".repeat(1000)}`;
     const full = [facts, events, related].join("\n\n");
 
     const trimmed = truncateReportContext(full, 200);

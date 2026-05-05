@@ -44,16 +44,15 @@ export async function pageSnapshot(page: Page): Promise<string> {
   const collected = await page
     .evaluate(
       ({ sel, maxLabel, maxCount }) => {
-        document
-          .querySelectorAll("[data-pw-ref]")
-          .forEach((el) => el.removeAttribute("data-pw-ref"));
+        document.querySelectorAll("[data-pw-ref]").forEach((el) => {
+          el.removeAttribute("data-pw-ref");
+        });
 
         const isVisible = (el: Element): boolean => {
           const r = (el as HTMLElement).getBoundingClientRect();
           if (r.width === 0 && r.height === 0) return false;
           const style = window.getComputedStyle(el as HTMLElement);
-          if (style.display === "none" || style.visibility === "hidden")
-            return false;
+          if (style.display === "none" || style.visibility === "hidden") return false;
           return true;
         };
 
@@ -89,10 +88,8 @@ export async function pageSnapshot(page: Page): Promise<string> {
           el.setAttribute("data-pw-ref", ref);
           const tag = n.tagName.toLowerCase();
           const role = el.getAttribute("role") || tag;
-          const type =
-            tag === "input" ? (n as HTMLInputElement).type : undefined;
-          const href =
-            tag === "a" ? (n as HTMLAnchorElement).href || undefined : undefined;
+          const type = tag === "input" ? (n as HTMLInputElement).type : undefined;
+          const href = tag === "a" ? (n as HTMLAnchorElement).href || undefined : undefined;
           out.push({ ref, role, type, name: label(el), href });
         }
         return out;
@@ -106,10 +103,7 @@ export async function pageSnapshot(page: Page): Promise<string> {
     .catch((): Array<never> => []);
 
   const textPreview = await page
-    .evaluate(
-      (max: number) => (document.body?.innerText || "").slice(0, max),
-      MAX_TEXT_PREVIEW,
-    )
+    .evaluate((max: number) => (document.body?.innerText || "").slice(0, max), MAX_TEXT_PREVIEW)
     .catch(() => "");
 
   const lines: string[] = [];

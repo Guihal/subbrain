@@ -1,12 +1,5 @@
-import {
-  describe,
-  test,
-  expect,
-  beforeEach,
-  afterEach,
-  spyOn,
-} from "bun:test";
 import { Database } from "bun:sqlite";
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import { existsSync, unlinkSync } from "node:fs";
 import { MemoryDB } from "../src/db";
 import { Logger } from "../src/lib/logger";
@@ -49,21 +42,21 @@ describe("MED-1: updateRow via allowlist", () => {
 
   test("updateShared: empty patch is a no-op (no UPDATE)", () => {
     db.insertShared("s2", "cat", "c", "t");
-    const before = db.getShared("s2")!.updated_at;
+    const before = db.getShared("s2")?.updated_at;
     db.updateShared("s2", {});
-    const after = db.getShared("s2")!.updated_at;
+    const after = db.getShared("s2")?.updated_at;
     expect(after).toBe(before);
   });
 
   test("updateArchive / updateContext accept confidence + tags", () => {
     db.insertContext("c1", "title", "content", "t");
     db.updateContext("c1", { title: "t2" });
-    expect(db.getContext("c1")!.title).toBe("t2");
+    expect(db.getContext("c1")?.title).toBe("t2");
 
     // M-12 (mig 15): confidence unified to REAL [0..1] | null.
     db.insertArchive("a1", "T", "c", "t", [], 0.4);
     db.updateArchive("a1", { confidence: 0.9 });
-    expect(db.getArchive("a1")!.confidence).toBe(0.9);
+    expect(db.getArchive("a1")?.confidence).toBe(0.9);
   });
 });
 
@@ -137,7 +130,7 @@ describe("MED-4: logger meta JSON-safe", () => {
 describe("MED-5: sandbox Worker-availability guard", () => {
   test("Worker undefined → sandbox_unavailable", async () => {
     const orig = (globalThis as { Worker?: unknown }).Worker;
-    delete (globalThis as { Worker?: unknown }).Worker;
+    (globalThis as { Worker?: unknown }).Worker = undefined;
     try {
       await expect(executeSandboxed("export default async () => 'x'", "")).rejects.toThrow(
         /sandbox_unavailable/,
@@ -206,11 +199,9 @@ describe("MED-10: migration v3 atomic", () => {
     const again = new Database(MIG_DB);
     const version = again
       .query<{ user_version: number }, []>("PRAGMA user_version")
-      .get()!.user_version;
+      .get()?.user_version;
     expect(version).toBe(2);
-    const row = again
-      .query<{ c: number }, []>("SELECT COUNT(*) AS c FROM layer4_log")
-      .get()!;
+    const row = again.query<{ c: number }, []>("SELECT COUNT(*) AS c FROM layer4_log").get()!;
     expect(row.c).toBe(1);
     again.close();
   });
@@ -237,18 +228,14 @@ describe("MED-11: /v1/logs masks secrets", () => {
       'hello {"api_key":"super-secret","other":"ok"} world',
     );
     const app = logsRoute(db);
-    const masked = await app.handle(
-      new Request("http://localhost/v1/logs?limit=10"),
-    );
+    const masked = await app.handle(new Request("http://localhost/v1/logs?limit=10"));
     const mBody = (await masked.json()) as {
       logs: { content: string }[];
     };
     expect(mBody.logs[0].content).toContain('"api_key":"***"');
     expect(mBody.logs[0].content).not.toContain("super-secret");
 
-    const raw = await app.handle(
-      new Request("http://localhost/v1/logs?limit=10&raw=1"),
-    );
+    const raw = await app.handle(new Request("http://localhost/v1/logs?limit=10&raw=1"));
     const rBody = (await raw.json()) as { logs: { content: string }[] };
     expect(rBody.logs[0].content).toContain("super-secret");
   });

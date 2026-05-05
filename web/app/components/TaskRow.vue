@@ -62,9 +62,7 @@ const isOverdue = computed(
     props.task.status !== "cancelled",
 );
 
-const canAct = computed(
-  () => props.task.status === "open" || props.task.status === "in_progress",
-);
+const canAct = computed(() => props.task.status === "open" || props.task.status === "in_progress");
 </script>
 
 <template>

@@ -9,22 +9,20 @@
  * shared `fetchJson` / `fetchStream` + AbortSignal + ProviderError flow
  * stays in one place.
  */
+
+import { NvidiaProvider, ProviderError } from "./nvidia";
+import { splitThinkTagsOnce, transformThinkTags } from "./think-tag-transform";
 import type {
-  LLMProvider,
   ChatParams,
   ChatResponse,
   EmbedParams,
   EmbedResponse,
+  LLMProvider,
+  Message,
+  ModelInfo,
   RerankParams,
   RerankResponse,
-  ModelInfo,
-  Message,
 } from "./types";
-import { NvidiaProvider, ProviderError } from "./nvidia";
-import {
-  transformThinkTags,
-  splitThinkTagsOnce,
-} from "./think-tag-transform";
 
 interface MiniMaxBaseResp {
   base_resp?: { status_code?: number; status_msg?: string };
@@ -39,12 +37,7 @@ export class MiniMaxProvider implements LLMProvider {
     extraHeaders: Record<string, string> = {},
     maxOutputTokens?: number,
   ) {
-    this.inner = new NvidiaProvider(
-      baseUrl,
-      apiKey,
-      extraHeaders,
-      maxOutputTokens,
-    );
+    this.inner = new NvidiaProvider(baseUrl, apiKey, extraHeaders, maxOutputTokens);
   }
 
   async chat(params: ChatParams): Promise<ChatResponse> {
@@ -129,8 +122,7 @@ export function splitResponseThinkTags(resp: ChatResponse): ChatResponse {
       message: {
         ...c.message,
         content: visible,
-        reasoning_content:
-          (c.message.reasoning_content ?? "") + thinking,
+        reasoning_content: (c.message.reasoning_content ?? "") + thinking,
       },
     };
   });

@@ -20,13 +20,11 @@ export class CodeToolsRepository {
     this.table.insert(id, name, description, code);
   get = (id: string): CodeTool | null => this.table.get(id);
   getByName = (name: string): CodeTool | null => this.table.getByName(name);
-  list = (includeDisabled = false): CodeTool[] =>
-    this.table.list(includeDisabled);
+  list = (includeDisabled = false): CodeTool[] => this.table.list(includeDisabled);
   update = (id: string, description: string, code: string) =>
     this.table.update(id, description, code);
   delete = (name: string): boolean => this.table.delete(name);
   recordSuccess = (name: string) => this.table.recordSuccess(name);
-  recordError = (name: string, errorMsg: string) =>
-    this.table.recordError(name, errorMsg);
+  recordError = (name: string, errorMsg: string) => this.table.recordError(name, errorMsg);
   disable = (name: string) => this.table.disable(name);
 }

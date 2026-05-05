@@ -124,13 +124,8 @@ await test("POST /v1/chat/completions — direct proxy (flash)", async () => {
   assert(res.ok, `Status ${res.status}: ${await res.clone().text()}`);
   const data = await json(res);
   assert(data.choices?.length > 0, "No choices in response");
-  assert(
-    typeof data.choices[0].message.content === "string",
-    "Missing content",
-  );
-  console.log(
-    `    → Model replied: "${data.choices[0].message.content.trim().substring(0, 50)}"`,
-  );
+  assert(typeof data.choices[0].message.content === "string", "Missing content");
+  console.log(`    → Model replied: "${data.choices[0].message.content.trim().substring(0, 50)}"`);
 });
 
 // ─── 4. Pipeline (virtual model with agent pipeline) ──────
@@ -161,10 +156,7 @@ await test("POST /v1/chat/completions — pipeline (flash)", async () => {
   const reqId = res.headers.get("X-Request-Id");
   const sessId = res.headers.get("X-Session-Id");
   assert(reqId !== null && reqId.length > 10, `Missing X-Request-Id: ${reqId}`);
-  assert(
-    sessId !== null && sessId.length > 10,
-    `Missing X-Session-Id: ${sessId}`,
-  );
+  assert(sessId !== null && sessId.length > 10, `Missing X-Session-Id: ${sessId}`);
   console.log(`    → RequestId: ${reqId?.substring(0, 8)}...`);
 });
 
@@ -194,7 +186,7 @@ await test("POST /v1/chat/completions — SSE stream", async () => {
   );
 
   // Read stream and verify SSE format
-  const reader = res.body!.getReader();
+  const reader = res.body?.getReader();
   const decoder = new TextDecoder();
   let fullText = "";
   let chunkCount = 0;
@@ -227,9 +219,7 @@ await test("POST /v1/chat/completions — SSE stream", async () => {
 
   assert(chunkCount > 0, `Expected multiple chunks, got ${chunkCount}`);
   assert(gotDone, "Stream did not end with [DONE]");
-  console.log(
-    `    → Received ${chunkCount} chunks: "${fullText.trim().substring(0, 60)}"`,
-  );
+  console.log(`    → Received ${chunkCount} chunks: "${fullText.trim().substring(0, 60)}"`);
 });
 
 // ─── 6. Embeddings ────────────────────────────────────────
@@ -267,10 +257,7 @@ await test("POST /mcp/tools/list — 12 tools", async () => {
   });
   assert(res.ok, `Status ${res.status}`);
   const data = await json(res);
-  assert(
-    data.tools?.length === 12,
-    `Expected 12 tools, got ${data.tools?.length}`,
-  );
+  assert(data.tools?.length === 12, `Expected 12 tools, got ${data.tools?.length}`);
 });
 
 await test("POST /mcp/tools/call — memory_write + memory_read", async () => {
@@ -290,10 +277,7 @@ await test("POST /mcp/tools/call — memory_write + memory_read", async () => {
   });
   assert(writeRes.ok, `Write failed: ${writeRes.status}`);
   const writeData = await json(writeRes);
-  assert(
-    writeData.success === true,
-    `Write not successful: ${JSON.stringify(writeData)}`,
-  );
+  assert(writeData.success === true, `Write not successful: ${JSON.stringify(writeData)}`);
   assert(writeData.data?.id, `No ID returned: ${JSON.stringify(writeData)}`);
 
   const id = writeData.data.id;
@@ -349,19 +333,12 @@ await test("Metrics reflect real requests", async () => {
   assert(res.ok, `Status ${res.status}`);
   const data = await json(res);
   assert(
-    typeof data.requests.ok === "number" &&
-      typeof data.requests.error === "number",
+    typeof data.requests.ok === "number" && typeof data.requests.error === "number",
     `Expected requests counters, got ${JSON.stringify(data.requests)}`,
   );
-  console.log(
-    `    → Requests OK: ${data.requests.ok}, Errors: ${data.requests.error}`,
-  );
-  console.log(
-    `    → Tokens in: ${data.tokens.total_in}, out: ${data.tokens.total_out}`,
-  );
-  console.log(
-    `    → RPM: ${data.rpm.current}/${data.rpm.current + data.rpm.available}`,
-  );
+  console.log(`    → Requests OK: ${data.requests.ok}, Errors: ${data.requests.error}`);
+  console.log(`    → Tokens in: ${data.tokens.total_in}, out: ${data.tokens.total_out}`);
+  console.log(`    → RPM: ${data.rpm.current}/${data.rpm.current + data.rpm.available}`);
 });
 
 // ─── 10. RPM & health check ──────────────────────────────
@@ -372,9 +349,7 @@ await test("Server still healthy after all tests", async () => {
   assert(res.ok, `Status ${res.status}`);
   const data = await json(res);
   assert(data.status === "ok", "Server not ok");
-  console.log(
-    `    → RPM used: ${data.rpm.currentLoad}, available: ${data.rpm.availableSlots}`,
-  );
+  console.log(`    → RPM used: ${data.rpm.currentLoad}, available: ${data.rpm.availableSlots}`);
 });
 
 // ─── Summary ──────────────────────────────────────────────

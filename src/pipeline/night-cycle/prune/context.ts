@@ -1,7 +1,7 @@
 import type { MemoryDB } from "../../../db";
+import { logger } from "../../../lib/logger";
 import type { ModelRouter } from "../../../lib/model-router";
 import type { RAGPipeline } from "../../../rag";
-import { logger } from "../../../lib/logger";
 import { parseJson } from "../types";
 
 const log = logger.child("night");
@@ -89,14 +89,9 @@ export async function pruneContext(
       }
 
       const idx = typeof parsed.target === "number" ? parsed.target - 1 : -1;
-      const target =
-        idx >= 0 && idx < candidates.length ? candidates[idx] : null;
+      const target = idx >= 0 && idx < candidates.length ? candidates[idx] : null;
 
-      if (
-        parsed.action === "drop_target" &&
-        target &&
-        target.id !== row.id
-      ) {
+      if (parsed.action === "drop_target" && target && target.id !== row.id) {
         memory.transaction(() => {
           memory.deleteContext(target.id);
           memory.deleteEmbedding(target.id);
@@ -127,15 +122,11 @@ export async function pruneContext(
           // best-effort; target keeps old embedding, next cycle re-tries
         }
         pruned++;
-        log.info(
-          `prune_context: merged ${row.id.slice(0, 8)} → ${target.id.slice(0, 8)}`,
-        );
+        log.info(`prune_context: merged ${row.id.slice(0, 8)} → ${target.id.slice(0, 8)}`);
       }
       // "keep" → no-op
     } catch (err) {
-      log.warn(
-        `prune_context: row=${row.id.slice(0, 8)} failed: ${(err as Error).message}`,
-      );
+      log.warn(`prune_context: row=${row.id.slice(0, 8)} failed: ${(err as Error).message}`);
     }
   }
 

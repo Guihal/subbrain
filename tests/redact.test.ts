@@ -1,19 +1,19 @@
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { maskSecrets } from "../src/lib/redact";
 
 describe("maskSecrets", () => {
   test("JSON api_key", () => {
     const out = maskSecrets('{"api_key":"sk-1234567890abcdef"}');
-    expect(out).toContain('***');
-    expect(out).not.toContain('1234567890abcdef');
+    expect(out).toContain("***");
+    expect(out).not.toContain("1234567890abcdef");
   });
 
   test("JSON authorization + Bearer", () => {
     const out = maskSecrets(
       '{"authorization":"Bearer eyJhbGciOiJIUzI1NiJ9.payloadstuff.sigstuff"}',
     );
-    expect(out).not.toContain('eyJhbGciOiJIUzI1NiJ9');
-    expect(out).toContain('***');
+    expect(out).not.toContain("eyJhbGciOiJIUzI1NiJ9");
+    expect(out).toContain("***");
   });
 
   test("kebab-case KV api-key=", () => {
@@ -22,9 +22,7 @@ describe("maskSecrets", () => {
   });
 
   test("standalone Bearer in plain text", () => {
-    const out = maskSecrets(
-      "Response: Authorization: Bearer abcdef1234567890xyz",
-    );
+    const out = maskSecrets("Response: Authorization: Bearer abcdef1234567890xyz");
     expect(out).toContain("Bearer ***");
     expect(out).not.toContain("abcdef1234567890");
   });
@@ -56,16 +54,14 @@ describe("maskSecrets", () => {
   });
 
   test("secret past char 200 still redacted when masked before slice", () => {
-    const payload = "junk ".repeat(50) + "Bearer abcdefghijklmnop1234567890end";
+    const payload = `${"junk ".repeat(50)}Bearer abcdefghijklmnop1234567890end`;
     const masked = maskSecrets(payload);
     expect(masked).toContain("Bearer ***");
     expect(masked).not.toContain("abcdefghijklmnop");
   });
 
   test("perf on 200KB input finishes promptly", () => {
-    const big =
-      "lorem ipsum dolor ".repeat(10_000) +
-      '{"api_key":"sk-tail1234567890"}';
+    const big = `${"lorem ipsum dolor ".repeat(10_000)}{"api_key":"sk-tail1234567890"}`;
     const start = Date.now();
     const out = maskSecrets(big);
     const elapsed = Date.now() - start;

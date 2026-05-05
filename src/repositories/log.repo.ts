@@ -2,14 +2,14 @@
  * LogRepository — PR 27 (LAYER-5). Wraps `LogsTable` (Layer-4 raw_log) and,
  * since M-04 (mig 11), `LogTable` for FTS5-backed episodic search.
  */
-import { Database } from "bun:sqlite";
-import { LogsTable } from "../db/tables/logs";
+import type { Database } from "bun:sqlite";
 import {
   LogTable,
+  type LogVecHydrateRow,
   type SearchLogOpts,
   type UnembeddedLogRow,
-  type LogVecHydrateRow,
 } from "../db/tables/log";
+import { LogsTable } from "../db/tables/logs";
 import type { FtsResult, LogRow, LogStatsRow } from "../db/types";
 
 export class LogRepository {
@@ -50,8 +50,7 @@ export class LogRepository {
    * `memory_log_search` MCP tool and the RAG pipeline `layers: ["log"]`
    * branch.
    */
-  searchLog = (query: string, opts?: SearchLogOpts): FtsResult[] =>
-    this.fts.searchLog(query, opts);
+  searchLog = (query: string, opts?: SearchLogOpts): FtsResult[] => this.fts.searchLog(query, opts);
 
   /**
    * M-04.1: pass-through for the night-cycle `embed-log` step. Returns the
@@ -65,12 +64,10 @@ export class LogRepository {
   countLogEmbeddings = (): number => this.fts.countLogEmbeddings();
 
   /** M-04.1: pass-through. Drops `n` oldest log embeddings (rolling-cap). */
-  evictOldestLogEmbeddings = (n: number): number =>
-    this.fts.evictOldestLogEmbeddings(n);
+  evictOldestLogEmbeddings = (n: number): number => this.fts.evictOldestLogEmbeddings(n);
 
   /** M-04.1: batch-hydrate log rows by id for the RAG vec branch. */
-  hydrateForVec = (ids: string[]): LogVecHydrateRow[] =>
-    this.fts.hydrateForVec(ids);
+  hydrateForVec = (ids: string[]): LogVecHydrateRow[] => this.fts.hydrateForVec(ids);
 
   /** W2-1: per-role aggregates for the `/v1/logs/stats` admin endpoint. */
   statsByRole = (): LogStatsRow[] => this.fts.statsByRole();

@@ -32,9 +32,7 @@ export function buildActiveFilter(
   if (opts?.activeOnly) parts.push(`AND ${alias}.status = 'active'`);
   if (opts?.notStale) {
     parts.push(`AND ${alias}.superseded_by IS NULL`);
-    parts.push(
-      `AND (${alias}.expires_at IS NULL OR ${alias}.expires_at > unixepoch())`,
-    );
+    parts.push(`AND (${alias}.expires_at IS NULL OR ${alias}.expires_at > unixepoch())`);
   }
   return parts.length === 0 ? "" : ` ${parts.join(" ")}`;
 }

@@ -1,10 +1,5 @@
-import {
-  WINDOW_MS,
-  type MetricsState,
-  type MetricsSnapshot,
-  type StatsProvider,
-} from "./types";
 import { percentile } from "./percentile";
+import { type MetricsSnapshot, type MetricsState, type StatsProvider, WINDOW_MS } from "./types";
 
 export function buildSnapshot(
   state: MetricsState,
@@ -42,10 +37,7 @@ export function buildSnapshot(
 
   // Per-stage latency
   const stages = ["pre", "main", "post", "embed", "rerank"] as const;
-  const latencyByStage: Record<
-    string,
-    { p50: number; p95: number; count: number }
-  > = {};
+  const latencyByStage: Record<string, { p50: number; p95: number; count: number }> = {};
   for (const stage of stages) {
     const ms = state.latencies
       .filter((l) => l.stage === stage && l.ts > cutoff)
@@ -75,8 +67,7 @@ export function buildSnapshot(
       requests: mc.requests,
       tokensIn: mc.tokensIn,
       tokensOut: mc.tokensOut,
-      avgLatencyMs:
-        mc.requests > 0 ? Math.round(mc.totalLatencyMs / mc.requests) : 0,
+      avgLatencyMs: mc.requests > 0 ? Math.round(mc.totalLatencyMs / mc.requests) : 0,
     };
   }
 

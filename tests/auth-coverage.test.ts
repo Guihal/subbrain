@@ -18,24 +18,13 @@
  *   10. GET  /                                 (no auth)  → 200
  */
 
-import {
-  describe,
-  test,
-  expect,
-  afterAll,
-} from "bun:test";
-import {
-  existsSync,
-  mkdirSync,
-  unlinkSync,
-  writeFileSync,
-  readFileSync,
-} from "fs";
+import { afterAll, describe, expect, test } from "bun:test";
+import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
+import { createApp } from "../src/app/bootstrap";
+import type { AppConfig, AppDeps } from "../src/app/deps";
 import { MemoryDB } from "../src/db";
 import { Metrics } from "../src/lib/metrics";
 import { AuthService } from "../src/services/auth.service";
-import { createApp } from "../src/app/bootstrap";
-import type { AppDeps, AppConfig } from "../src/app/deps";
 import type { TelegramBot } from "../src/telegram";
 
 const TEST_DB = "data/test-auth-coverage.db";
@@ -76,7 +65,7 @@ function restorePublic() {
   if (createdPublic) {
     try {
       // best-effort; public/ may be re-populated by other tests
-      require("fs").rmdirSync("public");
+      require("node:fs").rmdirSync("public");
     } catch {}
   }
 }
@@ -186,7 +175,7 @@ describe("auth coverage (AUTH-16 / PR 17)", () => {
   // even if `public/index.html` exists. The auth check still fires either
   // way; we use a live fetch so the "GET / → 200" assertion is realistic.
   app.listen(0);
-  const base = `http://localhost:${app.server!.port}`;
+  const base = `http://localhost:${app.server?.port}`;
 
   afterAll(async () => {
     await app.stop();
@@ -194,10 +183,8 @@ describe("auth coverage (AUTH-16 / PR 17)", () => {
     restorePublic();
   });
 
-  const req = (
-    path: string,
-    init: RequestInit & { headers?: Record<string, string> } = {},
-  ) => fetch(`${base}${path}`, init);
+  const req = (path: string, init: RequestInit & { headers?: Record<string, string> } = {}) =>
+    fetch(`${base}${path}`, init);
 
   // ── protected endpoints — no auth → 401 ──────────────────────────────────
 

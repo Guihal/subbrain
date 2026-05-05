@@ -1,15 +1,15 @@
 /**
  * Phase 2 — prompt-blocks/tasks.ts. Pure renderers over MemoryDB.
  */
-import { describe, test, expect, beforeEach, afterEach } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { randomUUID } from "node:crypto";
-import { unlinkSync, existsSync } from "node:fs";
+import { existsSync, unlinkSync } from "node:fs";
 import { MemoryDB } from "../src/db";
 import {
-  SCOPE_VISIBILITY,
+  fmtShortDate,
   renderActiveTasks,
   renderTgStatus,
-  fmtShortDate,
+  SCOPE_VISIBILITY,
   safeTitle,
 } from "../src/pipeline/agent-loop/prompt-blocks/tasks";
 

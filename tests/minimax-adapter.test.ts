@@ -1,11 +1,11 @@
-import { describe, test, expect } from "bun:test";
-import type { Message, ChatResponse } from "../src/providers/types";
+import { describe, expect, test } from "bun:test";
 import {
+  MiniMaxProvider,
   rewrapHistoryForMinimax,
   splitResponseThinkTags,
-  MiniMaxProvider,
 } from "../src/providers/minimax";
 import { ProviderError } from "../src/providers/nvidia";
+import type { ChatResponse, Message } from "../src/providers/types";
 
 describe("rewrapHistoryForMinimax", () => {
   test("preserves non-assistant messages as-is", () => {
@@ -34,9 +34,7 @@ describe("rewrapHistoryForMinimax", () => {
   });
 
   test("handles null content + reasoning_content", () => {
-    const msgs: Message[] = [
-      { role: "assistant", content: null, reasoning_content: "x" },
-    ];
+    const msgs: Message[] = [{ role: "assistant", content: null, reasoning_content: "x" }];
     const out = rewrapHistoryForMinimax(msgs);
     expect(out[0]).toEqual({
       role: "assistant",
@@ -45,9 +43,7 @@ describe("rewrapHistoryForMinimax", () => {
   });
 
   test("assistant without reasoning_content unchanged (except field absence)", () => {
-    const msgs: Message[] = [
-      { role: "assistant", content: "plain" },
-    ];
+    const msgs: Message[] = [{ role: "assistant", content: "plain" }];
     const out = rewrapHistoryForMinimax(msgs);
     expect(out[0]).toEqual({ role: "assistant", content: "plain" });
   });
@@ -58,15 +54,13 @@ describe("rewrapHistoryForMinimax", () => {
         role: "assistant",
         content: "using tool",
         reasoning_content: "plan",
-        tool_calls: [
-          { id: "c1", type: "function", function: { name: "x", arguments: "{}" } },
-        ],
+        tool_calls: [{ id: "c1", type: "function", function: { name: "x", arguments: "{}" } }],
       },
     ];
     const out = rewrapHistoryForMinimax(msgs);
-    expect(out[0]!.content).toBe("<think>plan</think>\nusing tool");
-    expect(out[0]!.tool_calls).toBeDefined();
-    expect(out[0]!.tool_calls!.length).toBe(1);
+    expect(out[0]?.content).toBe("<think>plan</think>\nusing tool");
+    expect(out[0]?.tool_calls).toBeDefined();
+    expect(out[0]?.tool_calls?.length).toBe(1);
   });
 });
 
@@ -94,25 +88,23 @@ describe("splitResponseThinkTags", () => {
   });
 
   test("splits single block", () => {
-    const out = splitResponseThinkTags(
-      fakeResp("<think>hidden</think>visible"),
-    );
-    expect(out.choices[0]!.message.content).toBe("visible");
-    expect(out.choices[0]!.message.reasoning_content).toBe("hidden");
+    const out = splitResponseThinkTags(fakeResp("<think>hidden</think>visible"));
+    expect(out.choices[0]?.message.content).toBe("visible");
+    expect(out.choices[0]?.message.reasoning_content).toBe("hidden");
   });
 
   test("concatenates with upstream reasoning_content if present", () => {
     const r = fakeResp("<think>b</think>end");
     r.choices[0]!.message.reasoning_content = "a";
     const out = splitResponseThinkTags(r);
-    expect(out.choices[0]!.message.reasoning_content).toBe("ab");
-    expect(out.choices[0]!.message.content).toBe("end");
+    expect(out.choices[0]?.message.reasoning_content).toBe("ab");
+    expect(out.choices[0]?.message.content).toBe("end");
   });
 
   test("whole content is think → visible null, reasoning set", () => {
     const out = splitResponseThinkTags(fakeResp("<think>only</think>"));
-    expect(out.choices[0]!.message.content).toBeNull();
-    expect(out.choices[0]!.message.reasoning_content).toBe("only");
+    expect(out.choices[0]?.message.content).toBeNull();
+    expect(out.choices[0]?.message.reasoning_content).toBe("only");
   });
 });
 
@@ -137,9 +129,9 @@ describe("MiniMaxProvider.chat quota error mapping", () => {
         status_msg: "weekly usage limit reached (15000/15000)",
       },
     });
-    await expect(
-      p.chat({ model: "MiniMax-M2.7", messages: [] }),
-    ).rejects.toBeInstanceOf(ProviderError);
+    await expect(p.chat({ model: "MiniMax-M2.7", messages: [] })).rejects.toBeInstanceOf(
+      ProviderError,
+    );
     try {
       await p.chat({ model: "MiniMax-M2.7", messages: [] });
     } catch (e) {
@@ -173,9 +165,9 @@ describe("MiniMaxProvider.chat quota error mapping", () => {
       model: "MiniMax-M2",
       choices: null,
     });
-    await expect(
-      p.chat({ model: "MiniMax-M2.7", messages: [] }),
-    ).rejects.toBeInstanceOf(ProviderError);
+    await expect(p.chat({ model: "MiniMax-M2.7", messages: [] })).rejects.toBeInstanceOf(
+      ProviderError,
+    );
   });
 
   test("valid response (status_code 0) passes through unchanged", async () => {
@@ -194,6 +186,6 @@ describe("MiniMaxProvider.chat quota error mapping", () => {
       base_resp: { status_code: 0, status_msg: "success" },
     });
     const out = await p.chat({ model: "MiniMax-M2.7", messages: [] });
-    expect(out.choices[0]!.message.content).toBe("ok");
+    expect(out.choices[0]?.message.content).toBe("ok");
   });
 });

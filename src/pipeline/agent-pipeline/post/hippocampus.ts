@@ -1,31 +1,20 @@
 /**
- * Post-processing agentic hippocampus: tool-calling loop that decides what to
- * persist into long-term memory after each user↔assistant exchange.
- *
- * Default model is `coder` (devstral) — `flash` (stepfun) is a reasoning model
- * and does not reliably emit tool_calls, so it cannot be used here.
- *
- * Tool surface:
- *   - memory_search / memory_write — dispatched inline against MemoryDB + RAG.
- *   - task_add — dispatched through ToolRegistry so the rate-limit guard in
- *     tasks.tools.ts is the single source of truth.
- *   - done — terminates the loop.
- *
- * Per-exchange task mutation budget = 3 (add/update/start/done/cancel share
- * the counter). Budget lives in a single `TaskMutationBudget` object passed
- * into every registry.call, so all task_* handlers see the same `remaining`.
+ * Post-processing agentic hippocampus: tool-calling loop for memory persistence.
+ * Default model: `coder` (devstral); `flash` lacks reliable tool_calls.
+ * Tools: memory_search, memory_write, task_add, done.
+ * Per-exchange task mutation budget = 3.
  */
 import type { MemoryDB } from "../../../db";
-import type { ModelRouter } from "../../../lib/model-router";
-import type { RAGPipeline } from "../../../rag";
-import type { Message } from "../../../providers/types";
 import type { RequestLogger } from "../../../lib/logger";
+import type { ModelRouter } from "../../../lib/model-router";
 import type { ToolExecutor } from "../../../mcp";
-import type { ToolRegistry, TaskMutationBudget } from "../../../mcp/registry";
+import type { TaskMutationBudget, ToolRegistry } from "../../../mcp/registry";
+import type { Message } from "../../../providers/types";
+import type { RAGPipeline } from "../../../rag";
 
-import { writeShared, writeContext, type WriteSharedArgs } from "./extractors";
-import { POST_TOOLS } from "./tools";
+import { type WriteSharedArgs, writeContext, writeShared } from "./extractors";
 import { getExtractorPrompt } from "./prompt";
+import { POST_TOOLS } from "./tools";
 
 type ParsedWrite =
   | { ok: true; layer: "shared" | "context"; args: WriteSharedArgs }
@@ -82,12 +71,20 @@ export async function runHippocampus(args: {
   reasoning?: string;
   requestId: string;
   log: RequestLogger;
-  /** B-1: per-agent identity used to scope context-layer reads/writes. */
   agentId: string | null;
 }): Promise<HippocampusStats> {
   const {
-    memory, router, rag, executor, registry,
-    userMessage, assistantText, reasoning, requestId, log, agentId,
+    memory,
+    router,
+    rag,
+    executor,
+    registry,
+    userMessage,
+    assistantText,
+    reasoning,
+    requestId,
+    log,
+    agentId,
   } = args;
 
   const exchangeBlock = [
@@ -102,10 +99,6 @@ export async function runHippocampus(args: {
     .filter(Boolean)
     .join("\n\n");
 
-  // MEM-5 (PR 22a): append a confidence-emission rule to the extractor prompt
-  // without editing prompt.ts (which is shared with other callers). The suffix
-  // makes `confidence` mandatory for every memory_write call and explains the
-  // MEMORY_AUTOACCEPT_CONFIDENCE threshold so the model does not over-claim.
   const confidenceRule = [
     "",
     "## Confidence (обязательно для memory_write)",
@@ -194,11 +187,7 @@ export async function runHippocampus(args: {
           const hits: Record<string, unknown[]> = {};
           if (layer === "all" || layer === "context") {
             // B-1: scope context lookup to current agent (NULL rows visible).
-            hits.context = memory.searchContext(
-              q,
-              limit,
-              agentId ? { agentId } : undefined,
-            );
+            hits.context = memory.searchContext(q, limit, agentId ? { agentId } : undefined);
           }
           if (layer === "all" || layer === "shared") {
             hits.shared = memory.searchShared(q, limit);
@@ -208,7 +197,10 @@ export async function runHippocampus(args: {
         }
         case "memory_write": {
           const parsed = parseMemoryWriteArgs(toolArgs);
-          if (!parsed.ok) { result = JSON.stringify({ ok: false, error: parsed.error }); break; }
+          if (!parsed.ok) {
+            result = JSON.stringify({ ok: false, error: parsed.error });
+            break;
+          }
           const wr =
             parsed.layer === "shared"
               ? await writeShared(memory, rag, router, parsed.args, log)

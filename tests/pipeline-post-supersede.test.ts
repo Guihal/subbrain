@@ -3,16 +3,19 @@
  * Validates supersedes ids exist in same layer + not already superseded;
  * caps at 10.
  */
-import { describe, test, expect, beforeAll, afterAll } from "bun:test";
-import { existsSync, unlinkSync } from "fs";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { existsSync, unlinkSync } from "node:fs";
 import { MemoryDB } from "../src/db";
-import { RAGPipeline } from "../src/rag";
 import { writeContext } from "../src/pipeline/agent-pipeline/post/extractors";
+import { RAGPipeline } from "../src/rag";
 
 const TEST_DB = "data/test-post-supersede.db";
 
 const log = {
-  info: () => {}, warn: () => {}, error: () => {}, debug: () => {},
+  info: () => {},
+  warn: () => {},
+  error: () => {},
+  debug: () => {},
 } as any;
 
 function fakeEmbed(text: string): Float32Array {
@@ -61,7 +64,12 @@ describe("memory_write supersedes (MEM-6)", () => {
       memory,
       rag,
       mkRouter(),
-      { category: "decision", content: "Старый план: vpn через WireGuard", tags: "", confidence: 0.9 },
+      {
+        category: "decision",
+        content: "Старый план: vpn через WireGuard",
+        tags: "",
+        confidence: 0.9,
+      },
       "req-old-1",
       log,
     );
@@ -87,7 +95,7 @@ describe("memory_write supersedes (MEM-6)", () => {
     expect(newId).not.toBe(oldId);
 
     const oldRow = memory.getContext(oldId);
-    expect(oldRow!.superseded_by).toBe(newId);
+    expect(oldRow?.superseded_by).toBe(newId);
   });
 
   test("supersedes referencing non-existent id → reject", async () => {
@@ -115,22 +123,37 @@ describe("memory_write supersedes (MEM-6)", () => {
       rag,
       mkRouter(),
       { category: "decision", content: "first ride 1", tags: "", confidence: 0.9 },
-      "req-1", log,
+      "req-1",
+      log,
     );
     const r2 = await writeContext(
       memory,
       rag,
       mkRouter(),
-      { category: "decision", content: "second ride 2 (replaces first)", tags: "", confidence: 0.9, supersedes: [r1.id!] },
-      "req-2", log,
+      {
+        category: "decision",
+        content: "second ride 2 (replaces first)",
+        tags: "",
+        confidence: 0.9,
+        supersedes: [r1.id!],
+      },
+      "req-2",
+      log,
     );
     expect(r2.ok).toBe(true);
     const r3 = await writeContext(
       memory,
       rag,
       mkRouter(),
-      { category: "decision", content: "third ride 3 attempt to re-supersede", tags: "", confidence: 0.9, supersedes: [r1.id!] },
-      "req-3", log,
+      {
+        category: "decision",
+        content: "third ride 3 attempt to re-supersede",
+        tags: "",
+        confidence: 0.9,
+        supersedes: [r1.id!],
+      },
+      "req-3",
+      log,
     );
     expect(r3.ok).toBe(false);
     expect(r3.error).toMatch(/already superseded/);
@@ -142,8 +165,15 @@ describe("memory_write supersedes (MEM-6)", () => {
       memory,
       rag,
       mkRouter(),
-      { category: "decision", content: "many supersedes", tags: "", confidence: 0.9, supersedes: big },
-      "req-cap", log,
+      {
+        category: "decision",
+        content: "many supersedes",
+        tags: "",
+        confidence: 0.9,
+        supersedes: big,
+      },
+      "req-cap",
+      log,
     );
     expect(r.ok).toBe(false);
     expect(r.error).toMatch(/too large/);

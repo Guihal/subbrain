@@ -13,7 +13,7 @@
  * lines — the newest context is preserved. Embed runs OUTSIDE the tx so a
  * failure just skips that week and retries on the next cycle.
  */
-import { randomUUID } from "crypto";
+import { randomUUID } from "node:crypto";
 import type { MemoryDB } from "../../../db";
 import { logger } from "../../../lib/logger";
 
@@ -44,10 +44,7 @@ interface ExistingDigest {
   content: string;
 }
 
-export async function pruneCompletedTasks(
-  memory: MemoryDB,
-  rag: Embedder,
-): Promise<number> {
+export async function pruneCompletedTasks(memory: MemoryDB, rag: Embedder): Promise<number> {
   const weeks = memory.db
     .query(
       `SELECT strftime('%Y-W%W', completed_at, 'unixepoch') AS week,
@@ -74,8 +71,7 @@ export async function pruneCompletedTasks(
     if (tasks.length === 0) continue;
 
     const freshLines = tasks.map(
-      (t) =>
-        `- [${t.scope}] ${t.title}${t.description ? "\n  " + t.description : ""}`,
+      (t) => `- [${t.scope}] ${t.title}${t.description ? `\n  ${t.description}` : ""}`,
     );
     const fresh = capFromHead(freshLines, tasks.length);
 
@@ -86,17 +82,13 @@ export async function pruneCompletedTasks(
       )
       .get(tag, DIGEST_AGENT_ID) as ExistingDigest | null;
 
-    const combined = existing
-      ? capFromTail(existing.content + "\n" + fresh)
-      : fresh;
+    const combined = existing ? capFromTail(`${existing.content}\n${fresh}`) : fresh;
 
     let vec: Float32Array;
     try {
       vec = await rag.embedContent(combined);
     } catch (err) {
-      log.warn(
-        `embed week=${label} failed, will retry next cycle: ${String(err)}`,
-      );
+      log.warn(`embed week=${label} failed, will retry next cycle: ${String(err)}`);
       continue;
     }
 
@@ -131,9 +123,7 @@ export async function pruneCompletedTasks(
           .run(DONE_AGE_SECONDS, week);
       });
       pruned += tasks.length;
-      log.info(
-        `digest week=${label} ${existing ? "updated" : "created"} items=${tasks.length}`,
-      );
+      log.info(`digest week=${label} ${existing ? "updated" : "created"} items=${tasks.length}`);
     } catch (err) {
       log.warn(`tx week=${label} failed: ${String(err)}`);
     }
@@ -152,8 +142,7 @@ export async function pruneCompletedTasks(
 function capFromHead(lines: string[], total: number): string {
   const full = lines.join("\n");
   if (full.length <= MAX_CONTENT_CHARS) return full;
-  const prefixTemplate = (m: number) =>
-    `Completed ${total} tasks (showing first ${m}):\n`;
+  const prefixTemplate = (m: number) => `Completed ${total} tasks (showing first ${m}):\n`;
   const kept: string[] = [];
   let size = 0;
   for (const line of lines) {
@@ -180,8 +169,7 @@ function capFromTail(content: string): string {
   for (let i = lines.length - 1; i >= 0; i--) {
     const line = lines[i];
     const next = size + line.length + 1;
-    if (next + prefixTemplate(keptReverse.length + 1).length > MAX_CONTENT_CHARS)
-      break;
+    if (next + prefixTemplate(keptReverse.length + 1).length > MAX_CONTENT_CHARS) break;
     keptReverse.push(line);
     size = next;
   }

@@ -1,4 +1,4 @@
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { buildRegistry } from "../src/mcp/registry";
 
 describe("MCP registry smoke", () => {
@@ -53,9 +53,13 @@ describe("MCP registry smoke", () => {
   });
 
   test("unknown tool call returns graceful error, not throw", async () => {
-    const res = await registry.callAsPublic("this_tool_does_not_exist", {}, {
-      executor: {} as any,
-    });
+    const res = await registry.callAsPublic(
+      "this_tool_does_not_exist",
+      {},
+      {
+        executor: {} as any,
+      },
+    );
     expect(res.success).toBe(false);
     expect(res.error).toMatch(/Unknown tool/);
   });

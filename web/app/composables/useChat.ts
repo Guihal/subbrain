@@ -1,5 +1,5 @@
+export type { ModelId, ModelItem } from "./useChatMode";
 export type { Chat, ChatMessage, HealthData } from "./useChatState";
-export type { ModelItem, ModelId } from "./useChatMode";
 
 import type { HealthData } from "./useChatState";
 

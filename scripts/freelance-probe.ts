@@ -5,11 +5,11 @@
  *   bun run scripts/freelance-probe.ts          # probe + print
  *   bun run scripts/freelance-probe.ts --save   # also save tests/fixtures/freelance/<source>-real.txt
  */
-import { writeFileSync } from "fs";
+import { writeFileSync } from "node:fs";
+import type { FreelanceSource } from "../src/db";
 import { PlaywrightClient } from "../src/mcp";
 import { pageSnapshot } from "../src/mcp/snapshot";
 import { parseFor } from "../src/scheduler/freelance/parsers";
-import type { FreelanceSource } from "../src/db/types";
 
 const FEED_URLS: Record<FreelanceSource, string> = {
   "fl.ru": "https://www.fl.ru/projects/",
@@ -33,13 +33,12 @@ async function main() {
           timeout: 30_000,
         });
         console.log(`HTTP ${resp?.status() ?? "?"}`);
-        await page
-          .waitForLoadState("networkidle", { timeout: 5_000 })
-          .catch(() => {});
+        await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => {});
         const snap = await pageSnapshot(page);
-        const looksBlocked = /captcha|cf-challenge|just a moment|access denied|too many requests|проверьте.*робот/i.test(
-          snap,
-        );
+        const looksBlocked =
+          /captcha|cf-challenge|just a moment|access denied|too many requests|проверьте.*робот/i.test(
+            snap,
+          );
         console.log(`snapshot length: ${snap.length} chars`);
         console.log(`anti-bot markers: ${looksBlocked ? "YES" : "no"}`);
         const items = parseFor(source, snap);

@@ -26,7 +26,7 @@ Before editing `src/`, `web/app/`, `scripts/`, `tests/` — invoke the `subbrain
 5. **SSE:** `: ping\n\n` every 5s, `idleTimeout:255`. `wrapStreamForChat` honors `isClosed` — no DB writes after cancel. SSE chunk parsing = `providers/sse-parser.ts` (no reimplementation).
 6. **DB:** insert + embed/index wrapped in `db.transaction()`. Batch lookups `WHERE id IN (?,?,…)`. FTS input → `sanitizeFtsQuery`. Migrations in `db.transaction()` + per-statement `.run()`. Mutations via `updateRow(table, ALLOW, id, patch)`.
 7. **HTTP:** all outbound `fetch` via `src/lib/http-client.ts` (`fetchJson`/`fetchStream`). Default 60s, MiniMax streams 180s. No raw `fetch` in new code.
-8. **Validation:** Elysia TypeBox for every route input; `role` via `t.Union([t.Literal(...)])`. Inbound → `normalizeMessages()`. No `(x as any)` / `ctx.router!` — `AgentContext` discriminated union. `ToolResult = {ok:true,data}|{ok:false,error:{code,message}}`.
+8. **Validation:** Elysia TypeBox for every route input; `role` via `t.Union([t.Literal(...)])`. Inbound → `normalizeMessages()`. No `(x as any)` / `ctx.router!` — `AgentContext` discriminated union. `ToolResult = {success:true,data}|{success:false,error:{code,message}|string}` (matches `src/mcp/types.ts`; A2 spec tracks migration to 5-variant `kind` union with `toLegacy()` shim).
 9. **Logger:** `logger.info(stage, message, extra?)` — single-arg call is a bug. Top of module: `const log = logger.child("minimax")`. Meta → `logger.formatForDb`.
 10. **Errors + envelopes:** central `onError` + domain errors (`AppError`, `UpstreamExhaustedError`, `ToolError`, `HttpError`). `{ items, total }` via `lib/api-envelope.ts` (`PaginatedResponse<T>` + `paginate()`). Echoed upstream bodies sliced ≤200 chars + regex-redact secrets.
 11. **Single sources of truth:** virtual roles / embed / rerank — only `lib/model-map.ts`. MCP tools — only `mcp/registry/*.tools.ts` + `mcp/tools/*` domain logic. Tool dispatcher = priority array of resolvers.
@@ -38,6 +38,15 @@ Before editing `src/`, `web/app/`, `scripts/`, `tests/` — invoke the `subbrain
     - 4 known stateful client tools (`overdue_reminder`/`silent_projects_check`/`critical_clients_monitor`/`client_followup_check`) hidden от `agentMode==="scheduled"` через `STATEFUL_CLIENT_CODE_TOOLS` Set в `scheduled-blacklist.ts`. Расширять список при появлении новых stateful tools.
     - `tg_send_message` blocks scheduled runs пока `layer1_focus.no_repetitive_tg_spam` non-empty AND set ≤7d ago (`telegram-spam-gate.ts`). Interactive runs bypass — у юзера прямой контроль. Override scheduled = `deleteFocus("no_repetitive_tg_spam")`.
     - **Никогда** не embed dynamic facts (status, deadlines, names, chat_ids) как const'ы в code-tool body — pass через `input` или query memory/tg_read_chat в runtime.
+
+## Parallel agent cap (HARD)
+
+**Максимум 3 параллельных subagent'а** (Agent tool / TeamCreate). Я parent = 4-й, итого max 4 active. Применяется к kimi-team swarm, critic waves, dispatch-task-subagent, codex parallel.
+
+- Перед dispatch: `current_active + N ≤ 3`. Иначе батчить.
+- Active = spawned + не idle с final message. TaskList items не считаются.
+- Heartbeat cron — не subagent.
+- Override только при явном `можно больше N` от юзера.
 
 ## Common commands
 
@@ -73,8 +82,8 @@ Docker: `docker compose build && docker compose up -d`. **Never `docker compose 
   - **In-process** (primary): fires daily at `NIGHT_CYCLE_HOUR_UTC` (default `3` = 03:00 UTC). On startup, checks `night_cycle_last_processed_id` vs. current log count; if backlog ≥ `NIGHT_CYCLE_BACKLOG_TRIGGER` (default 10 — aggressive: favour fresh compression over token savings), runs a catch-up 2 min after boot. Disable with `NIGHT_CYCLE_SCHEDULER=false`.
   - **System cron** (safety net): `scripts/install-cron.sh` installs `0 3 * * * curl .../night-cycle` on the VPS. Harmless duplicate — if in-process fires first, cron's request gets a `409 already_running`. Cron log: `/var/log/subbrain-night-cycle.log`.
   - **Manual trigger:** `ssh root@109.120.187.244 'curl -X POST http://127.0.0.1:4000/night-cycle'`. Status: `curl http://127.0.0.1:4000/night-cycle/status`.
-  - **Post-processing extractor model:** `POST_EXTRACTOR_MODEL` env selects the virtual role used for agentic fact extraction after each chat/agent exchange (default `memory` — MiniMax-M2.7 via dedicated minimax provider since 2026-04-28; previously gpt-5.1 via cliproxy until ChatGPT Plus quota cooldown; previously `coder`/devstral-2; `flash` did not emit `tool_calls` in prod).
-  - **Night-cycle step model:** `NIGHT_CYCLE_MODEL` env selects the role used for PII-scrub / translate / compress / verify / dedup inside the cycle (default `memory` — same MiniMax shape since 2026-04-28; previously gpt-5.1+MiniMax; previously `coder`; `flash`/stepfun was a reasoning model and spent ~25s/call on thinking, making a full cycle take 7+ hours).
+  - **Post-processing extractor model:** `POST_EXTRACTOR_MODEL` env selects the virtual role used for agentic fact extraction after each chat/agent exchange (default `memory` — DeepSeek V4 Flash via NIM since 2026-05-04, fast tool-calls verified; previously MiniMax-M2.7; previously gpt-5.1 via cliproxy; previously `coder`/devstral-2; `flash`/stepfun did not emit `tool_calls` in prod).
+  - **Night-cycle step model:** `NIGHT_CYCLE_MODEL` env selects the role used for PII-scrub / translate / compress / verify / dedup inside the cycle (default `memory` — same DeepSeek V4 Flash shape since 2026-05-04, 1M ctx headroom для batch; previously MiniMax-M2.7; previously gpt-5.1+MiniMax; previously `coder`; `flash`/stepfun spent ~25s/call on thinking, making a full cycle take 7+ hours).
 
 ## Architecture: things you can't see from one file
 
@@ -91,13 +100,14 @@ Inbound messages from any route go through `normalizeMessages()` in `src/lib/mes
 
 `src/lib/model-map.ts` is the single source of truth: `teamlead`, `coder`, `critic`, `generalist`, `flash`, `chaos`, `memory` resolve to real model IDs + provider + fallback. `GET /v1/models` is generated from this map. **Never hardcode a model ID elsewhere** — change the map.
 
-**Per-role NIM swap 2026-05-03** — differentiated primaries across the NVIDIA NIM preview pool (shared 40 RPM cap, MiniMax fallback везде):
-- `teamlead` → `moonshotai/kimi-k2-thinking` (1T MoE / 32B active, 256K ctx, 200-300 sequential tool-calls)
-- `coder` → `qwen/qwen3-coder-480b-a35b-instruct` (SWE-Bench Verified ~73, fallback `mistralai/devstral-2-123b-instruct-2512`)
-- `critic` → `z-ai/glm-4.7` (HumanEval 94.2 + LiveCodeBench 84.9, fallback k2-thinking)
-- `flash` → `meta/llama-4-maverick-17b-128e-instruct` (tool-calls работают, в отличие от прошлого stepfun reasoning-only flash)
-- `chaos` → `moonshotai/kimi-k2-thinking` (creative + Opus-flavored; same model as teamlead, differentiation через persona)
-- `generalist`, `memory` → `MiniMax-M2.7` (без изменений — broad-purpose + hippocampus tool-call reliability)
+**Per-role NIM swap 2026-05-04** — differentiated primaries across the NVIDIA NIM free-tier pool (shared 40 RPM cap, MiniMax fallback везде). Pre-deprecation rotation: kimi-k2-thinking (10d), devstral-2 (9d), glm-4.7 deprioritized. v4-pro listed но hosted endpoint мёртвый (180s timeout) — не использовать:
+- `teamlead` → `z-ai/glm-5.1` (754B MoE / 131K ctx; SWE-Bench Pro 58.4, Terminal-Bench 69, MCP-Atlas 71.8, BrowseComp 79.3). ⚠️ **TTFT 20-30s cold** — vLLM warmup на GB200. Default http-client 60s timeout достаточно для warm, но первый запрос за день может щекотать. Streams через MiniMax-180s exception path.
+- `coder` → `deepseek-ai/deepseek-v4-flash` (284B MoE / 1M ctx, fast tool-calls, fallback `qwen/qwen3-coder-480b-a35b-instruct` SWE specialty Verified ~73)
+- `critic` → `z-ai/glm-5.1` (strict win over 4.7 на reasoning + coding, тот же endpoint)
+- `flash` → `meta/llama-4-maverick-17b-128e-instruct` (без изменений — tool-calls работают, light helper)
+- `chaos` → `moonshotai/kimi-k2.6` (1T MoE multimodal, наследник k2-thinking; long-horizon coding + agentic tool use)
+- `generalist` → `nvidia/llama-3.3-nemotron-super-49b-v1.5` (49B dense, NVIDIA-tuned reasoning + tool-call, без MoE-routing-перегруза)
+- `memory` → `deepseek-ai/deepseek-v4-flash` (fast tool-calls verified — low overhead на post-extraction после каждого exchange; 1M ctx запас для night-cycle batch)
 
 `memory` (added 2026-04-25) is dedicated to hippocampus + night-cycle; `generalist` is the broad-purpose default for `dynamic_tools` (`create_tool`). NVIDIA NIM also serves embed + rerank. **`detectProvider` default = `nvidia`** (since 2026-05-03) — раньше был openrouter; других провайдеров пока не подключаем. OpenRouter only при explicit `openrouter/` prefix или `:free` suffix; raw `claude-*`/`gpt-*`/`gemini-*` пойдут в NIM и упадут с 404 — намеренно.
 
@@ -130,7 +140,7 @@ Every tool is declared **once** in `src/mcp/registry/` and reused across REST (`
 
 ### Agentic post-processing (hippocampus)
 
-After **every** chat exchange (user message + assistant reply), `src/pipeline/agent-pipeline/post/hippocampus.ts` (orchestrated by `phases/post.ts:runPost`) runs a small agent loop (`model = POST_EXTRACTOR_MODEL`, default `memory` since 2026-04-25 = gpt-5.1+MiniMax) with three tools: `memory_search`, `memory_write`, `done`. Cap: `MAX_HIPPO_STEPS = 5`. Gate: `post/gate.ts:shouldRunHippocampus` skips if `userMessage.length + assistantText.length < MIN_EXTRACTION_LENGTH` (=100). Writers live in `post/extractors.ts` (`writeShared`/`writeContext`).
+After **every** chat exchange (user message + assistant reply), `src/pipeline/agent-pipeline/post/hippocampus.ts` (orchestrated by `phases/post.ts:runPost`) runs a small agent loop (`model = POST_EXTRACTOR_MODEL`, default `memory` = DeepSeek V4 Flash since 2026-05-04) with three tools: `memory_search`, `memory_write`, `done`. Cap: `MAX_HIPPO_STEPS = 5`. Gate: `post/gate.ts:shouldRunHippocampus` skips if `userMessage.length + assistantText.length < MIN_EXTRACTION_LENGTH` (=100). Writers live in `post/extractors.ts` (`writeShared`/`writeContext`).
 
 - `memory_write layer:"shared"` → `memory.insertShared()` (global facts)
 - `memory_write layer:"context"` → `memory.insertContext()` + `rag.indexEntry()` (per-session context, FTS-indexed)

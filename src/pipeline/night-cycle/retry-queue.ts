@@ -16,7 +16,7 @@ export const MAX_RETRY_QUEUE_SIZE = 100;
 export const MAX_PII_ATTEMPTS = (() => {
   const raw = process.env.NIGHT_CYCLE_PII_RETRY_MAX;
   if (!raw) return 3;
-  const n = parseInt(raw, 10);
+  const n = Number.parseInt(raw, 10);
   return Number.isFinite(n) && n > 0 ? n : 3;
 })();
 
@@ -44,21 +44,13 @@ export function parseRetryQueue(raw: string | null): RetryEntry[] {
   }
 }
 
-export function upsertRetry(
-  queue: RetryEntry[],
-  sessionId: string,
-): RetryEntry[] {
+export function upsertRetry(queue: RetryEntry[], sessionId: string): RetryEntry[] {
   const existing = queue.find((e) => e.session_id === sessionId);
   if (existing) {
     existing.attempts += 1;
     return queue;
   }
-  const next = [
-    ...queue,
-    { session_id: sessionId, attempts: 1, first_failed_at: Date.now() },
-  ];
+  const next = [...queue, { session_id: sessionId, attempts: 1, first_failed_at: Date.now() }];
   if (next.length <= MAX_RETRY_QUEUE_SIZE) return next;
-  return next
-    .sort((a, b) => a.first_failed_at - b.first_failed_at)
-    .slice(-MAX_RETRY_QUEUE_SIZE);
+  return next.sort((a, b) => a.first_failed_at - b.first_failed_at).slice(-MAX_RETRY_QUEUE_SIZE);
 }

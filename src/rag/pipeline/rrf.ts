@@ -1,4 +1,4 @@
-import { RRF_K, type RAGResult } from "../types";
+import { type RAGResult, RRF_K } from "../types";
 
 export function dedupeById(results: RAGResult[]): RAGResult[] {
   // M-04: dedupe key is `${layer}:${id}` — log layer ids are stringified

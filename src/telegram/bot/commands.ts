@@ -1,5 +1,5 @@
+import { randomUUID } from "node:crypto";
 import type { Bot } from "grammy";
-import { randomUUID } from "crypto";
 import { MODEL_MAP } from "../../lib/model-map";
 import type { BotState } from "./state";
 import { escapeMarkdown } from "./utils";
@@ -40,10 +40,9 @@ export function registerCommands(bot: Bot, state: BotState): void {
     const roles = Object.keys(MODEL_MAP);
     const current = state.getModel(ctx.chat.id);
     const text = roles.map((r) => `${r === current ? "▸ " : "  "}\`${r}\``).join("\n");
-    await ctx.reply(
-      `Текущая роль: \`${current}\`\n\nДля смены: /model <роль>\n\n${text}`,
-      { parse_mode: "Markdown" },
-    );
+    await ctx.reply(`Текущая роль: \`${current}\`\n\nДля смены: /model <роль>\n\n${text}`, {
+      parse_mode: "Markdown",
+    });
     const arg = ctx.match?.trim();
     if (arg && roles.includes(arg)) {
       state.modelMap.set(ctx.chat.id, arg);

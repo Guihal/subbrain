@@ -1,4 +1,4 @@
-import { Database } from "bun:sqlite";
+import type { Database } from "bun:sqlite";
 import type { EdgeKind, EdgeRow } from "../types";
 
 /**
@@ -36,11 +36,7 @@ export class EdgesTable {
   /**
    * All outbound edges from (srcId, srcLayer). Optionally filter by `kinds`.
    */
-  getEdgesFromSrc(
-    srcId: string,
-    srcLayer: string,
-    kinds?: EdgeKind[],
-  ): EdgeRow[] {
+  getEdgesFromSrc(srcId: string, srcLayer: string, kinds?: EdgeKind[]): EdgeRow[] {
     if (kinds && kinds.length > 0) {
       const placeholders = kinds.map(() => "?").join(",");
       return this.db
@@ -64,11 +60,7 @@ export class EdgesTable {
   /**
    * All inbound edges to (dstId, dstLayer). Optionally filter by `kinds`.
    */
-  getEdgesToDst(
-    dstId: string,
-    dstLayer: string,
-    kinds?: EdgeKind[],
-  ): EdgeRow[] {
+  getEdgesToDst(dstId: string, dstLayer: string, kinds?: EdgeKind[]): EdgeRow[] {
     if (kinds && kinds.length > 0) {
       const placeholders = kinds.map(() => "?").join(",");
       return this.db
@@ -101,10 +93,7 @@ export class EdgesTable {
     depth: 1 | 2 = 1,
     kinds?: EdgeKind[],
   ): { id: string; layer: string; kind: EdgeKind; weight: number }[] {
-    const seen = new Map<
-      string,
-      { id: string; layer: string; kind: EdgeKind; weight: number }
-    >();
+    const seen = new Map<string, { id: string; layer: string; kind: EdgeKind; weight: number }>();
     const seedKey = `${layer}:${id}`;
 
     const expand = (sId: string, sLayer: string): void => {

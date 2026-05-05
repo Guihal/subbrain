@@ -1,14 +1,14 @@
-import { initDeps } from "./app/deps";
 import { createApp } from "./app/bootstrap";
+import { initDeps } from "./app/deps";
 import {
   installAutonomousScheduler,
+  installFreelanceScoutScheduler,
   installNightCycleScheduler,
   installTelegramPoller,
   installTelegramWebhook,
-  installFreelanceScoutScheduler,
 } from "./app/schedulers";
-import { installFreeAgentScheduler } from "./scheduler/free-agent";
 import { registerShutdown } from "./app/shutdown";
+import { installFreeAgentScheduler } from "./scheduler/free-agent";
 
 const deps = await initDeps();
 const { app, nightCycleController } = createApp(deps);
@@ -17,8 +17,6 @@ const { app, nightCycleController } = createApp(deps);
 // connection without producing data for >10s (Bun default), which would
 // otherwise be killed mid-handler with "Empty reply from server".
 app.listen({ port: deps.config.port, idleTimeout: 255 });
-
-console.log(`🧠 Subbrain proxy running on http://localhost:${deps.config.port}`);
 
 const autonomous = installAutonomousScheduler(deps);
 installNightCycleScheduler(deps, nightCycleController);

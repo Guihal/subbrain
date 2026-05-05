@@ -3,21 +3,13 @@
  * `runStreamLoop` via `initAgentLoopContext` / `finalizeAgentRun`; owns only
  * the step-collecting iteration and result shape.
  */
-import type {
-  AgentLoopRequest,
-  AgentLoopStep,
-  AgentLoopResult,
-} from "./types";
-import { executeStep } from "./step";
-import {
-  stepDeps,
-  initAgentLoopContext,
-  finalizeAgentRun,
-  type AgentLoopDeps,
-} from "./shared";
 
-export { runStreamLoop } from "./stream";
+import { type AgentLoopDeps, finalizeAgentRun, initAgentLoopContext, stepDeps } from "./shared";
+import { executeStep } from "./step";
+import type { AgentLoopRequest, AgentLoopResult, AgentLoopStep } from "./types";
+
 export type { AgentLoopDeps } from "./shared";
+export { runStreamLoop } from "./stream";
 
 export async function runLoop(
   deps: AgentLoopDeps,
@@ -37,11 +29,10 @@ export async function runLoop(
     messages,
   } = ctx;
 
-  log.info(
-    "agent-loop",
-    `▶ Starting autonomous loop: "${req.task.slice(0, 100)}"`,
-    { model, meta: { maxSteps, priority, agentMode } },
-  );
+  log.info("agent-loop", `▶ Starting autonomous loop: "${req.task.slice(0, 100)}"`, {
+    model,
+    meta: { maxSteps, priority, agentMode },
+  });
 
   const steps: AgentLoopStep[] = [];
   let finalAnswer = "";
@@ -105,11 +96,10 @@ export async function runLoop(
     finalAnswer = lastContent || "Agent reached max steps without calling done";
   }
 
-  log.info(
-    "agent-loop",
-    `◀ Loop finished: ${steps.length} steps, reason=${stoppedReason}`,
-    { model, meta: { steps: steps.length, reason: stoppedReason } },
-  );
+  log.info("agent-loop", `◀ Loop finished: ${steps.length} steps, reason=${stoppedReason}`, {
+    model,
+    meta: { steps: steps.length, reason: stoppedReason },
+  });
 
   finalizeAgentRun(
     deps,

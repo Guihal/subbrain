@@ -1,12 +1,9 @@
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { paginate } from "../src/lib/api-envelope";
 
 describe("paginate", () => {
   test("default page=1 page_size=20", async () => {
-    const res = await paginate(
-      () => ({ items: [1, 2, 3], total: 100 }),
-      {},
-    );
+    const res = await paginate(() => ({ items: [1, 2, 3], total: 100 }), {});
     expect(res).toEqual({ items: [1, 2, 3], total: 100, page: 1, page_size: 20 });
   });
 

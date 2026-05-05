@@ -1,6 +1,6 @@
-import { describe, test, expect, beforeEach, afterEach } from "bun:test";
-import { collectRequiredProviders, createProviders } from "../src/providers";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { MODEL_MAP } from "../src/lib/model-map";
+import { collectRequiredProviders, createProviders } from "../src/providers";
 
 /**
  * Tests the optional-provider loader:
@@ -81,9 +81,9 @@ describe("createProviders — optional startup", () => {
     expect(providers.minimax).toBeDefined();
     // OpenRouter exists but is a stub that throws on call.
     expect(providers.openrouter).toBeDefined();
-    await expect(
-      providers.openrouter.chat({ model: "x", messages: [] }),
-    ).rejects.toThrow(/not loaded/);
+    await expect(providers.openrouter.chat({ model: "x", messages: [] })).rejects.toThrow(
+      /not loaded/,
+    );
   });
 
   test("fail-fast when a referenced provider is missing its env key", async () => {
@@ -98,9 +98,7 @@ describe("createProviders — optional startup", () => {
       fallbackProvider: "openrouter",
     };
     try {
-      await expect(createProviders()).rejects.toThrow(
-        /OPENROUTER_API_KEY/,
-      );
+      await expect(createProviders()).rejects.toThrow(/OPENROUTER_API_KEY/);
     } finally {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (MODEL_MAP as any).teamlead = originalRoute;
@@ -109,8 +107,6 @@ describe("createProviders — optional startup", () => {
 
   test("fail-fast when NVIDIA env missing", async () => {
     delete process.env.NVIDIA_BASE_URL;
-    await expect(createProviders()).rejects.toThrow(
-      /NVIDIA_BASE_URL and NVIDIA_API_KEY/,
-    );
+    await expect(createProviders()).rejects.toThrow(/NVIDIA_BASE_URL and NVIDIA_API_KEY/);
   });
 });

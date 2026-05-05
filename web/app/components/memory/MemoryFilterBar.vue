@@ -20,9 +20,7 @@ const emit = defineEmits<{
   submit: [];
 }>();
 
-const searchable = computed(() =>
-  ["shared", "context", "archive"].includes(props.active),
-);
+const searchable = computed(() => ["shared", "context", "archive"].includes(props.active));
 </script>
 
 <template>

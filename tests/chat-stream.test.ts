@@ -1,6 +1,6 @@
-import { describe, test, expect } from "bun:test";
-import { wrapStreamForChat } from "../src/routes/chat";
+import { describe, expect, test } from "bun:test";
 import type { MemoryDB } from "../src/db";
+import { wrapStreamForChat } from "../src/routes/chat";
 
 function sseChunk(content: string): Uint8Array {
   const payload = JSON.stringify({
@@ -67,10 +67,7 @@ describe("wrapStreamForChat — HIGH-9 write-after-close guard", () => {
 
   test("normal completion → DB append runs", async () => {
     const mem = mockMemory();
-    const upstream = makeUpstream(
-      [sseChunk("hi"), sseChunk("!")],
-      () => {},
-    );
+    const upstream = makeUpstream([sseChunk("hi"), sseChunk("!")], () => {});
     const wrapped = wrapStreamForChat(upstream, mem, "chat-2", "coder");
     const reader = wrapped.getReader();
 

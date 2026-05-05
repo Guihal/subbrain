@@ -3,13 +3,7 @@
 // hasQ/pageCount, lifecycle. Wraps useTasks() so the page renders against a
 // flat object. Every mutation goes through wrap() → mode-aware reload; errors
 // surface via tasks.error banner.
-import type {
-  CreateBody,
-  HistoryItem,
-  PatchBody,
-  TaskRow,
-  TaskScope,
-} from "~/types/task";
+import type { CreateBody, HistoryItem, PatchBody, TaskRow, TaskScope } from "~/types/task";
 
 export function useTasksPage() {
   const tasks = useTasks();
@@ -25,11 +19,15 @@ export function useTasksPage() {
 
   const showDelete = computed({
     get: () => confirmDelete.value !== null,
-    set: (v) => { if (!v) confirmDelete.value = null; },
+    set: (v) => {
+      if (!v) confirmDelete.value = null;
+    },
   });
   const showCancel = computed({
     get: () => confirmCancel.value !== null,
-    set: (v) => { if (!v) confirmCancel.value = null; },
+    set: (v) => {
+      if (!v) confirmCancel.value = null;
+    },
   });
   const hasQ = computed(() => tasks.filters.value.q.trim() !== "");
   const pageCount = computed(() => {
@@ -49,7 +47,12 @@ export function useTasksPage() {
   }
 
   async function wrap(fn: () => Promise<unknown>): Promise<void> {
-    try { await fn(); await dispatch(); } catch { /* banner */ }
+    try {
+      await fn();
+      await dispatch();
+    } catch {
+      /* banner */
+    }
   }
 
   function switchMode(m: "active" | "history"): void {
@@ -61,33 +64,41 @@ export function useTasksPage() {
     tasks.setFilter("scope", tasks.filters.value.scope === s ? undefined : s);
   }
 
-  function openNew() { editingTask.value = null; showForm.value = true; }
-  function openEdit(task: TaskRow) { editingTask.value = task; showForm.value = true; }
+  function openNew() {
+    editingTask.value = null;
+    showForm.value = true;
+  }
+  function openEdit(task: TaskRow) {
+    editingTask.value = task;
+    showForm.value = true;
+  }
 
   function onSubmit(body: CreateBody | PatchBody, isEdit: boolean) {
     void wrap(async () => {
-      if (isEdit && editingTask.value)
-        await tasks.update(editingTask.value.id, body as PatchBody);
-      else
-        await tasks.create(body as CreateBody);
+      if (isEdit && editingTask.value) await tasks.update(editingTask.value.id, body as PatchBody);
+      else await tasks.create(body as CreateBody);
       showForm.value = false;
       editingTask.value = null;
     });
   }
 
   function doDelete(task: TaskRow) {
-    void wrap(() => tasks.remove(task.id))
-      .finally(() => { confirmDelete.value = null; });
+    void wrap(() => tasks.remove(task.id)).finally(() => {
+      confirmDelete.value = null;
+    });
   }
   function doCancel(task: TaskRow) {
-    void wrap(() => tasks.cancel(task.id))
-      .finally(() => { confirmCancel.value = null; });
+    void wrap(() => tasks.cancel(task.id)).finally(() => {
+      confirmCancel.value = null;
+    });
   }
 
   const handleStart = (task: TaskRow) => wrap(() => tasks.start(task.id));
   const handleDone = (task: TaskRow) => wrap(() => tasks.done(task.id));
 
-  onMounted(() => { void dispatch(); });
+  onMounted(() => {
+    void dispatch();
+  });
 
   watch(
     () => [
@@ -101,10 +112,26 @@ export function useTasksPage() {
   );
 
   return {
-    tasks, sidebarOpen, mode, historyItems,
-    showForm, editingTask, confirmDelete, confirmCancel,
-    showDelete, showCancel, hasQ, pageCount,
-    switchMode, toggleScope, openNew, openEdit,
-    onSubmit, doDelete, doCancel, handleStart, handleDone,
+    tasks,
+    sidebarOpen,
+    mode,
+    historyItems,
+    showForm,
+    editingTask,
+    confirmDelete,
+    confirmCancel,
+    showDelete,
+    showCancel,
+    hasQ,
+    pageCount,
+    switchMode,
+    toggleScope,
+    openNew,
+    openEdit,
+    onSubmit,
+    doDelete,
+    doCancel,
+    handleStart,
+    handleDone,
   };
 }

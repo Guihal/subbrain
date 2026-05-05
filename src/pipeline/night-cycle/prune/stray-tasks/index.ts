@@ -21,23 +21,16 @@ import { fetchCandidates } from "./fetch";
 
 export { LAST_RUN_FOCUS_KEY } from "./constants";
 
-export async function collectStrayTasks(
-  memory: MemoryDB,
-  router: Classifier,
-): Promise<number> {
+export async function collectStrayTasks(memory: MemoryDB, router: Classifier): Promise<number> {
   const now = Math.floor(Date.now() / 1000);
   const lastRunRaw = memory.getFocus(LAST_RUN_FOCUS_KEY);
-  const lastRun = lastRunRaw ? parseInt(lastRunRaw, 10) : NaN;
+  const lastRun = lastRunRaw ? Number.parseInt(lastRunRaw, 10) : Number.NaN;
   const windowStart = Number.isFinite(lastRun)
     ? Math.max(now - MAX_WINDOW_SECONDS, lastRun)
     : now - MAX_WINDOW_SECONDS;
 
   const candidates = fetchCandidates(memory, windowStart);
-  const { migrated, capHit } = await classifyAndUpsert(
-    memory,
-    router,
-    candidates,
-  );
+  const { migrated, capHit } = await classifyAndUpsert(memory, router, candidates);
 
   // Only advance the window when every candidate has been examined. If we
   // hit the per-cycle or time cap, leave lastRun untouched so the skipped

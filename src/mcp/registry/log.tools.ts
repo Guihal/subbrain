@@ -1,7 +1,7 @@
 /**
  * Raw log (Layer 4) + history compression.
  */
-import { t, type ToolRegistry } from "./tool-registry";
+import { type ToolRegistry, t } from "./tool-registry";
 
 export function registerLogTools(registry: ToolRegistry): void {
   registry.register({
@@ -62,7 +62,6 @@ export function registerLogTools(registry: ToolRegistry): void {
         }),
       ),
     }),
-    handler: (args, ctx) =>
-      ctx.executor.logTools.compressHistory(args.messages),
+    handler: (args, ctx) => ctx.executor.logTools.compressHistory(args.messages),
   });
 }

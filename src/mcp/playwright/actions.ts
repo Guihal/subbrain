@@ -1,7 +1,7 @@
 /// <reference lib="dom" />
 import type { Page } from "playwright";
 import { pageSnapshot } from "../snapshot";
-import { ACTION_TIMEOUT_MS, NAV_TIMEOUT_MS, cssEscape } from "./lifecycle";
+import { ACTION_TIMEOUT_MS, cssEscape, NAV_TIMEOUT_MS } from "./lifecycle";
 
 export function snapshot(page: Page): Promise<string> {
   return pageSnapshot(page);
@@ -23,7 +23,12 @@ export async function click(page: Page, ref: string): Promise<string> {
   return snapshot(page);
 }
 
-export async function type(page: Page, ref: string, text: string, submit: boolean): Promise<string> {
+export async function type(
+  page: Page,
+  ref: string,
+  text: string,
+  submit: boolean,
+): Promise<string> {
   if (!ref) return JSON.stringify({ error: "ref required" });
   const sel = `[data-pw-ref="${cssEscape(ref)}"]`;
   await page.fill(sel, text, { timeout: ACTION_TIMEOUT_MS });

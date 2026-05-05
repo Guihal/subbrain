@@ -19,14 +19,7 @@ export class LogTools {
     content: string,
     tokenCount?: number,
   ): ToolResult {
-    const id = this.memory.appendLog(
-      requestId,
-      sessionId,
-      agentId,
-      role,
-      content,
-      tokenCount,
-    );
+    const id = this.memory.appendLog(requestId, sessionId, agentId, role, content, tokenCount);
     return { success: true, data: { id } };
   }
 
@@ -43,9 +36,7 @@ export class LogTools {
     return { success: false, error: "session_id or request_id required" };
   }
 
-  async compressHistory(
-    messages: { role: string; content: string }[],
-  ): Promise<ToolResult> {
+  async compressHistory(messages: { role: string; content: string }[]): Promise<ToolResult> {
     const result = await this.router.chat(
       "flash",
       {
@@ -57,9 +48,7 @@ export class LogTools {
           },
           {
             role: "user",
-            content: messages
-              .map((m) => `**${m.role}:** ${m.content}`)
-              .join("\n\n"),
+            content: messages.map((m) => `**${m.role}:** ${m.content}`).join("\n\n"),
           },
         ],
         max_tokens: 2048,

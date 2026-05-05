@@ -3,14 +3,14 @@
  * Shared-layer logic (embed-first transactional + service delegate path)
  * lives in `./write-shared.ts` (M-FINAL2 / MEM-2 / M-07.1).
  */
-import { randomUUID } from "crypto";
+import { randomUUID } from "node:crypto";
 import type { MemoryDB } from "../../../db";
 import type { RAGPipeline } from "../../../rag";
 import type { MemoryService } from "../../../services/memory";
 import type { ToolResult } from "../../types";
-import { writeShared } from "./write-shared";
-import { writeContextCase } from "./write-context";
 import { writeArchiveCase } from "./write-archive";
+import { writeContextCase } from "./write-context";
+import { writeShared } from "./write-shared";
 
 export interface WriteDeps {
   memory: MemoryDB;
@@ -55,8 +55,7 @@ export function writeMemory(
 
   switch (params.layer) {
     case "focus":
-      if (!params.key)
-        return { success: false, error: "key required for focus layer" };
+      if (!params.key) return { success: false, error: "key required for focus layer" };
       deps.memory.setFocus(params.key, params.content);
       return { success: true, data: { key: params.key } };
 
@@ -126,9 +125,10 @@ export function writeMemory(
  * registry validator rejects strings, so only direct test callers reach it.
  * M-12 (mig 15): archive now stores REAL [0..1] like shared/context.
  */
-function classifyConfidence(
-  raw: number | "HIGH" | "LOW" | undefined,
-): { confidence: number; status: "active" | "pending" } {
+function classifyConfidence(raw: number | "HIGH" | "LOW" | undefined): {
+  confidence: number;
+  status: "active" | "pending";
+} {
   const THRESHOLD = Number(process.env.MEMORY_AUTOACCEPT_CONFIDENCE ?? 0.8);
   let numeric: number;
   if (typeof raw === "number") numeric = raw;

@@ -2,11 +2,11 @@
  * Tests for tool-runner handler registry (src/pipeline/agent-loop/tool-runner.ts).
  * Focuses on: URL validation, handler dispatch, unknown tool handling.
  */
-import { describe, test, expect, beforeAll, afterAll } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { existsSync, unlinkSync } from "node:fs";
 import { MemoryDB } from "../src/db";
 import { ToolExecutor } from "../src/mcp/executor";
 import { buildRegistry, type ToolRegistry } from "../src/mcp/registry";
-import { existsSync, unlinkSync } from "fs";
 
 const DB_PATH = "data/test-tool-runner.db";
 let db: MemoryDB;
@@ -90,12 +90,20 @@ afterAll(() => {
 
 describe("web_navigate URL validation", () => {
   test("rejects file:// URLs", async () => {
-    const r = await executeAgentTool(tc("web_navigate", { url: "file:///etc/passwd" }), deps(), mockLog);
+    const r = await executeAgentTool(
+      tc("web_navigate", { url: "file:///etc/passwd" }),
+      deps(),
+      mockLog,
+    );
     expect(r).toContain("Only http:// and https:// URLs are allowed");
   });
 
   test("rejects javascript: URLs", async () => {
-    const r = await executeAgentTool(tc("web_navigate", { url: "javascript:alert(1)" }), deps(), mockLog);
+    const r = await executeAgentTool(
+      tc("web_navigate", { url: "javascript:alert(1)" }),
+      deps(),
+      mockLog,
+    );
     expect(r).toContain("Only http://");
   });
 
@@ -105,18 +113,30 @@ describe("web_navigate URL validation", () => {
   });
 
   test("rejects data: URLs", async () => {
-    const r = await executeAgentTool(tc("web_navigate", { url: "data:text/html,<h1>x</h1>" }), deps(), mockLog);
+    const r = await executeAgentTool(
+      tc("web_navigate", { url: "data:text/html,<h1>x</h1>" }),
+      deps(),
+      mockLog,
+    );
     expect(r).toContain("Only http://");
   });
 
   test("allows https:// URLs (passes URL check)", async () => {
-    const r = await executeAgentTool(tc("web_navigate", { url: "https://example.com" }), deps(), mockLog);
+    const r = await executeAgentTool(
+      tc("web_navigate", { url: "https://example.com" }),
+      deps(),
+      mockLog,
+    );
     // URL validation passes — Playwright not configured produces a different error
     expect(r).not.toContain("Only http://");
   });
 
   test("allows http:// URLs", async () => {
-    const r = await executeAgentTool(tc("web_navigate", { url: "http://localhost:3000" }), deps(), mockLog);
+    const r = await executeAgentTool(
+      tc("web_navigate", { url: "http://localhost:3000" }),
+      deps(),
+      mockLog,
+    );
     expect(r).not.toContain("Only http://");
   });
 });
@@ -143,14 +163,24 @@ describe("tool-runner handler dispatch", () => {
       tags: "runtime",
     });
 
-    const r = await executeAgentTool(tc("memory_search", { query: "bun runtime", layer: "context" }), deps(), mockLog);
+    const r = await executeAgentTool(
+      tc("memory_search", { query: "bun runtime", layer: "context" }),
+      deps(),
+      mockLog,
+    );
     const parsed = JSON.parse(r);
     expect(parsed.success).toBe(true);
   });
 
   test("memory_write succeeds", async () => {
     const r = await executeAgentTool(
-      tc("memory_write", { layer: "context", id: "runner-write-001", title: "Test", content: "content", tags: "" }),
+      tc("memory_write", {
+        layer: "context",
+        id: "runner-write-001",
+        title: "Test",
+        content: "content",
+        tags: "",
+      }),
       deps(),
       mockLog,
     );
@@ -201,9 +231,7 @@ describe("tool-runner per-scope timeouts", () => {
     const hangDyn = {
       ...mockDynamicTools,
       get: (n: string) =>
-        n === "memory_hang"
-          ? { name: "memory_hang", model: "coder", promptTemplate: "" }
-          : null,
+        n === "memory_hang" ? { name: "memory_hang", model: "coder", promptTemplate: "" } : null,
     } as any;
     const t0 = Date.now();
     const r = await executeAgentTool(

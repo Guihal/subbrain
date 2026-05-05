@@ -1,57 +1,47 @@
-import { Database } from "bun:sqlite";
-import { openDatabase, migrate } from "./schema";
-import { TasksTable, type UpsertResult } from "./tables/tasks";
-import { SchedulerStateTable } from "./tables/scheduler-state";
-import { MemoryRepository } from "../repositories/memory";
+import type { Database } from "bun:sqlite";
 import { ChatRepository } from "../repositories/chat.repo";
-import { LogRepository } from "../repositories/log.repo";
-import { TelegramRepository } from "../repositories/telegram.repo";
-import { FreelanceRepository } from "../repositories/freelance.repo";
 import { EdgeRepository } from "../repositories/edges.repo";
-import type {
-  TgMessageInsert,
-  TgSearchOpts,
-} from "./tables/tg-messages";
-import type {
-  FreelanceSource,
-  FreelanceStatus,
-  TaskScope,
-  TaskStatus,
-} from "./types";
+import { FreelanceRepository } from "../repositories/freelance.repo";
+import { LogRepository } from "../repositories/log.repo";
+import { MemoryRepository } from "../repositories/memory";
+import { TelegramRepository } from "../repositories/telegram.repo";
+import { migrate, openDatabase } from "./schema";
+import { SchedulerStateTable } from "./tables/scheduler-state";
+import { TasksTable, type UpsertResult } from "./tables/tasks";
+import type { TgMessageInsert, TgSearchOpts } from "./tables/tg-messages";
+import type { FreelanceSource, FreelanceStatus, TaskScope, TaskStatus } from "./types";
 
+export { EdgeRepository } from "../repositories/edges.repo";
+
+export { EdgesTable } from "./tables/edges";
+export { InvalidTransitionError } from "./tables/task-transitions";
+export type { UpsertResult } from "./tables/tasks";
+export type { TgMessageInsert, TgSearchOpts } from "./tables/tg-messages";
 export type {
-  ContextRow,
-  ArchiveRow,
-  LogRow,
-  SharedRow,
   AgentMemRow,
-  FtsResult,
-  VecResult,
-  ChatRow,
+  ArchiveRow,
   ChatMessageRow,
-  TgExcludedChatRow,
-  TgMessageRow,
-  TgSearchHit,
+  ChatRow,
+  ContextRow,
+  EdgeKind,
+  EdgeRow,
   FreelanceLeadRow,
   FreelanceSource,
   FreelanceStatus,
+  FtsResult,
+  LogRow,
+  MemoryKind,
+  MemoryStatus,
+  SchedulerStateRow,
+  SharedRow,
   TaskRow,
   TaskScope,
   TaskStatus,
-  SchedulerStateRow,
-  MemoryStatus,
-  MemoryKind,
-  EdgeKind,
-  EdgeRow,
+  TgExcludedChatRow,
+  TgMessageRow,
+  TgSearchHit,
+  VecResult,
 } from "./types";
-
-export { EdgesTable } from "./tables/edges";
-export { EdgeRepository } from "../repositories/edges.repo";
-
-export { InvalidTransitionError } from "./tables/task-transitions";
-export type { UpsertResult } from "./tables/tasks";
-
-export type { TgMessageInsert, TgSearchOpts } from "./tables/tg-messages";
 
 /**
  * MemoryDB — PR 27 (LAYER-5). Kept as a thin facade: all memory/chat/log/
@@ -113,8 +103,7 @@ export class MemoryDB {
 
   // ─── Layer 1 shadow (M-11, mig 16) ─────────────────────────
   getShadowFocus = (key: string) => this.memoryRepo.getShadowFocus(key);
-  setShadowFocus = (key: string, value: string) =>
-    this.memoryRepo.setShadowFocus(key, value);
+  setShadowFocus = (key: string, value: string) => this.memoryRepo.setShadowFocus(key, value);
   getAllShadowFocus = () => this.memoryRepo.getAllShadowFocus();
   clearShadowFocus = () => this.memoryRepo.clearShadowFocus();
   selectTopSharedForFocusRewrite = (limit: number) =>
@@ -159,13 +148,31 @@ export class MemoryDB {
   getAllContext = () => this.memoryRepo.getAllContext();
   /** PR-B janitor Phase A: delete expired rows in bulk. COUNT-before avoids FTS shadow-table inflating .changes. */
   deleteExpiredShared(nowSec: number): number {
-    const c = (this.db.query("SELECT COUNT(*) as c FROM shared_memory WHERE expires_at IS NOT NULL AND expires_at < ?").get(nowSec) as { c: number }).c;
-    if (c > 0) this.db.query("DELETE FROM shared_memory WHERE expires_at IS NOT NULL AND expires_at < ?").run(nowSec);
+    const c = (
+      this.db
+        .query(
+          "SELECT COUNT(*) as c FROM shared_memory WHERE expires_at IS NOT NULL AND expires_at < ?",
+        )
+        .get(nowSec) as { c: number }
+    ).c;
+    if (c > 0)
+      this.db
+        .query("DELETE FROM shared_memory WHERE expires_at IS NOT NULL AND expires_at < ?")
+        .run(nowSec);
     return c;
   }
   deleteExpiredContext(nowSec: number): number {
-    const c = (this.db.query("SELECT COUNT(*) as c FROM layer2_context WHERE expires_at IS NOT NULL AND expires_at < ?").get(nowSec) as { c: number }).c;
-    if (c > 0) this.db.query("DELETE FROM layer2_context WHERE expires_at IS NOT NULL AND expires_at < ?").run(nowSec);
+    const c = (
+      this.db
+        .query(
+          "SELECT COUNT(*) as c FROM layer2_context WHERE expires_at IS NOT NULL AND expires_at < ?",
+        )
+        .get(nowSec) as { c: number }
+    ).c;
+    if (c > 0)
+      this.db
+        .query("DELETE FROM layer2_context WHERE expires_at IS NOT NULL AND expires_at < ?")
+        .run(nowSec);
     return c;
   }
 
@@ -179,7 +186,8 @@ export class MemoryDB {
     sourceRequestIds?: string[],
     confidence?: number | null,
     agentId?: string,
-  ) => this.memoryRepo.insertArchive(id, title, content, tags, sourceRequestIds, confidence, agentId);
+  ) =>
+    this.memoryRepo.insertArchive(id, title, content, tags, sourceRequestIds, confidence, agentId);
   getArchive = (id: string) => this.memoryRepo.getArchive(id);
   getArchiveMany = (ids: string[]) => this.memoryRepo.getArchiveMany(ids);
   listArchive = (limit?: number, offset?: number) => this.memoryRepo.listArchive(limit, offset);
@@ -219,10 +227,8 @@ export class MemoryDB {
   countShared = (category?: string, kind?: import("./types").MemoryKind) =>
     this.memoryRepo.countShared(category, kind);
   getShared = (id: string) => this.memoryRepo.getShared(id);
-  getSharedMany = (
-    ids: string[],
-    opts?: { activeOnly?: boolean; notStale?: boolean },
-  ) => this.memoryRepo.getSharedMany(ids, opts);
+  getSharedMany = (ids: string[], opts?: { activeOnly?: boolean; notStale?: boolean }) =>
+    this.memoryRepo.getSharedMany(ids, opts);
   getSharedByCategory = (category: string) => this.memoryRepo.getSharedByCategory(category);
   updateShared = (
     id: string,
@@ -266,11 +272,8 @@ export class MemoryDB {
     opts?: { activeOnly?: boolean; notStale?: boolean },
   ) => this.memoryRepo.searchShared(query, limit, opts);
   // MEM-6: facade for repo.setSupersededBy — used by night-cycle dedup.
-  setSupersededBy = (
-    layer: "shared" | "context",
-    id: string,
-    by: string,
-  ) => this.memoryRepo.setSupersededBy(layer, id, by);
+  setSupersededBy = (layer: "shared" | "context", id: string, by: string) =>
+    this.memoryRepo.setSupersededBy(layer, id, by);
   upsertEmbedding = (id: string, layer: string, embedding: Float32Array) =>
     this.memoryRepo.upsertEmbedding(id, layer, embedding);
   searchEmbeddings = (embedding: Float32Array, limit?: number, layer?: string) =>
@@ -281,15 +284,10 @@ export class MemoryDB {
     this.memoryRepo.getEmbeddingsByIds(layer, ids);
 
   // ─── Pending approval (PR 22b) — back-compat facade ───────
-  listPending = (
-    layer: "shared" | "context",
-    opts: { limit: number; offset: number },
-  ) => this.memoryRepo.listByStatus(layer, "pending", opts.limit, opts.offset);
-  setStatus = (
-    layer: "shared" | "context",
-    id: string,
-    status: import("./types").MemoryStatus,
-  ) => this.memoryRepo.setStatusSafe(layer, id, status);
+  listPending = (layer: "shared" | "context", opts: { limit: number; offset: number }) =>
+    this.memoryRepo.listByStatus(layer, "pending", opts.limit, opts.offset);
+  setStatus = (layer: "shared" | "context", id: string, status: import("./types").MemoryStatus) =>
+    this.memoryRepo.setStatusSafe(layer, id, status);
 
   // ─── Chats ─────────────────────────────────────────────────
   createChat = (id: string, title: string, model: string, source?: string) =>
@@ -329,23 +327,19 @@ export class MemoryDB {
   getLogsByRequest = (requestId: string) => this.logRepo.getLogsByRequest(requestId);
   getLogsBySession = (sessionId: string, limit?: number) =>
     this.logRepo.getLogsBySession(sessionId, limit);
-  getLogsSince = (afterId: number, limit?: number) =>
-    this.logRepo.getLogsSince(afterId, limit);
+  getLogsSince = (afterId: number, limit?: number) => this.logRepo.getLogsSince(afterId, limit);
   getLogsSinceTime = (sinceUnix: number, limit?: number) =>
     this.logRepo.getLogsSinceTime(sinceUnix, limit);
   listLog = (limit?: number, offset?: number, sessionId?: string) =>
     this.logRepo.listLog(limit, offset, sessionId);
   countLog = (sessionId?: string) => this.logRepo.countLog(sessionId);
   listLogSessions = (limit?: number) => this.logRepo.listLogSessions(limit);
-  groupLogsBySession = (rows: import("./types").LogRow[]) =>
-    this.logRepo.groupLogsBySession(rows);
+  groupLogsBySession = (rows: import("./types").LogRow[]) => this.logRepo.groupLogsBySession(rows);
   // M-04 (mig 11): FTS5 search over Layer 4. Agent-only callers should reach
   // through `memory.logRepo.searchLog`; the facade keeps parity for
   // scripts/tests/legacy. PII-bearing — no public REST surface.
-  searchLog = (
-    query: string,
-    opts?: import("./tables/log").SearchLogOpts,
-  ) => this.logRepo.searchLog(query, opts);
+  searchLog = (query: string, opts?: import("./tables/log").SearchLogOpts) =>
+    this.logRepo.searchLog(query, opts);
 
   // ─── Telegram Messages (FTS index) ─────────────────────────
   insertTgMessage = (msg: TgMessageInsert) => this.telegramRepo.insertTgMessage(msg);
@@ -367,11 +361,8 @@ export class MemoryDB {
   }) => this.freelanceRepo.insertFreelanceLead(lead);
   getFreelanceLead = (id: string) => this.freelanceRepo.getFreelanceLead(id);
   existsFreelanceByUrl = (url: string) => this.freelanceRepo.existsFreelanceByUrl(url);
-  listFreelanceLeads = (opts: {
-    status?: FreelanceStatus;
-    limit: number;
-    offset: number;
-  }) => this.freelanceRepo.listFreelanceLeads(opts);
+  listFreelanceLeads = (opts: { status?: FreelanceStatus; limit: number; offset: number }) =>
+    this.freelanceRepo.listFreelanceLeads(opts);
   updateFreelanceStatus = (id: string, status: FreelanceStatus) =>
     this.freelanceRepo.updateFreelanceStatus(id, status);
   countFreelanceLeadsSince = (ts: number) => this.freelanceRepo.countFreelanceLeadsSince(ts);
@@ -404,8 +395,7 @@ export class MemoryDB {
     limit: number;
     offset: number;
   }) => this._tasks.list(opts);
-  listTasksActive = (scope: TaskScope, limit: number) =>
-    this._tasks.listActive(scope, limit);
+  listTasksActive = (scope: TaskScope, limit: number) => this._tasks.listActive(scope, limit);
   countTasksActive = (scope: TaskScope) => this._tasks.countActive(scope);
   updateTask = (
     id: string,
@@ -416,20 +406,18 @@ export class MemoryDB {
       due_at?: number | null;
     },
   ) => this._tasks.update(id, fields);
-  transitionTask = (id: string, to: TaskStatus) =>
-    this._tasks.transition(id, to);
+  transitionTask = (id: string, to: TaskStatus) => this._tasks.transition(id, to);
   deleteTask = (id: string) => this._tasks.delete(id);
-  deleteStaleTasksByStatus = (
-    status: "open" | "in_progress",
-    ageSec: number,
-  ) => this._tasks.deleteStaleByStatus(status, ageSec);
+  deleteStaleTasksByStatus = (status: "open" | "in_progress", ageSec: number) =>
+    this._tasks.deleteStaleByStatus(status, ageSec);
   /** PR-B janitor Phase D: delete done tasks whose completed_at is older than ageSec. */
   deleteDoneTasksOlderThan = (ageSec: number): number =>
-    this.db.query("DELETE FROM tasks WHERE status = 'done' AND completed_at < unixepoch() - ?").run(ageSec).changes;
+    this.db
+      .query("DELETE FROM tasks WHERE status = 'done' AND completed_at < unixepoch() - ?")
+      .run(ageSec).changes;
   searchTaskDigests = (sinceUnix: number, limit: number, offset: number) =>
     this._tasks.searchTaskDigests(sinceUnix, limit, offset);
-  countTaskDigestsSince = (sinceUnix: number) =>
-    this._tasks.countTaskDigestsSince(sinceUnix);
+  countTaskDigestsSince = (sinceUnix: number) => this._tasks.countTaskDigestsSince(sinceUnix);
   listCompletedTasksSince = (opts: {
     scope?: TaskScope;
     sinceUnix: number;
@@ -448,16 +436,10 @@ export class MemoryDB {
     kind: import("./types").EdgeKind,
     weight: number = 1.0,
   ) => this.edgesRepo.link(srcId, srcLayer, dstId, dstLayer, kind, weight);
-  getEdgesFromSrc = (
-    srcId: string,
-    srcLayer: string,
-    kinds?: import("./types").EdgeKind[],
-  ) => this.edgesRepo.getEdgesFromSrc(srcId, srcLayer, kinds);
-  getEdgesToDst = (
-    dstId: string,
-    dstLayer: string,
-    kinds?: import("./types").EdgeKind[],
-  ) => this.edgesRepo.getEdgesToDst(dstId, dstLayer, kinds);
+  getEdgesFromSrc = (srcId: string, srcLayer: string, kinds?: import("./types").EdgeKind[]) =>
+    this.edgesRepo.getEdgesFromSrc(srcId, srcLayer, kinds);
+  getEdgesToDst = (dstId: string, dstLayer: string, kinds?: import("./types").EdgeKind[]) =>
+    this.edgesRepo.getEdgesToDst(dstId, dstLayer, kinds);
   getRelated = (
     id: string,
     layer: string,
@@ -467,11 +449,9 @@ export class MemoryDB {
 
   // ─── Scheduler state (ephemeral runtime flags) ─────────────
   getSchedulerState = (key: string) => this._scheduler.get(key);
-  upsertSchedulerState = (key: string, value: string) =>
-    this._scheduler.upsert(key, value);
+  upsertSchedulerState = (key: string, value: string) => this._scheduler.upsert(key, value);
   deleteSchedulerState = (key: string) => this._scheduler.delete(key);
   tryAcquireSchedulerLock = (key: string, myId: string, staleSec: number) =>
     this._scheduler.tryAcquireLock(key, myId, staleSec);
-  heartbeatSchedulerLock = (key: string, myId: string) =>
-    this._scheduler.heartbeat(key, myId);
+  heartbeatSchedulerLock = (key: string, myId: string) => this._scheduler.heartbeat(key, myId);
 }

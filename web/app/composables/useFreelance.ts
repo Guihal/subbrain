@@ -41,10 +41,7 @@ export function useFreelance() {
   const items = useState<FreelanceLead[]>("fl.items", () => []);
   const total = useState<number>("fl.total", () => 0);
   const page = useState<number>("fl.page", () => 1);
-  const statusFilter = useState<FreelanceStatus | "all">(
-    "fl.statusFilter",
-    () => "new",
-  );
+  const statusFilter = useState<FreelanceStatus | "all">("fl.statusFilter", () => "new");
   const status = useState<ScoutStatus | null>("fl.status", () => null);
   const loading = useState<boolean>("fl.loading", () => false);
 

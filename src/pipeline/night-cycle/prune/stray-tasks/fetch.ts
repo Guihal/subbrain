@@ -28,10 +28,7 @@ interface ContextScanRow {
   agent_id: string | null;
 }
 
-export function fetchCandidates(
-  memory: MemoryDB,
-  windowStart: number,
-): CandidateRow[] {
+export function fetchCandidates(memory: MemoryDB, windowStart: number): CandidateRow[] {
   const candidates: CandidateRow[] = [];
   const shared = memory.db
     .query(

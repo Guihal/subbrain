@@ -5,14 +5,15 @@
  * supplies hooks so it can log into `AgentLoopStep[]` (sync) or emit SSE
  * events (stream) without duplicating the orchestration code.
  */
-import type { Message, Tool, ToolCall } from "../../providers/types";
-import type { Priority } from "../../lib/model-map";
-import type { ModelRouter } from "../../lib/model-router";
+
 import type { MemoryDB } from "../../db";
 import type { logger } from "../../lib/logger";
-import type { ToolRunnerDeps } from "./tool-runner";
-import { runToolCall } from "./tool-dispatch";
+import type { Priority } from "../../lib/model-map";
+import type { ModelRouter } from "../../lib/model-router";
+import type { Message, Tool, ToolCall } from "../../providers/types";
 import { maybeCompress } from "./compressor-hook";
+import { runToolCall } from "./tool-dispatch";
+import type { ToolRunnerDeps } from "./tool-runner";
 import { estimateTokens, MAX_CONTEXT_TOKENS } from "./types";
 
 export interface StepDeps {
@@ -113,11 +114,7 @@ export async function executeStep(
 
     for (const tc of msg.tool_calls) {
       hooks.onToolCallStart?.(tc);
-      const { toolResult, isDone, doneSummary } = await runToolCall(
-        tc,
-        deps.tools,
-        log,
-      );
+      const { toolResult, isDone, doneSummary } = await runToolCall(tc, deps.tools, log);
       hooks.onToolCallResult?.(tc, toolResult);
 
       messages.push({

@@ -1,12 +1,12 @@
 import { Bot, webhookCallback } from "grammy";
 import type { MemoryDB } from "../../db";
-import type { AgentPipeline } from "../../pipeline";
-import type { ModelRouter } from "../../lib/model-router";
 import { logger } from "../../lib/logger";
-import type { BotState } from "./state";
+import type { ModelRouter } from "../../lib/model-router";
+import type { AgentPipeline } from "../../pipeline";
 import { registerCommands } from "./commands";
 import { registerMessageHandler } from "./message";
 import { createNotifier, type Notifier } from "./notify";
+import type { BotState } from "./state";
 
 const log = logger.child("telegram");
 

@@ -19,16 +19,12 @@
  * The test has two modes: a strict sweep of unlisted files (must be empty),
  * and a smoke check against a synthetic injection (proves the grep works).
  */
-import { describe, test, expect } from "bun:test";
-import { readdirSync, readFileSync, statSync } from "fs";
-import { join, relative, sep } from "path";
+import { describe, expect, test } from "bun:test";
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { join, sep } from "node:path";
 
 const REPO_ROOT = join(import.meta.dir, "..");
-const FORBIDDEN = [
-  join("src", "services"),
-  join("src", "routes"),
-  join("src", "pipeline"),
-];
+const FORBIDDEN = [join("src", "services"), join("src", "routes"), join("src", "pipeline")];
 
 /**
  * Files that predate PR 27 and still issue raw SQL. Migrating them is

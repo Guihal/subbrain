@@ -1,15 +1,10 @@
 import type { MemoryDB } from "../db";
-import type {
-  StatsProvider,
-  RequestMetric,
-  MetricsSnapshot,
-  MetricsState,
-} from "./metrics/types";
-import { buildSnapshot } from "./metrics/snapshot";
 import { pruneSlidingWindows } from "./metrics/percentile";
+import { buildSnapshot } from "./metrics/snapshot";
+import type { MetricsSnapshot, MetricsState, RequestMetric, StatsProvider } from "./metrics/types";
 
-export type { StatsProvider, RequestMetric, MetricsSnapshot } from "./metrics/types";
-export { incrementCounter, getCounters, resetCounters } from "./metrics/counters";
+export { getCounters, incrementCounter, resetCounters } from "./metrics/counters";
+export type { MetricsSnapshot, RequestMetric, StatsProvider } from "./metrics/types";
 
 export class Metrics {
   private state: MetricsState = {
@@ -95,9 +90,7 @@ export class Metrics {
     const snap = this.snapshot();
     const json = JSON.stringify(snap);
     memory.db
-      .query(
-        "INSERT INTO metrics_log (timestamp, snapshot) VALUES (unixepoch(), ?)",
-      )
+      .query("INSERT INTO metrics_log (timestamp, snapshot) VALUES (unixepoch(), ?)")
       .run(json);
   }
 }

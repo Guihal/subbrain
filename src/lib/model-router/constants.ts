@@ -1,6 +1,6 @@
 import type { LLMProvider } from "../../providers/types";
-import type { RateLimiter } from "../rate-limiter";
 import type { ProviderName } from "../model-map";
+import type { RateLimiter } from "../rate-limiter";
 
 /** Hard timeout for any single provider call (ms). Must accommodate reasoning
  * fallback models (`minimaxai/minimax-m2.7`, `kimi-k2-thinking`) that spend

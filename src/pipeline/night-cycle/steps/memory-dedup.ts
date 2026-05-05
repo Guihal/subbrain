@@ -13,18 +13,18 @@
  *
  * Helpers (clustering + utils) live in memory-dedup-utils.ts.
  */
-import type { MemoryDB, SharedRow, ContextRow } from "../../../db";
-import type { RAGPipeline } from "../../../rag";
+import type { ContextRow, MemoryDB, SharedRow } from "../../../db";
 import { logger } from "../../../lib/logger";
+import type { RAGPipeline } from "../../../rag";
 
 import {
-  activeSharedRows,
   activeContextRows,
+  activeSharedRows,
   buildClusters,
-  unionCsv,
-  parseDerivedFrom,
-  markExpired,
   type Cluster,
+  markExpired,
+  parseDerivedFrom,
+  unionCsv,
 } from "./memory-dedup-utils";
 
 const log = logger.child("night.memory-dedup");
@@ -35,10 +35,7 @@ interface DedupResult {
   expired: number;
 }
 
-export async function runMemoryDedup(
-  memory: MemoryDB,
-  rag: RAGPipeline,
-): Promise<DedupResult> {
+export async function runMemoryDedup(memory: MemoryDB, rag: RAGPipeline): Promise<DedupResult> {
   const sharedDeduped = await dedupSharedLayer(memory, rag);
   const contextDeduped = await dedupContextLayer(memory, rag);
   const expired = markExpired(memory);
@@ -60,9 +57,7 @@ async function dedupSharedLayer(memory: MemoryDB, rag: RAGPipeline): Promise<num
 async function dedupContextLayer(memory: MemoryDB, rag: RAGPipeline): Promise<number> {
   const rows = activeContextRows(memory);
   if (rows.length < 2) return 0;
-  const clusters = await buildClusters(rows, rag, memory, "context", (r) =>
-    r.title.toLowerCase(),
-  );
+  const clusters = await buildClusters(rows, rag, memory, "context", (r) => r.title.toLowerCase());
   return mergeContextClusters(memory, clusters);
 }
 
@@ -110,9 +105,9 @@ function mergeContextClusters(memory: MemoryDB, clusters: Cluster[]): number {
     );
     const tags = unionCsv(rows.map((r) => r.tags));
     const conf = Math.max(...rows.map((r) => r.confidence ?? 0));
-    const derived = JSON.stringify(
-      [...new Set(rows.flatMap((r) => parseDerivedFrom(r.derived_from)))],
-    );
+    const derived = JSON.stringify([
+      ...new Set(rows.flatMap((r) => parseDerivedFrom(r.derived_from))),
+    ]);
     memory.transaction(() => {
       memory.updateContext(winner.id, {
         content: longestContent,

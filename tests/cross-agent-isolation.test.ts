@@ -7,9 +7,9 @@
  * everything. Writer-side: hippocampus-style writes via `insertContext`
  * tag the row, and a sibling agent's scoped read does NOT pick it up.
  */
-import { describe, test, expect, beforeAll, afterAll } from "bun:test";
-import { unlinkSync } from "fs";
-import { randomUUID } from "crypto";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { randomUUID } from "node:crypto";
+import { unlinkSync } from "node:fs";
 import { MemoryDB } from "../src/db";
 import { MemoryTools } from "../src/mcp/tools/memory";
 import { sanitizeAgentId } from "../src/services/chat";
@@ -22,30 +22,34 @@ const BOB_ID = randomUUID();
 const NULL_ID = randomUUID();
 
 beforeAll(() => {
-  try { unlinkSync(TEST_DB); } catch {}
+  try {
+    unlinkSync(TEST_DB);
+  } catch {}
   db = new MemoryDB(TEST_DB);
 
   // Three context rows that all match the FTS query "isolation":
   //  - alice's private row (agent_id = "alice")
   //  - bob's private row   (agent_id = "bob")
   //  - legacy/global row   (agent_id = NULL)
-  db.insertContext(
-    ALICE_ID, "alice's note", "secret isolation alice payload", "",
-    [], "alice", { confidence: 1, status: "active" },
-  );
-  db.insertContext(
-    BOB_ID, "bob's note", "secret isolation bob payload", "",
-    [], "bob", { confidence: 1, status: "active" },
-  );
-  db.insertContext(
-    NULL_ID, "legacy note", "shared isolation legacy payload", "",
-    [], undefined, { confidence: 1, status: "active" },
-  );
+  db.insertContext(ALICE_ID, "alice's note", "secret isolation alice payload", "", [], "alice", {
+    confidence: 1,
+    status: "active",
+  });
+  db.insertContext(BOB_ID, "bob's note", "secret isolation bob payload", "", [], "bob", {
+    confidence: 1,
+    status: "active",
+  });
+  db.insertContext(NULL_ID, "legacy note", "shared isolation legacy payload", "", [], undefined, {
+    confidence: 1,
+    status: "active",
+  });
 });
 
 afterAll(() => {
   db.close();
-  try { unlinkSync(TEST_DB); } catch {}
+  try {
+    unlinkSync(TEST_DB);
+  } catch {}
 });
 
 describe("B-1: searchContext agent_id filter", () => {
@@ -76,12 +80,13 @@ describe("B-1: searchContext agent_id filter", () => {
   test("activeOnly + agentId combine — both clauses applied", () => {
     // Add a pending row for alice that should not appear under activeOnly.
     const pendingId = randomUUID();
-    db.insertContext(
-      pendingId, "pending alice", "isolation pending alice", "",
-      [], "alice", { confidence: 0.5, status: "pending" },
-    );
+    db.insertContext(pendingId, "pending alice", "isolation pending alice", "", [], "alice", {
+      confidence: 0.5,
+      status: "pending",
+    });
     const hits = db.searchContext("isolation", 10, {
-      agentId: "alice", activeOnly: true,
+      agentId: "alice",
+      activeOnly: true,
     });
     const ids = new Set(hits.map((h) => h.id));
     expect(ids.has(ALICE_ID)).toBe(true); // active alice row
@@ -149,10 +154,7 @@ describe("B-1: MemoryTools.write/delete ownership check (context)", () => {
     const tools = new MemoryTools(db, () => null);
     const id = randomUUID();
     // Bob writes a context row.
-    tools.write(
-      { layer: "context", id, content: "owner-check bob payload", confidence: 1 },
-      "bob",
-    );
+    tools.write({ layer: "context", id, content: "owner-check bob payload", confidence: 1 }, "bob");
     // Alice tries to overwrite by guessing the id.
     const w = tools.write(
       { layer: "context", id, content: "hijack attempt", confidence: 1 },
@@ -169,7 +171,8 @@ describe("B-1: MemoryTools.write/delete ownership check (context)", () => {
     const tools = new MemoryTools(db, () => null);
     const id = randomUUID();
     db.insertContext(id, "legacy", "owner-check legacy payload", "", [], undefined, {
-      confidence: 1, status: "active",
+      confidence: 1,
+      status: "active",
     });
     // Alice can update a legacy NULL-agent row.
     const w = tools.write(
@@ -195,10 +198,7 @@ describe("B-1: MemoryTools.write/delete ownership check (context)", () => {
   test("delete admin (agentId=null) bypasses ownership", () => {
     const tools = new MemoryTools(db, () => null);
     const id = randomUUID();
-    tools.write(
-      { layer: "context", id, content: "delete-check admin", confidence: 1 },
-      "carol",
-    );
+    tools.write({ layer: "context", id, content: "delete-check admin", confidence: 1 }, "carol");
     const d = tools.delete(id, "context", null);
     expect(d.success).toBe(true);
     expect(db.getContext(id)).toBeNull();

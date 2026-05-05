@@ -12,16 +12,9 @@
  * for the first distinct role — never twice for the same role, once more for
  * a second distinct role.
  */
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  spyOn,
-  test,
-} from "bun:test";
-import { Logger, _warnedRejectedRoles } from "../src/lib/logger";
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import type { MemoryDB } from "../src/db";
+import { _warnedRejectedRoles, Logger } from "../src/lib/logger";
 
 function makeThrowingMemory(err: Error): MemoryDB {
   const stub = {
@@ -53,11 +46,7 @@ describe("logger — silent swallow fix (OBS-1)", () => {
 
   test("CHECK violation warns exactly once per unique role", () => {
     const log = new Logger("debug");
-    log.setMemory(
-      makeThrowingMemory(
-        new Error("CHECK constraint failed: role IN (...)"),
-      ),
-    );
+    log.setMemory(makeThrowingMemory(new Error("CHECK constraint failed: role IN (...)")));
 
     log.info("stage", "m1");
     log.info("stage", "m2");
@@ -72,11 +61,7 @@ describe("logger — silent swallow fix (OBS-1)", () => {
 
   test("different levels → different roles → warn once each", () => {
     const log = new Logger("debug");
-    log.setMemory(
-      makeThrowingMemory(
-        new Error("CHECK constraint failed: role IN (...)"),
-      ),
-    );
+    log.setMemory(makeThrowingMemory(new Error("CHECK constraint failed: role IN (...)")));
 
     log.info("stage", "m");
     log.warn("stage", "m");
@@ -87,9 +72,7 @@ describe("logger — silent swallow fix (OBS-1)", () => {
     log.error("stage", "m");
 
     expect(consoleErrSpy).toHaveBeenCalledTimes(3);
-    const warnedRoles = consoleErrSpy.mock.calls.map(
-      (c) => c[0] as string,
-    );
+    const warnedRoles = consoleErrSpy.mock.calls.map((c) => c[0] as string);
     expect(warnedRoles.some((s) => s.includes("_log_info"))).toBe(true);
     expect(warnedRoles.some((s) => s.includes("_log_warn"))).toBe(true);
     expect(warnedRoles.some((s) => s.includes("_log_error"))).toBe(true);
@@ -107,11 +90,7 @@ describe("logger — silent swallow fix (OBS-1)", () => {
 
   test("logger never throws even when memory.appendLog throws", () => {
     const log = new Logger("debug");
-    log.setMemory(
-      makeThrowingMemory(
-        new Error("CHECK constraint failed: role IN (...)"),
-      ),
-    );
+    log.setMemory(makeThrowingMemory(new Error("CHECK constraint failed: role IN (...)")));
 
     expect(() => log.info("stage", "x")).not.toThrow();
     expect(() => log.error("stage", "y")).not.toThrow();
@@ -119,11 +98,7 @@ describe("logger — silent swallow fix (OBS-1)", () => {
 
   test("debug entries skip DB write → no CHECK path, no warning even if memory would throw", () => {
     const log = new Logger("debug");
-    log.setMemory(
-      makeThrowingMemory(
-        new Error("CHECK constraint failed: role IN (...)"),
-      ),
-    );
+    log.setMemory(makeThrowingMemory(new Error("CHECK constraint failed: role IN (...)")));
 
     log.debug("stage", "diag");
     // Debug entries are console-only; appendLog is skipped entirely.

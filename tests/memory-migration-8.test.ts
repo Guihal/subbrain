@@ -4,8 +4,9 @@
  * triggers (SQLite cannot ALTER ADD CHECK). Existing rows default to
  * status='active' via column DEFAULT — back-compat preserved.
  */
+
+import type { Database } from "bun:sqlite";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { Database } from "bun:sqlite";
 import { existsSync, unlinkSync } from "node:fs";
 import { migrate, openDatabase } from "../src/db/schema";
 
@@ -38,9 +39,7 @@ describe("schema migration 8 — confidence/status (MEM-5)", () => {
   });
 
   test("user_version >= 8 after migrate()", () => {
-    const { user_version } = db
-      .query<{ user_version: number }, []>("PRAGMA user_version")
-      .get()!;
+    const { user_version } = db.query<{ user_version: number }, []>("PRAGMA user_version").get()!;
     expect(user_version).toBeGreaterThanOrEqual(8);
   });
 
@@ -70,9 +69,11 @@ describe("schema migration 8 — confidence/status (MEM-5)", () => {
   });
 
   test("inserting shared row without status → default 'active'", () => {
-    db.query(
-      "INSERT INTO shared_memory (id, category, content) VALUES (?, ?, ?)",
-    ).run("s1", "cat", "content");
+    db.query("INSERT INTO shared_memory (id, category, content) VALUES (?, ?, ?)").run(
+      "s1",
+      "cat",
+      "content",
+    );
     const row = db
       .query<{ status: string; confidence: number | null }, [string]>(
         "SELECT status, confidence FROM shared_memory WHERE id = ?",
@@ -83,9 +84,11 @@ describe("schema migration 8 — confidence/status (MEM-5)", () => {
   });
 
   test("inserting context row without status → default 'active'", () => {
-    db.query(
-      "INSERT INTO layer2_context (id, title, content) VALUES (?, ?, ?)",
-    ).run("c1", "t", "c");
+    db.query("INSERT INTO layer2_context (id, title, content) VALUES (?, ?, ?)").run(
+      "c1",
+      "t",
+      "c",
+    );
     const row = db
       .query<{ status: string; confidence: number | null }, [string]>(
         "SELECT status, confidence FROM layer2_context WHERE id = ?",
@@ -101,22 +104,21 @@ describe("schema migration 8 — confidence/status (MEM-5)", () => {
       ["s-active", "active"],
       ["s-rejected", "rejected"],
     ] as const) {
-      db.query(
-        "INSERT INTO shared_memory (id, category, content, status) VALUES (?, ?, ?, ?)",
-      ).run(id, "cat", "c", status);
+      db.query("INSERT INTO shared_memory (id, category, content, status) VALUES (?, ?, ?, ?)").run(
+        id,
+        "cat",
+        "c",
+        status,
+      );
     }
-    const count = db
-      .query<{ c: number }, []>("SELECT COUNT(*) AS c FROM shared_memory")
-      .get()!.c;
+    const count = db.query<{ c: number }, []>("SELECT COUNT(*) AS c FROM shared_memory").get()?.c;
     expect(count).toBeGreaterThanOrEqual(3);
   });
 
   test("shared_memory: invalid status at INSERT → trigger RAISE ABORT", () => {
     expect(() =>
       db
-        .query(
-          "INSERT INTO shared_memory (id, category, content, status) VALUES (?, ?, ?, ?)",
-        )
+        .query("INSERT INTO shared_memory (id, category, content, status) VALUES (?, ?, ?, ?)")
         .run("bad", "cat", "c", "garbage"),
     ).toThrow(/invalid status/i);
   });
@@ -124,40 +126,36 @@ describe("schema migration 8 — confidence/status (MEM-5)", () => {
   test("layer2_context: invalid status at INSERT → trigger RAISE ABORT", () => {
     expect(() =>
       db
-        .query(
-          "INSERT INTO layer2_context (id, title, content, status) VALUES (?, ?, ?, ?)",
-        )
+        .query("INSERT INTO layer2_context (id, title, content, status) VALUES (?, ?, ?, ?)")
         .run("bad", "t", "c", "garbage"),
     ).toThrow(/invalid status/i);
   });
 
   test("shared_memory: UPDATE status to invalid → trigger fires", () => {
-    db.query(
-      "INSERT INTO shared_memory (id, category, content) VALUES (?, ?, ?)",
-    ).run("s-u", "cat", "c");
+    db.query("INSERT INTO shared_memory (id, category, content) VALUES (?, ?, ?)").run(
+      "s-u",
+      "cat",
+      "c",
+    );
     expect(() =>
-      db
-        .query("UPDATE shared_memory SET status = ? WHERE id = ?")
-        .run("bogus", "s-u"),
+      db.query("UPDATE shared_memory SET status = ? WHERE id = ?").run("bogus", "s-u"),
     ).toThrow(/invalid status/i);
   });
 
   test("layer2_context: UPDATE status to invalid → trigger fires", () => {
-    db.query(
-      "INSERT INTO layer2_context (id, title, content) VALUES (?, ?, ?)",
-    ).run("c-u", "t", "c");
+    db.query("INSERT INTO layer2_context (id, title, content) VALUES (?, ?, ?)").run(
+      "c-u",
+      "t",
+      "c",
+    );
     expect(() =>
-      db
-        .query("UPDATE layer2_context SET status = ? WHERE id = ?")
-        .run("bogus", "c-u"),
+      db.query("UPDATE layer2_context SET status = ? WHERE id = ?").run("bogus", "c-u"),
     ).toThrow(/invalid status/i);
   });
 
   test("indexes idx_shared_status and idx_memory_status exist", () => {
     const rows = db
-      .query<{ name: string }, []>(
-        "SELECT name FROM sqlite_master WHERE type = 'index'",
-      )
+      .query<{ name: string }, []>("SELECT name FROM sqlite_master WHERE type = 'index'")
       .all();
     const names = rows.map((r) => r.name);
     expect(names).toContain("idx_shared_status");
@@ -166,9 +164,7 @@ describe("schema migration 8 — confidence/status (MEM-5)", () => {
 
   test("migrate() is idempotent — running twice does not throw", () => {
     expect(() => migrate(db)).not.toThrow();
-    const { user_version } = db
-      .query<{ user_version: number }, []>("PRAGMA user_version")
-      .get()!;
+    const { user_version } = db.query<{ user_version: number }, []>("PRAGMA user_version").get()!;
     expect(user_version).toBeGreaterThanOrEqual(8);
   });
 
@@ -176,14 +172,14 @@ describe("schema migration 8 — confidence/status (MEM-5)", () => {
     // Simulate upgrade path: on fresh DB migrate() already applied mig8. This
     // test at minimum pins that rows inserted before a re-migrate keep their
     // status. Re-migrate is a no-op (user_version already at 8+).
-    db.query(
-      "INSERT INTO shared_memory (id, category, content) VALUES (?, ?, ?)",
-    ).run("legacy", "cat", "c");
+    db.query("INSERT INTO shared_memory (id, category, content) VALUES (?, ?, ?)").run(
+      "legacy",
+      "cat",
+      "c",
+    );
     migrate(db);
     const row = db
-      .query<{ status: string }, [string]>(
-        "SELECT status FROM shared_memory WHERE id = ?",
-      )
+      .query<{ status: string }, [string]>("SELECT status FROM shared_memory WHERE id = ?")
       .get("legacy")!;
     expect(row.status).toBe("active");
   });

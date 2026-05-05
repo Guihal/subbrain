@@ -3,7 +3,7 @@
  * under `scheduled` mode, keeps them under `interactive`, and yields to the
  * `SCHEDULED_ALLOW_CODE_TOOL_CREATE=1` opt-in.
  */
-import { describe, test, expect, beforeEach, afterEach } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { buildRegistry, SCHEDULED_HIDDEN_TOOLS } from "../src/mcp/registry";
 
 describe("ToolRegistry.listForAgent (SCHED-1)", () => {
@@ -23,9 +23,7 @@ describe("ToolRegistry.listForAgent (SCHED-1)", () => {
 
   test("interactive mode contains create_tool, create_code_tool, edit_code_tool", () => {
     const registry = buildRegistry();
-    const names = new Set(
-      registry.listForAgent("interactive").map((t) => t.name),
-    );
+    const names = new Set(registry.listForAgent("interactive").map((t) => t.name));
     expect(names.has("create_tool")).toBe(true);
     expect(names.has("create_code_tool")).toBe(true);
     expect(names.has("edit_code_tool")).toBe(true);
@@ -33,9 +31,7 @@ describe("ToolRegistry.listForAgent (SCHED-1)", () => {
 
   test("scheduled mode drops all three authoring primitives", () => {
     const registry = buildRegistry();
-    const names = new Set(
-      registry.listForAgent("scheduled").map((t) => t.name),
-    );
+    const names = new Set(registry.listForAgent("scheduled").map((t) => t.name));
     expect(names.has("create_tool")).toBe(false);
     expect(names.has("create_code_tool")).toBe(false);
     expect(names.has("edit_code_tool")).toBe(false);
@@ -43,15 +39,9 @@ describe("ToolRegistry.listForAgent (SCHED-1)", () => {
 
   test("scheduled mode preserves non-authoring code-tool management", () => {
     const registry = buildRegistry();
-    const names = new Set(
-      registry.listForAgent("scheduled").map((t) => t.name),
-    );
+    const names = new Set(registry.listForAgent("scheduled").map((t) => t.name));
     // Using existing tools is still OK — only creation/edit is blocked.
-    for (const keep of [
-      "test_code_tool",
-      "list_code_tools",
-      "delete_code_tool",
-    ]) {
+    for (const keep of ["test_code_tool", "list_code_tools", "delete_code_tool"]) {
       expect(names.has(keep)).toBe(true);
     }
   });

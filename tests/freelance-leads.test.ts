@@ -1,6 +1,6 @@
-import { describe, test, expect, beforeAll, afterAll } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { existsSync, unlinkSync } from "node:fs";
 import { MemoryDB } from "../src/db";
-import { unlinkSync, existsSync } from "fs";
 
 const TEST_DB = "data/test-freelance-leads.db";
 
@@ -82,7 +82,7 @@ describe("FreelanceLeadsTable", () => {
       offset: 0,
     });
     expect(taken.items.length).toBe(1);
-    expect(taken.items[0]!.id).toBe("l1");
+    expect(taken.items[0]?.id).toBe("l1");
   });
 
   test("chats.kind default main", () => {

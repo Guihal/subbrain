@@ -3,16 +3,13 @@
  * writeContext + registry-level required-confidence validation for
  * `memory_write` (TypeBox rejects when the field is missing).
  */
-import { describe, test, expect, beforeAll, afterAll, beforeEach, afterEach } from "bun:test";
-import { existsSync, unlinkSync } from "fs";
-import { MemoryDB } from "../src/db";
-import { RAGPipeline } from "../src/rag";
-import {
-  writeShared,
-  writeContext,
-} from "../src/pipeline/agent-pipeline/post/extractors";
-import { buildRegistry } from "../src/mcp/registry";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { existsSync, unlinkSync } from "node:fs";
 import { Value } from "@sinclair/typebox/value";
+import { MemoryDB } from "../src/db";
+import { buildRegistry } from "../src/mcp/registry";
+import { writeContext, writeShared } from "../src/pipeline/agent-pipeline/post/extractors";
+import { RAGPipeline } from "../src/rag";
 
 const TEST_DB = "data/test-memory-confidence.db";
 
@@ -75,8 +72,8 @@ describe("writeShared / writeContext — confidence → status mapping", () => {
     expect(wr.ok).toBe(true);
     expect(wr.status).toBe("active");
     const row = memory.getShared(wr.id!);
-    expect(row!.status).toBe("active");
-    expect(row!.confidence).toBeCloseTo(0.9, 5);
+    expect(row?.status).toBe("active");
+    expect(row?.confidence).toBeCloseTo(0.9, 5);
   });
 
   test("confidence < 0.8 → status='pending' (shared)", async () => {
@@ -90,8 +87,8 @@ describe("writeShared / writeContext — confidence → status mapping", () => {
     expect(wr.ok).toBe(true);
     expect(wr.status).toBe("pending");
     const row = memory.getShared(wr.id!);
-    expect(row!.status).toBe("pending");
-    expect(row!.confidence).toBeCloseTo(0.5, 5);
+    expect(row?.status).toBe("pending");
+    expect(row?.confidence).toBeCloseTo(0.5, 5);
   });
 
   test("confidence ≥ 0.8 → status='active' (context)", async () => {
@@ -106,7 +103,7 @@ describe("writeShared / writeContext — confidence → status mapping", () => {
     expect(wr.ok).toBe(true);
     expect(wr.status).toBe("active");
     const row = memory.getContext(wr.id!);
-    expect(row!.status).toBe("active");
+    expect(row?.status).toBe("active");
   });
 
   test("confidence < 0.8 → status='pending' (context)", async () => {
@@ -129,7 +126,7 @@ describe("writeShared / writeContext — confidence → status mapping", () => {
       const wr = await writeShared(
         memory,
         rag,
-      mkRouter(),
+        mkRouter(),
         { category: "profile", content: "env-override fact E", tags: "", confidence: 0.65 },
         log,
       );
@@ -149,17 +146,17 @@ describe("memory_write registry — confidence is required", () => {
   test("registry exposes memory_write with confidence schema", () => {
     expect(tool).toBeDefined();
     // TypeBox schema surface — confidence is a numeric property.
-    const props = (tool!.input as any).properties;
+    const props = (tool?.input as any).properties;
     expect(props).toHaveProperty("confidence");
     expect(props.confidence.type).toBe("number");
     expect(props.confidence.minimum).toBe(0);
     expect(props.confidence.maximum).toBe(1);
-    const required = (tool!.input as any).required as string[];
+    const required = (tool?.input as any).required as string[];
     expect(required).toContain("confidence");
   });
 
   test("missing confidence → TypeBox Value.Check fails", () => {
-    const ok = Value.Check(tool!.input as any, {
+    const ok = Value.Check(tool?.input as any, {
       layer: "shared",
       content: "no confidence here",
       category: "user",
@@ -168,7 +165,7 @@ describe("memory_write registry — confidence is required", () => {
   });
 
   test("valid confidence 0..1 → TypeBox accepts", () => {
-    const ok = Value.Check(tool!.input as any, {
+    const ok = Value.Check(tool?.input as any, {
       layer: "shared",
       content: "fact",
       category: "user",
@@ -178,7 +175,7 @@ describe("memory_write registry — confidence is required", () => {
   });
 
   test("confidence out of range (>1) → TypeBox rejects", () => {
-    const ok = Value.Check(tool!.input as any, {
+    const ok = Value.Check(tool?.input as any, {
       layer: "shared",
       content: "fact",
       category: "user",
@@ -188,7 +185,7 @@ describe("memory_write registry — confidence is required", () => {
   });
 
   test("confidence as string → TypeBox rejects (legacy HIGH/LOW no longer accepted on registry)", () => {
-    const ok = Value.Check(tool!.input as any, {
+    const ok = Value.Check(tool?.input as any, {
       layer: "archive",
       content: "fact",
       category: "user",

@@ -1,4 +1,4 @@
-import { Database } from "bun:sqlite";
+import type { Database } from "bun:sqlite";
 import type { ArchiveRow } from "../../types";
 import { updateRow } from "../update-row";
 import { ARCHIVE_UPDATABLE } from "./helpers";
@@ -20,21 +20,11 @@ export function insertArchive(
 ): void {
   db.query(
     "INSERT INTO layer3_archive (id, title, content, tags, source_request_ids, confidence, agent_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
-  ).run(
-    id,
-    title,
-    content,
-    tags,
-    JSON.stringify(sourceRequestIds),
-    confidence,
-    agentId ?? null,
-  );
+  ).run(id, title, content, tags, JSON.stringify(sourceRequestIds), confidence, agentId ?? null);
 }
 
 export function getArchive(db: Database, id: string): ArchiveRow | null {
-  return db
-    .query("SELECT * FROM layer3_archive WHERE id = ?")
-    .get(id) as ArchiveRow | null;
+  return db.query("SELECT * FROM layer3_archive WHERE id = ?").get(id) as ArchiveRow | null;
 }
 
 export function getArchiveMany(db: Database, ids: string[]): ArchiveRow[] {
@@ -45,22 +35,14 @@ export function getArchiveMany(db: Database, ids: string[]): ArchiveRow[] {
     .all(...ids) as ArchiveRow[];
 }
 
-export function listArchive(
-  db: Database,
-  limit = 50,
-  offset = 0,
-): ArchiveRow[] {
+export function listArchive(db: Database, limit = 50, offset = 0): ArchiveRow[] {
   return db
-    .query(
-      "SELECT * FROM layer3_archive ORDER BY updated_at DESC LIMIT ? OFFSET ?",
-    )
+    .query("SELECT * FROM layer3_archive ORDER BY updated_at DESC LIMIT ? OFFSET ?")
     .all(limit, offset) as ArchiveRow[];
 }
 
 export function countArchive(db: Database): number {
-  const row = db
-    .query("SELECT COUNT(*) AS c FROM layer3_archive")
-    .get() as { c: number };
+  const row = db.query("SELECT COUNT(*) AS c FROM layer3_archive").get() as { c: number };
   return row.c;
 }
 

@@ -1,5 +1,4 @@
 import * as tg from "../telegram-tools";
-import { sendReport } from "../tools/telegram-report";
 import type { ToolResult } from "../types";
 import type { ExecutorState } from "./types";
 

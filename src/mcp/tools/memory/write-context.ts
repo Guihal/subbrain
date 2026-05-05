@@ -1,25 +1,22 @@
 /**
  * Context-layer write. B-1 ownership check on update. + PR-A enforcement.
- *
- * PR-A (MEMORY_VALIDATORS_ENFORCE=warn|reject):
- *   1. validateCategoryAndContent + validateExpiresAt.
- *   2. defaultExpiresAt fills missing expires_at.
- *   3. checkDuplicate per-category dedup (async, only when rag available).
- *
- * Returns sync ToolResult|null when rag is absent (backward compat with
- * existing tests that do not wire RAG). Returns Promise<ToolResult|null>
- * when rag is present (dedup embed call required).
+ * PR-A: validateCategoryAndContent + validateExpiresAt + defaultExpiresAt +
+ * checkDuplicate (async, only when rag available).
+ * Returns sync ToolResult|null when rag is absent (backward compat).
  */
+
+import type { MemoryDB } from "../../../db";
 import { logger } from "../../../lib/logger";
 import { incrementCounter } from "../../../lib/metrics";
-import type { MemoryDB } from "../../../db";
+import {
+  defaultExpiresAt,
+  validateCategoryAndContent,
+  validateExpiresAt,
+} from "../../../pipeline/agent-pipeline/post/validators";
 import type { RAGPipeline } from "../../../rag";
+import { checkDuplicate } from "../../../services/memory";
 import type { ToolResult } from "../../types";
 import type { WriteParams } from "./write";
-import {
-  validateCategoryAndContent, validateExpiresAt, defaultExpiresAt,
-} from "../../../pipeline/agent-pipeline/post/validators";
-import { checkDuplicate } from "../../../services/memory";
 
 const log = logger.child("memory.write-context");
 
@@ -56,16 +53,36 @@ export function writeContextCase(
       const r = maybeReject(catR.reason, { category, layer: "context" });
       if (r) return r;
     }
-    const expiresAt = typeof params.expires_at === "number" ? params.expires_at
-      : defaultExpiresAt("context", category);
+    const expiresAt =
+      typeof params.expires_at === "number"
+        ? params.expires_at
+        : defaultExpiresAt("context", category);
     const expR = validateExpiresAt(category, expiresAt);
     if (!expR.ok) {
       const r = maybeReject(expR.reason, { category });
       if (r) return r;
     }
-    if (rag) return insertWithDedupAsync(memory, rag, id, params, agentId, confidence, status, category, expiresAt);
-    memory.insertContext(id, params.title || "Untitled", content, params.tags || "",
-      [], agentId ?? undefined, { confidence, status, expires_at: expiresAt ?? undefined });
+    if (rag)
+      return insertWithDedupAsync(
+        memory,
+        rag,
+        id,
+        params,
+        agentId,
+        confidence,
+        status,
+        category,
+        expiresAt,
+      );
+    memory.insertContext(
+      id,
+      params.title || "Untitled",
+      content,
+      params.tags || "",
+      [],
+      agentId ?? undefined,
+      { confidence, status, expires_at: expiresAt ?? undefined },
+    );
     return null;
   }
 
@@ -78,10 +95,15 @@ export function writeContextCase(
 }
 
 async function insertWithDedupAsync(
-  memory: MemoryDB, rag: RAGPipeline,
-  id: string, params: WriteParams, agentId: string | null,
-  confidence: number, status: "active" | "pending",
-  category: string, expiresAt: number | null,
+  memory: MemoryDB,
+  rag: RAGPipeline,
+  id: string,
+  params: WriteParams,
+  agentId: string | null,
+  confidence: number,
+  status: "active" | "pending",
+  category: string,
+  expiresAt: number | null,
 ): Promise<ToolResult | null> {
   try {
     const dd = await checkDuplicate(memory, rag, "context", category, params.content);
@@ -91,17 +113,34 @@ async function insertWithDedupAsync(
     } else if (dd.action === "supersede" && dd.supersedesId) {
       // Atomic: insert new row + mark old row superseded in one transaction.
       memory.transaction(() => {
-        memory.insertContext(id, params.title || "Untitled", params.content, params.tags || "",
-          [], agentId ?? undefined, { confidence, status, expires_at: expiresAt ?? undefined });
+        memory.insertContext(
+          id,
+          params.title || "Untitled",
+          params.content,
+          params.tags || "",
+          [],
+          agentId ?? undefined,
+          { confidence, status, expires_at: expiresAt ?? undefined },
+        );
         memory.updateContext(dd.supersedesId!, { superseded_by: id });
       });
       return { success: true, data: { id, superseded: dd.supersedesId } } as ToolResult;
     }
   } catch (e) {
     log.warn(`dedup_error: ${String(e)}`);
-    return { success: false, error: { code: "supersede_failed", message: e instanceof Error ? e.message : String(e) } };
+    return {
+      success: false,
+      error: { code: "supersede_failed", message: e instanceof Error ? e.message : String(e) },
+    };
   }
-  memory.insertContext(id, params.title || "Untitled", params.content, params.tags || "",
-    [], agentId ?? undefined, { confidence, status, expires_at: expiresAt ?? undefined });
+  memory.insertContext(
+    id,
+    params.title || "Untitled",
+    params.content,
+    params.tags || "",
+    [],
+    agentId ?? undefined,
+    { confidence, status, expires_at: expiresAt ?? undefined },
+  );
   return null;
 }

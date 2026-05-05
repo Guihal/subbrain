@@ -3,15 +3,11 @@
  * with `runLoop` (see shared.ts); wraps the step iteration in SSE events and
  * a heartbeat so Caddy does not RST long-idle streams.
  */
-import type { AgentLoopRequest } from "./types";
-import { executeStep } from "./step";
+
 import { setupHeartbeat } from "./heartbeat";
-import {
-  stepDeps,
-  initAgentLoopContext,
-  finalizeAgentRun,
-  type AgentLoopDeps,
-} from "./shared";
+import { type AgentLoopDeps, finalizeAgentRun, initAgentLoopContext, stepDeps } from "./shared";
+import { executeStep } from "./step";
+import type { AgentLoopRequest } from "./types";
 
 export function runStreamLoop(
   deps: AgentLoopDeps,
@@ -31,9 +27,7 @@ export function runStreamLoop(
         }
       };
       const emit = (event: string, data: unknown) => {
-        safeEnqueue(
-          encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`),
-        );
+        safeEnqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
       };
       const heartbeat = setupHeartbeat(safeEnqueue, encoder);
 
@@ -105,8 +99,7 @@ export function runStreamLoop(
                 lastContent = content;
                 emit("response", { step, content });
               },
-              onWarn: () =>
-                emit("warn", { step, error: "Empty response, nudging" }),
+              onWarn: () => emit("warn", { step, error: "Empty response, nudging" }),
             },
           );
 
@@ -124,19 +117,14 @@ export function runStreamLoop(
         }
 
         if (!finishedViaDone) {
-          const summary =
-            lastContent || "Agent reached max steps without calling done";
+          const summary = lastContent || "Agent reached max steps without calling done";
           finalizeAgentRun(deps, ctx, req, summary, "[Autonomous: max_steps]");
         }
 
         finish();
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        safeEnqueue(
-          encoder.encode(
-            `event: error\ndata: ${JSON.stringify({ error: msg })}\n\n`,
-          ),
-        );
+        safeEnqueue(encoder.encode(`event: error\ndata: ${JSON.stringify({ error: msg })}\n\n`));
         finish();
       }
     },

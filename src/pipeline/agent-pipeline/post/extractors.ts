@@ -1,26 +1,18 @@
-import { randomUUID } from "crypto";
+import { randomUUID } from "node:crypto";
 import type { MemoryDB } from "../../../db";
-import type { RAGPipeline } from "../../../rag";
-import type { ModelRouter } from "../../../lib/model-router";
 import type { RequestLogger } from "../../../lib/logger";
-
+import type { ModelRouter } from "../../../lib/model-router";
+import type { RAGPipeline } from "../../../rag";
+import { bumpConfidence, findDuplicate, mergeContent, mergeTags } from "./dedupe";
 import {
-  validateCategoryAndContent,
-  validateExpiresAt,
-  categoryToKind,
-} from "./validators";
-import { findDuplicate, mergeContent, mergeTags, bumpConfidence } from "./dedupe";
-import {
-  computeStatus,
-  validateSupersedes,
   applySupersedes,
+  computeStatus,
   embedOrReuse,
+  validateSupersedes,
   type WriteResult,
 } from "./extractors-helpers";
-// M-05 (mig 14): post-insert top-3 `relates` edges hook.
-// M-05.1: parseTagsCsv exported for caller-side CSV → string[] conversion.
-// M-05.2: linkRelated takes `router: ModelRouter` for contradiction detection.
 import { linkRelated, parseTagsCsv } from "./link-related";
+import { categoryToKind, validateCategoryAndContent, validateExpiresAt } from "./validators";
 
 export type { WriteResult } from "./extractors-helpers";
 
@@ -61,12 +53,10 @@ export async function writeShared(
     }
   }
 
-  // supersedes → force insert + retire (skip dedupe-on-merge so we don't
-  // collapse the new write into a row it's supposed to replace). Below, the
-  // `if (dup.id)` branch is unreachable when supersedes.length > 0.
-  const dup = supersedeIds.length > 0
-    ? { id: null, source: null as null, vec: null, embedFailed: false }
-    : await findDuplicate(memory, rag, "shared", args.category, args.content);
+  const dup =
+    supersedeIds.length > 0
+      ? { id: null, source: null as null, vec: null, embedFailed: false }
+      : await findDuplicate(memory, rag, "shared", args.category, args.content);
 
   if (dup.id) {
     const old = memory.getShared(dup.id);
@@ -76,8 +66,6 @@ export async function writeShared(
         const tags = mergeTags(old.tags, args.tags);
         const conf = bumpConfidence(old.confidence, args.confidence);
         const status = computeStatus(conf);
-        // M-07: re-classify on merge so an old `semantic` row promoted to
-        // persona-grade category (e.g. preference) gets the rerank boost.
         const kind = categoryToKind(args.category, "shared");
         memory.transaction(() => {
           memory.updateShared(dup.id!, {
@@ -86,14 +74,22 @@ export async function writeShared(
             confidence: conf,
             status,
             kind,
-            ...(args.expires_at !== undefined ? { expires_at: args.expires_at } : {}),
+            ...(args.expires_at === undefined ? {} : { expires_at: args.expires_at }),
           });
           if (dup.vec) memory.upsertEmbedding(dup.id!, "shared", dup.vec);
         });
         log.info(
           "post",
           `→ shared/${args.category} [merged ${dup.source}, conf ${conf.toFixed(2)}]: ${args.content.slice(0, 100)}`,
-          { meta: { factId: dup.id, layer: "shared", category: args.category, merged: true, source: dup.source } },
+          {
+            meta: {
+              factId: dup.id,
+              layer: "shared",
+              category: args.category,
+              merged: true,
+              source: dup.source,
+            },
+          },
         );
         return { ok: true, id: dup.id, status, merged: true };
       } catch (err) {
@@ -124,14 +120,11 @@ export async function writeShared(
   const kind = categoryToKind(args.category, "shared");
   try {
     memory.transaction(() => {
-      memory.insertShared(
-        id,
-        args.category,
-        args.content,
-        args.tags,
-        "post-processing",
-        { confidence: clamped, status, kind },
-      );
+      memory.insertShared(id, args.category, args.content, args.tags, "post-processing", {
+        confidence: clamped,
+        status,
+        kind,
+      });
       memory.upsertEmbedding(id, "shared", vec);
       if (args.expires_at !== undefined && args.expires_at !== null) {
         memory.updateShared(id, { expires_at: args.expires_at });
@@ -152,9 +145,6 @@ export async function writeShared(
     { meta: { factId: id, layer: "shared", category: args.category, status, confidence: clamped } },
   );
 
-  // M-05: best-effort `relates` edges (non-blocking, post-commit).
-  // M-05.1: pass inserted tags so neighbours can absorb novel attributes.
-  // M-05.2: router threaded for contradiction detection (default off).
   await linkRelated(memory, rag, router, id, "shared", args.content, parseTagsCsv(args.tags), log);
 
   return { ok: true, id, status };
@@ -189,9 +179,10 @@ export async function writeContext(
   }
 
   // supersedes-skips-dedupe — see writeShared.
-  const dup = supersedeIds.length > 0
-    ? { id: null, source: null as null, vec: null, embedFailed: false }
-    : await findDuplicate(memory, rag, "context", args.category, args.content);
+  const dup =
+    supersedeIds.length > 0
+      ? { id: null, source: null as null, vec: null, embedFailed: false }
+      : await findDuplicate(memory, rag, "context", args.category, args.content);
 
   if (dup.id) {
     const old = memory.getContext(dup.id);
@@ -207,14 +198,22 @@ export async function writeContext(
             tags,
             confidence: conf,
             status,
-            ...(args.expires_at !== undefined ? { expires_at: args.expires_at } : {}),
+            ...(args.expires_at === undefined ? {} : { expires_at: args.expires_at }),
           });
           if (dup.vec) memory.upsertEmbedding(dup.id!, "context", dup.vec);
         });
         log.info(
           "post",
           `→ context/${args.category} [merged ${dup.source}, conf ${conf.toFixed(2)}]: ${args.content.slice(0, 100)}`,
-          { meta: { factId: dup.id, layer: "context", category: args.category, merged: true, source: dup.source } },
+          {
+            meta: {
+              factId: dup.id,
+              layer: "context",
+              category: args.category,
+              merged: true,
+              source: dup.source,
+            },
+          },
         );
         return { ok: true, id: dup.id, status, merged: true };
       } catch (err) {
@@ -268,12 +267,11 @@ export async function writeContext(
   log.info(
     "post",
     `→ context/${args.category} [${status} ${clamped.toFixed(2)}]: ${args.content.slice(0, 100)}`,
-    { meta: { factId: id, layer: "context", category: args.category, status, confidence: clamped } },
+    {
+      meta: { factId: id, layer: "context", category: args.category, status, confidence: clamped },
+    },
   );
 
-  // M-05: see writeShared.
-  // M-05.1: pass inserted tags for neighbour evolution.
-  // M-05.2: router threaded for contradiction detection.
   await linkRelated(memory, rag, router, id, "context", args.content, parseTagsCsv(args.tags), log);
 
   return { ok: true, id, status };

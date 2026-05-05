@@ -1,5 +1,5 @@
-import { readSSEStream } from "./readChatSSE";
 import { readAgentSSE } from "./readAgentSSE";
+import { readSSEStream } from "./readChatSSE";
 
 export type ChatStreamDeps = {
   updateLastAssistant: (patch: { content?: string; reasoning?: string }) => void;

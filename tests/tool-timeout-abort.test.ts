@@ -3,7 +3,7 @@
  * when the timeout elapses, so long-running handlers stop eating upstream
  * resources instead of running to their natural end.
  */
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { withToolTimeout } from "../src/pipeline/agent-loop/tool-runner";
 
 describe("withToolTimeout", () => {
@@ -88,12 +88,7 @@ describe("withToolTimeout", () => {
   });
 
   test("handler completes before timeout: returns its value", async () => {
-    const res = await withToolTimeout(
-      "web_dummy",
-      async () => "fast-result",
-      undefined,
-      500,
-    );
+    const res = await withToolTimeout("web_dummy", async () => "fast-result", undefined, 500);
     expect(res).toBe("fast-result");
   });
 });

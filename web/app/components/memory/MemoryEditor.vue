@@ -7,14 +7,8 @@ const emit = defineEmits<{
   close: [];
   delete: [row: MemoryRow];
   "save-focus": [key: string, value: string];
-  "save-shared": [
-    id: string,
-    patch: { category: string; content: string; tags: string },
-  ];
-  "save-context": [
-    id: string,
-    patch: { title: string; content: string; tags: string },
-  ];
+  "save-shared": [id: string, patch: { category: string; content: string; tags: string }];
+  "save-context": [id: string, patch: { title: string; content: string; tags: string }];
   // M-12 (mig 15): confidence unified to REAL [0..1] | null.
   "save-archive": [
     id: string,

@@ -1,4 +1,4 @@
-import { createHash, timingSafeEqual } from "crypto";
+import { createHash, timingSafeEqual } from "node:crypto";
 
 /**
  * Constant-length SHA-256 digest for a string.

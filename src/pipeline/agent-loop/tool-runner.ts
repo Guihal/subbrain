@@ -7,15 +7,16 @@
  *  2. Иначе fallback: dynamic-тулы (созданные через create_tool)
  *  3. Иначе fallback: code-тулы (исполняемые в sandbox через `code_*`-префикс)
  */
-import type { ToolCall } from "../../providers/types";
-import type { ToolExecutor, ToolRegistry } from "../../mcp";
-import type { ModelRouter } from "../../lib/model-router";
-import type { ArbitrationRoom } from "../arbitration";
+
 import type { logger } from "../../lib/logger";
-import type { DynamicToolDef, DynamicToolRegistry } from "./dynamic-tools";
-import type { CodeToolRegistry } from "./code-tools";
+import type { ModelRouter } from "../../lib/model-router";
+import type { ToolExecutor, ToolRegistry } from "../../mcp";
 import type { AgentLoopSession, AgentMode } from "../../mcp/registry/tool-registry";
+import type { ToolCall } from "../../providers/types";
+import type { ArbitrationRoom } from "../arbitration";
+import type { CodeToolRegistry } from "./code-tools";
 import { executeSandboxed } from "./code-tools/sandbox";
+import type { DynamicToolDef, DynamicToolRegistry } from "./dynamic-tools";
 
 /**
  * Per-scope timeout (ms) for tool execution. Timeouts DO NOT throw — they
@@ -122,11 +123,9 @@ export async function executeAgentTool(
     return JSON.stringify({ error: "Invalid JSON arguments" });
   }
 
-  log.info(
-    "agent-loop",
-    `Tool: ${name}(${JSON.stringify(args).slice(0, 200)})`,
-    { meta: { tool: name } },
-  );
+  log.info("agent-loop", `Tool: ${name}(${JSON.stringify(args).slice(0, 200)})`, {
+    meta: { tool: name },
+  });
 
   try {
     const result = await withToolTimeout(name, async (signal) => {
@@ -163,13 +162,7 @@ export async function executeAgentTool(
       // 2) Dynamic tools (созданы агентом через create_tool)
       const dynTool = deps.dynamicTools.get(name);
       if (dynTool) {
-        return await executeDynamicTool(
-          dynTool,
-          args,
-          deps.router,
-          log,
-          signal,
-        );
+        return await executeDynamicTool(dynTool, args, deps.router, log, signal);
       }
 
       // 3) Code tools — исполняемые через префикс `code_`
@@ -214,10 +207,7 @@ async function executeDynamicTool(
   const input = (args.input as string) || "";
   const systemPrompt = def.promptTemplate.replace(/\{\{input\}\}/g, input);
 
-  log.info(
-    "agent-loop",
-    `Dynamic tool ${def.name} → ${def.model} (${input.slice(0, 100)})`,
-  );
+  log.info("agent-loop", `Dynamic tool ${def.name} → ${def.model} (${input.slice(0, 100)})`);
 
   try {
     const response = await router.chat(def.model, {

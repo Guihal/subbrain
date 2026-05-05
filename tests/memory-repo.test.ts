@@ -9,10 +9,11 @@
  *
  * Uses a dedicated test DB so it stays isolated from memory-service.test.ts.
  */
+
+import type { Database } from "bun:sqlite";
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, unlinkSync } from "fs";
-import { Database } from "bun:sqlite";
-import { openDatabase, migrate } from "../src/db/schema";
+import { existsSync, unlinkSync } from "node:fs";
+import { migrate, openDatabase } from "../src/db/schema";
 import { MemoryRepository } from "../src/repositories/memory";
 
 const TEST_DB = "data/test-memory-repo.db";
@@ -54,7 +55,7 @@ describe("MemoryRepository — shared CRUD", () => {
       confidence: 0.9,
       status: "active",
     });
-    expect(repo.getShared("s1")!.content).toBe("prefers dark mode");
+    expect(repo.getShared("s1")?.content).toBe("prefers dark mode");
     expect(repo.countShared()).toBe(1);
   });
 
@@ -78,7 +79,7 @@ describe("MemoryRepository — shared CRUD", () => {
   test("updateShared flips status via updateRow (PR 22a allow-list)", () => {
     repo.insertShared("s1", "a", "x", "", undefined, { confidence: 0.5, status: "pending" });
     repo.updateShared("s1", { status: "active" });
-    expect(repo.getShared("s1")!.status).toBe("active");
+    expect(repo.getShared("s1")?.status).toBe("active");
   });
 });
 
@@ -133,10 +134,10 @@ describe("MemoryRepository — transaction", () => {
       repo.insertShared("s1", "a", "ok", "", undefined, { confidence: 0.9 });
       repo.upsertEmbedding("s1", "shared", new Float32Array(2048));
     });
-    expect(repo.getShared("s1")!.id).toBe("s1");
-    const vec = db
-      .query("SELECT count(*) AS c FROM vec_embeddings WHERE id = ?")
-      .get("s1") as { c: number };
+    expect(repo.getShared("s1")?.id).toBe("s1");
+    const vec = db.query("SELECT count(*) AS c FROM vec_embeddings WHERE id = ?").get("s1") as {
+      c: number;
+    };
     expect(vec.c).toBe(1);
   });
 });

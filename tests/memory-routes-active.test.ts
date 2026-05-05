@@ -2,13 +2,13 @@
  * MEM-6: admin /v1/memory/{shared,context}?active=true filters out
  * superseded + expired rows. Default (no ?active) shows full audit trail.
  */
-import { describe, test, expect, beforeAll, afterAll } from "bun:test";
-import { existsSync, unlinkSync } from "fs";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { existsSync, unlinkSync } from "node:fs";
 import { Elysia } from "elysia";
 import { MemoryDB } from "../src/db";
 import { RAGPipeline } from "../src/rag";
-import { MemoryService } from "../src/services/memory";
 import { memoryRoute } from "../src/routes/memory";
+import { MemoryService } from "../src/services/memory";
 
 const TEST_DB = "data/test-mem-routes-active.db";
 
@@ -49,7 +49,7 @@ describe("/v1/memory/* ?active=true (MEM-6)", () => {
     const rag = new RAGPipeline(memory, mkRouter());
     const svc = new MemoryService(memory.memoryRepo, rag, memory.logRepo);
     app = new Elysia().use(memoryRoute(svc)).listen(0);
-    base = `http://localhost:${app.server!.port}`;
+    base = `http://localhost:${app.server?.port}`;
 
     memory.insertShared("act-fresh", "preference", "fresh row", "");
     memory.insertShared("act-expired", "preference", "expired row", "");

@@ -1,12 +1,17 @@
+import { randomUUID } from "node:crypto";
 import type { Bot } from "grammy";
-import { randomUUID } from "crypto";
 import { logger } from "../../lib/logger";
 import type { BotState } from "./state";
 import { buildMessages, sendLongMessage } from "./utils";
 
 const log = logger.child("telegram");
 
-function findOrCreateChat(state: BotState, tgChatId: number, firstMessage: string, model: string): string {
+function findOrCreateChat(
+  state: BotState,
+  tgChatId: number,
+  firstMessage: string,
+  model: string,
+): string {
   // Stub for future per-TG-chat persistence; for now always create a new subbrain chat.
   const chatId = randomUUID();
   const title = firstMessage.slice(0, 80);

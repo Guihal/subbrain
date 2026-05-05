@@ -12,26 +12,20 @@
  *  7. FTS5 trigger sync survives schema rebuild.
  *  8. Indexes (`idx_archive_access`, `idx_archive_salience`) preserved.
  */
-import {
-  afterAll,
-  beforeAll,
-  describe,
-  expect,
-  test,
-} from "bun:test";
-import { existsSync, unlinkSync } from "fs";
-import { Database } from "bun:sqlite";
-import * as sqliteVec from "sqlite-vec";
-import { Elysia } from "elysia";
 
-import { migrate, openDatabase } from "../src/db/schema";
+import { Database } from "bun:sqlite";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { existsSync, unlinkSync } from "node:fs";
+import { Elysia } from "elysia";
+import * as sqliteVec from "sqlite-vec";
 import { MemoryDB } from "../src/db";
-import { RAGPipeline } from "../src/rag";
-import { MemoryService } from "../src/services/memory";
-import { AuthService } from "../src/services/auth.service";
+import { migrate, openDatabase } from "../src/db/schema";
 import { authMiddleware } from "../src/lib/auth";
-import { memoryRoute } from "../src/routes/memory";
 import { AppError } from "../src/lib/errors";
+import { RAGPipeline } from "../src/rag";
+import { memoryRoute } from "../src/routes/memory";
+import { AuthService } from "../src/services/auth.service";
+import { MemoryService } from "../src/services/memory";
 
 const TEST_DB = "data/test-mem12-archive.db";
 const TOKEN = "test-mem12-archive-token";
@@ -83,12 +77,18 @@ describe("M-12 mig 15 — schema rebuild", () => {
       );
     `);
     db.exec("PRAGMA user_version = 14");
-    db.query(
-      `INSERT INTO layer3_archive(id,title,content,confidence) VALUES (?,?,?,?)`,
-    ).run("hi", "h", "high entry", "HIGH");
-    db.query(
-      `INSERT INTO layer3_archive(id,title,content,confidence) VALUES (?,?,?,?)`,
-    ).run("lo", "l", "low entry", "LOW");
+    db.query(`INSERT INTO layer3_archive(id,title,content,confidence) VALUES (?,?,?,?)`).run(
+      "hi",
+      "h",
+      "high entry",
+      "HIGH",
+    );
+    db.query(`INSERT INTO layer3_archive(id,title,content,confidence) VALUES (?,?,?,?)`).run(
+      "lo",
+      "l",
+      "low entry",
+      "LOW",
+    );
     db.close();
 
     // Run migrate() through the canonical opener — pulls in mig 15.
@@ -104,15 +104,11 @@ describe("M-12 mig 15 — schema rebuild", () => {
     expect(byId.lo).toBe(0.4);
 
     const typ = opened
-      .query<{ t: string }, []>(
-        "SELECT typeof(confidence) AS t FROM layer3_archive WHERE id='hi'",
-      )
+      .query<{ t: string }, []>("SELECT typeof(confidence) AS t FROM layer3_archive WHERE id='hi'")
       .get();
     expect(typ?.t).toBe("real");
 
-    const ver = opened
-      .query<{ user_version: number }, []>("PRAGMA user_version")
-      .get();
+    const ver = opened.query<{ user_version: number }, []>("PRAGMA user_version").get();
     expect(ver?.user_version).toBe(16);
     opened.close();
   });
@@ -123,15 +119,11 @@ describe("M-12 mig 15 — schema rebuild", () => {
     db1.close();
     const db2 = openDatabase(TEST_DB);
     migrate(db2);
-    const ver = db2
-      .query<{ user_version: number }, []>("PRAGMA user_version")
-      .get();
+    const ver = db2.query<{ user_version: number }, []>("PRAGMA user_version").get();
     expect(ver?.user_version).toBe(16);
     // typeof confidence is still REAL — no double-rebuild damage.
     const typ = db2
-      .query<{ t: string }, []>(
-        "SELECT typeof(confidence) AS t FROM layer3_archive WHERE id='hi'",
-      )
+      .query<{ t: string }, []>("SELECT typeof(confidence) AS t FROM layer3_archive WHERE id='hi'")
       .get();
     expect(typ?.t).toBe("real");
     db2.close();
@@ -140,9 +132,12 @@ describe("M-12 mig 15 — schema rebuild", () => {
   test("FTS5 trigger sync survives rebuild", () => {
     const db = openDatabase(TEST_DB);
     migrate(db);
-    db.query(
-      `INSERT INTO layer3_archive(id,title,content,confidence) VALUES (?,?,?,?)`,
-    ).run("ft1", "Bun runtime", "FTS rebuild check", 0.7);
+    db.query(`INSERT INTO layer3_archive(id,title,content,confidence) VALUES (?,?,?,?)`).run(
+      "ft1",
+      "Bun runtime",
+      "FTS rebuild check",
+      0.7,
+    );
     const hit = db
       .query<{ id: string }, [string]>(
         `SELECT a.id FROM fts_archive f JOIN layer3_archive a ON a.rowid=f.rowid WHERE fts_archive MATCH ?`,
@@ -187,9 +182,9 @@ describe("M-12 mig 15 — schema rebuild", () => {
     // trigger mig 15 on a populated fts_archive.
     const seed = openDatabase(LEGACY_DB);
     migrate(seed);
-    seed.query(
-      `INSERT INTO layer3_archive(id,title,content,confidence) VALUES (?,?,?,?)`,
-    ).run("legacy-1", "Hyprland tiling wm", "compositor with workspaces", 0.85);
+    seed
+      .query(`INSERT INTO layer3_archive(id,title,content,confidence) VALUES (?,?,?,?)`)
+      .run("legacy-1", "Hyprland tiling wm", "compositor with workspaces", 0.85);
     // Roll user_version back so reopen re-triggers mig 15 on populated FTS.
     seed.query(`PRAGMA user_version = 14`).run();
     seed.close();
@@ -262,7 +257,7 @@ describe("M-12 — insert REAL + route TypeBox", () => {
   beforeAll(() => {
     cleanupRoute();
     app = buildApp();
-    base = `http://localhost:${app.server!.port}`;
+    base = `http://localhost:${app.server?.port}`;
   });
   afterAll(() => {
     app.stop();

@@ -3,9 +3,9 @@
  * Pending / rejected memories are hidden from FTS and vec paths so the model
  * never cites an unapproved fact as truth.
  */
-import { describe, test, expect, beforeAll, afterAll } from "bun:test";
-import { existsSync, unlinkSync } from "fs";
-import { randomUUID } from "crypto";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { randomUUID } from "node:crypto";
+import { existsSync, unlinkSync } from "node:fs";
 import { MemoryDB } from "../src/db";
 import { RAGPipeline } from "../src/rag";
 

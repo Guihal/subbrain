@@ -1,16 +1,12 @@
-import type { ModelRouter } from "../../lib/model-router";
 import { EMBED_MODEL } from "../../lib/model-map";
+import type { ModelRouter } from "../../lib/model-router";
 import { EMBED_CACHE_MAX, EMBED_CACHE_TTL } from "../types";
 
 export class EmbedCache {
   private cache = new Map<string, { vec: Float32Array; ts: number }>();
 
   /** Embed a query with LRU+TTL cache. Normalizes key to lowercase trimmed. */
-  async query(
-    router: ModelRouter,
-    query: string,
-    signal?: AbortSignal,
-  ): Promise<Float32Array> {
+  async query(router: ModelRouter, query: string, signal?: AbortSignal): Promise<Float32Array> {
     const key = query.toLowerCase().trim();
     const now = Date.now();
     const cached = this.cache.get(key);
@@ -29,9 +25,12 @@ export class EmbedCache {
     // Evict oldest if over capacity.
     if (this.cache.size >= EMBED_CACHE_MAX) {
       let oldestKey = "";
-      let oldestTs = Infinity;
+      let oldestTs = Number.POSITIVE_INFINITY;
       for (const [k, v] of this.cache) {
-        if (v.ts < oldestTs) { oldestTs = v.ts; oldestKey = k; }
+        if (v.ts < oldestTs) {
+          oldestTs = v.ts;
+          oldestKey = k;
+        }
       }
       if (oldestKey) this.cache.delete(oldestKey);
     }

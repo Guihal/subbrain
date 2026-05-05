@@ -4,7 +4,7 @@
  * Логика по-прежнему живёт в src/mcp/tools/memory/ (MemoryTools).
  * Здесь — только декларация интерфейса для реестра.
  */
-import { t, type ToolRegistry } from "./tool-registry";
+import { type ToolRegistry, t } from "./tool-registry";
 
 export function registerMemoryTools(registry: ToolRegistry): void {
   registry.register({
@@ -15,18 +15,12 @@ export function registerMemoryTools(registry: ToolRegistry): void {
       id: t.String({ description: "Memory entry ID" }),
       layer: t.Optional(
         t.Union(
-          [
-            t.Literal("context"),
-            t.Literal("archive"),
-            t.Literal("shared"),
-            t.Literal("agent"),
-          ],
+          [t.Literal("context"), t.Literal("archive"), t.Literal("shared"), t.Literal("agent")],
           { description: "Restrict search to a specific layer" },
         ),
       ),
     }),
-    handler: (args, ctx) =>
-      ctx.executor.memoryTools.read(args.id, args.layer),
+    handler: (args, ctx) => ctx.executor.memoryTools.read(args.id, args.layer),
   });
 
   registry.register({
@@ -52,9 +46,7 @@ export function registerMemoryTools(registry: ToolRegistry): void {
       id: t.Optional(t.String()),
       title: t.Optional(t.String({ description: "Title (context/archive)" })),
       tags: t.Optional(t.String({ description: "Comma-separated tags" })),
-      category: t.Optional(
-        t.String({ description: "Category (shared/context layer)" }),
-      ),
+      category: t.Optional(t.String({ description: "Category (shared/context layer)" })),
       expires_at: t.Optional(
         t.Number({
           description:
@@ -80,31 +72,22 @@ export function registerMemoryTools(registry: ToolRegistry): void {
         t.Literal("agent"),
       ]),
     }),
-    handler: (args, ctx) =>
-      ctx.executor.memoryTools.delete(args.id, args.layer, ctx.agentId),
+    handler: (args, ctx) => ctx.executor.memoryTools.delete(args.id, args.layer, ctx.agentId),
   });
 
   registry.register({
     name: "memory_search",
-    description:
-      "Search across memory layers (FTS5 full-text). Returns relevant memories.",
+    description: "Search across memory layers (FTS5 full-text). Returns relevant memories.",
     scope: "public",
     input: t.Object({
       query: t.String({ description: "Search query" }),
       layer: t.Optional(
         t.Union(
-          [
-            t.Literal("context"),
-            t.Literal("archive"),
-            t.Literal("shared"),
-            t.Literal("all"),
-          ],
+          [t.Literal("context"), t.Literal("archive"), t.Literal("shared"), t.Literal("all")],
           { description: "Which layer to search (default: all)" },
         ),
       ),
-      limit: t.Optional(
-        t.Number({ description: "Max results (default: 10)" }),
-      ),
+      limit: t.Optional(t.Number({ description: "Max results (default: 10)" })),
     }),
     handler: (args, ctx) =>
       ctx.executor.memoryTools.search(args.query, args.layer, args.limit, ctx.agentId),
@@ -112,8 +95,7 @@ export function registerMemoryTools(registry: ToolRegistry): void {
 
   registry.register({
     name: "context_summary",
-    description:
-      "Get executive summary of memory context for the current session.",
+    description: "Get executive summary of memory context for the current session.",
     scope: "public",
     input: t.Object({
       session_id: t.String(),
@@ -132,15 +114,9 @@ export function registerMemoryTools(registry: ToolRegistry): void {
     scope: "agent-only",
     input: t.Object({
       query: t.String({ description: "Search query (sanitized for FTS5)" }),
-      limit: t.Optional(
-        t.Number({ description: "Max rows (default 20)" }),
-      ),
-      agentId: t.Optional(
-        t.String({ description: "Restrict to a single agent's rows" }),
-      ),
-      sessionId: t.Optional(
-        t.String({ description: "Restrict to a single session's rows" }),
-      ),
+      limit: t.Optional(t.Number({ description: "Max rows (default 20)" })),
+      agentId: t.Optional(t.String({ description: "Restrict to a single agent's rows" })),
+      sessionId: t.Optional(t.String({ description: "Restrict to a single session's rows" })),
     }),
     handler: (args, ctx) => {
       const hits = ctx.executor.memoryDb.logRepo.searchLog(args.query, {
@@ -155,15 +131,8 @@ export function registerMemoryTools(registry: ToolRegistry): void {
   // M-10: agent-only curation tools. Edges + lifecycle are sensitive (raw
   // memo manipulation) — kept off REST/MCP public transports. All four
   // delegate to `executor.memoryCurationTools`.
-  const CURATION_LAYER = t.Union([
-    t.Literal("context"),
-    t.Literal("archive"),
-    t.Literal("shared"),
-  ]);
-  const SUPERSEDE_LAYER = t.Union([
-    t.Literal("context"),
-    t.Literal("shared"),
-  ]);
+  const CURATION_LAYER = t.Union([t.Literal("context"), t.Literal("archive"), t.Literal("shared")]);
+  const SUPERSEDE_LAYER = t.Union([t.Literal("context"), t.Literal("shared")]);
   const EDGE_KIND = t.Union([
     t.Literal("derives"),
     t.Literal("relates"),

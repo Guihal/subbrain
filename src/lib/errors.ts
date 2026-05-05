@@ -43,12 +43,12 @@ export class NotFoundError extends AppError {
 }
 
 const SECRET_PATTERNS: RegExp[] = [
-  /Bearer\s+[A-Za-z0-9._\-]+/gi,
-  /(?:api[_-]?key|authorization|token)\s*[:=]\s*["']?[A-Za-z0-9._\-]+["']?/gi,
+  /Bearer\s+[A-Za-z0-9._-]+/gi,
+  /(?:api[_-]?key|authorization|token)\s*[:=]\s*["']?[A-Za-z0-9._-]+["']?/gi,
   /\bghu_[A-Za-z0-9]{20,}\b/g,
   /\bghp_[A-Za-z0-9]{20,}\b/g,
-  /\bsk-(?:ant-)?[A-Za-z0-9._\-]{20,}\b/g,
-  /\bnvapi-[A-Za-z0-9._\-]{10,}\b/g,
+  /\bsk-(?:ant-)?[A-Za-z0-9._-]{20,}\b/g,
+  /\bnvapi-[A-Za-z0-9._-]{10,}\b/g,
 ];
 
 /**

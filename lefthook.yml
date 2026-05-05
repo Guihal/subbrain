@@ -1,0 +1,42 @@
+# Gate pyramid — matches docs/tasks/kimi-workflow.md CP0-CP3
+# lefthook run <stage> to test manually
+
+pre-commit:
+  parallel: true
+  commands:
+    file-size:
+      run: STRICT_FILE_RULES=1 bun run scripts/check-file-size.ts
+      skip:
+        - merge
+        - rebase
+    deep-imports:
+      run: STRICT_FILE_RULES=1 bun run scripts/check-deep-imports.ts
+      skip:
+        - merge
+        - rebase
+    forbidden-patterns:
+      run: STRICT_FILE_RULES=1 bun run scripts/check-forbidden-patterns.ts
+      skip:
+        - merge
+        - rebase
+
+pre-push:
+  parallel: false
+  commands:
+    lint:
+      run: bun run lint
+    typecheck:
+      run: bun run typecheck
+    test:
+      run: bun test --bail
+
+post-checkout:
+  commands:
+    lefthook-check:
+      run: |
+        if [ -f lefthook.yml ]; then
+          bunx lefthook install >/dev/null 2>&1 || true
+        fi
+      skip:
+        - merge
+        - rebase

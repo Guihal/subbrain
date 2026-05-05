@@ -3,11 +3,11 @@
  * expired rows as superseded_by='expired'. Operates per-layer (shared,
  * context) per-category.
  */
-import { describe, test, expect, beforeAll, afterAll } from "bun:test";
-import { existsSync, unlinkSync } from "fs";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { existsSync, unlinkSync } from "node:fs";
 import { MemoryDB } from "../src/db";
-import { RAGPipeline } from "../src/rag";
 import { runMemoryDedup } from "../src/pipeline/night-cycle/steps/memory-dedup";
+import { RAGPipeline } from "../src/rag";
 
 const TEST_DB = "data/test-night-memory-dedup.db";
 
@@ -107,7 +107,7 @@ describe("night-cycle runMemoryDedup (MEM-6)", () => {
   });
 
   test("expired rows marked superseded_by='expired'", () => {
-    expect(memory.getShared("expA")!.superseded_by).toBe("expired");
-    expect(memory.getShared("expB")!.superseded_by).toBe("expired");
+    expect(memory.getShared("expA")?.superseded_by).toBe("expired");
+    expect(memory.getShared("expB")?.superseded_by).toBe("expired");
   });
 });

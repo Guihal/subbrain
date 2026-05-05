@@ -2,17 +2,16 @@
  * Streaming pipeline path: pre → SSE proxy → captured tail used for post-processing.
  */
 import type { MemoryDB } from "../../../db";
-import type { ModelRouter } from "../../../lib/model-router";
+import type { RequestLogger } from "../../../lib/logger";
 import type { Metrics } from "../../../lib/metrics";
-import type { RAGPipeline } from "../../../rag";
+import type { ModelRouter } from "../../../lib/model-router";
 import type { ToolExecutor } from "../../../mcp";
 import type { ToolRegistry } from "../../../mcp/registry";
-import type { RequestLogger } from "../../../lib/logger";
-
-import type { PipelineRequest } from "../types";
+import type { RAGPipeline } from "../../../rag";
 import { injectSystemPrompt } from "../helpers";
-import { runPre } from "./pre";
+import type { PipelineRequest } from "../types";
 import { runPostFromStream } from "./post";
+import { runPre } from "./pre";
 
 const SSE_KEEPALIVE_MS = 8_000;
 
@@ -43,9 +42,7 @@ export function buildPipelineStream(args: {
       object: "chat.completion.chunk",
       created: Math.floor(Date.now() / 1000),
       model: req.model,
-      choices: [
-        { index: 0, delta: { reasoning_content: text }, finish_reason: null },
-      ],
+      choices: [{ index: 0, delta: { reasoning_content: text }, finish_reason: null }],
     };
     return encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`);
   };
@@ -153,10 +150,7 @@ export function buildPipelineStream(args: {
         controller.close();
       } catch (err) {
         clearInterval(keepalive);
-        log.error(
-          "pipeline",
-          `Pipeline stream error: ${err instanceof Error ? err.message : err}`,
-        );
+        log.error("pipeline", `Pipeline stream error: ${err instanceof Error ? err.message : err}`);
         const errMsg = err instanceof Error ? err.message : String(err);
         controller.enqueue(makeProgressChunk(`\n❌ Ошибка: ${errMsg}\n`));
         controller.enqueue(encoder.encode(`data: [DONE]\n\n`));

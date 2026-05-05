@@ -8,14 +8,11 @@
  * Each test uses a fresh DB + a distinct WHITELIST category so dedupe
  * never fires (cross-category matches are rejected in `findDuplicate`).
  */
-import { describe, test, expect, beforeEach, afterEach } from "bun:test";
-import { existsSync, unlinkSync, mkdirSync } from "fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { existsSync, mkdirSync, unlinkSync } from "node:fs";
 import { MemoryDB } from "../src/db";
+import { writeContext, writeShared } from "../src/pipeline/agent-pipeline/post/extractors";
 import { RAGPipeline } from "../src/rag";
-import {
-  writeContext,
-  writeShared,
-} from "../src/pipeline/agent-pipeline/post/extractors";
 
 const TEST_DB = "data/test-mem5.1-evolve.db";
 
@@ -184,7 +181,7 @@ describe("M-05.1 evolveNeighbour — tag merge on linkRelated", () => {
     seedContext("evo-5-seed", "rho sigma tau test-noop", "a,b,c");
     const before = memory.getContext("evo-5-seed");
     expect(before?.tags).toBe("a,b,c");
-    const beforeUpdatedAt = before!.updated_at;
+    const beforeUpdatedAt = before?.updated_at;
 
     // Wait > 1s so any UPDATE would shift `updated_at` (unix-seconds).
     await new Promise((res) => setTimeout(res, 1100));
@@ -255,8 +252,7 @@ describe("M-05.1 evolveNeighbour — tag merge on linkRelated", () => {
     // the real row, so evolveNeighbour's null-row early-return is the path
     // under test.
     const realGetContext = memory.getContext.bind(memory);
-    (memory as any).getContext = (id: string) =>
-      id === "evo-8-seed" ? null : realGetContext(id);
+    (memory as any).getContext = (id: string) => (id === "evo-8-seed" ? null : realGetContext(id));
     try {
       const r = await writeContext(
         memory,

@@ -70,18 +70,16 @@ export function makeThinkSplitter(): ThinkSplitter {
  * Non-stream one-shot split — for `chat()` response bodies where the whole
  * message content is available at once.
  */
-export function splitThinkTagsOnce(
-  content: string | null,
-): { visible: string | null; thinking: string } {
+export function splitThinkTagsOnce(content: string | null): {
+  visible: string | null;
+  thinking: string;
+} {
   if (!content) return { visible: content, thinking: "" };
   let thinking = "";
-  const visible = content.replace(
-    /<think>([\s\S]*?)<\/think>/g,
-    (_m, inner) => {
-      thinking += inner;
-      return "";
-    },
-  );
+  const visible = content.replace(/<think>([\s\S]*?)<\/think>/g, (_m, inner) => {
+    thinking += inner;
+    return "";
+  });
   const trimmed = visible.trim();
   return { visible: trimmed.length > 0 ? trimmed : null, thinking };
 }
@@ -109,15 +107,11 @@ export function transformThinkTags(
           const lines = buffer.split("\n");
           buffer = lines.pop() ?? "";
           for (const line of lines) {
-            controller.enqueue(
-              encoder.encode(transformLine(line, splitter) + "\n"),
-            );
+            controller.enqueue(encoder.encode(`${transformLine(line, splitter)}\n`));
           }
         }
         if (buffer.length > 0) {
-          controller.enqueue(
-            encoder.encode(transformLine(buffer, splitter)),
-          );
+          controller.enqueue(encoder.encode(transformLine(buffer, splitter)));
         }
         controller.close();
       } catch (err) {
@@ -154,8 +148,7 @@ function transformLine(line: string, splitter: ThinkSplitter): string {
   const { visible, thinking } = splitter.feed(delta.content);
   delta.content = visible;
   if (thinking) {
-    const prior =
-      typeof delta.reasoning_content === "string" ? delta.reasoning_content : "";
+    const prior = typeof delta.reasoning_content === "string" ? delta.reasoning_content : "";
     delta.reasoning_content = prior + thinking;
   }
   return `data: ${JSON.stringify(chunk)}`;

@@ -29,7 +29,7 @@ function resize() {
   const el = textareaRef.value;
   if (!el) return;
   el.style.height = "auto";
-  el.style.height = Math.min(el.scrollHeight, 200) + "px";
+  el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
 }
 
 // Focus on mount

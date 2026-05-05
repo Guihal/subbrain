@@ -1,10 +1,7 @@
 #!/usr/bin/env bash
-# Install repo guardrail hooks (FILE-SIZE-1).
-# Idempotent — re-running overwrites the existing pre-commit hook.
+# Install lefthook hooks (gate pyramid: CP0 pre-commit, CP1-CP3 pre-push).
+# Idempotent — re-running reinstalls.
 set -e
-ROOT="$(git rev-parse --show-toplevel)"
-HOOK="$ROOT/.git/hooks/pre-commit"
-cp "$ROOT/scripts/pre-commit.sh" "$HOOK"
-chmod +x "$HOOK"
-echo "[install-hooks] installed $HOOK"
+bunx lefthook install
+echo "[install-hooks] lefthook hooks installed"
 echo "[install-hooks] bypass with SKIP_GUARDRAILS=1 git commit ... (emergency only)"

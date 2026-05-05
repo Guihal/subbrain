@@ -1,20 +1,4 @@
-/**
- * MEM-6: pre-insert deduplication for the post-processing hippocampus.
- *
- * Two-pass strategy, embed-lazy:
- *   1. FTS5 search over the target layer (no RPM cost). Stem-token overlap
- *      ≥ MIN_OVERLAP and same category → return the FTS hit. Embed never
- *      runs.
- *   2. FTS miss → embed once → vec search → cosine ≥ DUP_COSINE_THRESHOLD
- *      and same category → return the vec hit (with the freshly computed
- *      vec for write-time reuse).
- *   3. Both miss → return { id: null, vec } so the writer can insert with
- *      the embed already on hand.
- *
- * On hit, the writer updates the existing row instead of inserting a new
- * one; mergeContent picks "longest wins" to avoid information loss when a
- * later, terser write would otherwise overwrite the original detail.
- */
+/** MEM-6: pre-insert dedup for hippocampus. Two-pass: FTS5 → embed → vec. */
 import type { MemoryDB } from "../../../db";
 import type { RAGPipeline } from "../../../rag";
 
@@ -45,9 +29,33 @@ function cosineSimilarity(a: Float32Array, b: Float32Array): number {
 // drop trivial Russian/English stop-words. Cheap heuristic — cosine handles
 // the precision case.
 const STOP_WORDS = new Set([
-  "the", "and", "for", "you", "are", "with", "from", "this", "that", "have",
-  "был", "была", "была", "это", "тот", "так", "его", "как", "что", "уже",
-  "для", "при", "или", "под", "над", "без", "между",
+  "the",
+  "and",
+  "for",
+  "you",
+  "are",
+  "with",
+  "from",
+  "this",
+  "that",
+  "have",
+  "был",
+  "была",
+  "была",
+  "это",
+  "тот",
+  "так",
+  "его",
+  "как",
+  "что",
+  "уже",
+  "для",
+  "при",
+  "или",
+  "под",
+  "над",
+  "без",
+  "между",
 ]);
 
 export function tokenize(s: string): string[] {
@@ -67,28 +75,14 @@ function tokenOverlap(a: string, b: string): number {
 }
 
 export interface DupCandidate {
-  /** id of the duplicate row, or null when no duplicate found. */
   id: string | null;
-  /** Where the dup was found — drives whether we re-embed on update. */
   source: "fts" | "vec" | null;
-  /** Embed of the new content if we computed one (vec-pass), else null. */
   vec: Float32Array | null;
-  /** True if we tried to embed and it failed. Caller should fail fast
-   *  instead of re-embedding (would just hit the same timeout twice). */
   embedFailed: boolean;
-  /** Original embed error message when embedFailed=true (for diagnostics). */
   embedError?: string;
 }
 
-/**
- * Find a duplicate row in `layer` for new (category, content). Returns
- * `{id, source, vec}` — caller uses `vec` to avoid re-embedding on insert
- * when both passes miss but we already paid for the embed.
- *
- * MUST be called with the SAME category as the prospective write — different
- * categories under the same content are intentionally NOT deduped (e.g. a
- * `goal` and a `preference` may share words).
- */
+/** Find duplicate row in `layer` for new (category, content). */
 export async function findDuplicate(
   memory: MemoryDB,
   rag: RAGPipeline,
@@ -183,10 +177,7 @@ export async function findDuplicate(
       // tiny floating-point drift won't push true duplicates below 0.85.
       let candVec: Float32Array;
       try {
-        candVec = await rag.embedContent(
-          hitContent,
-          AbortSignal.timeout(EMBED_TIMEOUT_MS),
-        );
+        candVec = await rag.embedContent(hitContent, AbortSignal.timeout(EMBED_TIMEOUT_MS));
       } catch {
         continue;
       }
@@ -201,21 +192,12 @@ export async function findDuplicate(
   return { id: null, source: null, vec, embedFailed: false };
 }
 
-/**
- * Pick the more informative content body. "Longest wins" — if a later write
- * is a terser rewording, we keep the original detail; if it adds material,
- * we adopt it. Avoids the failure mode where a 600-char fact gets overwritten
- * by a 50-char rephrasing on next exchange.
- */
+/** Pick more informative content. "Longest wins". */
 export function mergeContent(oldContent: string, newContent: string): string {
-  if (newContent.length > oldContent.length) return newContent;
-  return oldContent;
+  return newContent.length > oldContent.length ? newContent : oldContent;
 }
 
-/**
- * Union two comma-separated tag strings, preserving order of first sight,
- * dropping empties, case-insensitive dedup.
- */
+/** Union two CSV tag strings, case-insensitive dedup. */
 export function mergeTags(oldTags: string, newTags: string): string {
   const seen = new Set<string>();
   const out: string[] = [];
@@ -230,11 +212,7 @@ export function mergeTags(oldTags: string, newTags: string): string {
   return out.join(",");
 }
 
-/** Bump a confidence score on update — capped at 1.0. */
-export function bumpConfidence(
-  oldConf: number | null,
-  newConf: number,
-): number {
-  const base = Math.max(oldConf ?? 0, newConf);
-  return Math.min(1, base + 0.05);
+/** Bump confidence on update — capped at 1.0. */
+export function bumpConfidence(oldConf: number | null, newConf: number): number {
+  return Math.min(1, Math.max(oldConf ?? 0, newConf) + 0.05);
 }

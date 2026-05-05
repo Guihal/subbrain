@@ -16,7 +16,7 @@ const SECRET_JSON_RE = /"(api[_-]?key|authorization|token|bearer)"\s*:\s*"[^"]*"
 // Plain KV: api-key=xxx, authorization=Bearer xyz
 const SECRET_KV_RE = /\b(api[_-]?key|authorization|token|bearer)=[^\s|,;"]+/gi;
 // Standalone "Bearer <token>" outside an attribute (e.g. header dumps).
-const BEARER_RE = /\bBearer\s+[A-Za-z0-9_\-\.]{8,200}\b/g;
+const BEARER_RE = /\bBearer\s+[A-Za-z0-9_\-.]{8,200}\b/g;
 // OpenAI-style API keys.
 const SK_RE = /\bsk-[A-Za-z0-9_-]{10,200}\b/g;
 // GitHub personal access tokens.

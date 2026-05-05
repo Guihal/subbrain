@@ -28,10 +28,7 @@ export interface RollbackResult {
   errors: number;
 }
 
-export async function runRollback(
-  memory: MemoryDB,
-  jsonlPath: string,
-): Promise<RollbackResult> {
+export async function runRollback(memory: MemoryDB, jsonlPath: string): Promise<RollbackResult> {
   const result: RollbackResult = {
     total: 0,
     restored: 0,
@@ -58,10 +55,7 @@ export async function runRollback(
     try {
       let inserted = false;
       memory.db.transaction(() => {
-        const table =
-          entry.source_table === "shared_memory"
-            ? "shared_memory"
-            : "layer2_context";
+        const table = entry.source_table === "shared_memory" ? "shared_memory" : "layer2_context";
         const exists = memory.db
           .query(`SELECT 1 AS x FROM ${table} WHERE id = ?`)
           .get(entry.source_id) as { x: number } | null;
@@ -114,18 +108,13 @@ export async function runRollback(
 async function main(): Promise<void> {
   const jsonlPath = process.argv[2];
   if (!jsonlPath) {
-    console.error(
-      "Usage: bun run scripts/rollback-migration.ts <jsonl-path> [--confirm]",
-    );
+    console.error("Usage: bun run scripts/rollback-migration.ts <jsonl-path> [--confirm]");
     process.exit(1);
   }
   const dbPath = process.env.DB_PATH ?? "data/subbrain.db";
-  const isProd =
-    dbPath.endsWith("subbrain.db") && !dbPath.includes("test");
+  const isProd = dbPath.endsWith("subbrain.db") && !dbPath.includes("test");
   if (isProd && !process.argv.includes("--confirm")) {
-    console.error(
-      "rollback-migration: prod DB detected, pass --confirm to override",
-    );
+    console.error("rollback-migration: prod DB detected, pass --confirm to override");
     process.exit(1);
   }
   const memory = new MemoryDBImpl(dbPath);

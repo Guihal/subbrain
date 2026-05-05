@@ -43,9 +43,7 @@ export function useMemoryPage(memory: MemoryApi) {
     },
   });
 
-  const pageCount = computed(() =>
-    Math.max(1, Math.ceil(totalForActive.value / pageSize.value)),
-  );
+  const pageCount = computed(() => Math.max(1, Math.ceil(totalForActive.value / pageSize.value)));
 
   onMounted(() => {
     loadActive();

@@ -34,7 +34,9 @@
   border-radius: 0.375rem;
   font-size: 0.8125rem;
   color: var(--ui-text-muted);
-  transition: background-color 0.15s, color 0.15s;
+  transition:
+    background-color 0.15s,
+    color 0.15s;
 }
 .nav-link:hover {
   color: var(--ui-text);

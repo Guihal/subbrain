@@ -14,14 +14,14 @@
  * `insertSharedWithEmbedding` / `insertContextWithEmbedding` so callers get
  * atomicity via `this.transaction()`.
  */
-import { Database } from "bun:sqlite";
+import type { Database } from "bun:sqlite";
 import { MemoryTable } from "../../db/tables/memory";
 import { SharedTable } from "../../db/tables/shared";
 import type { MemoryStatus } from "../../db/types";
 import { bumpAccess, decaySalience } from "./access";
-import { listByStatus, setStatusSafe, setSupersededBy, type PendingLayer } from "./status";
-import { makeMemHelpers, type MemHelpers } from "./mem-helpers";
+import { type MemHelpers, makeMemHelpers } from "./mem-helpers";
 import { makeSharedHelpers, type SharedHelpers } from "./shared-helpers";
+import { listByStatus, type PendingLayer, setStatusSafe, setSupersededBy } from "./status";
 
 export interface MemoryRepository extends MemHelpers, SharedHelpers {}
 
@@ -50,12 +50,7 @@ export class MemoryRepository {
   }
 
   // ─── PR 22a/b — pending status helpers (status.ts) ───────────
-  listByStatus(
-    layer: PendingLayer,
-    status: MemoryStatus,
-    limit: number,
-    offset: number,
-  ) {
+  listByStatus(layer: PendingLayer, status: MemoryStatus, limit: number, offset: number) {
     return listByStatus(this.db, layer, status, limit, offset);
   }
 

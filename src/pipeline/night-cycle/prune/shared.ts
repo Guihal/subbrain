@@ -1,6 +1,6 @@
 import type { MemoryDB } from "../../../db";
-import type { ModelRouter } from "../../../lib/model-router";
 import { logger } from "../../../lib/logger";
+import type { ModelRouter } from "../../../lib/model-router";
 import { parseJson } from "../types";
 
 const log = logger.child("night");
@@ -9,10 +9,7 @@ const MAX_ACTIONS = 30;
 const MAX_DURATION_MS = 5 * 60 * 1000; // soft timeout; remaining rows next cycle
 const MIN_MERGED = 15;
 
-export async function pruneShared(
-  memory: MemoryDB,
-  router: ModelRouter,
-): Promise<number> {
+export async function pruneShared(memory: MemoryDB, router: ModelRouter): Promise<number> {
   const all = memory.getAllShared();
   if (all.length < 2) return 0;
 
@@ -37,9 +34,7 @@ export async function pruneShared(
       .join(" OR ");
     if (!tagTerms) continue;
 
-    const hits = memory
-      .searchShared(tagTerms, 5)
-      .filter((h) => h.id !== row.id && !seen.has(h.id));
+    const hits = memory.searchShared(tagTerms, 5).filter((h) => h.id !== row.id && !seen.has(h.id));
     if (hits.length === 0) continue;
 
     const candidates = hits
@@ -79,14 +74,9 @@ export async function pruneShared(
       }
 
       const idx = typeof parsed.target === "number" ? parsed.target - 1 : -1;
-      const target =
-        idx >= 0 && idx < candidates.length ? candidates[idx] : null;
+      const target = idx >= 0 && idx < candidates.length ? candidates[idx] : null;
 
-      if (
-        parsed.action === "drop_target" &&
-        target &&
-        target.id !== row.id
-      ) {
+      if (parsed.action === "drop_target" && target && target.id !== row.id) {
         memory.deleteShared(target.id);
         seen.add(target.id);
         pruned++;
@@ -108,15 +98,11 @@ export async function pruneShared(
         });
         seen.add(target.id);
         pruned++;
-        log.info(
-          `prune_shared: merged ${row.id.slice(0, 8)} → ${target.id.slice(0, 8)}`,
-        );
+        log.info(`prune_shared: merged ${row.id.slice(0, 8)} → ${target.id.slice(0, 8)}`);
       }
       // "keep" → no-op
     } catch (err) {
-      log.warn(
-        `prune_shared: row=${row.id.slice(0, 8)} failed: ${(err as Error).message}`,
-      );
+      log.warn(`prune_shared: row=${row.id.slice(0, 8)} failed: ${(err as Error).message}`);
     }
   }
 

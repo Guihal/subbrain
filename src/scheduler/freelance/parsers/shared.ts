@@ -1,5 +1,5 @@
-import type { FeedItem } from "../types";
 import type { FreelanceSource } from "../../../db/types";
+import type { FeedItem } from "../types";
 
 const BUDGET_RE = /(\d[\d\s]{2,})\s*(?:руб|₽|RUB)/i;
 const DEADLINE_RE = /(?:до|срок|дедлайн)[^\d]*(\d+)\s*(?:дн|день|дня|дней)/i;
@@ -32,8 +32,8 @@ export function parseSnapshot(snapshot: string, opts: ParserOpts): FeedItem[] {
     const url = normalizeUrl(rawUrl);
     if (!byUrl.has(url)) byUrl.set(url, []);
     if (titleMatch) {
-      const text = titleMatch[1]!.trim();
-      if (text && !TITLE_NOISE_RE.test(text)) byUrl.get(url)!.push(text);
+      const text = titleMatch[1]?.trim();
+      if (text && !TITLE_NOISE_RE.test(text)) byUrl.get(url)?.push(text);
     }
   }
 
@@ -44,18 +44,13 @@ export function parseSnapshot(snapshot: string, opts: ParserOpts): FeedItem[] {
     // Description = longest later occurrence (often a description preview on
     // freelance.ru). Falls back to the cards's text-block first line.
     const later = titles.slice(1);
-    const desc =
-      later.length > 0
-        ? later.sort((a, b) => b.length - a.length)[0]!
-        : "";
+    const desc = later.length > 0 ? later.sort((a, b) => b.length - a.length)[0]! : "";
     const block = findTextBlock(textBlock, title);
     items.push({
       url,
       source: opts.source,
       title,
-      budget: extractNumber(block, BUDGET_RE, (s) =>
-        Number(s.replace(/\s+/g, "")),
-      ),
+      budget: extractNumber(block, BUDGET_RE, (s) => Number(s.replace(/\s+/g, ""))),
       deadlineDays: extractNumber(block, DEADLINE_RE, (s) => Number(s)),
       category: null,
       description: desc || block.split("\n")[0] || "",
@@ -65,7 +60,7 @@ export function parseSnapshot(snapshot: string, opts: ParserOpts): FeedItem[] {
 }
 
 function normalizeUrl(raw: string): string {
-  return raw.split("?")[0]!.replace(/\/$/, "");
+  return raw.split("?")[0]?.replace(/\/$/, "");
 }
 
 function extractTextBlock(snapshot: string): string {
@@ -97,11 +92,7 @@ function firstWord(title: string): string {
   return m ? m[0] : "";
 }
 
-function extractNumber(
-  line: string,
-  re: RegExp,
-  cast: (s: string) => number,
-): number | null {
+function extractNumber(line: string, re: RegExp, cast: (s: string) => number): number | null {
   if (!line) return null;
   const m = re.exec(line);
   if (!m) return null;

@@ -9,9 +9,10 @@
  * 27.04.2026 free-agent fake-digest incident. Spec lives in
  * `docs/tasks/code-tools-poisoning-fix.md`.
  */
+
+import { logger } from "../../lib/logger";
 import type { ToolExecutor } from "../executor";
 import type { AgentMode } from "./tool-registry";
-import { logger } from "../../lib/logger";
 
 const log = logger.child("tg-tools");
 const FOCUS_BLOCK_KEY = "no_repetitive_tg_spam";

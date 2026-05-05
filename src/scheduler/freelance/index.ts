@@ -1,13 +1,13 @@
 import type { MemoryDB } from "../../db";
+import type { FreelanceSource } from "../../db/types";
+import { logger } from "../../lib/logger";
 import type { ModelRouter } from "../../lib/model-router";
 import type { PlaywrightClient } from "../../mcp/playwright";
 import { pageSnapshot } from "../../mcp/snapshot";
 import type { TelegramBot } from "../../telegram/bot";
-import type { FreelanceSource } from "../../db/types";
-import { logger } from "../../lib/logger";
-import { fetchFeed } from "./fetch";
 import { evaluateLead } from "./evaluate";
-import { saveAndAlert, isSeen } from "./persist";
+import { fetchFeed } from "./fetch";
+import { isSeen, saveAndAlert } from "./persist";
 import type { FeedItem, ScoutStatus } from "./types";
 
 const SOURCES: FreelanceSource[] = ["fl.ru", "kwork.ru", "freelance.ru"];
@@ -44,9 +44,7 @@ export class FreelanceScout {
   private abort = new AbortController();
   private pausedUntil = new Map<string, number>();
   private lastRunAt: number | null = null;
-  private readonly snapshot: (
-    page: import("playwright").Page,
-  ) => Promise<string>;
+  private readonly snapshot: (page: import("playwright").Page) => Promise<string>;
 
   constructor(private deps: FreelanceScoutDeps) {
     this.snapshot = deps.snapshot ?? pageSnapshot;
@@ -68,9 +66,7 @@ export class FreelanceScout {
     if (this.timer) clearInterval(this.timer);
     this.timer = null;
     this.abort.abort("shutdown");
-    await Promise.allSettled(
-      SOURCES.map((s) => this.deps.playwright.closeScope(SCOPE_PREFIX + s)),
-    );
+    await Promise.allSettled(SOURCES.map((s) => this.deps.playwright.closeScope(SCOPE_PREFIX + s)));
     log.info("freelance scout stopped");
   }
 
@@ -89,9 +85,7 @@ export class FreelanceScout {
   private async tick(kind: string): Promise<void> {
     this.lastRunAt = Date.now();
     log.info(`tick ${kind}`);
-    const settled = await Promise.allSettled(
-      SOURCES.map((s) => this.scoutOne(s)),
-    );
+    const settled = await Promise.allSettled(SOURCES.map((s) => this.scoutOne(s)));
     for (const [i, r] of settled.entries()) {
       if (r.status === "rejected") {
         log.warn(`scout failed: ${SOURCES[i]}`, {

@@ -7,8 +7,8 @@
  * summary in remind().
  */
 import type { MemoryDB } from "../db";
-import type { ModelRouter } from "../lib/model-router";
 import { logger } from "../lib/logger";
+import type { ModelRouter } from "../lib/model-router";
 import {
   applyCommand,
   buildRemindPrompt,
@@ -62,10 +62,7 @@ export class TelegramPoller {
     if (this.pollTimer) return;
     const { pollIntervalMs, remindIntervalMs } = this.deps.config;
     this.pollTimer = setInterval(() => void this.tickPoll(), pollIntervalMs);
-    this.remindTimer = setInterval(
-      () => void this.tickRemind(),
-      remindIntervalMs,
-    );
+    this.remindTimer = setInterval(() => void this.tickRemind(), remindIntervalMs);
     log.info(
       `Started: poll=${pollIntervalMs / 60_000}min remind=${remindIntervalMs / 60_000}min chat=${this.deps.config.remindChatId}`,
     );
@@ -99,12 +96,10 @@ export class TelegramPoller {
   private async runPoll(): Promise<void> {
     const { memory, readInbox, sendNotify, config } = this.deps;
     const lastIdStr = memory.getFocus(LAST_ID_KEY);
-    const lastId = lastIdStr ? parseInt(lastIdStr, 10) : 0;
+    const lastId = lastIdStr ? Number.parseInt(lastIdStr, 10) : 0;
 
     const inbox = await readInbox(config.remindChatId, 50);
-    const fresh = inbox
-      .filter((m) => m.id > lastId && m.text)
-      .sort((a, b) => a.id - b.id);
+    const fresh = inbox.filter((m) => m.id > lastId && m.text).sort((a, b) => a.id - b.id);
     if (!fresh.length) return;
 
     let state = this.readState();
@@ -118,9 +113,7 @@ export class TelegramPoller {
       try {
         await sendNotify(res.receipt);
       } catch (err) {
-        log.error(
-          `Notify failed: ${err instanceof Error ? err.message : err}`,
-        );
+        log.error(`Notify failed: ${err instanceof Error ? err.message : err}`);
       }
     }
 
@@ -150,11 +143,7 @@ export class TelegramPoller {
     const { router, sendNotify, config } = this.deps;
     const state = this.readState();
     const now = Math.floor(Date.now() / 1000);
-    const candidates = collectRemindCandidates(
-      state,
-      now,
-      config.staleHours * 3600,
-    );
+    const candidates = collectRemindCandidates(state, now, config.staleHours * 3600);
     if (!candidates.length) return;
 
     const prompt = buildRemindPrompt(candidates, state);
@@ -180,12 +169,8 @@ export class TelegramPoller {
     try {
       const parsed = JSON.parse(raw);
       return {
-        "tasks.work": Array.isArray(parsed["tasks.work"])
-          ? parsed["tasks.work"]
-          : [],
-        "tasks.home": Array.isArray(parsed["tasks.home"])
-          ? parsed["tasks.home"]
-          : [],
+        "tasks.work": Array.isArray(parsed["tasks.work"]) ? parsed["tasks.work"] : [],
+        "tasks.home": Array.isArray(parsed["tasks.home"]) ? parsed["tasks.home"] : [],
       };
     } catch {
       return emptyState();

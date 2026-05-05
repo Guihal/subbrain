@@ -25,11 +25,11 @@ import type { MemoryDB } from "../../../db";
 import type { RAGPipeline } from "../../../rag";
 import type { MemoryService } from "../../../services/memory";
 import type { ToolResult } from "../../types";
-import { readMemory } from "./read";
-import { writeMemory, type WriteParams } from "./write";
-import { deleteMemory } from "./delete";
-import { searchMemory } from "./search";
 import { contextSummary } from "./context-summary";
+import { deleteMemory } from "./delete";
+import { readMemory } from "./read";
+import { searchMemory } from "./search";
+import { type WriteParams, writeMemory } from "./write";
 
 export class MemoryTools {
   /**
@@ -55,10 +55,7 @@ export class MemoryTools {
     return readMemory(this.memory, id, layer);
   }
 
-  write(
-    params: WriteParams,
-    agentId: string | null = null,
-  ): ToolResult | Promise<ToolResult> {
+  write(params: WriteParams, agentId: string | null = null): ToolResult | Promise<ToolResult> {
     return writeMemory(
       {
         memory: this.memory,
@@ -74,12 +71,7 @@ export class MemoryTools {
     return deleteMemory(this.memory, id, layer, agentId);
   }
 
-  search(
-    query: string,
-    layer?: string,
-    limit?: number,
-    agentId: string | null = null,
-  ): ToolResult {
+  search(query: string, layer?: string, limit?: number, agentId: string | null = null): ToolResult {
     return searchMemory(this.memory, query, layer, limit, agentId);
   }
 

@@ -25,7 +25,8 @@ export function parseSSEChunk(line: string): ProviderDelta | null {
     const delta = choice.delta ?? {};
     const result: ProviderDelta = {};
     if (typeof delta.content === "string") result.content = delta.content;
-    if (typeof delta.reasoning_content === "string") result.reasoning_content = delta.reasoning_content;
+    if (typeof delta.reasoning_content === "string")
+      result.reasoning_content = delta.reasoning_content;
     if (delta.tool_calls) result.tool_calls = delta.tool_calls;
     if (choice.finish_reason != null) result.finish_reason = choice.finish_reason;
     if (chunk.usage) {
@@ -78,9 +79,7 @@ export function assembleMessage(deltas: ProviderDelta[]): {
 
   const tool_calls =
     toolCallMap.size > 0
-      ? [...toolCallMap.entries()]
-          .sort(([a], [b]) => a - b)
-          .map(([, tc]) => tc)
+      ? [...toolCallMap.entries()].sort(([a], [b]) => a - b).map(([, tc]) => tc)
       : undefined;
 
   return {

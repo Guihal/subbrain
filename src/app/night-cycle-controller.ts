@@ -1,12 +1,9 @@
-import type { NightCycle } from "../pipeline";
 import { logger } from "../lib/logger";
+import type { NightCycle } from "../pipeline";
 
 const log = logger.child("night");
 
-export type TriggerReason =
-  | "http"
-  | "scheduled"
-  | "startup-backlog";
+export type TriggerReason = "http" | "scheduled" | "startup-backlog";
 
 export interface TriggerResult {
   started: boolean;
@@ -42,7 +39,8 @@ export class NightCycleController {
         if (reason === "http") {
           log.info("Run complete (HTTP-triggered)", { meta: { ...res } });
         } else {
-          log.info(`Run complete (${reason}): archived=${res.archiveEntriesCreated} errors=${res.errors.length}`,
+          log.info(
+            `Run complete (${reason}): archived=${res.archiveEntriesCreated} errors=${res.errors.length}`,
             { meta: { ...res, reason } },
           );
         }

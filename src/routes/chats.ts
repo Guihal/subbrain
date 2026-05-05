@@ -11,20 +11,20 @@ export function chatsRoute(memory: MemoryDB) {
     .get("/:id", ({ params }) => {
       const chat = memory.getChat(params.id);
       if (!chat) {
-        return new Response(
-          JSON.stringify({ error: { message: "Chat not found" } }),
-          { status: 404, headers: { "Content-Type": "application/json" } },
-        );
+        return new Response(JSON.stringify({ error: { message: "Chat not found" } }), {
+          status: 404,
+          headers: { "Content-Type": "application/json" },
+        });
       }
       return chat;
     })
     .get("/:id/messages", ({ params }) => {
       const chat = memory.getChat(params.id);
       if (!chat) {
-        return new Response(
-          JSON.stringify({ error: { message: "Chat not found" } }),
-          { status: 404, headers: { "Content-Type": "application/json" } },
-        );
+        return new Response(JSON.stringify({ error: { message: "Chat not found" } }), {
+          status: 404,
+          headers: { "Content-Type": "application/json" },
+        });
       }
       return memory.getChatMessages(params.id);
     })
@@ -53,10 +53,10 @@ export function chatsRoute(memory: MemoryDB) {
       ({ params, body }) => {
         const chat = memory.getChat(params.id);
         if (!chat) {
-          return new Response(
-            JSON.stringify({ error: { message: "Chat not found" } }),
-            { status: 404, headers: { "Content-Type": "application/json" } },
-          );
+          return new Response(JSON.stringify({ error: { message: "Chat not found" } }), {
+            status: 404,
+            headers: { "Content-Type": "application/json" },
+          });
         }
         if (body.title) {
           memory.updateChatTitle(params.id, body.title);

@@ -4,12 +4,13 @@
  *
  * See docs/tasks/code-tools-poisoning-fix.md.
  */
-import { describe, test, expect, beforeEach, afterEach } from "bun:test";
-import { unlinkSync, existsSync } from "node:fs";
+
 import { Database } from "bun:sqlite";
-import { CodeToolsRepository } from "../src/repositories/code-tools.repo";
-import { CodeToolRegistry } from "../src/pipeline/agent-loop/code-tools";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { existsSync, unlinkSync } from "node:fs";
 import { migrate } from "../src/db/schema";
+import { CodeToolRegistry } from "../src/pipeline/agent-loop/code-tools";
+import { CodeToolsRepository } from "../src/repositories/code-tools.repo";
 
 const TEST_DB = "data/test-scheduled-filter.db";
 
@@ -30,11 +31,7 @@ describe("CodeToolRegistry.toToolDefs mode filter (F-3b)", () => {
       "broken: hardcoded clients",
       "export default async () => 'fake'",
     );
-    reg.create(
-      "safe_helper",
-      "ok",
-      "export default async (i) => i.toUpperCase()",
-    );
+    reg.create("safe_helper", "ok", "export default async (i) => i.toUpperCase()");
   });
   afterEach(() => {
     if (existsSync(TEST_DB)) unlinkSync(TEST_DB);

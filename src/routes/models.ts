@@ -1,6 +1,6 @@
 import { Elysia } from "elysia";
-import type { ModelRouter } from "../lib/model-router";
 import { MODEL_MAP } from "../lib/model-map";
+import type { ModelRouter } from "../lib/model-router";
 
 const ROLE_LABELS: Record<string, string> = {
   teamlead: "Лид",
@@ -17,7 +17,7 @@ function prettyModel(id: string): string {
   return raw.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-export function modelsRoute(router: ModelRouter) {
+export function modelsRoute(_router: ModelRouter) {
   return new Elysia().get("/v1/models", () => {
     return {
       object: "list" as const,

@@ -1,4 +1,4 @@
-import { WINDOW_MS, type MetricsState } from "./types";
+import { type MetricsState, WINDOW_MS } from "./types";
 
 export function percentile(sorted: number[], p: number): number {
   if (sorted.length === 0) return 0;

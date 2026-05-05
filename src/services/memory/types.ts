@@ -1,6 +1,6 @@
-import type { MemoryStatus, MemoryKind, EdgeKind } from "../../db";
-import type { ModelRouter } from "../../lib/model-router";
+import type { EdgeKind, MemoryKind, MemoryStatus } from "../../db";
 import type { RequestLogger } from "../../lib/logger";
+import type { ModelRouter } from "../../lib/model-router";
 
 export type EdgeLayer = "context" | "shared" | "archive";
 

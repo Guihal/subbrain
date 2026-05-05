@@ -27,8 +27,14 @@ export function useTasks() {
     q: "",
   }));
 
-  const { refresh, create, update, remove, start, done, cancel, history } =
-    createTaskApi({ api, items, total, loading, error, filters });
+  const { refresh, create, update, remove, start, done, cancel, history } = createTaskApi({
+    api,
+    items,
+    total,
+    loading,
+    error,
+    filters,
+  });
   const { visibleItems, setFilter, resetPage } = createTaskFilters({
     filters,
     items,

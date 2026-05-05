@@ -2,8 +2,8 @@
  * MEM-6: RAG/pre filtering — expired and superseded rows must NOT appear in
  * RAG search results. Pre-phase preserves pending visibility but hides stale.
  */
-import { describe, test, expect, beforeAll, afterAll } from "bun:test";
-import { existsSync, unlinkSync } from "fs";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { existsSync, unlinkSync } from "node:fs";
 import { MemoryDB } from "../src/db";
 import { RAGPipeline } from "../src/rag";
 
@@ -59,7 +59,12 @@ describe("RAG active+notStale filter (MEM-6)", () => {
     memory.updateShared(ID_EXPIRED, { expires_at: nowSec - 60 });
 
     // 3. Superseded row.
-    memory.insertShared(ID_SUPERSEDED, "preference", "ralph kafka mongo unique-token-superseded", "");
+    memory.insertShared(
+      ID_SUPERSEDED,
+      "preference",
+      "ralph kafka mongo unique-token-superseded",
+      "",
+    );
     await rag.indexEntry(ID_SUPERSEDED, "shared", "ralph kafka mongo unique-token-superseded");
     memory.updateShared(ID_SUPERSEDED, { superseded_by: ID_FRESH });
   });

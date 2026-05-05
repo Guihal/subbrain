@@ -6,19 +6,14 @@
  * aggregations.ts (reflect / cross-layer / promote), helpers.ts (filters +
  * ALLOW maps).
  */
-import { Database } from "bun:sqlite";
-import type {
-  ArchiveRow,
-  ContextRow,
-  FtsResult,
-  MemoryStatus,
-} from "../../types";
-import * as focus from "./focus";
-import * as context from "./context";
-import * as archive from "./archive";
-import * as search from "./search";
+import type { Database } from "bun:sqlite";
+import type { ArchiveRow, ContextRow, FtsResult, MemoryStatus } from "../../types";
 import * as agg from "./aggregations";
-import { type InsertContextOpts } from "./helpers";
+import * as archive from "./archive";
+import * as context from "./context";
+import * as focus from "./focus";
+import type { InsertContextOpts } from "./helpers";
+import * as search from "./search";
 
 export type { InsertContextOpts } from "./helpers";
 
@@ -70,8 +65,7 @@ export class MemoryTable {
   ): void {
     context.insertContext(this.db, id, title, content, tags, derivedFrom, agentId, opts);
   }
-  updateContext = (id: string, fields: CtxFields) =>
-    context.updateContext(this.db, id, fields);
+  updateContext = (id: string, fields: CtxFields) => context.updateContext(this.db, id, fields);
   getContext = (id: string): ContextRow | null => context.getContext(this.db, id);
   getContextMany = (ids: string[], opts?: ListOpts): ContextRow[] =>
     context.getContextMany(this.db, ids, opts);
@@ -119,8 +113,7 @@ export class MemoryTable {
   ) => agg.reflectGroups(this.db, whitelist, minAccess, minGroup, maxGroups);
   recentActiveContextForCrossLayer = (limit: number) =>
     agg.recentActiveContextForCrossLayer(this.db, limit);
-  recentArchiveForCrossLayer = (limit: number) =>
-    agg.recentArchiveForCrossLayer(this.db, limit);
+  recentArchiveForCrossLayer = (limit: number) => agg.recentArchiveForCrossLayer(this.db, limit);
   archivePromoteCandidates = (minAccess: number, minConfidence: number, limit: number) =>
     agg.archivePromoteCandidates(this.db, minAccess, minConfidence, limit);
 }

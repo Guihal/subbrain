@@ -6,18 +6,13 @@ import type { Userbot } from "../telegram/userbot";
 import type { ToolResult } from "./types";
 
 function requireUserbot(userbot: Userbot | null): Userbot {
-  if (!userbot || !userbot.isConnected()) {
-    throw new Error(
-      "Telegram userbot not connected. Set TG_API_ID, TG_API_HASH, TG_SESSION.",
-    );
+  if (!userbot?.isConnected()) {
+    throw new Error("Telegram userbot not connected. Set TG_API_ID, TG_API_HASH, TG_SESSION.");
   }
   return userbot;
 }
 
-export async function tgListChats(
-  userbot: Userbot | null,
-  limit = 100,
-): Promise<ToolResult> {
+export async function tgListChats(userbot: Userbot | null, limit = 100): Promise<ToolResult> {
   try {
     const ub = requireUserbot(userbot);
     const chats = await ub.listChats(limit);

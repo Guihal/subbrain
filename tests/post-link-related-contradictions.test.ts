@@ -11,14 +11,11 @@
  * fakeEmbed pattern as M-05.1 so neighbours are deterministic. Each test
  * uses a fresh DB + a distinct WHITELIST category so dedupe never fires.
  */
-import { describe, test, expect, beforeEach, afterEach } from "bun:test";
-import { existsSync, unlinkSync, mkdirSync } from "fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { existsSync, mkdirSync, unlinkSync } from "node:fs";
 import { MemoryDB } from "../src/db";
+import { writeContext, writeShared } from "../src/pipeline/agent-pipeline/post/extractors";
 import { RAGPipeline } from "../src/rag";
-import {
-  writeContext,
-  writeShared,
-} from "../src/pipeline/agent-pipeline/post/extractors";
 
 const TEST_DB = "data/test-mem5.2-contradict.db";
 
@@ -92,7 +89,7 @@ describe("M-05.2 LLM contradiction detection on linkRelated", () => {
     mkdirSync("data", { recursive: true });
     memory = new MemoryDB(TEST_DB);
     // Default rag fed a router with an embed-only stub (no chat needed).
-    rag = new RAGPipeline(memory, mkRouter("{\"contradicts\":[]}").router);
+    rag = new RAGPipeline(memory, mkRouter('{"contradicts":[]}').router);
     savedEnv = {
       LINK_CONTRADICT_ENABLED: process.env.LINK_CONTRADICT_ENABLED,
       LINK_CONTRADICT_MIN_CONF: process.env.LINK_CONTRADICT_MIN_CONF,
@@ -131,7 +128,7 @@ describe("M-05.2 LLM contradiction detection on linkRelated", () => {
 
   test("1. disabled by default → no chat call, no contradicts edges", async () => {
     seedContext("c1-seed", "user prefers dark mode test-disabled");
-    const { router, calls } = mkRouter("{\"contradicts\":[]}");
+    const { router, calls } = mkRouter('{"contradicts":[]}');
     const r = await writeContext(
       memory,
       rag,
@@ -153,7 +150,7 @@ describe("M-05.2 LLM contradiction detection on linkRelated", () => {
   test("2. enabled, no contradiction → relates drawn but no contradicts", async () => {
     process.env.LINK_CONTRADICT_ENABLED = "true";
     seedContext("c2-seed", "alpha beta gamma test-no-contra");
-    const { router, calls } = mkRouter("{\"contradicts\":[]}");
+    const { router, calls } = mkRouter('{"contradicts":[]}');
     const r = await writeContext(
       memory,
       rag,
@@ -199,8 +196,8 @@ describe("M-05.2 LLM contradiction detection on linkRelated", () => {
     expect(calls.chat).toBe(1);
     const edges = contradictsEdges(r.id!, "context");
     expect(edges.length).toBe(1);
-    expect(edges[0]!.dst_id).toBe("c3-seed");
-    expect(edges[0]!.weight).toBeCloseTo(0.9, 5);
+    expect(edges[0]?.dst_id).toBe("c3-seed");
+    expect(edges[0]?.weight).toBeCloseTo(0.9, 5);
   });
 
   test("4. confidence below threshold filtered → no edge", async () => {
@@ -280,7 +277,7 @@ describe("M-05.2 LLM contradiction detection on linkRelated", () => {
     process.env.LINK_CONTRADICT_ENABLED = "true";
     // No seed → no neighbours → relates-loop draws zero → contradiction
     // detector early-returns before chat().
-    const { router, calls } = mkRouter("{\"contradicts\":[]}");
+    const { router, calls } = mkRouter('{"contradicts":[]}');
     const r = await writeContext(
       memory,
       rag,
@@ -325,8 +322,8 @@ describe("M-05.2 LLM contradiction detection on linkRelated", () => {
     expect(calls.chat).toBe(1);
     const edges = contradictsEdges(r.id!, "shared");
     expect(edges.length).toBe(1);
-    expect(edges[0]!.dst_id).toBe("c8-seed");
-    expect(edges[0]!.dst_layer).toBe("shared");
-    expect(edges[0]!.weight).toBeCloseTo(0.85, 5);
+    expect(edges[0]?.dst_id).toBe("c8-seed");
+    expect(edges[0]?.dst_layer).toBe("shared");
+    expect(edges[0]?.weight).toBeCloseTo(0.85, 5);
   });
 });

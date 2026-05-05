@@ -1,12 +1,12 @@
 import { Elysia, t } from "elysia";
+import type { MemoryDB } from "../db";
 import type { ModelRouter } from "../lib/model-router";
 import type { AgentPipeline } from "../pipeline";
-import type { MemoryDB } from "../db";
 import {
+  type ChatCompletionRequest,
   ChatService,
   extractChatMeta,
   wrapStreamForChat,
-  type ChatCompletionRequest,
 } from "../services/chat";
 
 // Re-export so legacy importers (e.g. tests/chat-stream.test.ts) keep working
@@ -22,21 +22,11 @@ export { wrapStreamForChat };
  * `src/app/deps.ts` wires the long-lived service; this factory is cheap
  * enough to rebuild one per call, and tests need a simple constructor.
  */
-export function chatRoute(
-  router: ModelRouter,
-  pipeline?: AgentPipeline,
-  memory?: MemoryDB,
-) {
-  const service = new ChatService(
-    router,
-    pipeline,
-    memory?.chatRepo,
-    memory?.memoryRepo,
-  );
+export function chatRoute(router: ModelRouter, pipeline?: AgentPipeline, memory?: MemoryDB) {
+  const service = new ChatService(router, pipeline, memory?.chatRepo, memory?.memoryRepo);
   return new Elysia().post(
     "/v1/chat/completions",
-    ({ body, headers }) =>
-      service.handle(body as ChatCompletionRequest, extractChatMeta(headers)),
+    ({ body, headers }) => service.handle(body as ChatCompletionRequest, extractChatMeta(headers)),
     {
       body: t.Object(
         {
@@ -50,9 +40,7 @@ export function chatRoute(
                   t.Literal("assistant"),
                   t.Literal("tool"),
                 ]),
-                content: t.Optional(
-                  t.Union([t.String(), t.Null(), t.Array(t.Any())]),
-                ),
+                content: t.Optional(t.Union([t.String(), t.Null(), t.Array(t.Any())])),
                 name: t.Optional(t.String()),
                 tool_calls: t.Optional(t.Any()),
                 tool_call_id: t.Optional(t.String()),

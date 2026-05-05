@@ -18,8 +18,8 @@ VS Code (Continue) / Telegram / Web
     ├─ ArbitrationRoom: параллельный вызов специалистов + синтез Тимлидом
     └─ NightCycle:      cron — PII → translate → compress → deduplicate
         │
-        ├→ GitHub Models / Copilot API (10 RPM) — все LLM-роли
-        ├→ NVIDIA NIM (40 RPM)                  — embed + rerank
+        ├→ NVIDIA NIM (40 RPM)                  — primary LLM-роли
+        ├→ MiniMax (api.minimax.io)             — fallback LLM-роли
         └→ OpenRouter (200 RPM)                 — резервный провайдер
         │
         ▼
@@ -30,19 +30,19 @@ VS Code (Continue) / Telegram / Web
 
 ## Модели
 
-> Все LLM-роли используют **GitHub Models (Copilot API)**. NVIDIA NIM — только embed + rerank.
+> Per-role NVIDIA NIM primaries (см. src/lib/model-map.ts); MiniMax-M2.7 fallback.
 
-| Роль | Виртуальное имя | Реальная модель | Fallback |
-| ---- | --------------- | --------------- | -------- |
-| Тимлид / Оркестратор | `teamlead` | `MiniMax-M2.7` (minimax) | `minimaxai/minimax-m2.7` (nvidia) |
-| Кодер / Разработчик | `coder` | `MiniMax-M2.7` (minimax) | `mistralai/devstral-2-123b-instruct-2512` (nvidia) |
-| Критик / Ревьюер | `critic` | `MiniMax-M2.7` (minimax) | `moonshotai/kimi-k2-thinking` (nvidia) |
-| Генералист / Универсал | `generalist` | `MiniMax-M2.7` (minimax) | `minimaxai/minimax-m2.7` (nvidia) |
-| Хаос (эксперимент) | `chaos` | `MiniMax-M2.7` (minimax) | `mistralai/mistral-medium-3-instruct` (nvidia) |
-| Pre/Post/Flash | `flash` | `MiniMax-M2.7` (minimax) | `stepfun-ai/step-3.5-flash` (nvidia) |
-| Память (hippocampus + ночной цикл) | `memory` | `MiniMax-M2.7` (minimax) | — (no fallback) |
+| Роль | Виртуальное имя | Реальная модель (provider) | Fallback (provider) |
+| ---- | --------------- | -------------------------- | ------------------- |
+| Тимлид / Оркестратор | `teamlead` | `z-ai/glm-5.1` (nvidia) | `MiniMax-M2.7` (minimax) |
+| Кодер / Разработчик | `coder` | `deepseek-ai/deepseek-v4-flash` (nvidia) | `qwen/qwen3-coder-480b-a35b-instruct` (nvidia) |
+| Критик / Ревьюер | `critic` | `z-ai/glm-5.1` (nvidia) | `MiniMax-M2.7` (minimax) |
+| Генералист / Универсал | `generalist` | `nvidia/llama-3.3-nemotron-super-49b-v1.5` (nvidia) | `MiniMax-M2.7` (minimax) |
+| Хаос (эксперимент) | `chaos` | `moonshotai/kimi-k2.6` (nvidia) | `MiniMax-M2.7` (minimax) |
+| Pre/Post/Flash | `flash` | `meta/llama-4-maverick-17b-128e-instruct` (nvidia) | `MiniMax-M2.7` (minimax) |
+| Память (hippocampus + ночной цикл) | `memory` | `deepseek-ai/deepseek-v4-flash` (nvidia) | `MiniMax-M2.7` (minimax) |
 
-Embeddings: `nvidia/llama-3.2-nemoretriever-300m-embed-v1` · Rerank: `nvidia/rerank-qa-mistral-4b`
+Embeddings: `nvidia/llama-3.2-nemoretriever-300m-embed-v1` · Embed-code: `nvidia/nv-embedcode-7b-v1` · Rerank: `nvidia/rerank-qa-mistral-4b`
 
 Смена модели для роли — только в `src/lib/model-map.ts`. Список ролей отдаётся динамически через `GET /v1/models`.
 
@@ -87,9 +87,9 @@ docker compose logs -f subbrain
 | Переменная | Обязательная | Описание |
 | ---------- | :----------: | -------- |
 | `PROXY_AUTH_TOKEN` | ✅ | Bearer-токен для авторизации клиентов |
-| `MINIMAX_API_KEY` | ✅ | MiniMax Token Plan — основной LLM-провайдер |
+| `MINIMAX_API_KEY` | ✅ | MiniMax Token Plan — fallback LLM-провайдер |
 | `MINIMAX_BASE_URL` | — | По умолчанию `https://api.minimax.io/v1` |
-| `NVIDIA_API_KEY` | ✅ | NVIDIA NIM (embed + rerank + LLM fallback) |
+| `NVIDIA_API_KEY` | ✅ | NVIDIA NIM (primary LLM provider + embed + rerank) |
 | `NVIDIA_BASE_URL` | ✅ | `https://integrate.api.nvidia.com/v1` |
 | `OPENROUTER_API_KEY` | ✅ | OpenRouter — резервный провайдер |
 | `DB_PATH` | — | Путь к SQLite (по умолчанию `data/subbrain.db`) |
@@ -262,19 +262,19 @@ SQLite (4 слоя памяти + FTS5 + sqlite-vec)
 
 ## Модели (виртуальные роли)
 
-> Все LLM-роли используют **MiniMax-M2.7** через MiniMax provider (с 2026-04-28). NVIDIA NIM — embed + rerank + большинство fallback'ов.
+> Per-role NVIDIA NIM primaries (см. src/lib/model-map.ts); MiniMax-M2.7 fallback.
 
-| Роль                 | Виртуальное имя | Реальная модель          |
-| -------------------- | --------------- | ------------------------ |
-| Тимлид / Оркестратор | `teamlead`      | `MiniMax-M2.7`           |
-| Кодер                | `coder`         | `MiniMax-M2.7`           |
-| Критик / Ревьюер     | `critic`        | `MiniMax-M2.7`           |
-| Генералист           | `generalist`    | `MiniMax-M2.7`           |
-| Хаос (эксперимент)   | `chaos`         | `MiniMax-M2.7`           |
-| Pre/Post/Flash       | `flash`         | `MiniMax-M2.7`           |
-| Память               | `memory`        | `MiniMax-M2.7`           |
+| Роль                 | Виртуальное имя | Реальная модель                                       |
+| -------------------- | --------------- | ----------------------------------------------------- |
+| Тимлид / Оркестратор | `teamlead`      | `z-ai/glm-5.1`                                        |
+| Кодер                | `coder`         | `deepseek-ai/deepseek-v4-flash`                       |
+| Критик / Ревьюер     | `critic`        | `z-ai/glm-5.1`                                        |
+| Генералист           | `generalist`    | `nvidia/llama-3.3-nemotron-super-49b-v1.5`            |
+| Хаос (эксперимент)   | `chaos`         | `moonshotai/kimi-k2.6`                                |
+| Pre/Post/Flash       | `flash`         | `meta/llama-4-maverick-17b-128e-instruct`             |
+| Память               | `memory`        | `deepseek-ai/deepseek-v4-flash`                       |
 
-Все LLM-запросы идут через `MiniMaxProvider` (api.minimax.io). Router разрешает виртуальное имя → real model → провайдер и управляет фоллбэками.
+LLM-запросы идут через NVIDIA NIM (api.nvidia.com); fallback — MiniMax (api.minimax.io). Router разрешает виртуальное имя → real model → провайдер и управляет фоллбэками.
 
 ---
 
@@ -323,9 +323,9 @@ docker compose logs -f subbrain
 | Переменная                    | Обязательная | Описание                                           |
 | ----------------------------- | :----------: | -------------------------------------------------- |
 | `PROXY_AUTH_TOKEN`            |      ✅      | Bearer-токен для авторизации клиентов              |
-| `MINIMAX_API_KEY`             |      ✅      | MiniMax Token Plan — основной LLM-провайдер        |
+| `MINIMAX_API_KEY`             |      ✅      | MiniMax Token Plan — fallback LLM-провайдер        |
 | `MINIMAX_BASE_URL`            |      —       | По умолчанию `https://api.minimax.io/v1`           |
-| `NVIDIA_API_KEY`              |      ✅      | NVIDIA NIM (embed + rerank + LLM fallback)         |
+| `NVIDIA_API_KEY`              |      ✅      | NVIDIA NIM (primary LLM provider + embed + rerank) |
 | `NVIDIA_BASE_URL`             |      ✅      | `https://integrate.api.nvidia.com/v1`              |
 | `OPENROUTER_API_KEY`          |      ✅      | OpenRouter — резервный провайдер                   |
 | `DB_PATH`                     |      —       | Путь к SQLite (по умолчанию `data/subbrain.db`)    |
@@ -483,7 +483,7 @@ src/
   lib/              # Auth, logger, metrics, model-map, rate-limiter
   mcp/              # MCP-сервер + единый Tool Registry (src/mcp/registry/)
   pipeline/         # AgentPipeline, ArbitrationRoom, NightCycle, AgentLoop
-  providers/        # GitHub Copilot + NVIDIA NIM клиенты
+  providers/        # NVIDIA NIM + MiniMax + OpenRouter клиенты
   rag/              # RAG: embed + hybrid search + rerank
   routes/           # HTTP роуты
   telegram/         # Telegram Bot + MTProto Userbot

@@ -7,12 +7,12 @@
  *   - ToolExecutor.tgSendMessage returns { success:false, error } when
  *     botNotify throws (i.e. when wired to notifyOrThrow).
  */
-import { describe, test, expect } from "bun:test";
-import { TelegramBot } from "../src/telegram/bot";
-import { ToolExecutor } from "../src/mcp/executor";
+import { describe, expect, test } from "bun:test";
 import type { MemoryDB } from "../src/db";
 import type { ModelRouter } from "../src/lib/model-router";
+import { ToolExecutor } from "../src/mcp/executor";
 import type { AgentPipeline } from "../src/pipeline";
+import { TelegramBot } from "../src/telegram/bot";
 
 // Stub grammy Bot that never touches the network.
 function makeBot(opts: { throwOnSend?: Error } = {}): TelegramBot {

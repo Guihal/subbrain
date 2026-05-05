@@ -1,10 +1,5 @@
 <script setup lang="ts">
-import type {
-  ExtendedMemoryTab,
-  MemoryKind,
-  MemoryTab,
-  PendingLayer,
-} from "~/composables/useMemory";
+import type { ExtendedMemoryTab, MemoryKind, PendingLayer } from "~/composables/useMemory";
 
 defineProps<{
   activeTab: ExtendedMemoryTab;

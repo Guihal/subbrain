@@ -1,20 +1,20 @@
-import { Elysia } from "elysia";
 import { staticPlugin } from "@elysiajs/static";
+import { Elysia } from "elysia";
 import { authMiddleware } from "../lib/auth";
-import { chatRoute } from "../routes/chat";
-import { modelsRoute } from "../routes/models";
-import { embeddingsRoute } from "../routes/embeddings";
-import { logsRoute } from "../routes/logs";
-import { autonomousRoute } from "../routes/autonomous";
-import { chatsRoute } from "../routes/chats";
-import { memoryRoute } from "../routes/memory";
-import { freelanceRoute } from "../routes/freelance";
-import { telegramPublicRoute, telegramAdminRoute } from "../routes/telegram";
-import { tasksRoute } from "../routes/tasks";
-import { TaskRepository } from "../repositories/task.repo";
-import { mcpRoute, mcpProtocolRoute } from "../mcp";
-import { logger } from "../lib/logger";
 import { AppError } from "../lib/errors";
+import { logger } from "../lib/logger";
+import { mcpProtocolRoute, mcpRoute } from "../mcp";
+import { TaskRepository } from "../repositories/task.repo";
+import { autonomousRoute } from "../routes/autonomous";
+import { chatRoute } from "../routes/chat";
+import { chatsRoute } from "../routes/chats";
+import { embeddingsRoute } from "../routes/embeddings";
+import { freelanceRoute } from "../routes/freelance";
+import { logsRoute } from "../routes/logs";
+import { memoryRoute } from "../routes/memory";
+import { modelsRoute } from "../routes/models";
+import { tasksRoute } from "../routes/tasks";
+import { telegramAdminRoute, telegramPublicRoute } from "../routes/telegram";
 import type { AppDeps } from "./deps";
 import { NightCycleController } from "./night-cycle-controller";
 
@@ -70,11 +70,9 @@ export function createApp(deps: AppDeps) {
       // throws a few shapes (TypeBox ValueError, native Error, plain {message}).
       const e = toErrorLike(error);
       if (code === "VALIDATION") {
-        logger.warn(
-          "validation",
-          `422 on ${path}: ${e.message?.slice(0, 500) || String(error)}`,
-          { meta: { validator: e.validator, type: e.type } },
-        );
+        logger.warn("validation", `422 on ${path}: ${e.message?.slice(0, 500) || String(error)}`, {
+          meta: { validator: e.validator, type: e.type },
+        });
         set.status = 422;
         return {
           error: {

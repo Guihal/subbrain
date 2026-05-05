@@ -31,9 +31,7 @@ export function useChatState() {
   const messages = useState<ChatMessage[]>("messages", () => []);
   const streaming = useState("streaming", () => false);
 
-  const currentChat = computed(() =>
-    chats.value.find((c) => c.id === currentChatId.value),
-  );
+  const currentChat = computed(() => chats.value.find((c) => c.id === currentChatId.value));
 
   function updateLastAssistant(update: Partial<ChatMessage>) {
     const msgs = [...messages.value];

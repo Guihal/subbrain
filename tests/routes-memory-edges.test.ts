@@ -11,22 +11,16 @@
  *   - empty edges → `{items:[],total:0}` envelope
  *   - invalid `fromLayer` → 422 (TypeBox)
  */
-import {
-  afterAll,
-  beforeAll,
-  describe,
-  expect,
-  test,
-} from "bun:test";
-import { existsSync, unlinkSync } from "fs";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { existsSync, unlinkSync } from "node:fs";
 import { Elysia } from "elysia";
 import { MemoryDB } from "../src/db";
-import { RAGPipeline } from "../src/rag";
-import { MemoryService } from "../src/services/memory";
-import { AuthService } from "../src/services/auth.service";
 import { authMiddleware } from "../src/lib/auth";
-import { memoryRoute } from "../src/routes/memory";
 import { AppError } from "../src/lib/errors";
+import { RAGPipeline } from "../src/rag";
+import { memoryRoute } from "../src/routes/memory";
+import { AuthService } from "../src/services/auth.service";
+import { MemoryService } from "../src/services/memory";
 
 const TEST_DB = "data/test-mem14-edges.db";
 const TOKEN = "test-mem14-edges-token";
@@ -87,7 +81,7 @@ function buildApp() {
 beforeAll(() => {
   cleanup();
   app = buildApp();
-  base = `http://localhost:${app.server!.port}`;
+  base = `http://localhost:${app.server?.port}`;
 
   // Seed: 3 shared rows + edges between them.
   memory.insertShared("src-1", "preference", "source row", "");
@@ -130,10 +124,9 @@ describe("routes/memory edges (M-14) — auth", () => {
 
 describe("routes/memory edges (M-14) — list outbound", () => {
   test("returns both linked edges, newest first", async () => {
-    const r = await fetch(
-      `${base}/v1/memory/edges?from=src-1&fromLayer=shared`,
-      { headers: authHeaders },
-    );
+    const r = await fetch(`${base}/v1/memory/edges?from=src-1&fromLayer=shared`, {
+      headers: authHeaders,
+    });
     expect(r.status).toBe(200);
     const body = (await r.json()) as {
       items: { src_id: string; dst_id: string; kind: string; weight: number }[];
@@ -147,10 +140,9 @@ describe("routes/memory edges (M-14) — list outbound", () => {
   });
 
   test("?kinds=contradicts filters by kind", async () => {
-    const r = await fetch(
-      `${base}/v1/memory/edges?from=src-1&fromLayer=shared&kinds=contradicts`,
-      { headers: authHeaders },
-    );
+    const r = await fetch(`${base}/v1/memory/edges?from=src-1&fromLayer=shared&kinds=contradicts`, {
+      headers: authHeaders,
+    });
     expect(r.status).toBe(200);
     const body = (await r.json()) as {
       items: { kind: string; dst_id: string }[];
@@ -162,10 +154,9 @@ describe("routes/memory edges (M-14) — list outbound", () => {
   });
 
   test("row with no edges → empty envelope", async () => {
-    const r = await fetch(
-      `${base}/v1/memory/edges?from=dst-1&fromLayer=shared`,
-      { headers: authHeaders },
-    );
+    const r = await fetch(`${base}/v1/memory/edges?from=dst-1&fromLayer=shared`, {
+      headers: authHeaders,
+    });
     expect(r.status).toBe(200);
     const body = (await r.json()) as { items: unknown[]; total: number };
     expect(body.items).toEqual([]);
@@ -173,18 +164,14 @@ describe("routes/memory edges (M-14) — list outbound", () => {
   });
 
   test("invalid fromLayer → 422 (TypeBox)", async () => {
-    const r = await fetch(
-      `${base}/v1/memory/edges?from=src-1&fromLayer=bogus`,
-      { headers: authHeaders },
-    );
+    const r = await fetch(`${base}/v1/memory/edges?from=src-1&fromLayer=bogus`, {
+      headers: authHeaders,
+    });
     expect(r.status).toBe(422);
   });
 
   test("missing required `from` → 422 (TypeBox)", async () => {
-    const r = await fetch(
-      `${base}/v1/memory/edges?fromLayer=shared`,
-      { headers: authHeaders },
-    );
+    const r = await fetch(`${base}/v1/memory/edges?fromLayer=shared`, { headers: authHeaders });
     expect(r.status).toBe(422);
   });
 });
@@ -192,10 +179,9 @@ describe("routes/memory edges (M-14) — list outbound", () => {
 describe("routes/memory edges (M-14) — list related", () => {
   test("returns 1-hop neighbours via outbound + inbound", async () => {
     // src-1 has 2 outbound edges → 2 neighbours.
-    const r = await fetch(
-      `${base}/v1/memory/edges/related?id=src-1&layer=shared`,
-      { headers: authHeaders },
-    );
+    const r = await fetch(`${base}/v1/memory/edges/related?id=src-1&layer=shared`, {
+      headers: authHeaders,
+    });
     expect(r.status).toBe(200);
     const body = (await r.json()) as {
       items: { id: string; layer: string; kind: string; weight: number }[];
@@ -208,10 +194,9 @@ describe("routes/memory edges (M-14) — list related", () => {
   });
 
   test("inbound: dst-2 sees src-1 as neighbour via contradicts edge", async () => {
-    const r = await fetch(
-      `${base}/v1/memory/edges/related?id=dst-2&layer=shared`,
-      { headers: authHeaders },
-    );
+    const r = await fetch(`${base}/v1/memory/edges/related?id=dst-2&layer=shared`, {
+      headers: authHeaders,
+    });
     expect(r.status).toBe(200);
     const body = (await r.json()) as {
       items: { id: string; kind: string }[];
@@ -223,10 +208,9 @@ describe("routes/memory edges (M-14) — list related", () => {
   });
 
   test("?kinds=relates narrows to a single neighbour", async () => {
-    const r = await fetch(
-      `${base}/v1/memory/edges/related?id=src-1&layer=shared&kinds=relates`,
-      { headers: authHeaders },
-    );
+    const r = await fetch(`${base}/v1/memory/edges/related?id=src-1&layer=shared&kinds=relates`, {
+      headers: authHeaders,
+    });
     expect(r.status).toBe(200);
     const body = (await r.json()) as { items: { id: string }[]; total: number };
     expect(body.total).toBe(1);
@@ -239,10 +223,9 @@ describe("routes/memory edges (M-14 fixup)", () => {
     // Pre-fixup bug: parseKindsCsv returned undefined → service treated as
     // "no filter" → returned all 2 edges from src-1. After fixup: kinds=[]
     // sentinel triggers route short-circuit → 0 results.
-    const r = await fetch(
-      `${base}/v1/memory/edges?from=src-1&fromLayer=shared&kinds=foo,bar`,
-      { headers: authHeaders },
-    );
+    const r = await fetch(`${base}/v1/memory/edges?from=src-1&fromLayer=shared&kinds=foo,bar`, {
+      headers: authHeaders,
+    });
     expect(r.status).toBe(200);
     const body = (await r.json()) as { items: unknown[]; total: number };
     expect(body.total).toBe(0);
@@ -250,10 +233,9 @@ describe("routes/memory edges (M-14 fixup)", () => {
   });
 
   test("archive layer: outbound derives edge surfaces", async () => {
-    const r = await fetch(
-      `${base}/v1/memory/edges?from=arc-1&fromLayer=archive`,
-      { headers: authHeaders },
-    );
+    const r = await fetch(`${base}/v1/memory/edges?from=arc-1&fromLayer=archive`, {
+      headers: authHeaders,
+    });
     expect(r.status).toBe(200);
     const body = (await r.json()) as {
       items: { src_id: string; dst_id: string; kind: string }[];

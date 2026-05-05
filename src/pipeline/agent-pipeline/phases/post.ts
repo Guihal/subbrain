@@ -1,17 +1,11 @@
-/**
- * Post-processing phase: appendLog (Layer 4) + gated agentic extraction.
- *
- * - `runPost` is called from non-stream paths (response already materialized).
- * - `runPostFromStream` consumes a captured SSE stream, decodes it to plain text,
- *   then delegates to `runPost`. Used by the streaming pipeline path.
- */
+/** Post-processing phase: appendLog (Layer 4) + gated agentic extraction. */
 import type { MemoryDB } from "../../../db";
+import { logger, type RequestLogger } from "../../../lib/logger";
 import type { ModelRouter } from "../../../lib/model-router";
-import type { RAGPipeline } from "../../../rag";
 import type { ToolExecutor } from "../../../mcp";
 import type { ToolRegistry } from "../../../mcp/registry";
-import { logger, type RequestLogger } from "../../../lib/logger";
 import { parseSSEChunk } from "../../../providers/sse-parser";
+import type { RAGPipeline } from "../../../rag";
 
 import { shouldRunHippocampus } from "../post/gate";
 import { runHippocampus } from "../post/hippocampus";
@@ -40,9 +34,20 @@ export interface RunPostArgs {
 
 export async function runPost(args: RunPostArgs): Promise<void> {
   const {
-    memory, router, rag, executor, registry,
-    userMessage, assistantMessage, requestId, sessionId, model,
-    usage, reasoning, options, agentId,
+    memory,
+    router,
+    rag,
+    executor,
+    registry,
+    userMessage,
+    assistantMessage,
+    requestId,
+    sessionId,
+    model,
+    usage,
+    reasoning,
+    options,
+    agentId,
   } = args;
 
   const log = logger.forRequest(requestId, sessionId);
@@ -52,7 +57,6 @@ export async function runPost(args: RunPostArgs): Promise<void> {
     { model },
   );
 
-  // 1. Layer 4 raw log unless caller already wrote it.
   if (!options?.skipRawLog) {
     memory.appendLog(requestId, sessionId, model, "user", userMessage);
     memory.appendLog(
@@ -63,24 +67,17 @@ export async function runPost(args: RunPostArgs): Promise<void> {
       assistantMessage,
       usage?.completion_tokens,
     );
-    if (reasoning && reasoning.length > 0) {
+    if (reasoning?.length) {
       memory.appendLog(requestId, sessionId, model, "reasoning", reasoning);
       log.info("post", `Reasoning logged: ${reasoning.length} chars`, { model });
     }
   }
-
-  // 2. Gate: combined length + self-feed-loop guard (MEM-6).
   const assistantText = assistantMessage || reasoning || "";
   const combinedLen = (userMessage?.length ?? 0) + assistantText.length;
   if (!shouldRunHippocampus(combinedLen, userMessage)) {
-    log.debug(
-      "post",
-      `Skipping hippocampus: combinedLen=${combinedLen}, userMessage head="${(userMessage ?? "").slice(0, 60)}"`,
-    );
+    log.debug("post", `Skip hippocampus: combinedLen=${combinedLen}`, { model });
     return;
   }
-
-  // 3. Agentic extraction.
   const start = Date.now();
   try {
     const stats = await runHippocampus({
@@ -102,10 +99,7 @@ export async function runPost(args: RunPostArgs): Promise<void> {
       { meta: { ...stats } },
     );
   } catch (err) {
-    log.error(
-      "post",
-      `Agentic extraction failed: ${err instanceof Error ? err.message : err}`,
-    );
+    log.error("post", `Agentic extraction failed: ${err instanceof Error ? err.message : err}`);
   }
 }
 
@@ -125,8 +119,18 @@ export async function runPostFromStream(args: {
   agentId?: string | null;
 }): Promise<void> {
   const {
-    memory, router, rag, executor, registry,
-    stream, userMessage, requestId, sessionId, model, log, agentId,
+    memory,
+    router,
+    rag,
+    executor,
+    registry,
+    stream,
+    userMessage,
+    requestId,
+    sessionId,
+    model,
+    log,
+    agentId,
   } = args;
 
   const decoder = new TextDecoder();

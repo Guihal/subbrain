@@ -12,10 +12,10 @@
  *   - `messages` identity is preserved (same array mutated in place) so callers
  *     holding references don't desync.
  */
-import { randomUUID } from "crypto";
-import type { Message } from "../providers/types";
-import type { ModelRouter } from "../lib/model-router";
+import { randomUUID } from "node:crypto";
 import { logger } from "../lib/logger";
+import type { ModelRouter } from "../lib/model-router";
+import type { Message } from "../providers/types";
 import { estimateTokens } from "./agent-loop/types";
 import { categoryToKind } from "./agent-pipeline/post/validators";
 
@@ -84,10 +84,7 @@ const COMPRESSION_PROMPT = `Ты сжимаешь длинную историю 
 
 Если ничего значимого: \`{"summary": "(ничего значимого)", "facts": []}\`.`;
 
-export function shouldCompress(
-  messages: Message[],
-  limit: number = SOFT_LIMIT,
-): boolean {
+export function shouldCompress(messages: Message[], limit: number = SOFT_LIMIT): boolean {
   return estimateTokens(messages) > limit;
 }
 
@@ -126,8 +123,7 @@ export async function compressContext(
   while (tailStart < messages.length) {
     const m = messages[tailStart];
     const isOrphanTool = m.role === "tool";
-    const hasToolCalls =
-      m.role === "assistant" && m.tool_calls && m.tool_calls.length > 0;
+    const hasToolCalls = m.role === "assistant" && m.tool_calls && m.tool_calls.length > 0;
     if (!isOrphanTool && !hasToolCalls) break;
     tailStart++;
   }
@@ -161,11 +157,9 @@ export async function compressContext(
     .map((m) => {
       if (m.role === "assistant" && m.tool_calls && m.tool_calls.length > 0) {
         const calls = m.tool_calls
-          .map(
-            (tc) => `  → ${tc.function.name}(${tc.function.arguments.slice(0, 500)})`,
-          )
+          .map((tc) => `  → ${tc.function.name}(${tc.function.arguments.slice(0, 500)})`)
           .join("\n");
-        return `[assistant]${m.content ? " " + m.content : ""}\n${calls}`;
+        return `[assistant]${m.content ? ` ${m.content}` : ""}\n${calls}`;
       }
       if (m.role === "tool") {
         return `[tool ${m.tool_call_id ?? ""}]: ${(m.content ?? "").slice(0, 2000)}`;
@@ -212,11 +206,12 @@ export async function compressContext(
     return false;
   }
 
-  if (!summary || summary.trim() === "(ничего значимого)" || summary.trim() === "(nothing notable)") {
-    logger.warn(
-      "compressor",
-      `${COMPRESSOR_MODEL} returned no usable summary — keeping original`,
-    );
+  if (
+    !summary ||
+    summary.trim() === "(ничего значимого)" ||
+    summary.trim() === "(nothing notable)"
+  ) {
+    logger.warn("compressor", `${COMPRESSOR_MODEL} returned no usable summary — keeping original`);
     return false;
   }
 
@@ -226,9 +221,7 @@ export async function compressContext(
   for (const f of facts) {
     const rawContent = (f as { content?: unknown })?.content;
     const content =
-      typeof rawContent === "string"
-        ? rawContent.trim()
-        : String(rawContent ?? "").trim();
+      typeof rawContent === "string" ? rawContent.trim() : String(rawContent ?? "").trim();
     if (!content) {
       droppedCount += 1;
       continue;
@@ -239,10 +232,7 @@ export async function compressContext(
     normalizedFacts.push({ category, content });
   }
   if (droppedCount > 0) {
-    logger.warn(
-      "compressor",
-      `Dropped ${droppedCount} facts with empty content`,
-    );
+    logger.warn("compressor", `Dropped ${droppedCount} facts with empty content`);
   }
   // ── Persist facts (best-effort) ──
   if (memory && normalizedFacts.length > 0) {
@@ -255,14 +245,9 @@ export async function compressContext(
       // shared_memory writes always backfilled to default 'semantic'.
       const kind = categoryToKind(category, "shared");
       try {
-        await memory.insertShared(
-          randomUUID(),
-          category,
-          content,
-          "",
-          "context-compression",
-          { kind },
-        );
+        await memory.insertShared(randomUUID(), category, content, "", "context-compression", {
+          kind,
+        });
         written++;
       } catch (err) {
         logger.debug(
@@ -282,11 +267,7 @@ export async function compressContext(
     role: "system",
     content: `[Сжатие ${middle.length} сообщений]: ${summary}`,
   };
-  const newMessages = [
-    ...messages.slice(0, headEnd),
-    summaryMsg,
-    ...messages.slice(tailStart),
-  ];
+  const newMessages = [...messages.slice(0, headEnd), summaryMsg, ...messages.slice(tailStart)];
   messages.length = 0;
   messages.push(...newMessages);
 

@@ -1,15 +1,12 @@
 /**
  * Embedding and RAG search operations extracted from ToolExecutor.
  */
-import type { ModelRouter } from "../../lib/model-router";
+
 import type { MemoryDB } from "../../db";
+import { EMBED_CODE_MODEL, EMBED_MODEL, RERANK_MODEL } from "../../lib/model-map";
+import type { ModelRouter } from "../../lib/model-router";
 import type { RAGPipeline } from "../../rag";
 import type { ToolResult } from "../types";
-import {
-  EMBED_MODEL,
-  EMBED_CODE_MODEL,
-  RERANK_MODEL,
-} from "../../lib/model-map";
 
 export class EmbedTools {
   constructor(
@@ -60,10 +57,7 @@ export class EmbedTools {
     return { success: true, data: results };
   }
 
-  async embedText(
-    text: string,
-    type: "text" | "code" = "text",
-  ): Promise<ToolResult> {
+  async embedText(text: string, type: "text" | "code" = "text"): Promise<ToolResult> {
     const modelId = type === "code" ? EMBED_CODE_MODEL : EMBED_MODEL;
 
     const result = await this.router.scheduleRaw("normal", () =>
@@ -84,11 +78,7 @@ export class EmbedTools {
     };
   }
 
-  async embedSearch(
-    query: string,
-    topK?: number,
-    layer?: string,
-  ): Promise<ToolResult> {
+  async embedSearch(query: string, topK?: number, layer?: string): Promise<ToolResult> {
     const embedResult = await this.router.scheduleRaw("normal", () =>
       this.router.raw.embed({
         model: EMBED_MODEL,
@@ -103,11 +93,7 @@ export class EmbedTools {
     return { success: true, data: results };
   }
 
-  async rerank(
-    query: string,
-    passages: string[],
-    topN?: number,
-  ): Promise<ToolResult> {
+  async rerank(query: string, passages: string[], topN?: number): Promise<ToolResult> {
     const result = await this.router.scheduleRaw("normal", () =>
       this.router.raw.rerank({
         model: RERANK_MODEL,

@@ -2,10 +2,10 @@
  * Metrics / Observability tests.
  */
 
-import { Metrics } from "../src/lib/metrics";
-import type { StatsProvider } from "../src/lib/metrics";
+import { unlinkSync } from "node:fs";
 import { MemoryDB } from "../src/db";
-import { unlinkSync } from "fs";
+import type { StatsProvider } from "../src/lib/metrics";
+import { Metrics } from "../src/lib/metrics";
 
 const TEST_DB = "data/test-metrics.db";
 try {
@@ -68,31 +68,16 @@ metrics.record({
 });
 
 const snap1 = metrics.snapshot();
-console.assert(
-  snap1.tokens.total_in === 1100,
-  `Tokens in: ${snap1.tokens.total_in}`,
-);
-console.assert(
-  snap1.tokens.total_out === 550,
-  `Tokens out: ${snap1.tokens.total_out}`,
-);
+console.assert(snap1.tokens.total_in === 1100, `Tokens in: ${snap1.tokens.total_in}`);
+console.assert(snap1.tokens.total_out === 550, `Tokens out: ${snap1.tokens.total_out}`);
 console.assert(snap1.requests.ok === 2, `Requests ok: ${snap1.requests.ok}`);
-console.assert(
-  snap1.requests.error === 1,
-  `Requests error: ${snap1.requests.error}`,
-);
+console.assert(snap1.requests.error === 1, `Requests error: ${snap1.requests.error}`);
 console.assert(snap1.errors["5xx"] === 1, "One 5xx error");
 console.log("✅ Record + counters");
 
 // ─── Test 3: Per-model stats
-console.assert(
-  snap1.models["deepseek-ai/deepseek-v3.2"]?.requests === 2,
-  "DeepSeek: 2 requests",
-);
-console.assert(
-  snap1.models["stepfun-ai/step-3.5-flash"]?.requests === 1,
-  "Flash: 1 request",
-);
+console.assert(snap1.models["deepseek-ai/deepseek-v3.2"]?.requests === 2, "DeepSeek: 2 requests");
+console.assert(snap1.models["stepfun-ai/step-3.5-flash"]?.requests === 1, "Flash: 1 request");
 console.assert(
   snap1.models["deepseek-ai/deepseek-v3.2"]?.avgLatencyMs === 1000,
   "DeepSeek avg latency: 1000ms",

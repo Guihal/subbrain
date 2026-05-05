@@ -2,15 +2,15 @@
  * MEM-6: pure validators for hippocampus writers.
  * Whitelist + blacklist + length cap + expires_at unit policy.
  */
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import {
+  MAX_CONTEXT_CONTENT,
+  MAX_SHARED_CONTENT,
+  TIME_BOUND_CATEGORIES,
   validateCategoryAndContent,
   validateExpiresAt,
-  WHITELIST_SHARED,
   WHITELIST_CONTEXT,
-  TIME_BOUND_CATEGORIES,
-  MAX_SHARED_CONTENT,
-  MAX_CONTEXT_CONTENT,
+  WHITELIST_SHARED,
 } from "../src/pipeline/agent-pipeline/post/validators";
 
 describe("validators.validateCategoryAndContent", () => {
@@ -47,21 +47,13 @@ describe("validators.validateCategoryAndContent", () => {
   });
 
   test("rejects content with commit hash regex", () => {
-    const r = validateCategoryAndContent(
-      "context",
-      "decision",
-      "merged commit a41667c closes B-1",
-    );
+    const r = validateCategoryAndContent("context", "decision", "merged commit a41667c closes B-1");
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.reason).toMatch(/blacklisted pattern/);
   });
 
   test("rejects content with deploy phrasing", () => {
-    const r = validateCategoryAndContent(
-      "context",
-      "decision",
-      "freelance scout deployed to prod",
-    );
+    const r = validateCategoryAndContent("context", "decision", "freelance scout deployed to prod");
     expect(r.ok).toBe(false);
   });
 

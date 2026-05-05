@@ -1,5 +1,5 @@
-import { t, type AgentToolContext, type ToolRegistry } from "./tool-registry";
 import type { ToolResult } from "../types";
+import { type AgentToolContext, type ToolRegistry, t } from "./tool-registry";
 
 /**
  * Hippocampus rate-limit guard. Returns a pre-built `rate_limit` ToolResult
@@ -13,8 +13,7 @@ function spendBudget(ctx: AgentToolContext): ToolResult | null {
   if (ctx.taskBudget.remaining <= 0) {
     return {
       success: false,
-      error:
-        "rate_limit: task mutation budget (3) spent for this exchange; finish or defer",
+      error: "rate_limit: task mutation budget (3) spent for this exchange; finish or defer",
     };
   }
   ctx.taskBudget.remaining -= 1;
@@ -58,13 +57,10 @@ export function registerTasksTools(registry: ToolRegistry): void {
           description: "Due date, unix seconds (UTC)",
         }),
       ),
-      priority: t.Optional(
-        t.Integer({ minimum: 0, maximum: 10, default: 0 }),
-      ),
+      priority: t.Optional(t.Integer({ minimum: 0, maximum: 10, default: 0 })),
       source: t.Optional(
         t.String({
-          description:
-            "Stable external key for idempotent upsert (e.g. 'tg:peer=123:msg=456')",
+          description: "Stable external key for idempotent upsert (e.g. 'tg:peer=123:msg=456')",
         }),
       ),
     }),
@@ -78,9 +74,7 @@ export function registerTasksTools(registry: ToolRegistry): void {
     input: t.Object({
       scope: t.Optional(TASK_SCOPE),
       status: t.Optional(TASK_STATUS_FILTER),
-      limit: t.Optional(
-        t.Integer({ minimum: 1, maximum: 200, default: 50 }),
-      ),
+      limit: t.Optional(t.Integer({ minimum: 1, maximum: 200, default: 50 })),
     }),
     handler: (args, ctx) => ctx.executor.tasksTools.list(args),
   });
@@ -97,8 +91,7 @@ export function registerTasksTools(registry: ToolRegistry): void {
       priority: t.Optional(t.Integer({ minimum: 0, maximum: 10 })),
       due_at: t.Optional(t.Union([t.Number(), t.Null()])),
     }),
-    handler: (args, ctx) =>
-      spendBudget(ctx) ?? ctx.executor.tasksTools.update(args),
+    handler: (args, ctx) => spendBudget(ctx) ?? ctx.executor.tasksTools.update(args),
   });
 
   registry.register({
@@ -106,8 +99,7 @@ export function registerTasksTools(registry: ToolRegistry): void {
     description: "Move task open → in_progress. Idempotent on in_progress.",
     scope: "agent-only",
     input: t.Object({ id: t.String() }),
-    handler: (args, ctx) =>
-      spendBudget(ctx) ?? ctx.executor.tasksTools.start(args),
+    handler: (args, ctx) => spendBudget(ctx) ?? ctx.executor.tasksTools.start(args),
   });
 
   registry.register({
@@ -118,8 +110,7 @@ export function registerTasksTools(registry: ToolRegistry): void {
       id: t.String(),
       summary: t.Optional(t.String()),
     }),
-    handler: (args, ctx) =>
-      spendBudget(ctx) ?? ctx.executor.tasksTools.done(args),
+    handler: (args, ctx) => spendBudget(ctx) ?? ctx.executor.tasksTools.done(args),
   });
 
   registry.register({
@@ -130,7 +121,6 @@ export function registerTasksTools(registry: ToolRegistry): void {
       id: t.String(),
       reason: t.Optional(t.String()),
     }),
-    handler: (args, ctx) =>
-      spendBudget(ctx) ?? ctx.executor.tasksTools.cancel(args),
+    handler: (args, ctx) => spendBudget(ctx) ?? ctx.executor.tasksTools.cancel(args),
   });
 }

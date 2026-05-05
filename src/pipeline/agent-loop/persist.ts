@@ -2,20 +2,14 @@
  * Persistence helpers: dynamic-tool serialization and chat row writes.
  * Extracted from `index.ts` so the facade stays tiny.
  */
-import { randomUUID } from "crypto";
+import { randomUUID } from "node:crypto";
 import type { MemoryDB } from "../../db";
 import { logger } from "../../lib/logger";
-import {
-  DynamicToolRegistry,
-  type DynamicToolDef,
-} from "./dynamic-tools";
+import type { DynamicToolDef, DynamicToolRegistry } from "./dynamic-tools";
 
 const DYNAMIC_TOOLS_AGENT_ID = "dynamic_tools";
 
-export function loadPersistedDynamicTools(
-  memory: MemoryDB,
-  registry: DynamicToolRegistry,
-): void {
+export function loadPersistedDynamicTools(memory: MemoryDB, registry: DynamicToolRegistry): void {
   try {
     const row = memory.getLatestAgentMemoryByAgentId(DYNAMIC_TOOLS_AGENT_ID);
     if (row?.content) {
@@ -28,10 +22,7 @@ export function loadPersistedDynamicTools(
   }
 }
 
-export function persistDynamicTools(
-  memory: MemoryDB,
-  registry: DynamicToolRegistry,
-): void {
+export function persistDynamicTools(memory: MemoryDB, registry: DynamicToolRegistry): void {
   const serialized = JSON.stringify(registry.serialize());
   const existing = memory.getLatestAgentMemoryByAgentId(DYNAMIC_TOOLS_AGENT_ID);
   if (existing) {
@@ -58,8 +49,8 @@ export function persistToChat(
   const chatSource = sessionId?.startsWith("auto-")
     ? "autonomous"
     : sessionId
-    ? "web"
-    : "autonomous";
+      ? "web"
+      : "autonomous";
 
   const existing = memory.getChat(chatId);
   if (!existing) {
@@ -73,12 +64,7 @@ export function persistToChat(
           })}] `
         : "";
     try {
-      memory.createChat(
-        chatId,
-        `${datePrefix}${task.slice(0, 70)}`,
-        model,
-        chatSource,
-      );
+      memory.createChat(chatId, `${datePrefix}${task.slice(0, 70)}`, model, chatSource);
     } catch (err) {
       if (!String(err instanceof Error ? err.message : err).includes("UNIQUE")) {
         throw err;

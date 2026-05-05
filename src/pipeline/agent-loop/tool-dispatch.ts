@@ -5,8 +5,9 @@
  * `normalizeToolCalls` also accepts raw Anthropic `{type:"tool_use"}` blocks
  * so fixtures / tests / future providers do not explode here.
  */
-import type { ToolCall } from "../../providers/types";
+
 import type { logger } from "../../lib/logger";
+import type { ToolCall } from "../../providers/types";
 import { executeAgentTool, type ToolRunnerDeps } from "./tool-runner";
 
 export interface NormalizedCall {
@@ -39,9 +40,10 @@ export function normalizeToolCalls(raw: unknown): NormalizedCall[] {
       out.push({
         id: String(oa.id ?? ""),
         name: oa.function.name,
-        args: typeof oa.function.arguments === "string"
-          ? oa.function.arguments
-          : JSON.stringify(oa.function.arguments ?? {}),
+        args:
+          typeof oa.function.arguments === "string"
+            ? oa.function.arguments
+            : JSON.stringify(oa.function.arguments ?? {}),
       });
       continue;
     }

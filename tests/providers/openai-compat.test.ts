@@ -1,8 +1,8 @@
 import { afterAll, afterEach, beforeAll, describe, expect, test } from "bun:test";
-import { OpenAICompatProvider } from "../../src/providers/openai-compat";
-import { ProviderError } from "../../src/providers/nvidia";
-import type { Message } from "../../src/providers/types";
 import type { ModelRoute } from "../../src/lib/model-map";
+import { ProviderError } from "../../src/providers/nvidia";
+import { OpenAICompatProvider } from "../../src/providers/openai-compat";
+import type { Message } from "../../src/providers/types";
 
 let server: ReturnType<typeof Bun.serve>;
 let baseUrl = "";
@@ -25,15 +25,25 @@ beforeAll(() => {
         if (body.includes('"stream":true')) {
           const sse =
             'data: {"id":"x","object":"chat.completion.chunk","created":0,"model":"gpt-5.4-mini","choices":[{"index":0,"delta":{"content":"hi"},"finish_reason":null}]}\n\ndata: [DONE]\n\n';
-          return new Response(sse, { status: 200, headers: { "content-type": "text/event-stream" } });
+          return new Response(sse, {
+            status: 200,
+            headers: { "content-type": "text/event-stream" },
+          });
         }
         return Response.json({
-          id: "r1", object: "chat.completion", created: 0, model: "gpt-5.4-mini",
-          choices: [{ index: 0, message: { role: "assistant", content: "ok" }, finish_reason: "stop" }],
+          id: "r1",
+          object: "chat.completion",
+          created: 0,
+          model: "gpt-5.4-mini",
+          choices: [
+            { index: 0, message: { role: "assistant", content: "ok" }, finish_reason: "stop" },
+          ],
         });
       }
       if (url.pathname === "/v1/models") {
-        return Response.json({ data: [{ id: "gpt-5.4-mini", object: "model", created: 0, owned_by: "openai" }] });
+        return Response.json({
+          data: [{ id: "gpt-5.4-mini", object: "model", created: 0, owned_by: "openai" }],
+        });
       }
       return new Response("not found", { status: 404 });
     },
@@ -42,7 +52,12 @@ beforeAll(() => {
 });
 afterAll(() => server.stop(true));
 
-function reset() { hits.length = 0; nextStatus = 200; nextBody = null; slowMs = 0; }
+function reset() {
+  hits.length = 0;
+  nextStatus = 200;
+  nextBody = null;
+  slowMs = 0;
+}
 
 const msg: Message[] = [{ role: "user", content: "hi" }];
 
@@ -52,22 +67,22 @@ describe("OpenAICompatProvider", () => {
     const p = new OpenAICompatProvider(baseUrl, "key");
     await p.chat({ model: "gpt-5.4-mini", messages: msg });
     expect(hits.length).toBe(1);
-    expect(hits[0]!.url).toBe("/v1/chat/completions");
-    expect(hits[0]!.method).toBe("POST");
+    expect(hits[0]?.url).toBe("/v1/chat/completions");
+    expect(hits[0]?.method).toBe("POST");
   });
 
   test("chat: Bearer auth header", async () => {
     reset();
     const p = new OpenAICompatProvider(baseUrl, "secret-token");
     await p.chat({ model: "gpt-5.4-mini", messages: msg });
-    expect(hits[0]!.headers.get("authorization")).toBe("Bearer secret-token");
+    expect(hits[0]?.headers.get("authorization")).toBe("Bearer secret-token");
   });
 
   test("chat: X-Subbrain-Provider: openai-compat header", async () => {
     reset();
     const p = new OpenAICompatProvider(baseUrl, "k");
     await p.chat({ model: "gpt-5.4-mini", messages: msg });
-    expect(hits[0]!.headers.get("x-subbrain-provider")).toBe("openai-compat");
+    expect(hits[0]?.headers.get("x-subbrain-provider")).toBe("openai-compat");
   });
 
   test("chatStream: returns ReadableStream", async () => {
@@ -127,8 +142,8 @@ describe("OpenAICompatProvider", () => {
     const p = new OpenAICompatProvider(baseUrl, "k");
     const out = await p.listModels();
     expect(out).toHaveLength(1);
-    expect(out[0]!.id).toBe("gpt-5.4-mini");
-    expect(hits[0]!.url).toBe("/v1/models");
+    expect(out[0]?.id).toBe("gpt-5.4-mini");
+    expect(hits[0]?.url).toBe("/v1/models");
   });
 });
 
@@ -171,14 +186,14 @@ describe("model-map: detect + apply", () => {
     const original = JSON.parse(JSON.stringify(localMap));
 
     applyOpenAICompatOverrides(localMap, envOn);
-    expect(localMap.teamlead!.primary).toBe("gpt-5.4-mini");
-    expect(localMap.teamlead!.primaryProvider).toBe("openai-compat");
-    expect(localMap.teamlead!.fallback).toBe("MiniMax-M2.7");
-    expect(localMap.teamlead!.fallbackProvider).toBe("minimax");
+    expect(localMap.teamlead?.primary).toBe("gpt-5.4-mini");
+    expect(localMap.teamlead?.primaryProvider).toBe("openai-compat");
+    expect(localMap.teamlead?.fallback).toBe("MiniMax-M2.7");
+    expect(localMap.teamlead?.fallbackProvider).toBe("minimax");
 
     // idempotent: second apply enabled=true is no-op
     applyOpenAICompatOverrides(localMap, envOn);
-    expect(localMap.teamlead!.primary).toBe("gpt-5.4-mini");
+    expect(localMap.teamlead?.primary).toBe("gpt-5.4-mini");
 
     // off → restore from snapshot
     applyOpenAICompatOverrides(localMap, envOff);
@@ -189,22 +204,18 @@ describe("model-map: detect + apply", () => {
     const broken: Record<string, ModelRoute> = {
       teamlead: { primary: "x" },
     };
-    expect(() => applyOpenAICompatOverrides(broken, envOn)).toThrow(
-      /no primaryProvider/,
-    );
+    expect(() => applyOpenAICompatOverrides(broken, envOn)).toThrow(/no primaryProvider/);
   });
 
   test("real MODEL_MAP not polluted across tests (default OFF)", async () => {
     delete process.env.OPENAI_COMPAT_ENABLED;
-    const { MODEL_MAP, applyOpenAICompatOverrides } = await import(
-      "../../src/lib/model-map"
-    );
+    const { MODEL_MAP, applyOpenAICompatOverrides } = await import("../../src/lib/model-map");
     applyOpenAICompatOverrides();
     // Per-role NIM swap 2026-05-03: teamlead→K2 Thinking, coder→Qwen3-Coder
     // (both nvidia). Pre-swap defaults were both minimax. Test asserts
     // OPENAI_COMPAT=OFF leaves MODEL_MAP at compile-time defaults.
-    expect(MODEL_MAP.teamlead!.primaryProvider).toBe("nvidia");
-    expect(MODEL_MAP.coder!.primaryProvider).toBe("nvidia");
+    expect(MODEL_MAP.teamlead?.primaryProvider).toBe("nvidia");
+    expect(MODEL_MAP.coder?.primaryProvider).toBe("nvidia");
   });
 });
 
@@ -217,9 +228,7 @@ describe("bootstrap integration (real createProviders)", () => {
     }
     Object.assign(process.env, savedEnv);
     delete process.env.OPENAI_COMPAT_ENABLED;
-    const { applyOpenAICompatOverrides } = await import(
-      "../../src/lib/model-map"
-    );
+    const { applyOpenAICompatOverrides } = await import("../../src/lib/model-map");
     applyOpenAICompatOverrides();
   });
 
@@ -230,9 +239,7 @@ describe("bootstrap integration (real createProviders)", () => {
     process.env.NVIDIA_BASE_URL =
       process.env.NVIDIA_BASE_URL || "https://integrate.api.nvidia.com/v1";
     process.env.NVIDIA_API_KEY = process.env.NVIDIA_API_KEY || "nvapi-test";
-    const { applyOpenAICompatOverrides } = await import(
-      "../../src/lib/model-map"
-    );
+    const { applyOpenAICompatOverrides } = await import("../../src/lib/model-map");
     applyOpenAICompatOverrides();
     const { createProviders } = await import("../../src/providers");
     const providers = await createProviders();

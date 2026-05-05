@@ -55,6 +55,8 @@ Non-goals:
 
 ### PR-A — Schema enforcement + dedup + expires defaults (highest impact)
 
+**Status:** DONE (merged ea3e910 on main, 2026-05-04). 4 commits: 37fe689 base + 3 fix rounds (7f1613b, ed7e93c, 7778549). 899 tests pass.
+
 **Цель:** memory_write на ингесте отбрасывает мусор. Бьёт R1, R3, R4.
 
 **Precondition (premortem fail-mode-1 fix):** ДО заморозки whitelist собрать prod-distribution фактических `category` value'ов:

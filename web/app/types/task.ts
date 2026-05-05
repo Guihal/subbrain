@@ -7,12 +7,7 @@
  * Keep in sync when the backend enum changes — verify with:
  *   git grep "export type TaskScope" src/db/types.ts web/app/types/task.ts
  */
-export type TaskScope =
-  | "global"
-  | "autonomous"
-  | "free-agent"
-  | "freelance"
-  | "tg";
+export type TaskScope = "global" | "autonomous" | "free-agent" | "freelance" | "tg";
 
 export type TaskStatus = "open" | "in_progress" | "done" | "cancelled";
 
@@ -70,9 +65,7 @@ export interface DigestRow {
   created_at: number;
 }
 
-export type HistoryItem =
-  | ({ kind: "task" } & TaskRow)
-  | ({ kind: "digest" } & DigestRow);
+export type HistoryItem = ({ kind: "task" } & TaskRow) | ({ kind: "digest" } & DigestRow);
 
 export interface ListEnvelope<T> {
   items: T[];

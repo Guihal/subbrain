@@ -1,5 +1,5 @@
-import type { ModelRouter } from "../../lib/model-router";
 import { RERANK_MODEL } from "../../lib/model-map";
+import type { ModelRouter } from "../../lib/model-router";
 import type { RAGResult } from "../types";
 
 export async function rerank(

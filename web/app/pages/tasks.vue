@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import type { StatusFilter } from "~/types/task";
-
 const page = useTasksPage();
 const {
   tasks: t,

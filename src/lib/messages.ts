@@ -9,9 +9,7 @@ import type { Message } from "../providers/types";
  * Used at API ingress to coerce arbitrary client payloads to the strict
  * `Message.content: string | null` shape providers expect.
  */
-export function normalizeContent(
-  content: string | null | undefined | unknown[],
-): string | null {
+export function normalizeContent(content: string | null | undefined | unknown[]): string | null {
   if (content == null) return null;
   if (typeof content === "string") return content;
   if (Array.isArray(content)) {
@@ -46,8 +44,8 @@ export function normalizeMessages(messages: RawMessage[]): Message[] {
   return messages.map((m) => ({
     role: m.role,
     content: normalizeContent(m.content),
-    ...(m.name !== undefined ? { name: m.name } : {}),
-    ...(m.tool_calls !== undefined ? { tool_calls: m.tool_calls } : {}),
-    ...(m.tool_call_id !== undefined ? { tool_call_id: m.tool_call_id } : {}),
+    ...(m.name === undefined ? {} : { name: m.name }),
+    ...(m.tool_calls === undefined ? {} : { tool_calls: m.tool_calls }),
+    ...(m.tool_call_id === undefined ? {} : { tool_call_id: m.tool_call_id }),
   }));
 }

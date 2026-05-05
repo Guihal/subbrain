@@ -1,5 +1,5 @@
 /// <reference lib="dom" />
-import { chromium, type Browser, type BrowserContext, type Page } from "playwright";
+import { type Browser, type BrowserContext, chromium, type Page } from "playwright";
 import { logger } from "../../lib/logger";
 
 const log = logger.child("playwright");
@@ -40,7 +40,11 @@ export function untrackClient(c: ClientHandle): void {
   liveClients.delete(c);
 }
 
-export async function launchBrowser(): Promise<{ browser: Browser; context: BrowserContext; page: Page }> {
+export async function launchBrowser(): Promise<{
+  browser: Browser;
+  context: BrowserContext;
+  page: Page;
+}> {
   log.info("Launching Chrome (channel=chrome, headless)");
   const browser = await chromium.launch({
     channel: "chrome",
@@ -55,7 +59,9 @@ export async function launchBrowser(): Promise<{ browser: Browser; context: Brow
   return { browser, context, page };
 }
 
-export async function newScopeContext(browser: Browser): Promise<{ ctx: BrowserContext; page: Page }> {
+export async function newScopeContext(
+  browser: Browser,
+): Promise<{ ctx: BrowserContext; page: Page }> {
   const ctx = await browser.newContext({
     viewport: { width: 1280, height: 800 },
     userAgent: UA,

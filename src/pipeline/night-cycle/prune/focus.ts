@@ -1,6 +1,6 @@
 import type { MemoryDB } from "../../../db";
-import type { ModelRouter } from "../../../lib/model-router";
 import { logger } from "../../../lib/logger";
+import type { ModelRouter } from "../../../lib/model-router";
 import { parseJson } from "../types";
 
 const log = logger.child("night");
@@ -23,19 +23,12 @@ export const PROTECTED_FOCUS_KEYS = new Set<string>([
   "night.stray_tasks.last_run_at",
 ]);
 
-export async function pruneFocus(
-  memory: MemoryDB,
-  router: ModelRouter,
-): Promise<number> {
+export async function pruneFocus(memory: MemoryDB, router: ModelRouter): Promise<number> {
   const all = memory.getAllFocus();
-  const editable = Object.entries(all).filter(
-    ([k]) => !PROTECTED_FOCUS_KEYS.has(k),
-  );
+  const editable = Object.entries(all).filter(([k]) => !PROTECTED_FOCUS_KEYS.has(k));
   if (editable.length < 2) return 0;
 
-  const kvList = editable
-    .map(([k, v], i) => `[${i + 1}] ${k}: ${v}`)
-    .join("\n");
+  const kvList = editable.map(([k, v], i) => `[${i + 1}] ${k}: ${v}`).join("\n");
 
   let response;
   try {
@@ -107,9 +100,7 @@ export async function pruneFocus(
         touched.add(a.keepKey);
         for (const dk of drops) touched.add(dk);
         pruned += drops.length;
-        log.info(
-          `prune_focus: merge keep=${a.keepKey} dropped=${drops.length}`,
-        );
+        log.info(`prune_focus: merge keep=${a.keepKey} dropped=${drops.length}`);
       }
     } catch (err) {
       log.warn(`prune_focus: action failed: ${(err as Error).message}`);

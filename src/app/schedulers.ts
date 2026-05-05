@@ -2,9 +2,7 @@ import { logger } from "../lib/logger";
 import type { AppDeps } from "./deps";
 import type { NightCycleController } from "./night-cycle-controller";
 
-export function installAutonomousScheduler(
-  deps: AppDeps,
-): { stop: () => void } {
+export function installAutonomousScheduler(deps: AppDeps): { stop: () => void } {
   const { config, agentService } = deps;
   const { autonomous } = config;
   if (!autonomous.enabled) {
@@ -50,18 +48,14 @@ export function installAutonomousScheduler(
         },
       })
       .then((result) => {
-        logger.info(
-          "autonomous",
-          `Scheduled run finished: ${result.stoppedReason}`,
-          {
-            meta: {
-              totalSteps: result.totalSteps,
-              requestId: result.requestId,
-              sessionId: result.sessionId,
-              reason,
-            },
+        logger.info("autonomous", `Scheduled run finished: ${result.stoppedReason}`, {
+          meta: {
+            totalSteps: result.totalSteps,
+            requestId: result.requestId,
+            sessionId: result.sessionId,
+            reason,
           },
-        );
+        });
       })
       .catch((err) => {
         logger.error(
@@ -74,17 +68,13 @@ export function installAutonomousScheduler(
       });
   };
 
-  logger.info(
-    "autonomous",
-    `Scheduler enabled: every ${autonomous.intervalMinutes} min`,
-    {
-      meta: {
-        intervalMs,
-        maxSteps: autonomous.maxSteps,
-        startupDelayMs: autonomous.startupDelayMs,
-      },
+  logger.info("autonomous", `Scheduler enabled: every ${autonomous.intervalMinutes} min`, {
+    meta: {
+      intervalMs,
+      maxSteps: autonomous.maxSteps,
+      startupDelayMs: autonomous.startupDelayMs,
     },
-  );
+  });
 
   startupTimer = setTimeout(() => run("startup"), autonomous.startupDelayMs);
   intervalTimer = setInterval(() => run("interval"), intervalMs);
@@ -103,10 +93,7 @@ export function installAutonomousScheduler(
 // TODO(C-1 follow-up): expose {stop} to cancel the schedule() chain + 2-min
 // startup catch-up setTimeout on shutdown. See
 // docs/audits/2026-04-23-global-refactor-plan.md.
-export function installNightCycleScheduler(
-  deps: AppDeps,
-  controller: NightCycleController,
-): void {
+export function installNightCycleScheduler(deps: AppDeps, controller: NightCycleController): void {
   const { config, memory } = deps;
   const { nightCycle: cfg } = config;
   if (!cfg.schedulerEnabled) {
@@ -117,15 +104,7 @@ export function installNightCycleScheduler(
   const msUntilNext = (): number => {
     const now = new Date();
     const target = new Date(
-      Date.UTC(
-        now.getUTCFullYear(),
-        now.getUTCMonth(),
-        now.getUTCDate(),
-        cfg.hourUtc,
-        0,
-        0,
-        0,
-      ),
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), cfg.hourUtc, 0, 0, 0),
     );
     if (target.getTime() <= now.getTime()) {
       target.setUTCDate(target.getUTCDate() + 1);
@@ -149,7 +128,7 @@ export function installNightCycleScheduler(
 
   setTimeout(() => {
     const lastIdStr = memory.getFocus("night_cycle_last_processed_id");
-    const lastId = lastIdStr ? parseInt(lastIdStr, 10) : 0;
+    const lastId = lastIdStr ? Number.parseInt(lastIdStr, 10) : 0;
     const backlog = memory.getLogsSince(lastId, 1000).length;
     if (backlog >= cfg.backlogTrigger) {
       logger.info(
@@ -188,9 +167,7 @@ export function installTelegramWebhook(deps: AppDeps): void {
   if (config.telegram.webhookUrl) {
     telegramBot
       .setWebhook(config.telegram.webhookUrl)
-      .catch((err) =>
-        logger.error("telegram", `Webhook setup failed: ${err.message}`),
-      );
+      .catch((err) => logger.error("telegram", `Webhook setup failed: ${err.message}`));
   } else if (config.telegram.polling) {
     telegramBot.startPolling();
   }

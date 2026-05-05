@@ -2,12 +2,12 @@
  * M-10 — agent-only curation MCP tools (memory_link / memory_supersede /
  * memory_promote / memory_reflect). See plan §Тесты.
  */
-import { describe, test, expect, beforeAll, afterAll, beforeEach } from "bun:test";
-import { existsSync, unlinkSync } from "fs";
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
+import { existsSync, unlinkSync } from "node:fs";
 import { MemoryDB } from "../src/db";
+import { MemoryCurationTools } from "../src/mcp/tools/memory-curation-tools";
 import { RAGPipeline } from "../src/rag";
 import { MemoryService } from "../src/services/memory";
-import { MemoryCurationTools } from "../src/mcp/tools/memory-curation-tools";
 
 const TEST_DB = "data/test-mem10-curation.db";
 
@@ -46,7 +46,13 @@ function makeRouter(reply: string): {
   return { router, calls: () => chatCalls };
 }
 
-function seedContext(memory: MemoryDB, id: string, title: string, content: string, access = 5): void {
+function seedContext(
+  memory: MemoryDB,
+  id: string,
+  title: string,
+  content: string,
+  access = 5,
+): void {
   memory.insertContext(id, title, content, "");
   const past = Math.floor(Date.now() / 1000) - 30 * 60 * 60;
   memory.db
@@ -76,7 +82,12 @@ describe("M-10 MemoryCurationTools", () => {
     router = r;
     rag = new RAGPipeline(memory, router);
     svc = new MemoryService(memory.memoryRepo, rag, memory.logRepo);
-    tools = new MemoryCurationTools(memory, () => svc, () => rag, () => router);
+    tools = new MemoryCurationTools(
+      memory,
+      () => svc,
+      () => rag,
+      () => router,
+    );
   });
 
   // ─── memory_link ────────────────────────────────────────────────
@@ -201,9 +212,9 @@ describe("M-10 MemoryCurationTools", () => {
     const newId = (r.data as { id: string }).id;
     const fresh = memory.getShared(newId);
     expect(fresh).not.toBeNull();
-    expect(fresh!.source).toBe("promote");
-    expect(fresh!.category).toBe("skill");
-    expect(fresh!.confidence).toBe(0.8); // M-10 fix-round: explicit autoaccept default
+    expect(fresh?.source).toBe("promote");
+    expect(fresh?.category).toBe("skill");
+    expect(fresh?.confidence).toBe(0.8); // M-10 fix-round: explicit autoaccept default
     const edges = memory.getEdgesFromSrc("ctx-promo", "context", ["derives"]);
     expect(edges.length).toBe(1);
     expect(edges[0].dst_id).toBe(newId);
@@ -257,7 +268,7 @@ describe("M-10 MemoryCurationTools", () => {
     expect(data.edges_created).toBe(0);
     const cnt = memory.db
       .query<{ c: number }, []>("SELECT count(*) AS c FROM shared_memory WHERE source = 'reflect'")
-      .get()!.c;
+      .get()?.c;
     expect(cnt).toBe(0);
   });
 

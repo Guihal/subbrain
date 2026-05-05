@@ -13,8 +13,9 @@
  * is NOT aborted (no cancellation API); the process shutdown terminates it
  * when playwright.close() and memory.close() run.
  */
-import { logger } from "../lib/logger";
+
 import type { AppDeps } from "../app/deps";
+import { logger } from "../lib/logger";
 
 const log = logger.child("free-agent");
 
@@ -133,10 +134,8 @@ function formatDigest(
   finalAnswer: string,
   result: { totalSteps: number; stoppedReason: string },
 ): string {
-  const body = finalAnswer.length > 3500 ? finalAnswer.slice(0, 3500) + "…" : finalAnswer;
-  return [
-    `🤖 Free agent — ${result.stoppedReason} (${result.totalSteps} шагов)`,
-    "",
-    body,
-  ].join("\n");
+  const body = finalAnswer.length > 3500 ? `${finalAnswer.slice(0, 3500)}…` : finalAnswer;
+  return [`🤖 Free agent — ${result.stoppedReason} (${result.totalSteps} шагов)`, "", body].join(
+    "\n",
+  );
 }

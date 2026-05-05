@@ -20,12 +20,7 @@ const {
 
 const sidebarOpen = useState("sidebar-open", () => false);
 
-const tabs: Array<FreelanceStatus | "all"> = [
-  "new",
-  "taken",
-  "rejected",
-  "all",
-];
+const tabs: Array<FreelanceStatus | "all"> = ["new", "taken", "rejected", "all"];
 
 function tabLabel(s: FreelanceStatus | "all"): string {
   const map: Record<string, string> = {

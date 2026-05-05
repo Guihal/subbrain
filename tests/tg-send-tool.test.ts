@@ -6,11 +6,11 @@
  * (which JSON.stringify's the ToolResult) cannot silently treat failed
  * delivery as success. Success path stays `{ success: true }`.
  */
-import { describe, test, expect } from "bun:test";
-import { buildRegistry } from "../src/mcp/registry";
-import { ToolExecutor } from "../src/mcp/executor";
+import { describe, expect, test } from "bun:test";
 import type { MemoryDB } from "../src/db";
 import type { ModelRouter } from "../src/lib/model-router";
+import { ToolExecutor } from "../src/mcp/executor";
+import { buildRegistry } from "../src/mcp/registry";
 
 function makeExecutor(botNotify: (text: string) => Promise<void>): ToolExecutor {
   const exec = new ToolExecutor({} as MemoryDB, {} as ModelRouter);
@@ -25,11 +25,7 @@ describe("tg_send_message tool handler", () => {
       throw new Error("telegram 500");
     });
 
-    const r = await registry.callAsPublic(
-      "tg_send_message",
-      { text: "hi" },
-      { executor },
-    );
+    const r = await registry.callAsPublic("tg_send_message", { text: "hi" }, { executor });
 
     expect(r.success).toBe(false);
     expect(typeof r.error).toBe("string");
@@ -42,11 +38,7 @@ describe("tg_send_message tool handler", () => {
     const registry = buildRegistry();
     const executor = makeExecutor(async () => {});
 
-    const r = await registry.callAsPublic(
-      "tg_send_message",
-      { text: "hi" },
-      { executor },
-    );
+    const r = await registry.callAsPublic("tg_send_message", { text: "hi" }, { executor });
 
     expect(r.success).toBe(true);
     expect(r.data).toBe("Message sent to owner");
@@ -62,11 +54,7 @@ describe("tg_send_message tool handler", () => {
     const executor = new ToolExecutor({} as MemoryDB, {} as ModelRouter);
     // botNotify intentionally NOT set.
 
-    const r = await registry.callAsPublic(
-      "tg_send_message",
-      { text: "hi" },
-      { executor },
-    );
+    const r = await registry.callAsPublic("tg_send_message", { text: "hi" }, { executor });
 
     expect(r.success).toBe(false);
     expect(r.error).toContain("tg_delivery_failed");

@@ -2,12 +2,13 @@
  * HTTP surface for the tasks lifecycle store. SQL + history-loader logic
  * live in `TaskRepository`. 404 envelope: { error: { message } }.
  */
-import { Elysia, t } from "elysia";
+
 import { randomUUID } from "node:crypto";
+import { Elysia, t } from "elysia";
 import { InvalidTransitionError } from "../db";
-import type { TaskRepository } from "../repositories/task.repo";
 import { paginate } from "../lib/api-envelope";
 import { logger } from "../lib/logger";
+import type { TaskRepository } from "../repositories/task.repo";
 
 const log = logger.child("tasks.route");
 
@@ -25,11 +26,7 @@ const StatusFilterS = t.Union([
   t.Literal("done"),
   t.Literal("cancelled"),
 ]);
-const TransitionS = t.Union([
-  t.Literal("in_progress"),
-  t.Literal("done"),
-  t.Literal("cancelled"),
-]);
+const TransitionS = t.Union([t.Literal("in_progress"), t.Literal("done"), t.Literal("cancelled")]);
 const NumOrStr = t.Union([t.String(), t.Number()]);
 
 const CreateBody = t.Object({
@@ -54,10 +51,7 @@ const ListQuery = t.Object({
   page: t.Optional(NumOrStr),
   page_size: t.Optional(NumOrStr),
 });
-const HistoryQuery = t.Composite([
-  ListQuery,
-  t.Object({ since: t.Optional(NumOrStr) }),
-]);
+const HistoryQuery = t.Composite([ListQuery, t.Object({ since: t.Optional(NumOrStr) })]);
 
 const JSON_HDR = { "Content-Type": "application/json" } as const;
 const errResp = (status: number, body: unknown) =>

@@ -7,16 +7,12 @@
  * classify.ts (heuristic classifier).
  */
 
-import type { ModelRouter } from "../../lib/model-router";
 import type { Metrics } from "../../lib/metrics";
+import type { ModelRouter } from "../../lib/model-router";
 import { classifyMessage } from "./classify";
 import { dispatchSpecialists } from "./dispatch";
 import { runSynthesis } from "./synthesis";
-import {
-  SPECIALIST_TIMEOUT,
-  type ArbitrationResult,
-  type RoomConfig,
-} from "./types";
+import { type ArbitrationResult, type RoomConfig, SPECIALIST_TIMEOUT } from "./types";
 
 export type {
   AgentResponse,

@@ -1,0 +1,49 @@
+# Advisory ignore for AI agents. Not a security boundary.
+
+# Secrets / auth
+.env
+.env.*
+!.env.example
+.envrc
+secrets/
+*.pem
+*.key
+*.p12
+*.pfx
+.ssh/
+.aws/
+.npmrc
+.git/credentials
+.docker/config.json
+cliproxy/auths/
+cliproxy/config.yaml
+
+# Lockfiles: grep only, never full read unless task explicitly requires audit.
+bun.lock
+bun.lockb
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+Cargo.lock
+go.sum
+
+# Generated / heavy
+node_modules/
+dist/
+build/
+coverage/
+.next/
+.nuxt/
+.turbo/
+*.tsbuildinfo
+*.map
+
+# DB / logs / dumps
+data/*.db
+data/*.db-*
+*.sqlite
+*.sqlite3
+*.dump
+*.bak
+*.log
+logs/

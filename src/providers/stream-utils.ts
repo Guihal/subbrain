@@ -10,7 +10,7 @@ import { logger } from "../lib/logger";
  */
 export function createProxyStream(
   fetchFn: () => Promise<Response>,
-  timeoutMs = 180_000,
+  _timeoutMs = 180_000,
 ): ReadableStream<Uint8Array> {
   return new ReadableStream({
     async start(controller) {
@@ -19,9 +19,7 @@ export function createProxyStream(
       const emitError = (msg: string, type = "stream_error") => {
         try {
           controller.enqueue(
-            encoder.encode(
-              `data: ${JSON.stringify({ error: { message: msg, type } })}\n\n`,
-            ),
+            encoder.encode(`data: ${JSON.stringify({ error: { message: msg, type } })}\n\n`),
           );
           controller.enqueue(encoder.encode("data: [DONE]\n\n"));
           controller.close();
@@ -35,11 +33,9 @@ export function createProxyStream(
 
         if (!res.ok) {
           const text = await res.text();
-          logger.error(
-            "stream-utils",
-            `upstream error ${res.status}: ${text.slice(0, 300)}`,
-            { meta: { status: res.status } },
-          );
+          logger.error("stream-utils", `upstream error ${res.status}: ${text.slice(0, 300)}`, {
+            meta: { status: res.status },
+          });
           emitError(text, "upstream_error");
           return;
         }

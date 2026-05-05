@@ -8,7 +8,7 @@
  * by the registry tests.
  */
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { existsSync, unlinkSync } from "fs";
+import { existsSync, unlinkSync } from "node:fs";
 import { MemoryDB } from "../src/db";
 import { RAGPipeline } from "../src/rag";
 
@@ -70,15 +70,11 @@ describe("M-04 — fts_log virtual table + searchLog + RAG layer log", () => {
   });
 
   test("Migration 11 applied: user_version >= 11, fts_log exists, 3 triggers", () => {
-    const v = memory.db
-      .query<{ user_version: number }, []>("PRAGMA user_version")
-      .get()!;
+    const v = memory.db.query<{ user_version: number }, []>("PRAGMA user_version").get()!;
     expect(v.user_version).toBeGreaterThanOrEqual(11);
 
     const ftsRow = memory.db
-      .query<{ name: string }, []>(
-        "SELECT name FROM sqlite_master WHERE name = 'fts_log'",
-      )
+      .query<{ name: string }, []>("SELECT name FROM sqlite_master WHERE name = 'fts_log'")
       .all();
     expect(ftsRow.length).toBe(1);
 
@@ -96,19 +92,13 @@ describe("M-04 — fts_log virtual table + searchLog + RAG layer log", () => {
   test("re-running migrate() is idempotent (no double-backfill, no throw)", () => {
     // Insert one row through the open handle so triggers run once.
     appendLog(memory, { content: "idempotent canary kiwifruit" });
-    const before = memory.db
-      .query<{ c: number }, []>("SELECT count(*) AS c FROM fts_log")
-      .get()!.c;
+    const before = memory.db.query<{ c: number }, []>("SELECT count(*) AS c FROM fts_log").get()?.c;
 
     // Re-open against same path — constructor calls migrate() again.
     const m2 = new MemoryDB(TEST_DB);
-    const v = m2.db
-      .query<{ user_version: number }, []>("PRAGMA user_version")
-      .get()!;
+    const v = m2.db.query<{ user_version: number }, []>("PRAGMA user_version").get()!;
     expect(v.user_version).toBeGreaterThanOrEqual(11);
-    const after = m2.db
-      .query<{ c: number }, []>("SELECT count(*) AS c FROM fts_log")
-      .get()!.c;
+    const after = m2.db.query<{ c: number }, []>("SELECT count(*) AS c FROM fts_log").get()?.c;
     // Backfill must NOT re-run when fts_log is already populated.
     expect(after).toBe(before);
     m2.close();
@@ -121,9 +111,7 @@ describe("M-04 — fts_log virtual table + searchLog + RAG layer log", () => {
     });
 
     const hits1 = memory.db
-      .query<{ rowid: number }, [string]>(
-        "SELECT rowid FROM fts_log WHERE fts_log MATCH ?",
-      )
+      .query<{ rowid: number }, [string]>("SELECT rowid FROM fts_log WHERE fts_log MATCH ?")
       .all('"velociraptor"');
     expect(hits1.some((h) => h.rowid === id)).toBe(true);
 
@@ -132,24 +120,18 @@ describe("M-04 — fts_log virtual table + searchLog + RAG layer log", () => {
       .query("UPDATE layer4_log SET content = ? WHERE id = ?")
       .run("repainted purple yacht hopscotch", id);
     const hitsOld = memory.db
-      .query<{ rowid: number }, [string]>(
-        "SELECT rowid FROM fts_log WHERE fts_log MATCH ?",
-      )
+      .query<{ rowid: number }, [string]>("SELECT rowid FROM fts_log WHERE fts_log MATCH ?")
       .all('"velociraptor"');
     expect(hitsOld.some((h) => h.rowid === id)).toBe(false);
     const hitsNew = memory.db
-      .query<{ rowid: number }, [string]>(
-        "SELECT rowid FROM fts_log WHERE fts_log MATCH ?",
-      )
+      .query<{ rowid: number }, [string]>("SELECT rowid FROM fts_log WHERE fts_log MATCH ?")
       .all('"yacht"');
     expect(hitsNew.some((h) => h.rowid === id)).toBe(true);
 
     // DELETE — gone from fts_log.
     memory.db.query("DELETE FROM layer4_log WHERE id = ?").run(id);
     const hitsDel = memory.db
-      .query<{ rowid: number }, [string]>(
-        "SELECT rowid FROM fts_log WHERE fts_log MATCH ?",
-      )
+      .query<{ rowid: number }, [string]>("SELECT rowid FROM fts_log WHERE fts_log MATCH ?")
       .all('"yacht"');
     expect(hitsDel.some((h) => h.rowid === id)).toBe(false);
   });
@@ -197,14 +179,12 @@ describe("M-04 — fts_log virtual table + searchLog + RAG layer log", () => {
     expect(justSessY[0].snippet).toContain("unique-Y");
   });
 
-  test("searchLog applies sanitizeFtsQuery — raw : * \" do not throw", () => {
+  test('searchLog applies sanitizeFtsQuery — raw : * " do not throw', () => {
     appendLog(memory, { content: "rare special-term documented yesterday" });
-    expect(() =>
-      memory.logRepo.searchLog('rare:term*"', { limit: 5 }),
-    ).not.toThrow();
+    expect(() => memory.logRepo.searchLog('rare:term*"', { limit: 5 })).not.toThrow();
     // Empty / fully-stripped query → no MATCH attempted, empty array.
     expect(memory.logRepo.searchLog("", { limit: 5 })).toEqual([]);
-    expect(memory.logRepo.searchLog("   :*\"  ", { limit: 5 })).toEqual([]);
+    expect(memory.logRepo.searchLog('   :*"  ', { limit: 5 })).toEqual([]);
   });
 
   test("RAG pipeline layers:[\"log\"] returns log hits with layer == 'log'", async () => {
@@ -269,10 +249,8 @@ describe("M-04 — fts_log virtual table + searchLog + RAG layer log", () => {
     // check that none of the existing rows accidentally gained access
     // counters either (sanity guard).
     const sharedRows = memory.db
-      .query<{ c: number }, []>(
-        "SELECT count(*) AS c FROM shared_memory WHERE access_count > 0",
-      )
-      .get()!.c;
+      .query<{ c: number }, []>("SELECT count(*) AS c FROM shared_memory WHERE access_count > 0")
+      .get()?.c;
     expect(sharedRows).toBe(0);
   });
 });
@@ -302,12 +280,10 @@ describe("M-04 — backfill from existing layer4_log on first migrate", () => {
           sessionId: "seed",
         });
       }
-      const ftsCount = m.db
-        .query<{ c: number }, []>("SELECT count(*) AS c FROM fts_log")
-        .get()!.c;
+      const ftsCount = m.db.query<{ c: number }, []>("SELECT count(*) AS c FROM fts_log").get()?.c;
       const logCount = m.db
         .query<{ c: number }, []>("SELECT count(*) AS c FROM layer4_log")
-        .get()!.c;
+        .get()?.c;
       expect(ftsCount).toBe(logCount);
       expect(ftsCount).toBe(5);
 
@@ -315,7 +291,7 @@ describe("M-04 — backfill from existing layer4_log on first migrate", () => {
       const m2 = new MemoryDB(SEED_DB);
       const ftsCount2 = m2.db
         .query<{ c: number }, []>("SELECT count(*) AS c FROM fts_log")
-        .get()!.c;
+        .get()?.c;
       expect(ftsCount2).toBe(5);
       m2.close();
     } finally {

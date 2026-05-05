@@ -1,5 +1,5 @@
-import type { ChatRepository } from "../../repositories";
 import { parseSSEChunk } from "../../providers/sse-parser";
+import type { ChatRepository } from "../../repositories";
 
 /**
  * Wraps an upstream SSE stream so the assembled assistant message + reasoning

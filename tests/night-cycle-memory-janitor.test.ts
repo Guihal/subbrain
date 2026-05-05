@@ -2,14 +2,14 @@
  * PR-B: Night-cycle memory janitor tests.
  * Each phase isolated + verifiable without network/embedding deps.
  */
-import { describe, test, expect, beforeEach, afterEach } from "bun:test";
-import { unlinkSync, existsSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { existsSync, unlinkSync } from "node:fs";
 import { MemoryDB } from "../src/db";
 import { runPhaseA } from "../src/pipeline/night-cycle/janitor/phase-a";
 import { runPhaseB, runPhaseC } from "../src/pipeline/night-cycle/janitor/phase-bc";
 import { runPhaseD } from "../src/pipeline/night-cycle/janitor/phase-d";
-import { restoreFromArchive } from "../src/services/memory/archive-restore";
 import type { RAGPipeline } from "../src/rag";
+import { restoreFromArchive } from "../src/services/memory/archive-restore";
 
 const DB_PATH = "data/test-janitor.db";
 
@@ -37,9 +37,11 @@ afterEach(() => {
 describe("Phase A — expired rows", () => {
   test("deletes shared_memory rows with expires_at < now()", () => {
     const past = Math.floor(Date.now() / 1000) - 100;
-    memory.db.query(
-      "INSERT INTO shared_memory (id, category, content, tags, expires_at) VALUES (?, ?, ?, ?, ?)",
-    ).run("s1", "preference", "old pref", "", past);
+    memory.db
+      .query(
+        "INSERT INTO shared_memory (id, category, content, tags, expires_at) VALUES (?, ?, ?, ?, ?)",
+      )
+      .run("s1", "preference", "old pref", "", past);
 
     const result = runPhaseA(memory);
     expect(result.sharedDeleted).toBe(1);
@@ -48,9 +50,11 @@ describe("Phase A — expired rows", () => {
 
   test("keeps shared_memory rows with expires_at in future", () => {
     const future = Math.floor(Date.now() / 1000) + 86400;
-    memory.db.query(
-      "INSERT INTO shared_memory (id, category, content, tags, expires_at) VALUES (?, ?, ?, ?, ?)",
-    ).run("s2", "preference", "fresh pref", "", future);
+    memory.db
+      .query(
+        "INSERT INTO shared_memory (id, category, content, tags, expires_at) VALUES (?, ?, ?, ?, ?)",
+      )
+      .run("s2", "preference", "fresh pref", "", future);
 
     const result = runPhaseA(memory);
     expect(result.sharedDeleted).toBe(0);
@@ -66,9 +70,11 @@ describe("Phase A — expired rows", () => {
 
   test("deletes expired context rows", () => {
     const past = Math.floor(Date.now() / 1000) - 100;
-    memory.db.query(
-      "INSERT INTO layer2_context (id, title, content, tags, derived_from, expires_at) VALUES (?, ?, ?, ?, '[]', ?)",
-    ).run("c1", "old ctx", "content", "", past);
+    memory.db
+      .query(
+        "INSERT INTO layer2_context (id, title, content, tags, derived_from, expires_at) VALUES (?, ?, ?, ?, '[]', ?)",
+      )
+      .run("c1", "old ctx", "content", "", past);
 
     const result = runPhaseA(memory);
     expect(result.contextDeleted).toBe(1);
@@ -77,12 +83,16 @@ describe("Phase A — expired rows", () => {
 
   test("counts both layers", () => {
     const past = Math.floor(Date.now() / 1000) - 10;
-    memory.db.query(
-      "INSERT INTO shared_memory (id, category, content, tags, expires_at) VALUES (?, ?, ?, ?, ?)",
-    ).run("sa", "preference", "x", "", past);
-    memory.db.query(
-      "INSERT INTO layer2_context (id, title, content, tags, derived_from, expires_at) VALUES (?, ?, ?, ?, '[]', ?)",
-    ).run("ca", "title", "x", "", past);
+    memory.db
+      .query(
+        "INSERT INTO shared_memory (id, category, content, tags, expires_at) VALUES (?, ?, ?, ?, ?)",
+      )
+      .run("sa", "preference", "x", "", past);
+    memory.db
+      .query(
+        "INSERT INTO layer2_context (id, title, content, tags, derived_from, expires_at) VALUES (?, ?, ?, ?, '[]', ?)",
+      )
+      .run("ca", "title", "x", "", past);
 
     const result = runPhaseA(memory);
     expect(result.sharedDeleted).toBe(1);
@@ -127,9 +137,9 @@ describe("Phase B — cosine dedup", () => {
     expect(memory.getContext("ctx-old")).toBeNull();
     expect(memory.getContext("ctx-new")).not.toBeNull();
 
-    const archived = memory.listArchive().find((a) =>
-      a.tags.includes("dedup-") && a.tags.includes("original_layer:context"),
-    );
+    const archived = memory
+      .listArchive()
+      .find((a) => a.tags.includes("dedup-") && a.tags.includes("original_layer:context"));
     expect(archived).toBeDefined();
   });
 
@@ -169,7 +179,7 @@ describe("Phase C — legacy purge (JANITOR_LEGACY_SWEEP=true)", () => {
 
   test("keeps whitelist-compliant shared rows", () => {
     memory.insertShared("wl1", "preference", "valid pref", "");
-    const result = runPhaseC(memory);
+    const _result = runPhaseC(memory);
     expect(memory.getShared("wl1")).not.toBeNull();
   });
 
@@ -203,9 +213,11 @@ describe("Phase C — legacy purge (JANITOR_LEGACY_SWEEP=true)", () => {
 describe("Phase D — done tasks (30d retention)", () => {
   test("deletes done tasks older than 30d", () => {
     const old = Math.floor(Date.now() / 1000) - 31 * 86400;
-    memory.db.query(
-      "INSERT INTO tasks (id, title, description, scope, status, completed_at) VALUES (?, ?, ?, ?, 'done', ?)",
-    ).run("t1", "old done task", "", "autonomous", old);
+    memory.db
+      .query(
+        "INSERT INTO tasks (id, title, description, scope, status, completed_at) VALUES (?, ?, ?, ?, 'done', ?)",
+      )
+      .run("t1", "old done task", "", "autonomous", old);
 
     const result = runPhaseD(memory);
     expect(result.doneTasksDeleted).toBe(1);
@@ -213,9 +225,11 @@ describe("Phase D — done tasks (30d retention)", () => {
 
   test("keeps done tasks within 30d", () => {
     const recent = Math.floor(Date.now() / 1000) - 5 * 86400;
-    memory.db.query(
-      "INSERT INTO tasks (id, title, description, scope, status, completed_at) VALUES (?, ?, ?, ?, 'done', ?)",
-    ).run("t2", "recent task", "", "autonomous", recent);
+    memory.db
+      .query(
+        "INSERT INTO tasks (id, title, description, scope, status, completed_at) VALUES (?, ?, ?, ?, 'done', ?)",
+      )
+      .run("t2", "recent task", "", "autonomous", recent);
 
     const result = runPhaseD(memory);
     expect(result.doneTasksDeleted).toBe(0);
@@ -223,9 +237,11 @@ describe("Phase D — done tasks (30d retention)", () => {
 
   test("does not touch open or in_progress tasks", () => {
     const old = Math.floor(Date.now() / 1000) - 60 * 86400;
-    memory.db.query(
-      "INSERT INTO tasks (id, title, description, scope, status, updated_at) VALUES (?, ?, ?, ?, 'open', ?)",
-    ).run("t3", "open task", "", "autonomous", old);
+    memory.db
+      .query(
+        "INSERT INTO tasks (id, title, description, scope, status, updated_at) VALUES (?, ?, ?, ?, 'open', ?)",
+      )
+      .run("t3", "open task", "", "autonomous", old);
 
     const result = runPhaseD(memory);
     expect(result.doneTasksDeleted).toBe(0);
@@ -245,9 +261,9 @@ describe("restoreFromArchive", () => {
     const arcEntry = archives.find((a) => a.tags.includes("original_layer:shared"));
     expect(arcEntry).toBeDefined();
 
-    const result = restoreFromArchive(memory, arcEntry!.id, arcEntry!);
+    const result = restoreFromArchive(memory, arcEntry?.id, arcEntry!);
     expect(result.restoredLayer).toBe("shared");
-    expect(memory.getArchive(arcEntry!.id)).toBeNull();
+    expect(memory.getArchive(arcEntry?.id)).toBeNull();
 
     delete process.env.JANITOR_LEGACY_SWEEP;
   });
@@ -268,9 +284,9 @@ describe("restoreFromArchive", () => {
     const arcEntry = archives.find((a) => a.tags.includes("original_layer:context"));
     expect(arcEntry).toBeDefined();
 
-    const result = restoreFromArchive(memory, arcEntry!.id, arcEntry!);
+    const result = restoreFromArchive(memory, arcEntry?.id, arcEntry!);
     expect(result.restoredLayer).toBe("context");
-    expect(memory.getArchive(arcEntry!.id)).toBeNull();
+    expect(memory.getArchive(arcEntry?.id)).toBeNull();
 
     delete process.env.JANITOR_LEGACY_SWEEP;
   });

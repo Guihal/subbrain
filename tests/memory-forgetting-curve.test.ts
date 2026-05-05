@@ -1,20 +1,10 @@
 // M-08: MemoryBank-style forgetting curve. Pure-fn cases + RAG end-to-end
 // with identity reranker so reordering observed = forgetting curve only.
-import {
-  describe,
-  test,
-  expect,
-  beforeAll,
-  afterAll,
-  beforeEach,
-} from "bun:test";
-import { existsSync, unlinkSync } from "fs";
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
+import { existsSync, unlinkSync } from "node:fs";
 import { MemoryDB } from "../src/db";
+import { applyForgettingCurve, computeRecallScore } from "../src/lib/memory-decay";
 import { RAGPipeline } from "../src/rag";
-import {
-  computeRecallScore,
-  applyForgettingCurve,
-} from "../src/lib/memory-decay";
 import type { RAGResult } from "../src/rag/types";
 
 const TEST_DB = "data/test-mem8-forget.db";
@@ -231,15 +221,22 @@ describe("M-08 — forgetting curve (RAG end-to-end)", () => {
 
   test("end-to-end: fresh + persona-old rank above semantic-old", async () => {
     const now = Math.floor(Date.now() / 1000);
-    memory.insertShared("fresh-sem", "fact", "starfruit fresh", "", undefined, { kind: "semantic" });
+    memory.insertShared("fresh-sem", "fact", "starfruit fresh", "", undefined, {
+      kind: "semantic",
+    });
     memory.insertShared("old-sem", "fact", "starfruit aged", "", undefined, { kind: "semantic" });
-    memory.insertShared("old-pers", "profile", "starfruit identity", "", undefined, { kind: "persona" });
+    memory.insertShared("old-pers", "profile", "starfruit identity", "", undefined, {
+      kind: "persona",
+    });
 
-    memory.db.query("UPDATE shared_memory SET last_accessed_at = ?, access_count = 1 WHERE id = ?")
+    memory.db
+      .query("UPDATE shared_memory SET last_accessed_at = ?, access_count = 1 WHERE id = ?")
       .run(now - 60, "fresh-sem");
-    memory.db.query("UPDATE shared_memory SET last_accessed_at = ?, access_count = 1 WHERE id = ?")
+    memory.db
+      .query("UPDATE shared_memory SET last_accessed_at = ?, access_count = 1 WHERE id = ?")
       .run(now - 30 * DAY, "old-sem");
-    memory.db.query("UPDATE shared_memory SET last_accessed_at = ?, access_count = 1 WHERE id = ?")
+    memory.db
+      .query("UPDATE shared_memory SET last_accessed_at = ?, access_count = 1 WHERE id = ?")
       .run(now - 30 * DAY, "old-pers");
 
     const rag = new RAGPipeline(memory, mkRouter());
@@ -265,9 +262,15 @@ describe("M-08 — forgetting curve (RAG end-to-end)", () => {
       memory.db.query("DELETE FROM shared_memory").run();
       memory.insertShared("zw-fresh", "fact", "papaya fresh", "", undefined, { kind: "semantic" });
       memory.insertShared("zw-stale", "fact", "papaya stale", "", undefined, { kind: "semantic" });
-      memory.db.query("UPDATE shared_memory SET updated_at = ?, last_accessed_at = ?, access_count = 1, salience = 0.5 WHERE id = ?")
+      memory.db
+        .query(
+          "UPDATE shared_memory SET updated_at = ?, last_accessed_at = ?, access_count = 1, salience = 0.5 WHERE id = ?",
+        )
         .run(now, now - 60, "zw-fresh");
-      memory.db.query("UPDATE shared_memory SET updated_at = ?, last_accessed_at = ?, access_count = 1, salience = 0.5 WHERE id = ?")
+      memory.db
+        .query(
+          "UPDATE shared_memory SET updated_at = ?, last_accessed_at = ?, access_count = 1, salience = 0.5 WHERE id = ?",
+        )
         .run(now, now - 30 * DAY, "zw-stale");
     };
 
@@ -277,8 +280,8 @@ describe("M-08 — forgetting curve (RAG end-to-end)", () => {
     const ragOn = new RAGPipeline(memory, mkRouter());
     const outOn = await ragOn.search({ query: "papaya", layers: ["shared"], rerankTopN: 5 });
     await flush();
-    const gapOn = (outOn.find((r) => r.id === "zw-fresh")!.score) -
-                  (outOn.find((r) => r.id === "zw-stale")!.score);
+    const gapOn =
+      outOn.find((r) => r.id === "zw-fresh")?.score - outOn.find((r) => r.id === "zw-stale")?.score;
 
     // 2. Weight=0 (curve off).
     setup();
@@ -286,8 +289,9 @@ describe("M-08 — forgetting curve (RAG end-to-end)", () => {
     const ragOff = new RAGPipeline(memory, mkRouter());
     const outOff = await ragOff.search({ query: "papaya", layers: ["shared"], rerankTopN: 5 });
     await flush();
-    const gapOff = (outOff.find((r) => r.id === "zw-fresh")!.score) -
-                   (outOff.find((r) => r.id === "zw-stale")!.score);
+    const gapOff =
+      outOff.find((r) => r.id === "zw-fresh")?.score -
+      outOff.find((r) => r.id === "zw-stale")?.score;
 
     // Curve-on gap must be larger (R=1 for fresh vs R≈0 for stale →
     // fresh gets +15% bump, stale gets ~+0%).

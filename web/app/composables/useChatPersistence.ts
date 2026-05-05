@@ -1,5 +1,5 @@
-import type { Chat, ChatMessage } from "./useChatState";
 import type { ModelId } from "./useChatMode";
+import type { Chat, ChatMessage } from "./useChatState";
 
 export function useChatPersistence() {
   const { api } = useApi();
@@ -14,9 +14,7 @@ export function useChatPersistence() {
     if (streaming.value) return;
     currentChatId.value = chatId;
     const msgs = await api<ChatMessage[]>(`/v1/chats/${chatId}/messages`);
-    messages.value = msgs.filter(
-      (m) => m.role === "user" || m.role === "assistant",
-    );
+    messages.value = msgs.filter((m) => m.role === "user" || m.role === "assistant");
 
     const chat = chats.value.find((c) => c.id === chatId);
     if (chat?.model) {

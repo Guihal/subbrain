@@ -1,4 +1,4 @@
-import { Database } from "bun:sqlite";
+import type { Database } from "bun:sqlite";
 import { sanitizeFtsQuery } from "../../../lib/fts-utils";
 import type { FtsResult } from "../../types";
 import { buildActiveFilter } from "./helpers";
@@ -23,9 +23,7 @@ export function searchContext(
   const ftsQuery = sanitizeFtsQuery(query);
   if (!ftsQuery) return [];
   const filter = buildActiveFilter("c", opts);
-  const agentFilter = opts?.agentId
-    ? " AND (c.agent_id = ? OR c.agent_id IS NULL)"
-    : "";
+  const agentFilter = opts?.agentId ? " AND (c.agent_id = ? OR c.agent_id IS NULL)" : "";
   const params: (string | number)[] = [ftsQuery];
   if (opts?.agentId) params.push(opts.agentId);
   params.push(limit);
@@ -38,11 +36,7 @@ export function searchContext(
 
 // M-03 (mig 13): SELECT `a.salience` for RAG salience-boost.
 // M-08: SELECT `a.last_accessed_at, a.access_count` for forgetting curve.
-export function searchArchive(
-  db: Database,
-  query: string,
-  limit = 10,
-): FtsResult[] {
+export function searchArchive(db: Database, query: string, limit = 10): FtsResult[] {
   const ftsQuery = sanitizeFtsQuery(query);
   if (!ftsQuery) return [];
   return db

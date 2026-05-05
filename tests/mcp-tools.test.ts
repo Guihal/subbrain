@@ -2,12 +2,12 @@
  * Tests for MCP domain tool modules (src/mcp/tools/).
  * Tests MemoryTools, LogTools, WebTools with mocked dependencies.
  */
-import { describe, test, expect, beforeAll, afterAll } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { existsSync, unlinkSync } from "node:fs";
 import { MemoryDB } from "../src/db";
-import { MemoryTools } from "../src/mcp/tools/memory";
 import { LogTools } from "../src/mcp/tools/log-tools";
+import { MemoryTools } from "../src/mcp/tools/memory";
 import { WebTools } from "../src/mcp/tools/web-tools";
-import { existsSync, unlinkSync } from "fs";
 
 const DB_PATH = "data/test-tools.db";
 let db: MemoryDB;
@@ -57,9 +57,7 @@ describe("MemoryTools", () => {
 
     const r = tools.read("ctx-test-001", "context");
     expect(r.success).toBe(true);
-    expect((r.data as { content: string }).content).toBe(
-      "Context content here",
-    );
+    expect((r.data as { content: string }).content).toBe("Context content here");
   });
 
   test("write — context upsert updates existing", () => {
@@ -223,14 +221,7 @@ describe("LogTools", () => {
 
   test("append + read by request", () => {
     logTools.append("req-001", "sess-001", "coder", "user", "Hello", 5);
-    logTools.append(
-      "req-001",
-      "sess-001",
-      "coder",
-      "assistant",
-      "Hi there!",
-      10,
-    );
+    logTools.append("req-001", "sess-001", "coder", "assistant", "Hi there!", 10);
 
     const r = logTools.read(undefined, "req-001");
     expect(r.success).toBe(true);

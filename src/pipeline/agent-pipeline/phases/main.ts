@@ -1,12 +1,13 @@
 /**
  * Main phase: non-streaming model call with metrics + post-processing fire-and-forget.
  */
-import type { ModelRouter } from "../../../lib/model-router";
-import type { Metrics } from "../../../lib/metrics";
-import type { ChatResponse } from "../../../providers/types";
+
 import type { RequestLogger } from "../../../lib/logger";
-import type { PipelineRequest } from "../types";
+import type { Metrics } from "../../../lib/metrics";
+import type { ModelRouter } from "../../../lib/model-router";
+import type { ChatResponse } from "../../../providers/types";
 import { injectSystemPrompt } from "../helpers";
+import type { PipelineRequest } from "../types";
 
 export interface MainResult {
   response: ChatResponse;
@@ -38,8 +39,7 @@ export async function runMain(args: {
   const durationMs = Date.now() - start;
 
   const assistantMessage = response.choices[0]?.message?.content || "";
-  const reasoningContent =
-    response.choices[0]?.message?.reasoning_content || "";
+  const reasoningContent = response.choices[0]?.message?.reasoning_content || "";
 
   log.info(
     "main",

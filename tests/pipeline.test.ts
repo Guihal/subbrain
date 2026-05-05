@@ -11,11 +11,11 @@
  * Uses mock router (no live API calls).
  */
 
-import { AgentPipeline } from "../src/pipeline";
-import { RAGPipeline } from "../src/rag";
+import { unlinkSync } from "node:fs";
 import { MemoryDB } from "../src/db";
-import { unlinkSync } from "fs";
+import { AgentPipeline } from "../src/pipeline";
 import type { ChatResponse, Message } from "../src/providers/types";
+import { RAGPipeline } from "../src/rag";
 
 const TEST_DB = "data/test-pipeline.db";
 try {
@@ -74,7 +74,7 @@ const flashDeltaResponse: ChatResponse = {
 };
 
 const mockRouter = {
-  chat: async (model: string, params: any, priority?: string) => {
+  chat: async (model: string, params: any, _priority?: string) => {
     chatCalls.push({ model, messages: params.messages });
     // Return different responses based on the calling pattern
     if (model === "flash") {
@@ -90,9 +90,7 @@ const mockRouter = {
     return new ReadableStream({
       start(controller) {
         controller.enqueue(
-          new TextEncoder().encode(
-            'data: {"choices":[{"delta":{"content":"streamed"}}]}\n\n',
-          ),
+          new TextEncoder().encode('data: {"choices":[{"delta":{"content":"streamed"}}]}\n\n'),
         );
         controller.enqueue(new TextEncoder().encode("data: [DONE]\n\n"));
         controller.close();
@@ -133,8 +131,7 @@ const result1 = await pipeline.execute({
   messages: [
     {
       role: "user",
-      content:
-        "Why did we choose Bun and Elysia for the server runtime architecture?",
+      content: "Why did we choose Bun and Elysia for the server runtime architecture?",
     },
   ],
 });
@@ -145,10 +142,7 @@ console.assert(result1.response !== undefined, "Should have response");
 console.assert(result1.stream === undefined, "Should NOT have stream");
 
 // Should have called flash for pre-processing + main model for response
-console.assert(
-  chatCalls.length >= 2,
-  `Expected ≥2 chat calls, got ${chatCalls.length}`,
-);
+console.assert(chatCalls.length >= 2, `Expected ≥2 chat calls, got ${chatCalls.length}`);
 console.assert(
   chatCalls[0].model === "flash",
   `First call should be flash (pre-processing), got ${chatCalls[0].model}`,
@@ -161,10 +155,7 @@ console.assert(
 // System prompt should contain focus entries
 const mainMessages = chatCalls[1].messages;
 const systemMsg = mainMessages.find((m) => m.role === "system")?.content || "";
-console.assert(
-  systemMsg.includes("TeamLead"),
-  "System prompt should include identity focus",
-);
+console.assert(systemMsg.includes("TeamLead"), "System prompt should include identity focus");
 console.assert(
   systemMsg.includes("Executive summary") || systemMsg.includes("Context"),
   "System prompt should include executive summary",
@@ -189,10 +180,7 @@ console.assert(
   chatCalls.length === 1,
   `Continuation should skip pre-processing, got ${chatCalls.length} calls`,
 );
-console.assert(
-  chatCalls[0].model === "coder",
-  "Should go directly to main model",
-);
+console.assert(chatCalls[0].model === "coder", "Should go directly to main model");
 console.log("✅ Test 2: Continuation → skip pre-processing");
 
 // ─── Test 3: Short first message → focus only, no RAG
@@ -205,17 +193,10 @@ const result3 = await pipeline.execute({
 
 console.assert(result3.response !== undefined, "Should have response");
 // Short query: inject focus but skip RAG (no flash call for summary)
-console.assert(
-  chatCalls.length === 1,
-  `Short query: expected 1 call, got ${chatCalls.length}`,
-);
+console.assert(chatCalls.length === 1, `Short query: expected 1 call, got ${chatCalls.length}`);
 // But system prompt should still have focus entries
-const shortSysMsg =
-  chatCalls[0].messages.find((m) => m.role === "system")?.content || "";
-console.assert(
-  shortSysMsg.includes("TeamLead"),
-  "Short query should still get focus injection",
-);
+const shortSysMsg = chatCalls[0].messages.find((m) => m.role === "system")?.content || "";
+console.assert(shortSysMsg.includes("TeamLead"), "Short query should still get focus injection");
 console.log("✅ Test 3: Short first message → focus only, no RAG");
 
 // ─── Test 4: Streaming response
@@ -226,8 +207,7 @@ const result4 = await pipeline.execute({
   messages: [
     {
       role: "user",
-      content:
-        "Why did we choose Bun and Elysia for the performance of the server runtime?",
+      content: "Why did we choose Bun and Elysia for the performance of the server runtime?",
     },
   ],
   stream: true,
@@ -238,7 +218,7 @@ console.assert(result4.response === undefined, "Should NOT have response");
 console.assert(result4.requestId.length > 0, "Should have requestId");
 
 // Consume the stream
-const reader = result4.stream!.getReader();
+const reader = result4.stream?.getReader();
 const chunks: string[] = [];
 while (true) {
   const { done, value } = await reader.read();
@@ -276,10 +256,7 @@ const result6 = await pipeline.execute({
   ],
   sessionId: "my-session-123",
 });
-console.assert(
-  result6.sessionId === "my-session-123",
-  "Should preserve explicit sessionId",
-);
+console.assert(result6.sessionId === "my-session-123", "Should preserve explicit sessionId");
 console.log("✅ Test 6: Explicit sessionId");
 
 // ─── Cleanup ─────────────────────────────────────────────

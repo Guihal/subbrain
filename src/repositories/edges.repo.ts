@@ -8,7 +8,7 @@
  * future call sites stay grep-friendly. `getRelated` powers downstream
  * tickets (M-06 reflect promotion, M-09 cross-layer dedup).
  */
-import { Database } from "bun:sqlite";
+import type { Database } from "bun:sqlite";
 import { EdgesTable } from "../db/tables/edges";
 import type { EdgeKind, EdgeRow } from "../db/types";
 

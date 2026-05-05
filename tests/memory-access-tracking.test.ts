@@ -6,14 +6,8 @@
  * recency decay). The fields themselves are signals, not ranking inputs —
  * tests assert plumbing only, not retrieval semantics.
  */
-import {
-  describe,
-  test,
-  expect,
-  beforeAll,
-  afterAll,
-} from "bun:test";
-import { existsSync, unlinkSync } from "fs";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { existsSync, unlinkSync } from "node:fs";
 import { MemoryDB } from "../src/db";
 import { RAGPipeline } from "../src/rag";
 
@@ -43,10 +37,7 @@ function mkRouter() {
       }),
       // Identity rerank — preserve input order so test 4 can assert which
       // ids end up in the final top-K deterministically.
-      rerank: async (req: {
-        passages: { text: string }[];
-        top_n: number;
-      }) => ({
+      rerank: async (req: { passages: { text: string }[]; top_n: number }) => ({
         results: req.passages.slice(0, req.top_n).map((_, i) => ({
           index: i,
           relevance_score: 1 - i * 0.01,
@@ -76,9 +67,7 @@ describe("M-02 — access tracking columns + bumpAccess + RAG hook", () => {
   });
 
   test("Migration 10 applies and bumps user_version >= 10", () => {
-    const row = memory.db
-      .query<{ user_version: number }, []>("PRAGMA user_version")
-      .get()!;
+    const row = memory.db.query<{ user_version: number }, []>("PRAGMA user_version").get()!;
     expect(row.user_version).toBeGreaterThanOrEqual(10);
   });
 
@@ -86,53 +75,43 @@ describe("M-02 — access tracking columns + bumpAccess + RAG hook", () => {
     // Re-open a fresh handle to the same path — constructor calls migrate()
     // again. Must not throw "duplicate column name" or similar.
     const m2 = new MemoryDB(TEST_DB);
-    const row = m2.db
-      .query<{ user_version: number }, []>("PRAGMA user_version")
-      .get()!;
+    const row = m2.db.query<{ user_version: number }, []>("PRAGMA user_version").get()!;
     expect(row.user_version).toBeGreaterThanOrEqual(10);
     m2.close();
   });
 
   test("shared_memory has last_accessed_at + access_count columns", () => {
-    const cols = memory.db
-      .query("PRAGMA table_info(shared_memory)")
-      .all() as { name: string; notnull: number; dflt_value: string | null }[];
+    const cols = memory.db.query("PRAGMA table_info(shared_memory)").all() as {
+      name: string;
+      notnull: number;
+      dflt_value: string | null;
+    }[];
     const lat = cols.find((c) => c.name === "last_accessed_at");
     const ac = cols.find((c) => c.name === "access_count");
     expect(lat).toBeDefined();
     expect(ac).toBeDefined();
-    expect(ac!.notnull).toBe(1);
-    expect(ac!.dflt_value).toBe("0");
+    expect(ac?.notnull).toBe(1);
+    expect(ac?.dflt_value).toBe("0");
   });
 
   test("layer2_context has the same two columns", () => {
-    const cols = memory.db
-      .query("PRAGMA table_info(layer2_context)")
-      .all() as { name: string }[];
+    const cols = memory.db.query("PRAGMA table_info(layer2_context)").all() as { name: string }[];
     expect(cols.some((c) => c.name === "last_accessed_at")).toBe(true);
     expect(cols.some((c) => c.name === "access_count")).toBe(true);
   });
 
   test("layer3_archive has the same two columns", () => {
-    const cols = memory.db
-      .query("PRAGMA table_info(layer3_archive)")
-      .all() as { name: string }[];
+    const cols = memory.db.query("PRAGMA table_info(layer3_archive)").all() as { name: string }[];
     expect(cols.some((c) => c.name === "last_accessed_at")).toBe(true);
     expect(cols.some((c) => c.name === "access_count")).toBe(true);
   });
 
   test("three idx_*_access indexes are present", () => {
     const idx = memory.db
-      .query(
-        "SELECT name FROM sqlite_master WHERE type='index' AND name LIKE 'idx_%_access'",
-      )
+      .query("SELECT name FROM sqlite_master WHERE type='index' AND name LIKE 'idx_%_access'")
       .all() as { name: string }[];
     const names = idx.map((r) => r.name).sort();
-    expect(names).toEqual([
-      "idx_archive_access",
-      "idx_context_access",
-      "idx_shared_access",
-    ]);
+    expect(names).toEqual(["idx_archive_access", "idx_context_access", "idx_shared_access"]);
   });
 
   test("bumpAccess increments access_count for matching rows only", () => {

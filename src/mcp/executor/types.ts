@@ -1,17 +1,11 @@
 import type { MemoryDB } from "../../db";
 import type { ModelRouter } from "../../lib/model-router";
-import type { RAGPipeline } from "../../rag";
-import type { Userbot } from "../../telegram/userbot";
 import type { CodeToolRegistry } from "../../pipeline/agent-loop/code-tools";
 import type { ArbitrationRoom } from "../../pipeline/arbitration";
+import type { RAGPipeline } from "../../rag";
 import type { MemoryService } from "../../services/memory";
-import type {
-  MemoryTools,
-  EmbedTools,
-  LogTools,
-  WebTools,
-  TasksTools,
-} from "../tools/index";
+import type { Userbot } from "../../telegram/userbot";
+import type { EmbedTools, LogTools, MemoryTools, TasksTools, WebTools } from "../tools/index";
 import type { MemoryCurationTools } from "../tools/memory-curation-tools";
 
 export type ExecutorState = {

@@ -4,12 +4,13 @@
  *
  * Run: bun scripts/seed.ts
  */
+
+import { randomUUID } from "node:crypto";
 import { MemoryDB } from "../src/db";
 import { ModelRouter } from "../src/lib/model-router";
 import { createProviders } from "../src/providers";
 import { RAGPipeline } from "../src/rag";
 import { MemoryService } from "../src/services/memory.service";
-import { randomUUID } from "crypto";
 
 const dbPath = process.env.DB_PATH || "data/subbrain.db";
 const isProd = dbPath.endsWith("subbrain.db") && !dbPath.includes("test");
@@ -91,8 +92,7 @@ const sharedFacts: { category: string; content: string; tags: string }[] = [
   },
   {
     category: "work",
-    content:
-      "Hanging project: personal portfolio website. Needs to be completed for job search.",
+    content: "Hanging project: personal portfolio website. Needs to be completed for job search.",
     tags: "work,portfolio,project",
   },
   {
@@ -124,7 +124,7 @@ const sharedFacts: { category: string; content: string; tags: string }[] = [
 if (skipEmbed) {
   console.warn(
     "⚠️  SEED_SKIP_EMBED=1 — inserting shared_memory rows WITHOUT embeddings.\n" +
-    "    Acceptable for offline CI; never use in prod (RAG vec-branch will be empty).",
+      "    Acceptable for offline CI; never use in prod (RAG vec-branch will be empty).",
   );
 }
 for (const fact of sharedFacts) {

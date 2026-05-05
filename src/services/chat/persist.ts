@@ -1,7 +1,7 @@
 import { logger } from "../../lib/logger";
-import type { ChatRepository, MemoryRepository } from "../../repositories";
-import type { Message } from "../../providers/types";
 import type { CompressorMemory } from "../../pipeline/context-compressor";
+import type { Message } from "../../providers/types";
+import type { ChatRepository, MemoryRepository } from "../../repositories";
 import type { MemoryService } from "../memory";
 import type { ChatMeta } from "./meta";
 
@@ -33,7 +33,10 @@ export function maybeHydrate(
   const stored = chatRepo.getChatMessages(meta.chatId);
   if (stored.length <= messages.filter((m) => m.role !== "system").length) return messages;
   const systems = messages.filter((m) => m.role === "system");
-  const history: Message[] = stored.map((r) => ({ role: r.role as Message["role"], content: r.content }));
+  const history: Message[] = stored.map((r) => ({
+    role: r.role as Message["role"],
+    content: r.content,
+  }));
   logger.info("chat-service", `hydrated history from chats: ${history.length} msgs`, {
     meta: { chatId: meta.chatId },
   });
@@ -63,15 +66,16 @@ export function compressorMemory(
           status?: import("../../db").MemoryStatus;
           kind?: import("../../db").MemoryKind;
         },
-      ) => svc.insertShared({
-        category,
-        content,
-        tags: tags ?? "",
-        source,
-        confidence: opts?.confidence,
-        status: opts?.status,
-        kind: opts?.kind,
-      }),
+      ) =>
+        svc.insertShared({
+          category,
+          content,
+          tags: tags ?? "",
+          source,
+          confidence: opts?.confidence,
+          status: opts?.status,
+          kind: opts?.kind,
+        }),
     };
   }
   return memoryRepo ?? null;

@@ -50,9 +50,7 @@ export interface FetchJsonOpts {
 function composeSignal(timeoutMs: number, external?: AbortSignal): AbortSignal {
   const timeout = AbortSignal.timeout(timeoutMs);
   if (!external) return timeout;
-  const anyFn = (
-    AbortSignal as unknown as { any?: (s: AbortSignal[]) => AbortSignal }
-  ).any;
+  const anyFn = (AbortSignal as unknown as { any?: (s: AbortSignal[]) => AbortSignal }).any;
   if (typeof anyFn === "function") return anyFn([timeout, external]);
   // Fallback for runtimes without AbortSignal.any
   const ctrl = new AbortController();
@@ -65,11 +63,7 @@ function composeSignal(timeoutMs: number, external?: AbortSignal): AbortSignal {
   return ctrl.signal;
 }
 
-async function doFetch(
-  url: string,
-  init: RequestInit,
-  opts: FetchJsonOpts,
-): Promise<Response> {
+async function doFetch(url: string, init: RequestInit, opts: FetchJsonOpts): Promise<Response> {
   if (opts.signal?.aborted) throw new HttpAbortError("user", url);
   const timeoutMs = opts.timeoutMs ?? 180_000;
   const reqId = opts.requestId ?? crypto.randomUUID();
@@ -81,9 +75,7 @@ async function doFetch(
   } catch (e) {
     const err = e as { name?: string };
     if (err?.name === "AbortError" || err?.name === "TimeoutError") {
-      const reason: "timeout" | "user" = opts.signal?.aborted
-        ? "user"
-        : "timeout";
+      const reason: "timeout" | "user" = opts.signal?.aborted ? "user" : "timeout";
       throw new HttpAbortError(reason, url);
     }
     throw e;
@@ -105,9 +97,7 @@ export async function fetchStream(
     const res = await doFetch(url, init, opts);
     if (res.ok) return res;
     const shouldRetry =
-      retry &&
-      attempt < retry.attempts &&
-      (retry.on ? retry.on(res.status) : true);
+      retry && attempt < retry.attempts && (retry.on ? retry.on(res.status) : true);
     if (shouldRetry) {
       attempt++;
       // Drain body so the connection can be reused.

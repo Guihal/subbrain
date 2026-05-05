@@ -26,8 +26,9 @@ export function createNotifier(getDeps: () => NotifyDeps): Notifier {
    * where failure should not bubble up to caller.
    */
   const notify = async (text: string): Promise<void> => {
-    try { await send(text); }
-    catch (err) {
+    try {
+      await send(text);
+    } catch (err) {
       log.error(`Notify failed: ${err instanceof Error ? err.message : String(err)}`);
     }
   };
@@ -43,8 +44,10 @@ export function createNotifier(getDeps: () => NotifyDeps): Notifier {
   const notifyVia = async (text: string): Promise<void> => {
     const sender = getDeps().reportSender;
     if (sender) {
-      try { await sender(text); return; }
-      catch (err) {
+      try {
+        await sender(text);
+        return;
+      } catch (err) {
         log.warn(`reportSender failed: ${err instanceof Error ? err.message : String(err)}`);
       }
     }

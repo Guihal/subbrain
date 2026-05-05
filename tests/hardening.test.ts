@@ -2,10 +2,9 @@
  * Hardening tests: embedding cache, timeout, RPM-aware skip, direct mode.
  */
 
-import { RAGPipeline } from "../src/rag";
+import { unlinkSync } from "node:fs";
 import { MemoryDB } from "../src/db";
-import { unlinkSync } from "fs";
-import type { ChatResponse } from "../src/providers/types";
+import { RAGPipeline } from "../src/rag";
 
 const TEST_DB = "data/test-hardening.db";
 try {
@@ -35,11 +34,7 @@ const mockRouter = {
   chatStream: async () =>
     new ReadableStream({
       start(c) {
-        c.enqueue(
-          new TextEncoder().encode(
-            'data: {"choices":[{"delta":{"content":"ok"}}]}\n\n',
-          ),
-        );
+        c.enqueue(new TextEncoder().encode('data: {"choices":[{"delta":{"content":"ok"}}]}\n\n'));
         c.enqueue(new TextEncoder().encode("data: [DONE]\n\n"));
         c.close();
       },
@@ -64,22 +59,14 @@ const mockRouter = {
 const rag = new RAGPipeline(memory, mockRouter);
 
 // Seed some data for FTS to find
-memory.insertContext(
-  "hc-1",
-  "Cache Test",
-  "Embedding cache saves RPM budget",
-  "cache,test",
-);
+memory.insertContext("hc-1", "Cache Test", "Embedding cache saves RPM budget", "cache,test");
 
 embedCallCount = 0;
 
 // First call — should embed
 await rag.search({ query: "embedding cache" });
 const firstCount = embedCallCount;
-console.assert(
-  firstCount >= 1,
-  `First search should call embed at least once, got ${firstCount}`,
-);
+console.assert(firstCount >= 1, `First search should call embed at least once, got ${firstCount}`);
 
 // Second call with same query — should use cache
 await rag.search({ query: "embedding cache" });
@@ -109,24 +96,12 @@ console.log("✅ Test 2: Cache stats exposed correctly");
 // ─── Test 3: Recency boost in RRF merge ──────────────────
 
 // Insert entries with different timestamps
-memory.insertContext(
-  "old-entry",
-  "Old Knowledge",
-  "This is old knowledge from long ago",
-  "old",
-);
-memory.insertContext(
-  "new-entry",
-  "New Knowledge",
-  "This is fresh new knowledge",
-  "new",
-);
+memory.insertContext("old-entry", "Old Knowledge", "This is old knowledge from long ago", "old");
+memory.insertContext("new-entry", "New Knowledge", "This is fresh new knowledge", "new");
 
 // Manually update timestamps via raw SQL for testing
 const oneWeekAgo = Math.floor(Date.now() / 1000) - 7 * 24 * 3600 - 100;
-memory.db
-  .query("UPDATE layer2_context SET updated_at = ? WHERE id = 'old-entry'")
-  .run(oneWeekAgo);
+memory.db.query("UPDATE layer2_context SET updated_at = ? WHERE id = 'old-entry'").run(oneWeekAgo);
 
 // Search — new entry should rank higher due to recency boost
 const results = await rag.search({ query: "knowledge", skipRerank: true });
@@ -145,10 +120,7 @@ console.log("✅ Test 3: Recency boost works in RRF merge");
 // ─── Test 4: isOverloaded on ModelRouter ─────────────────
 
 // Verify mock router exposes isOverloaded
-console.assert(
-  typeof mockRouter.isOverloaded === "boolean",
-  "isOverloaded should be a boolean",
-);
+console.assert(typeof mockRouter.isOverloaded === "boolean", "isOverloaded should be a boolean");
 console.log("✅ Test 4: isOverloaded property available");
 
 // ─── Test 5: withTimeout wraps provider calls ────────────
@@ -157,7 +129,7 @@ console.log("✅ Test 4: isOverloaded property available");
 const { ProviderError } = await import("../src/providers/nvidia");
 
 // Simulate a slow provider
-const slowRouter = {
+const _slowRouter = {
   ...mockRouter,
   raw: {
     ...mockRouter.raw,
@@ -172,10 +144,7 @@ const slowRouter = {
 // here we test that ProviderError(408) exists for timeout scenarios
 const err408 = new ProviderError(408, "Request timeout");
 console.assert(err408.status === 408, "ProviderError should accept 408");
-console.assert(
-  err408.body === "Request timeout",
-  "ProviderError should have body",
-);
+console.assert(err408.body === "Request timeout", "ProviderError should have body");
 console.log("✅ Test 5: Timeout ProviderError(408) works");
 
 // Cleanup

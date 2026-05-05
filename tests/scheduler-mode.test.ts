@@ -3,12 +3,12 @@
  * `agentMode: "scheduled"` through AgentService.run (PR 26b LAYER-4). Verified
  * with a mock AgentService that records the options of every call.
  */
-import { describe, test, expect } from "bun:test";
-import { installAutonomousScheduler } from "../src/app/schedulers";
-import { installFreeAgentScheduler } from "../src/scheduler/free-agent";
+import { describe, expect, test } from "bun:test";
 import type { AppDeps } from "../src/app/deps";
-import type { AgentRunOpts } from "../src/services/agent.service";
+import { installAutonomousScheduler } from "../src/app/schedulers";
 import type { AgentLoopResult } from "../src/pipeline/agent-loop";
+import { installFreeAgentScheduler } from "../src/scheduler/free-agent";
+import type { AgentRunOpts } from "../src/services/agent.service";
 
 function makeMockAgentService() {
   const calls: AgentRunOpts[] = [];

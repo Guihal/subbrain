@@ -1,9 +1,8 @@
 import { randomUUID } from "node:crypto";
-import type { MemoryDB } from "../../db";
-import type { TaskScope, TaskStatus } from "../../db";
+import type { MemoryDB, TaskScope, TaskStatus } from "../../db";
 import { InvalidTransitionError } from "../../db";
-import type { ToolResult } from "../types";
 import { logger } from "../../lib/logger";
+import type { ToolResult } from "../types";
 
 const log = logger.child("tasks.tools");
 
@@ -60,11 +59,7 @@ export class TasksTools {
     }
   }
 
-  list(args: {
-    scope?: TaskScope;
-    status?: TaskStatus | "active";
-    limit?: number;
-  }): ToolResult {
+  list(args: { scope?: TaskScope; status?: TaskStatus | "active"; limit?: number }): ToolResult {
     const limit = Math.min(args.limit ?? 50, 200);
     const { items, total } = this.memory.listTasks({
       scope: args.scope,

@@ -1,14 +1,9 @@
-import { randomUUID } from "crypto";
+import { randomUUID } from "node:crypto";
 import type { ContextRow } from "../../db";
-import type { MemoryRepository } from "../../repositories";
 import type { RAGPipeline } from "../../rag";
+import type { MemoryRepository } from "../../repositories";
 import { embedWithTimeout } from "./embed";
-import type {
-  InsertContextInput,
-  ListOpts,
-  PaginatedResult,
-  UpdateContextPatch,
-} from "./types";
+import type { InsertContextInput, ListOpts, PaginatedResult, UpdateContextPatch } from "./types";
 
 export interface ContextDeps {
   repo: MemoryRepository;
@@ -45,15 +40,28 @@ export async function insertContext(deps: ContextDeps, input: InsertContextInput
   if (!vec || vec.length === 0) throw new Error("embed_empty");
   deps.repo.transaction(() => {
     deps.repo.insertContext(
-      id, input.title, input.content, input.tags ?? "", input.derivedFrom ?? [], input.agentId,
-      { confidence: input.confidence ?? null, status: input.status, expires_at: input.expires_at ?? undefined },
+      id,
+      input.title,
+      input.content,
+      input.tags ?? "",
+      input.derivedFrom ?? [],
+      input.agentId,
+      {
+        confidence: input.confidence ?? null,
+        status: input.status,
+        expires_at: input.expires_at ?? undefined,
+      },
     );
     deps.repo.upsertEmbedding(id, "context", vec);
   });
   return id;
 }
 
-export function patchContext(repo: MemoryRepository, id: string, patch: UpdateContextPatch): ContextRow | null {
+export function patchContext(
+  repo: MemoryRepository,
+  id: string,
+  patch: UpdateContextPatch,
+): ContextRow | null {
   repo.updateContext(id, patch);
   return repo.getContext(id);
 }

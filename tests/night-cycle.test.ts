@@ -12,11 +12,11 @@
  * Uses mock router (no live API calls).
  */
 
-import { NightCycle } from "../src/pipeline/night-cycle";
-import { RAGPipeline } from "../src/rag";
+import { unlinkSync } from "node:fs";
 import { MemoryDB } from "../src/db";
-import { unlinkSync } from "fs";
+import { NightCycle } from "../src/pipeline/night-cycle";
 import type { ChatResponse } from "../src/providers/types";
+import { RAGPipeline } from "../src/rag";
 
 const TEST_DB = "data/test-night-cycle.db";
 try {
@@ -53,9 +53,7 @@ const mockRouter = {
 
     // PII scrubber
     if (sysContent.includes("PII scrubber")) {
-      return makeResponse(
-        params.messages[1].content.replace(/John Doe/g, "[NAME]"),
-      );
+      return makeResponse(params.messages[1].content.replace(/John Doe/g, "[NAME]"));
     }
     // Translator
     if (sysContent.includes("Translate")) {
@@ -78,9 +76,7 @@ const mockRouter = {
     }
     // Dedup
     if (sysContent.includes("compare a new knowledge")) {
-      return makeResponse(
-        JSON.stringify({ isDuplicate: false, action: "append" }),
-      );
+      return makeResponse(JSON.stringify({ isDuplicate: false, action: "append" }));
     }
     // Anti-patterns
     if (sysContent.includes("anti-patterns")) {
@@ -139,13 +135,7 @@ memory.appendLog(
   "assistant",
   "Bun was chosen for its fast startup and native SQLite support. Elysia provides a modern HTTP API with excellent TypeScript integration and WebSocket/SSE support.",
 );
-memory.appendLog(
-  reqId2,
-  sessionId,
-  "teamlead",
-  "user",
-  "What about the database choice?",
-);
+memory.appendLog(reqId2, sessionId, "teamlead", "user", "What about the database choice?");
 memory.appendLog(
   reqId2,
   sessionId,
@@ -160,10 +150,7 @@ callCount = 0;
 chatCalls = [];
 const result2 = await nightCycle.run();
 
-console.assert(
-  result2.processedLogs === 4,
-  `Expected 4 processed, got ${result2.processedLogs}`,
-);
+console.assert(result2.processedLogs === 4, `Expected 4 processed, got ${result2.processedLogs}`);
 console.assert(
   result2.sessionsProcessed === 1,
   `Expected 1 session, got ${result2.sessionsProcessed}`,
@@ -195,27 +182,18 @@ console.assert(stages.includes("compress"), "Should call compressor");
 
 callCount = 0;
 const result3 = await nightCycle.run();
-console.assert(
-  result3.processedLogs === 0,
-  `Re-run → 0 new logs, got ${result3.processedLogs}`,
-);
+console.assert(result3.processedLogs === 0, `Re-run → 0 new logs, got ${result3.processedLogs}`);
 console.assert(callCount === 0, "Re-run → no LLM calls");
 
 // ─── Test 4: Progress saved in focus ─────────────────────
 
 const savedId = memory.getFocus("night_cycle_last_processed_id");
 console.assert(savedId !== null, "Should save last processed ID in focus");
-console.assert(parseInt(savedId!, 10) > 0, "Saved ID should be > 0");
+console.assert(Number.parseInt(savedId!, 10) > 0, "Saved ID should be > 0");
 
 // ─── Test 5: New logs after progress get processed ───────
 
-memory.appendLog(
-  "req-003",
-  "session-002",
-  "coder",
-  "user",
-  "New message after night cycle",
-);
+memory.appendLog("req-003", "session-002", "coder", "user", "New message after night cycle");
 memory.appendLog(
   "req-003",
   "session-002",
@@ -226,10 +204,7 @@ memory.appendLog(
 
 callCount = 0;
 const result4 = await nightCycle.run();
-console.assert(
-  result4.processedLogs === 2,
-  `Expected 2 new logs, got ${result4.processedLogs}`,
-);
+console.assert(result4.processedLogs === 2, `Expected 2 new logs, got ${result4.processedLogs}`);
 console.assert(
   result4.sessionsProcessed === 1,
   `Expected 1 new session, got ${result4.sessionsProcessed}`,
@@ -280,13 +255,7 @@ const failRouter = {
 } as any;
 
 const failMemory = new MemoryDB("data/test-night-fail.db");
-failMemory.appendLog(
-  "r1",
-  "s1",
-  "a1",
-  "user",
-  "Test message from user about project",
-);
+failMemory.appendLog("r1", "s1", "a1", "user", "Test message from user about project");
 failMemory.appendLog(
   "r1",
   "s1",
@@ -299,14 +268,8 @@ const failRag = new RAGPipeline(failMemory, failRouter);
 const failCycle = new NightCycle(failMemory, failRouter, failRag);
 const result5 = await failCycle.run();
 
-console.assert(
-  result5.processedLogs === 2,
-  "Should still count processed logs",
-);
-console.assert(
-  result5.archiveEntriesCreated === 0,
-  "Should create 0 entries on failure",
-);
+console.assert(result5.processedLogs === 2, "Should still count processed logs");
+console.assert(result5.archiveEntriesCreated === 0, "Should create 0 entries on failure");
 // Should have errors but not crash
 console.assert(result5.errors.length >= 0, "Should handle errors gracefully");
 
@@ -319,7 +282,9 @@ try {
 
 {
   const dbPath = "data/test-night-fts.db";
-  try { unlinkSync(dbPath); } catch {}
+  try {
+    unlinkSync(dbPath);
+  } catch {}
   const m = new MemoryDB(dbPath);
   m.appendLog("r1", "s1", "a1", "user", "Tell me about tag sanitization in FTS");
   m.appendLog(
@@ -345,12 +310,17 @@ try {
           }),
         );
       }
-      if (sys.includes("fact verifier")) return makeResponse(JSON.stringify({ accurate: true, issues: [] }));
-      if (sys.includes("compare a new")) return makeResponse(JSON.stringify({ isDuplicate: false, action: "append" }));
+      if (sys.includes("fact verifier"))
+        return makeResponse(JSON.stringify({ accurate: true, issues: [] }));
+      if (sys.includes("compare a new"))
+        return makeResponse(JSON.stringify({ isDuplicate: false, action: "append" }));
       return makeResponse("NONE");
     },
     scheduleRaw: async (_p: string, fn: () => Promise<any>) => fn(),
-    raw: { embed: async () => ({ data: [{ embedding: new Array(2048).fill(0) }] }), rerank: async () => ({ results: [] }) },
+    raw: {
+      embed: async () => ({ data: [{ embedding: new Array(2048).fill(0) }] }),
+      rerank: async () => ({ results: [] }),
+    },
   } as any;
   const r = new RAGPipeline(m, ftsRouter);
   const cyc = new NightCycle(m, ftsRouter, r);
@@ -361,14 +331,18 @@ try {
   );
   console.assert(res.archiveEntriesCreated >= 1, "Archive should be written despite hostile tags");
   m.close();
-  try { unlinkSync(dbPath); } catch {}
+  try {
+    unlinkSync(dbPath);
+  } catch {}
 }
 
 // ─── Test 10: HIGH-6 — embed failure → no archive row ────
 
 {
   const dbPath = "data/test-night-embed-fail.db";
-  try { unlinkSync(dbPath); } catch {}
+  try {
+    unlinkSync(dbPath);
+  } catch {}
   const m = new MemoryDB(dbPath);
   m.appendLog("r1", "s1", "a1", "user", "Explain transactions with RAG indexing");
   m.appendLog(
@@ -394,8 +368,10 @@ try {
           }),
         );
       }
-      if (sys.includes("fact verifier")) return makeResponse(JSON.stringify({ accurate: true, issues: [] }));
-      if (sys.includes("compare a new")) return makeResponse(JSON.stringify({ isDuplicate: false, action: "append" }));
+      if (sys.includes("fact verifier"))
+        return makeResponse(JSON.stringify({ accurate: true, issues: [] }));
+      if (sys.includes("compare a new"))
+        return makeResponse(JSON.stringify({ isDuplicate: false, action: "append" }));
       return makeResponse("NONE");
     },
     scheduleRaw: async (_p: string, fn: () => Promise<any>) => fn(),
@@ -418,7 +394,9 @@ try {
   const rows = m.db.query("SELECT count(*) AS c FROM layer3_archive").get() as { c: number };
   console.assert(rows.c === 0, `No archive row expected, got ${rows.c}`);
   m.close();
-  try { unlinkSync(dbPath); } catch {}
+  try {
+    unlinkSync(dbPath);
+  } catch {}
 }
 
 console.log("✅ All 10 night cycle tests passed");

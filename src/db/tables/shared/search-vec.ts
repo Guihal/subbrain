@@ -1,4 +1,4 @@
-import { Database } from "bun:sqlite";
+import type { Database } from "bun:sqlite";
 import { sanitizeFtsQuery } from "../../../lib/fts-utils";
 import type { FtsResult, VecResult } from "../../types";
 import { buildActiveFilter } from "./helpers";
@@ -44,9 +44,11 @@ export function upsertEmbedding(
   layer: string,
   embedding: Float32Array,
 ): void {
-  db.query(
-    "INSERT OR REPLACE INTO vec_embeddings (id, layer, embedding) VALUES (?, ?, ?)",
-  ).run(id, layer, new Uint8Array(embedding.buffer));
+  db.query("INSERT OR REPLACE INTO vec_embeddings (id, layer, embedding) VALUES (?, ?, ?)").run(
+    id,
+    layer,
+    new Uint8Array(embedding.buffer),
+  );
 }
 
 export function searchEmbeddings(
@@ -106,17 +108,12 @@ export function getEmbeddingsByIds(
   if (ids.length === 0) return out;
   const placeholders = ids.map(() => "?").join(",");
   const rows = db
-    .query(
-      `SELECT id, embedding FROM vec_embeddings WHERE layer = ? AND id IN (${placeholders})`,
-    )
+    .query(`SELECT id, embedding FROM vec_embeddings WHERE layer = ? AND id IN (${placeholders})`)
     .all(layer, ...ids) as { id: string; embedding: Uint8Array }[];
   for (const r of rows) {
     const blob = r.embedding;
     if (!blob || blob.byteLength % 4 !== 0) continue;
-    out.set(
-      r.id,
-      new Float32Array(blob.buffer, blob.byteOffset, blob.byteLength / 4),
-    );
+    out.set(r.id, new Float32Array(blob.buffer, blob.byteOffset, blob.byteLength / 4));
   }
   return out;
 }

@@ -13,12 +13,12 @@
  * agent-internal). Edge weight is hard-coded `1.0` to match the M-05
  * `linkRelated` extractor hook.
  */
-import type { MemoryDB, EdgeKind } from "../../db";
-import type { MemoryService } from "../../services/memory";
-import type { RAGPipeline } from "../../rag";
-import type { ModelRouter } from "../../lib/model-router";
-import { runReflect, type ReflectResult } from "../../pipeline/night-cycle/steps";
+import type { EdgeKind, MemoryDB } from "../../db";
 import { logger } from "../../lib/logger";
+import type { ModelRouter } from "../../lib/model-router";
+import { type ReflectResult, runReflect } from "../../pipeline/night-cycle/steps";
+import type { RAGPipeline } from "../../rag";
+import type { MemoryService } from "../../services/memory";
 import type { ToolResult } from "../types";
 
 const log = logger.child("mcp.curation");
@@ -154,9 +154,7 @@ export class MemoryCurationTools {
         kind: "semantic",
       });
       this.memory.linkEdge(args.src_id, "context", newId, "shared", "derives", 1.0);
-      log.info(
-        `promote context/${args.src_id.slice(0, 8)} -> shared/${newId.slice(0, 8)}`,
-      );
+      log.info(`promote context/${args.src_id.slice(0, 8)} -> shared/${newId.slice(0, 8)}`);
       return { success: true, data: { id: newId } };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -169,10 +167,7 @@ export class MemoryCurationTools {
    * Optional `category` filter narrows the top-N groups; `dryRun` previews
    * without inserting. Returns the same `ReflectResult` shape as the cron path.
    */
-  async reflect(args: {
-    category?: string;
-    dryRun?: boolean;
-  }): Promise<ToolResult> {
+  async reflect(args: { category?: string; dryRun?: boolean }): Promise<ToolResult> {
     const svc = this.getMemoryService();
     const rag = this.getRag();
     const router = this.getRouter();

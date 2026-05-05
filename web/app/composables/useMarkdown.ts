@@ -38,25 +38,13 @@ export function useMarkdown() {
 
     html = html.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, "<em>$1</em>");
 
-    html = html.replace(
-      /^### (.+)$/gm,
-      '<h3 class="font-semibold text-base mt-3 mb-1">$1</h3>',
-    );
-    html = html.replace(
-      /^## (.+)$/gm,
-      '<h2 class="font-semibold text-lg mt-3 mb-1">$1</h2>',
-    );
-    html = html.replace(
-      /^# (.+)$/gm,
-      '<h1 class="font-bold text-xl mt-3 mb-1">$1</h1>',
-    );
+    html = html.replace(/^### (.+)$/gm, '<h3 class="font-semibold text-base mt-3 mb-1">$1</h3>');
+    html = html.replace(/^## (.+)$/gm, '<h2 class="font-semibold text-lg mt-3 mb-1">$1</h2>');
+    html = html.replace(/^# (.+)$/gm, '<h1 class="font-bold text-xl mt-3 mb-1">$1</h1>');
 
     html = html.replace(/^- (.+)$/gm, '<li class="ml-4 list-disc">$1</li>');
 
-    html = html.replace(
-      /^\d+\. (.+)$/gm,
-      '<li class="ml-4 list-decimal">$1</li>',
-    );
+    html = html.replace(/^\d+\. (.+)$/gm, '<li class="ml-4 list-decimal">$1</li>');
 
     html = html.replace(/\n/g, "<br>");
 
@@ -65,8 +53,26 @@ export function useMarkdown() {
 
     return DOMPurify.sanitize(html, {
       ALLOWED_TAGS: [
-        "a", "br", "code", "em", "h1", "h2", "h3", "h4", "h5", "h6",
-        "li", "ol", "p", "pre", "strong", "ul", "span", "div", "b", "i",
+        "a",
+        "br",
+        "code",
+        "em",
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "h5",
+        "h6",
+        "li",
+        "ol",
+        "p",
+        "pre",
+        "strong",
+        "ul",
+        "span",
+        "div",
+        "b",
+        "i",
       ],
       ALLOWED_ATTR: ["class", "href", "title"],
       ALLOWED_URI_REGEXP: /^(?:https?|mailto|tel):/i,

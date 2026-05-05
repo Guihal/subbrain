@@ -1,11 +1,11 @@
-import { describe, test, expect } from "bun:test";
-import type { Message, Tool, ChatResponse } from "../src/providers/types";
-import type { ModelRouter } from "../src/lib/model-router";
+import { describe, expect, test } from "bun:test";
 import type { MemoryDB } from "../src/db";
-import type { ToolRunnerDeps } from "../src/pipeline/agent-loop/tool-runner";
+import { logger } from "../src/lib/logger";
+import type { ModelRouter } from "../src/lib/model-router";
 import type { ToolRegistry } from "../src/mcp";
 import { executeStep } from "../src/pipeline/agent-loop/step";
-import { logger } from "../src/lib/logger";
+import type { ToolRunnerDeps } from "../src/pipeline/agent-loop/tool-runner";
+import type { ChatResponse, Message, Tool } from "../src/providers/types";
 
 function mockRouter(response: Partial<ChatResponse>): ModelRouter {
   const full: ChatResponse = {
@@ -30,11 +30,11 @@ function mockToolDeps(registry: Record<string, (args: any) => unknown>): ToolRun
     has: (name: string) => name in registry,
     call: async (name: string, args: unknown) => ({
       success: true,
-      data: registry[name]!(args),
+      data: registry[name]?.(args),
     }),
     callAsAgent: async (name: string, args: unknown) => ({
       success: true,
-      data: registry[name]!(args as any),
+      data: registry[name]?.(args as any),
     }),
   } as unknown as ToolRegistry;
   return {
@@ -220,11 +220,7 @@ describe("executeStep", () => {
     const tools = mockToolDeps({});
 
     await expect(
-      executeStep(
-        { router, memory: mockMemory(), tools },
-        { ...baseInput, messages },
-        log,
-      ),
+      executeStep({ router, memory: mockMemory(), tools }, { ...baseInput, messages }, log),
     ).rejects.toThrow("boom");
 
     // should have been popped → only the original message remains

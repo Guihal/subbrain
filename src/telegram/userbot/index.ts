@@ -3,12 +3,12 @@ import { StringSession } from "telegram/sessions";
 import type { MemoryDB } from "../../db";
 import { logger } from "../../lib/logger";
 import { ensureConnected as connect } from "./connection";
+import { attachMonitor } from "./monitor";
 import { listChats, readChat } from "./read";
 import { searchMessages } from "./search";
-import { attachMonitor } from "./monitor";
-import type { UserbotConfig, TgDialog, TgMessage } from "./types";
+import type { TgDialog, TgMessage, UserbotConfig } from "./types";
 
-export type { UserbotConfig, TgDialog, TgMessage } from "./types";
+export type { TgDialog, TgMessage, UserbotConfig } from "./types";
 
 const log = logger.child("userbot");
 
@@ -23,7 +23,7 @@ export class Userbot {
   private running = false;
   private connState = { connected: false };
 
-  constructor(private config: UserbotConfig) {
+  constructor(config: UserbotConfig) {
     const session = new StringSession(config.session);
     this.client = new TelegramClient(session, config.apiId, config.apiHash, {
       connectionRetries: 5,
@@ -42,9 +42,6 @@ export class Userbot {
     });
     const sessionString = this.client.session.save() as unknown as string;
     log.info("Logged in. Save this session string to TG_SESSION env.");
-    console.log("\n=== SESSION STRING (save to .env as TG_SESSION) ===");
-    console.log(sessionString);
-    console.log("=== END ===\n");
     return sessionString;
   }
 

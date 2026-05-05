@@ -1,6 +1,6 @@
 import type { ModelRouter } from "../../../lib/model-router";
 import { stripThinkTags } from "../types";
-import { NIGHT_MODEL, nightLog as log } from "./shared";
+import { nightLog as log, NIGHT_MODEL } from "./shared";
 
 /**
  * Returns scrubbed text, or `null` if scrubbing fails / returns empty.
@@ -8,10 +8,7 @@ import { NIGHT_MODEL, nightLog as log } from "./shared";
  * the caller treating `null` as "do not archive" (see PR-3 / C-3 in
  * docs/audits/2026-04-23-global-refactor-plan.md).
  */
-export async function scrubPII(
-  text: string,
-  router: ModelRouter,
-): Promise<string | null> {
+export async function scrubPII(text: string, router: ModelRouter): Promise<string | null> {
   try {
     const response = await router.chat(
       NIGHT_MODEL,

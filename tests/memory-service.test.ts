@@ -14,15 +14,8 @@
  * Uses a real sqlite DB at `data/test-memory-service.db` (bun:sqlite) and a
  * stub RAG that returns a deterministic embedding; no provider calls.
  */
-import {
-  afterAll,
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  test,
-} from "bun:test";
-import { existsSync, unlinkSync } from "fs";
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
+import { existsSync, unlinkSync } from "node:fs";
 import { MemoryDB } from "../src/db";
 import { RAGPipeline } from "../src/rag";
 import { MemoryService } from "../src/services/memory";
@@ -153,16 +146,36 @@ describe("MemoryService — listShared", () => {
   });
 
   test("q filter → FTS hydrate", async () => {
-    await svc.insertShared({ category: "a", content: "dark chocolate", confidence: 0.9, status: "active" });
-    await svc.insertShared({ category: "b", content: "white coffee", confidence: 0.9, status: "active" });
+    await svc.insertShared({
+      category: "a",
+      content: "dark chocolate",
+      confidence: 0.9,
+      status: "active",
+    });
+    await svc.insertShared({
+      category: "b",
+      content: "white coffee",
+      confidence: 0.9,
+      status: "active",
+    });
     const r = svc.listShared({ limit: 10, offset: 0, q: "dark" });
     expect(r.items.length).toBeGreaterThanOrEqual(1);
     expect(r.items.every((x) => x.content.includes("dark"))).toBe(true);
   });
 
   test("status='pending' filter excludes active rows", async () => {
-    await svc.insertShared({ category: "a", content: "approved", confidence: 0.9, status: "active" });
-    await svc.insertShared({ category: "b", content: "waiting", confidence: 0.5, status: "pending" });
+    await svc.insertShared({
+      category: "a",
+      content: "approved",
+      confidence: 0.9,
+      status: "active",
+    });
+    await svc.insertShared({
+      category: "b",
+      content: "waiting",
+      confidence: 0.5,
+      status: "pending",
+    });
     const pending = svc.listShared({ limit: 10, offset: 0, status: "pending" });
     expect(pending.total).toBe(1);
     expect(pending.items[0].status).toBe("pending");
@@ -171,8 +184,18 @@ describe("MemoryService — listShared", () => {
 
 describe("MemoryService — listPending / setStatus (22b compat)", () => {
   test("listPending('shared') returns only pending rows", async () => {
-    const aId = await svc.insertShared({ category: "a", content: "approved", confidence: 0.9, status: "active" });
-    const bId = await svc.insertShared({ category: "b", content: "waiting", confidence: 0.5, status: "pending" });
+    const aId = await svc.insertShared({
+      category: "a",
+      content: "approved",
+      confidence: 0.9,
+      status: "active",
+    });
+    const bId = await svc.insertShared({
+      category: "b",
+      content: "waiting",
+      confidence: 0.5,
+      status: "pending",
+    });
     const r = svc.listPending("shared", { limit: 10, offset: 0 });
     expect(r.total).toBe(1);
     expect(r.items.map((x) => x.id)).toEqual([bId]);
@@ -181,28 +204,48 @@ describe("MemoryService — listPending / setStatus (22b compat)", () => {
   });
 
   test("setStatus('shared', id, 'active') flips row status via updateRow", async () => {
-    const id = await svc.insertShared({ category: "a", content: "guess", confidence: 0.5, status: "pending" });
+    const id = await svc.insertShared({
+      category: "a",
+      content: "guess",
+      confidence: 0.5,
+      status: "pending",
+    });
     svc.setStatus("shared", id, "active");
-    expect(memory.getShared(id)!.status).toBe("active");
+    expect(memory.getShared(id)?.status).toBe("active");
   });
 
   test("setStatus('context', id, 'rejected') flips row status", async () => {
-    const id = await svc.insertContext({ title: "t", content: "c", confidence: 0.5, status: "pending" });
+    const id = await svc.insertContext({
+      title: "t",
+      content: "c",
+      confidence: 0.5,
+      status: "pending",
+    });
     svc.setStatus("context", id, "rejected");
-    expect(memory.getContext(id)!.status).toBe("rejected");
+    expect(memory.getContext(id)?.status).toBe("rejected");
   });
 });
 
 describe("MemoryService — patch / delete", () => {
   test("patchShared applies allow-listed patch + returns row", async () => {
-    const id = await svc.insertShared({ category: "a", content: "initial", confidence: 0.9, status: "active" });
+    const id = await svc.insertShared({
+      category: "a",
+      content: "initial",
+      confidence: 0.9,
+      status: "active",
+    });
     const patched = svc.patchShared(id, { content: "updated", tags: "t1" });
-    expect(patched!.content).toBe("updated");
-    expect(patched!.tags).toBe("t1");
+    expect(patched?.content).toBe("updated");
+    expect(patched?.tags).toBe("t1");
   });
 
   test("deleteShared removes row", async () => {
-    const id = await svc.insertShared({ category: "a", content: "x", confidence: 0.9, status: "active" });
+    const id = await svc.insertShared({
+      category: "a",
+      content: "x",
+      confidence: 0.9,
+      status: "active",
+    });
     svc.deleteShared(id);
     expect(memory.getShared(id)).toBeNull();
   });

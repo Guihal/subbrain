@@ -9,22 +9,16 @@
  * No provider network calls — service is wired to a stub RAG returning a
  * deterministic embedding.
  */
-import {
-  afterAll,
-  beforeAll,
-  describe,
-  expect,
-  test,
-} from "bun:test";
-import { existsSync, unlinkSync } from "fs";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { existsSync, unlinkSync } from "node:fs";
 import { Elysia } from "elysia";
 import { MemoryDB } from "../src/db";
-import { RAGPipeline } from "../src/rag";
-import { MemoryService } from "../src/services/memory";
-import { AuthService } from "../src/services/auth.service";
 import { authMiddleware } from "../src/lib/auth";
-import { memoryRoute } from "../src/routes/memory";
 import { AppError } from "../src/lib/errors";
+import { RAGPipeline } from "../src/rag";
+import { memoryRoute } from "../src/routes/memory";
+import { AuthService } from "../src/services/auth.service";
+import { MemoryService } from "../src/services/memory";
 
 const TEST_DB = "data/test-memory-routes.db";
 const TOKEN = "test-memory-routes-token";
@@ -81,7 +75,7 @@ function buildApp() {
 beforeAll(async () => {
   cleanup();
   app = buildApp();
-  base = `http://localhost:${app.server!.port}`;
+  base = `http://localhost:${app.server?.port}`;
   // seed a couple of rows
   await (app as any); // no-op, keep TS happy
 });

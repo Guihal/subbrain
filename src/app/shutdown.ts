@@ -5,10 +5,7 @@ export interface ShutdownScheduler {
   stop: () => void | Promise<void>;
 }
 
-export function registerShutdown(
-  deps: AppDeps,
-  schedulers: ShutdownScheduler[] = [],
-): void {
+export function registerShutdown(deps: AppDeps, schedulers: ShutdownScheduler[] = []): void {
   const { memory, playwright, telegramPoller, freelanceScout } = deps;
   let shuttingDown = false;
 
@@ -27,10 +24,7 @@ export function registerShutdown(
       );
       const result = await Promise.race([settled, timeout]);
       if (result === "timeout") {
-        logger.warn(
-          "shutdown",
-          `schedulers stop timed out after ${SCHEDULER_STOP_TIMEOUT_MS}ms`,
-        );
+        logger.warn("shutdown", `schedulers stop timed out after ${SCHEDULER_STOP_TIMEOUT_MS}ms`);
       }
     }
 
@@ -55,10 +49,7 @@ export function registerShutdown(
       }
     }
     try {
-      logger.info(
-        "shutdown",
-        `playwright open contexts before close: ${playwright.contextCount}`,
-      );
+      logger.info("shutdown", `playwright open contexts before close: ${playwright.contextCount}`);
       await playwright.close();
     } catch (err) {
       logger.error(
@@ -69,10 +60,7 @@ export function registerShutdown(
     try {
       memory.close();
     } catch (err) {
-      logger.error(
-        "shutdown",
-        `memory close failed: ${err instanceof Error ? err.message : err}`,
-      );
+      logger.error("shutdown", `memory close failed: ${err instanceof Error ? err.message : err}`);
     }
     process.exit(0);
   };

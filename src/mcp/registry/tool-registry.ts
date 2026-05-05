@@ -9,15 +9,16 @@
  * ToolDef<Schema, Scope> infers handler's ctx type from declared scope; registry
  * exposes callAsPublic/callAsAgent — callAsPublic rejects agent-only tools at runtime.
  */
-import { t, type TSchema, type Static } from "elysia";
+import { type Static, type TSchema, t } from "elysia";
+import type { logger } from "../../lib/logger";
+import type { ModelRouter } from "../../lib/model-router";
+import type { CodeToolRegistry } from "../../pipeline/agent-loop/code-tools";
+import type { DynamicToolRegistry } from "../../pipeline/agent-loop/dynamic-tools";
+import type { AgentLoopSession } from "../../pipeline/agent-loop/types";
+import type { ArbitrationRoom } from "../../pipeline/arbitration";
 import type { ToolExecutor } from "../executor";
 import type { ToolResult } from "../types";
-import type { ModelRouter } from "../../lib/model-router";
-import type { ArbitrationRoom } from "../../pipeline/arbitration";
-import type { logger } from "../../lib/logger";
-import type { DynamicToolRegistry } from "../../pipeline/agent-loop/dynamic-tools";
-import type { CodeToolRegistry } from "../../pipeline/agent-loop/code-tools";
-import type { AgentLoopSession } from "../../pipeline/agent-loop/types";
+
 // Re-export so existing imports from ./tool-registry keep working (A-8).
 export type { AgentLoopSession } from "../../pipeline/agent-loop/types";
 
@@ -111,10 +112,7 @@ export type ToolContextFor<Scope extends ToolScope> = Scope extends "agent-only"
   ? AgentToolContext
   : PublicToolContext;
 
-export interface ToolDef<
-  Schema extends TSchema = TSchema,
-  Scope extends ToolScope = ToolScope,
-> {
+export interface ToolDef<Schema extends TSchema = TSchema, Scope extends ToolScope = ToolScope> {
   name: string;
   description: string;
   scope: Scope;
@@ -137,9 +135,7 @@ export interface ToolDef<
 export class ToolRegistry {
   private tools = new Map<string, ToolDef>();
 
-  register<Schema extends TSchema, Scope extends ToolScope>(
-    def: ToolDef<Schema, Scope>,
-  ): void {
+  register<Schema extends TSchema, Scope extends ToolScope>(def: ToolDef<Schema, Scope>): void {
     if (this.tools.has(def.name)) {
       throw new Error(`Duplicate tool: ${def.name}`);
     }

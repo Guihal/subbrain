@@ -1,13 +1,7 @@
-import { describe, test, expect, beforeEach, afterEach } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { unlinkSync } from "node:fs";
 import { MemoryDB } from "../src/db";
-import {
-  TelegramPoller,
-  TASK_STATE_FOCUS_KEY,
-  LAST_ID_FOCUS_KEY,
-  type TgInboxMessage,
-  type TelegramPollerDeps,
-} from "../src/scheduler/telegram-poller";
+import type { ModelRouter } from "../src/lib/model-router";
 import {
   applyCommand,
   buildRemindPrompt,
@@ -16,7 +10,13 @@ import {
   parseCommand,
   type TaskState,
 } from "../src/scheduler/telegram-commands";
-import type { ModelRouter } from "../src/lib/model-router";
+import {
+  LAST_ID_FOCUS_KEY,
+  TASK_STATE_FOCUS_KEY,
+  TelegramPoller,
+  type TelegramPollerDeps,
+  type TgInboxMessage,
+} from "../src/scheduler/telegram-poller";
 
 const TEST_DB = "data/test-telegram-poller.db";
 
@@ -66,22 +66,14 @@ describe("applyCommand", () => {
   });
 
   test("done non-existent leaves state untouched, does not throw", () => {
-    const s0 = applyCommand(
-      emptyState(),
-      { kind: "add", list: "work", text: "a" },
-      100,
-    ).state;
+    const s0 = applyCommand(emptyState(), { kind: "add", list: "work", text: "a" }, 100).state;
     const r = applyCommand(s0, { kind: "done", id: "w9" }, 200);
     expect(r.state["tasks.work"].length).toBe(1);
     expect(r.receipt).toContain("не найдена");
   });
 
   test("done removes task", () => {
-    let s = applyCommand(
-      emptyState(),
-      { kind: "add", list: "work", text: "a" },
-      100,
-    ).state;
+    let s = applyCommand(emptyState(), { kind: "add", list: "work", text: "a" }, 100).state;
     s = applyCommand(s, { kind: "done", id: "w1" }, 101).state;
     expect(s["tasks.work"].length).toBe(0);
   });
@@ -97,9 +89,7 @@ describe("collectRemindCandidates", () => {
         { id: "w1", text: "overdue", created_at: now - 10, due: now - 100 },
         { id: "w2", text: "fresh", created_at: now - 60 },
       ],
-      "tasks.home": [
-        { id: "h1", text: "stale", created_at: now - 7 * 3600 },
-      ],
+      "tasks.home": [{ id: "h1", text: "stale", created_at: now - 7 * 3600 }],
     };
     const got = collectRemindCandidates(state, now, stale);
     expect(got.map((c) => c.task.id)).toEqual(["h1", "w1"]);
@@ -213,9 +203,7 @@ describe("TelegramPoller", () => {
 
   test("poll second run with same inbox does nothing (lastId guard)", async () => {
     const mock: MockState = {
-      inbox: [
-        { id: 10, text: "+task work foo", date: "", sender: "me" },
-      ],
+      inbox: [{ id: 10, text: "+task work foo", date: "", sender: "me" }],
       sent: [],
       routerCalls: 0,
       routerReply: "",
@@ -243,9 +231,7 @@ describe("TelegramPoller", () => {
   test("remind: stale task → model called, message sent", async () => {
     const now = Math.floor(Date.now() / 1000);
     const state: TaskState = {
-      "tasks.work": [
-        { id: "w1", text: "old", created_at: now - 7 * 3600 },
-      ],
+      "tasks.work": [{ id: "w1", text: "old", created_at: now - 7 * 3600 }],
       "tasks.home": [],
     };
     memory.setFocus(TASK_STATE_FOCUS_KEY, JSON.stringify(state));
@@ -290,7 +276,7 @@ describe("TelegramPoller", () => {
     });
     const first = poller.tickPoll();
     const second = poller.tickPoll(); // should early-return
-    resolveRead!();
+    resolveRead?.();
     await Promise.all([first, second]);
     expect(mock.sent.length).toBe(0);
   });

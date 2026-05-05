@@ -1,13 +1,6 @@
 /** M-11 sleep-time focus block rewriter — see plan §Тесты. */
-import {
-  describe,
-  test,
-  expect,
-  beforeAll,
-  afterAll,
-  beforeEach,
-} from "bun:test";
-import { existsSync, unlinkSync } from "fs";
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
+import { existsSync, unlinkSync } from "node:fs";
 import { MemoryDB } from "../src/db";
 import { runFocusRewrite } from "../src/pipeline/night-cycle/steps/focus-rewrite";
 
@@ -54,8 +47,7 @@ function makeRouter(opts: MockRouterOpts = {}): any {
       if (opts.fail) throw new Error("simulated llm failure");
       // Pull current value from the user message — the prompt embeds it as
       // `current: <value>` so tests can echo / mutate it.
-      const userMsg: string =
-        params?.messages?.find((m: any) => m.role === "user")?.content ?? "";
+      const userMsg: string = params?.messages?.find((m: any) => m.role === "user")?.content ?? "";
       const keyMatch = userMsg.match(/^key: (.+)$/m);
       const currMatch = userMsg.match(/^current: ([\s\S]+?)\n\ntop_shared:/m);
       const key = keyMatch?.[1] ?? "";
@@ -189,9 +181,7 @@ describe("M-11 sleep-time focus block rewriter", () => {
     expect(seenKeys).toEqual(["project.goal"]);
     expect(memory.getShadowFocus("night_cycle_last_processed_id")).toBeNull();
     expect(memory.getShadowFocus("tasks.state")).toBeNull();
-    expect(memory.getShadowFocus("project.goal")).toBe(
-      "rewritten for project.goal",
-    );
+    expect(memory.getShadowFocus("project.goal")).toBe("rewritten for project.goal");
   });
 
   test("LLM echoes current value → skipped++", async () => {

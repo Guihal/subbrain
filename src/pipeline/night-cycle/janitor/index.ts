@@ -8,9 +8,9 @@
  * All phases isolated + independently unit-testable.
  */
 import type { MemoryDB } from "../../../db";
+import { logger } from "../../../lib/logger";
 import type { RAGPipeline } from "../../../rag";
 import type { Notifier } from "../../../telegram/bot/notify";
-import { logger } from "../../../lib/logger";
 import { runPhaseA } from "./phase-a";
 import { runPhaseB, runPhaseC } from "./phase-bc";
 import { runPhaseD } from "./phase-d";
@@ -55,11 +55,13 @@ export async function runJanitor(
     result.legacyArchived = c.legacyArchived;
     if (c.legacyArchived > 0 && notifier) {
       const date = new Date().toISOString().slice(0, 10);
-      notifier.notify(
-        `🧹 Janitor legacy sweep: archived ${c.legacyArchived} rows. ` +
-        `Restore via POST /v1/memory/restore. ` +
-        `Tag prefix: legacy-cleanup-${date}`,
-      ).catch((e) => log.warn(`tg-notify-failed: ${String(e)}`));
+      notifier
+        .notify(
+          `🧹 Janitor legacy sweep: archived ${c.legacyArchived} rows. ` +
+            `Restore via POST /v1/memory/restore. ` +
+            `Tag prefix: legacy-cleanup-${date}`,
+        )
+        .catch((e) => log.warn(`tg-notify-failed: ${String(e)}`));
     }
   } catch (err) {
     log.error(`phase-C failed: ${String(err)}`);
@@ -72,6 +74,8 @@ export async function runJanitor(
     log.error(`phase-D failed: ${String(err)}`);
   }
 
-  log.info(`done: expired=${result.expiredDeleted} dedup=${result.dedupArchived} legacy=${result.legacyArchived} tasks=${result.doneTasksDeleted}`);
+  log.info(
+    `done: expired=${result.expiredDeleted} dedup=${result.dedupArchived} legacy=${result.legacyArchived} tasks=${result.doneTasksDeleted}`,
+  );
   return result;
 }

@@ -12,10 +12,7 @@ export function useChatSend() {
       state.currentChatId.value = crypto.randomUUID();
     }
 
-    state.messages.value = [
-      ...state.messages.value,
-      { role: "user", content: text },
-    ];
+    state.messages.value = [...state.messages.value, { role: "user", content: text }];
 
     const history = state.messages.value.map((m) => ({
       role: m.role,

@@ -1,4 +1,4 @@
-import type { SharedTable, InsertSharedOpts } from "../../db/tables/shared";
+import type { InsertSharedOpts, SharedTable } from "../../db/tables/shared";
 import type { MemoryKind, MemoryStatus } from "../../db/types";
 
 /**
@@ -10,23 +10,22 @@ export function makeSharedHelpers(shared: SharedTable) {
   return {
     // Shared CRUD
     insertShared: (
-      id: string, category: string, content: string,
-      tags?: string, source?: string, opts?: InsertSharedOpts,
+      id: string,
+      category: string,
+      content: string,
+      tags?: string,
+      source?: string,
+      opts?: InsertSharedOpts,
     ) => shared.insertShared(id, category, content, tags, source, opts),
     getAllShared: () => shared.getAllShared(),
-    listShared: (
-      limit?: number, offset?: number,
-      category?: string, kind?: MemoryKind,
-    ) => shared.listShared(limit, offset, category, kind),
+    listShared: (limit?: number, offset?: number, category?: string, kind?: MemoryKind) =>
+      shared.listShared(limit, offset, category, kind),
     listSharedActive: (limit?: number, offset?: number, category?: string) =>
       shared.listSharedActive(limit, offset, category),
-    countShared: (category?: string, kind?: MemoryKind) =>
-      shared.countShared(category, kind),
+    countShared: (category?: string, kind?: MemoryKind) => shared.countShared(category, kind),
     getShared: (id: string) => shared.getShared(id),
-    getSharedMany: (
-      ids: string[],
-      opts?: { activeOnly?: boolean; notStale?: boolean },
-    ) => shared.getSharedMany(ids, opts),
+    getSharedMany: (ids: string[], opts?: { activeOnly?: boolean; notStale?: boolean }) =>
+      shared.getSharedMany(ids, opts),
     getSharedByCategory: (category: string) => shared.getSharedByCategory(category),
     updateShared: (
       id: string,
@@ -75,8 +74,7 @@ export function makeSharedHelpers(shared: SharedTable) {
       shared.searchEmbeddings(embedding, limit, layer),
     deleteEmbedding: (id: string) => shared.deleteEmbedding(id),
     // M-09: bulk-fetch raw vectors for cross-layer cosine in JS.
-    getEmbeddingsByIds: (layer: string, ids: string[]) =>
-      shared.getEmbeddingsByIds(layer, ids),
+    getEmbeddingsByIds: (layer: string, ids: string[]) => shared.getEmbeddingsByIds(layer, ids),
     recentActiveSharedForCrossLayer: (limit: number) =>
       shared.recentActiveSharedForCrossLayer(limit),
   };

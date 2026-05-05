@@ -13,31 +13,31 @@
  */
 
 export type {
-  MemoryTab,
-  ListLayer,
-  FocusEntry,
-  SharedRow,
-  ContextRow,
-  ArchiveRow,
   AgentMemRow,
+  ArchiveRow,
+  ContextRow,
+  FocusEntry,
+  ListLayer,
   LogRow,
-  MemoryRow,
   MemoryKind,
+  MemoryRow,
+  MemoryTab,
+  SharedRow,
 } from "./useMemory/types";
 export { LAYER_SCHEMAS } from "./useMemory/types";
 
+import { useMemoryFocus } from "./useMemory/focus";
+import { type LayerDeps, useMemoryLayer } from "./useMemory/layer";
 import type {
-  MemoryTab,
-  MemoryRow,
-  SharedRow,
-  ContextRow,
-  ArchiveRow,
   AgentMemRow,
+  ArchiveRow,
+  ContextRow,
   LogRow,
   MemoryKind,
+  MemoryRow,
+  MemoryTab,
+  SharedRow,
 } from "./useMemory/types";
-import { useMemoryLayer, type LayerDeps } from "./useMemory/layer";
-import { useMemoryFocus } from "./useMemory/focus";
 
 // PR 22b: extended tab adds "pending" — pending rows from shared + context
 // with status='pending' awaiting human approve/reject. The underlying
@@ -49,7 +49,12 @@ export type PendingRow = (SharedRow | ContextRow) & {
   status?: "pending" | "active" | "rejected";
 };
 // M-14: shape from /v1/memory/edges/related — 1-hop neighbour + edge metadata.
-export interface EdgeInfo { id: string; layer: string; kind: "relates" | "derives" | "supersedes" | "contradicts"; weight: number; }
+export interface EdgeInfo {
+  id: string;
+  layer: string;
+  kind: "relates" | "derives" | "supersedes" | "contradicts";
+  weight: number;
+}
 
 export function useMemory() {
   const { api } = useApi();
@@ -62,10 +67,7 @@ export function useMemory() {
   const agentIds = useState<string[]>("memory-agent-ids", () => []);
   const agentFilter = useState<string>("memory-agent-filter", () => "");
   const logSessions = useState<string[]>("memory-log-sessions", () => []);
-  const logSessionFilter = useState<string>(
-    "memory-log-session-filter",
-    () => "",
-  );
+  const logSessionFilter = useState<string>("memory-log-session-filter", () => "");
 
   const selected = useState<MemoryRow | null>("memory-selected", () => null);
   const loading = useState<boolean>("memory-loading", () => false);
@@ -114,10 +116,10 @@ export function useMemory() {
 
   // ─── PR 22b: pending approval state ───────────────────────
   const pendingLayer = useState<PendingLayer>("memory-pending-layer", () => "shared");
-  const pending = useState<{ items: PendingRow[]; total: number }>(
-    "memory-pending",
-    () => ({ items: [], total: 0 }),
-  );
+  const pending = useState<{ items: PendingRow[]; total: number }>("memory-pending", () => ({
+    items: [],
+    total: 0,
+  }));
   const pendingCount = useState<number>("memory-pending-count", () => 0);
 
   async function loadPending() {
@@ -149,11 +151,7 @@ export function useMemory() {
     }
   }
 
-  async function setPendingStatus(
-    layer: PendingLayer,
-    id: string,
-    status: "active" | "rejected",
-  ) {
+  async function setPendingStatus(layer: PendingLayer, id: string, status: "active" | "rejected") {
     await api(`/v1/memory/${layer}/${id}/status`, {
       method: "PATCH",
       body: JSON.stringify({ status }),
@@ -162,36 +160,52 @@ export function useMemory() {
     await refreshPendingCount();
   }
 
-  const approveMemory = (layer: PendingLayer, id: string) =>
-    setPendingStatus(layer, id, "active");
-  const rejectMemory = (layer: PendingLayer, id: string) =>
-    setPendingStatus(layer, id, "rejected");
+  const approveMemory = (layer: PendingLayer, id: string) => setPendingStatus(layer, id, "active");
+  const rejectMemory = (layer: PendingLayer, id: string) => setPendingStatus(layer, id, "rejected");
 
   // M-14: edges fetcher for MemoryRow.vue collapsible. 1-hop via /edges/related.
   const fetchEdges = async (id: string, layer: string): Promise<EdgeInfo[]> =>
-    (await api<{ items: EdgeInfo[] }>(`/v1/memory/edges/related?id=${encodeURIComponent(id)}&layer=${encodeURIComponent(layer)}&page_size=100`))?.items ?? [];
+    (
+      await api<{ items: EdgeInfo[] }>(
+        `/v1/memory/edges/related?id=${encodeURIComponent(id)}&layer=${encodeURIComponent(layer)}&page_size=100`,
+      )
+    )?.items ?? [];
 
   const totalForActive = computed(() => {
     switch (activeTab.value) {
-      case "focus": return focus.value.length;
-      case "shared": return sharedL.state.value.total;
-      case "context": return contextL.state.value.total;
-      case "archive": return archiveL.state.value.total;
-      case "agent": return agentL.state.value.total;
-      case "log": return logL.state.value.total;
-      case "pending": return pending.value.total;
+      case "focus":
+        return focus.value.length;
+      case "shared":
+        return sharedL.state.value.total;
+      case "context":
+        return contextL.state.value.total;
+      case "archive":
+        return archiveL.state.value.total;
+      case "agent":
+        return agentL.state.value.total;
+      case "log":
+        return logL.state.value.total;
+      case "pending":
+        return pending.value.total;
     }
   });
 
   async function loadActive() {
     switch (activeTab.value) {
-      case "focus": return loadFocus();
-      case "shared": return sharedL.load();
-      case "context": return contextL.load();
-      case "archive": return archiveL.load();
-      case "agent": return agentL.load();
-      case "log": return logL.load();
-      case "pending": return loadPending();
+      case "focus":
+        return loadFocus();
+      case "shared":
+        return sharedL.load();
+      case "context":
+        return contextL.load();
+      case "archive":
+        return archiveL.load();
+      case "agent":
+        return agentL.load();
+      case "log":
+        return logL.load();
+      case "pending":
+        return loadPending();
     }
   }
 
@@ -209,7 +223,10 @@ export function useMemory() {
 
   return {
     // state
-    activeTab, search, page, pageSize,
+    activeTab,
+    search,
+    page,
+    pageSize,
     focus,
     // M-07: shared kind filter exposed for the UI dropdown.
     kindFilter,
@@ -218,10 +235,18 @@ export function useMemory() {
     archive: archiveL.state,
     agent: agentL.state,
     log: logL.state,
-    agentIds, agentFilter, logSessions, logSessionFilter,
-    selected, loading, error, totalForActive,
+    agentIds,
+    agentFilter,
+    logSessions,
+    logSessionFilter,
+    selected,
+    loading,
+    error,
+    totalForActive,
     // PR 22b pending state
-    pending, pendingLayer, pendingCount,
+    pending,
+    pendingLayer,
+    pendingCount,
     // loaders
     loadFocus,
     loadShared: sharedL.load,
@@ -229,10 +254,14 @@ export function useMemory() {
     loadArchive: archiveL.load,
     loadAgent: agentL.load,
     loadLog: logL.load,
-    loadPending, refreshPendingCount,
-    loadActive, switchTab, select,
+    loadPending,
+    refreshPendingCount,
+    loadActive,
+    switchTab,
+    select,
     // mutations
-    saveFocus, deleteFocus,
+    saveFocus,
+    deleteFocus,
     saveShared: sharedL.save,
     deleteShared: sharedL.remove,
     saveContext: contextL.save,
@@ -241,7 +270,8 @@ export function useMemory() {
     deleteArchive: archiveL.remove,
     saveAgent: agentL.save,
     deleteAgent: agentL.remove,
-    approveMemory, rejectMemory,
+    approveMemory,
+    rejectMemory,
     // M-14
     fetchEdges,
   };

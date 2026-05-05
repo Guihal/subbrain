@@ -4,7 +4,7 @@
  * Split out to keep extractors.ts under the 250-LOC file cap (per
  * subbrain-guardrails §1). Pure helpers + supersede validation/apply.
  */
-import type { MemoryDB, MemoryStatus, SharedRow, ContextRow } from "../../../db";
+import type { ContextRow, MemoryDB, MemoryStatus, SharedRow } from "../../../db";
 import type { RAGPipeline } from "../../../rag";
 
 export const EMBED_TIMEOUT_MS = 5000;
@@ -37,8 +37,7 @@ export function validateSupersedes(
     if (typeof id !== "string" || id.length === 0) {
       return { ok: false, reason: `supersedes contains invalid id` };
     }
-    const row =
-      layer === "shared" ? memory.getShared(id) : memory.getContext(id);
+    const row = layer === "shared" ? memory.getShared(id) : memory.getContext(id);
     if (!row) {
       return { ok: false, reason: `supersedes id '${id}' not found in ${layer}` };
     }

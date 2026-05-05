@@ -5,9 +5,9 @@
  * `ChatsTable` — zero added behaviour, just the narrower surface services
  * see (routes still reach via `MemoryDB` facade).
  */
-import { Database } from "bun:sqlite";
+import type { Database } from "bun:sqlite";
 import { ChatsTable } from "../db/tables/chats";
-import type { ChatRow, ChatMessageRow, TgExcludedChatRow } from "../db/types";
+import type { ChatMessageRow, ChatRow, TgExcludedChatRow } from "../db/types";
 
 export class ChatRepository {
   private readonly chats: ChatsTable;
@@ -20,8 +20,7 @@ export class ChatRepository {
   createChat = (id: string, title: string, model: string, source?: string) =>
     this.chats.createChat(id, title, model, source);
   getChat = (id: string): ChatRow | null => this.chats.getChat(id);
-  listChats = (limit?: number, source?: string): ChatRow[] =>
-    this.chats.listChats(limit, source);
+  listChats = (limit?: number, source?: string): ChatRow[] => this.chats.listChats(limit, source);
   updateChatTitle = (id: string, title: string) => this.chats.updateChatTitle(id, title);
   updateChatModel = (id: string, model: string) => this.chats.updateChatModel(id, model);
   updateChatTimestamp = (id: string) => this.chats.updateChatTimestamp(id);

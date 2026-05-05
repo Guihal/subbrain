@@ -3,8 +3,33 @@
   "module": "index.ts",
   "type": "module",
   "private": true,
+  "scripts": {
+    "setup": "bun install --frozen-lockfile",
+    "doctor": "bun --version && bunx tsc --version",
+    "check": "bun run guardrails && bun run lint",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write .",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "bun test --bail",
+    "test:changed": "bun test --bail",
+    "test:integration": "bun run tests/integration.live.ts",
+    "smoke": "bun run tests/browser-smoke.ts",
+    "guardrails": "STRICT_FILE_RULES=1 bun run scripts/check-file-size.ts && STRICT_FILE_RULES=1 bun run scripts/check-deep-imports.ts && STRICT_FILE_RULES=1 bun run scripts/check-forbidden-patterns.ts",
+    "rails": "bun run guardrails && bun run lint && bun run typecheck",
+    "rails:full": "bun run rails && bun test --bail",
+    "install-hooks": "bash scripts/install-hooks.sh",
+    "cp0": "STRICT_FILE_RULES=1 bun run scripts/check-file-size.ts && STRICT_FILE_RULES=1 bun run scripts/check-deep-imports.ts && STRICT_FILE_RULES=1 bun run scripts/check-forbidden-patterns.ts",
+    "cp1": "bun run lint",
+    "cp2": "bun run typecheck",
+    "cp3": "bun test --bail",
+    "cp-all": "bun run cp0 && bun run cp1 && bun run cp2 && bun run cp3"
+  },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@biomejs/biome": "^2.4.14",
+    "@boundaryml/baml": "0.222.0",
+    "@types/bun": "latest",
+    "lefthook": "^2.1.6"
   },
   "peerDependencies": {
     "typescript": "^5"

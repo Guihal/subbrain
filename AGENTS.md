@@ -34,17 +34,17 @@
 
 ### Карта виртуальных ролей → реальные модели
 
-> Все роли используют **MiniMax-M2.7** через MiniMax provider (с 2026-04-28). NVIDIA NIM — embed + rerank + большинство fallback'ов.
+> Per-role NVIDIA NIM primaries (см. `src/lib/model-map.ts`); MiniMax-M2.7 used as fallback for most roles.
 
-| Роль                       | Виртуальное имя | Основная модель          | Fallback                          |
-| :------------------------- | :-------------- | :----------------------- | :-------------------------------- |
-| **Тимлид / Оркестратор**   | `teamlead`      | `MiniMax-M2.7`           | `minimaxai/minimax-m2.7` (nvidia) |
-| **Кодер / Разработчик**    | `coder`         | `MiniMax-M2.7`           | `mistralai/devstral-2-123b-instruct-2512` (nvidia) |
-| **Критик / Ревьюер**       | `critic`        | `MiniMax-M2.7`           | `moonshotai/kimi-k2-thinking` (nvidia) |
-| **Генералист / Универсал** | `generalist`    | `MiniMax-M2.7`           | `minimaxai/minimax-m2.7` (nvidia) |
-| **Хаос (эксперимент)**     | `chaos`         | `MiniMax-M2.7`           | `mistralai/mistral-medium-3-instruct` (nvidia) |
-| **Pre/Post/Flash**         | `flash`         | `MiniMax-M2.7`           | `stepfun-ai/step-3.5-flash` (nvidia) |
-| **Память (hippocampus + ночной цикл)** | `memory` | `MiniMax-M2.7` | — (без fallback)                  |
+| Role | Primary | Primary provider | Fallback | Fallback provider |
+|---|---|---|---|---|
+| `teamlead` | `z-ai/glm-5.1` | `nvidia` | `MiniMax-M2.7` | `minimax` |
+| `coder` | `deepseek-ai/deepseek-v4-flash` | `nvidia` | `qwen/qwen3-coder-480b-a35b-instruct` | `nvidia` |
+| `critic` | `z-ai/glm-5.1` | `nvidia` | `MiniMax-M2.7` | `minimax` |
+| `flash` | `meta/llama-4-maverick-17b-128e-instruct` | `nvidia` | `MiniMax-M2.7` | `minimax` |
+| `chaos` | `moonshotai/kimi-k2.6` | `nvidia` | `MiniMax-M2.7` | `minimax` |
+| `generalist` | `nvidia/llama-3.3-nemotron-super-49b-v1.5` | `nvidia` | `MiniMax-M2.7` | `minimax` |
+| `memory` | `deepseek-ai/deepseek-v4-flash` | `nvidia` | `MiniMax-M2.7` | `minimax` |
 
 ### Вспомогательные модели (NVIDIA NIM, не в MODEL_MAP)
 
@@ -94,7 +94,7 @@ keep flag off unless you need it. See `.env.example` and
 Запрос пользователя
       │
       ▼
-[1] Pre-processing: Гиппокамп (memory / MiniMax-M2.7) — агентный режим
+[1] Pre-processing: Гиппокамп (memory / DeepSeek V4 Flash) — агентный режим
     └─ Загрузка layer1_focus + shared_memory как seed-контекст
     └─ Tool-calling цикл (до 6 шагов, 25s бюджет):
          memory_search (FTS5, бесплатно)
@@ -108,7 +108,7 @@ keep flag off unless you need it. See `.env.example` and
     └─ Стриминг ответа пользователю
       │
       ▼
-[3] Post-processing (memory / MiniMax-M2.7)
+[3] Post-processing (memory / DeepSeek V4 Flash)
     └─ Анализирует «дельту знаний»
     └─ Записывает в raw_log (Layer 4) с request_id
 ```
@@ -176,14 +176,14 @@ Layer 4 (raw_log, RU Plain Text)
      │                       │                      │
      ▼                       ▼                      ▼
 ┌───────────────────┐   ┌─────────────────┐   ┌──────────────────┐
-│  MiniMax API      │   │   NVIDIA NIM    │   │   OpenRouter     │
-│   (minimax)       │   │  embed, rerank  │   │  (резервный)     │
-│ teamlead, coder   │   │  + LLM fallback │   │  200 RPM         │
-│ critic, generalist│   │  40 RPM         │   └──────────────────┘
-│ flash, chaos,     │   └─────────────────┘
-│ memory            │
-│ 20 RPM            │
-└──────┬────────────┘
+│   NVIDIA NIM      │   │   MiniMax       │   │   OpenRouter     │
+│   (nvidia)        │   │   (minimax)     │   │  (резервный)     │
+│ teamlead, coder   │   │ fallback для    │   │  200 RPM         │
+│ critic, generalist│   │ teamlead/critic │   └──────────────────┘
+│ flash, chaos,     │   │ flash/chaos/    │
+│ memory + embed    │   │ generalist/mem  │
+│ + rerank   40 RPM │   │ 20 RPM          │
+└──────┬────────────┘   └─────────────────┘
        │
        ▼
 ┌──────────────────────────────────────────────────────────┐

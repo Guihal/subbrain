@@ -17,9 +17,13 @@ export interface EmbedCandidate {
 /** Pure cosine on pre-computed Float32Array pairs. */
 export function cosine(a: Float32Array, b: Float32Array): number {
   const n = Math.min(a.length, b.length);
-  let dot = 0, na = 0, nb = 0;
+  let dot = 0,
+    na = 0,
+    nb = 0;
   for (let i = 0; i < n; i++) {
-    dot += a[i] * b[i]; na += a[i] ** 2; nb += b[i] ** 2;
+    dot += a[i] * b[i];
+    na += a[i] ** 2;
+    nb += b[i] ** 2;
   }
   return na && nb ? dot / (Math.sqrt(na) * Math.sqrt(nb)) : 0;
 }
@@ -35,13 +39,11 @@ export async function buildEmbeddingMap(
   layer: LayerName,
   rows: readonly EmbedCandidate[],
 ): Promise<Map<string, Float32Array>> {
-  const ids = rows.map(r => r.id);
+  const ids = rows.map((r) => r.id);
   const cached = memory.getEmbeddingsByIds(layer, ids);
-  const missing = rows.filter(r => !cached.has(r.id));
+  const missing = rows.filter((r) => !cached.has(r.id));
   if (missing.length === 0) return cached;
-  const settled = await Promise.allSettled(
-    missing.map(r => rag.embedContent(r.content)),
-  );
+  const settled = await Promise.allSettled(missing.map((r) => rag.embedContent(r.content)));
   for (let i = 0; i < missing.length; i++) {
     const s = settled[i];
     if (s.status === "fulfilled") cached.set(missing[i].id, s.value);

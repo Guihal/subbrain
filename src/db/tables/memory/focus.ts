@@ -1,9 +1,9 @@
-import { Database } from "bun:sqlite";
+import type { Database } from "bun:sqlite";
 
 export function getFocus(db: Database, key: string): string | null {
-  const row = db
-    .query("SELECT value FROM layer1_focus WHERE key = ?")
-    .get(key) as { value: string } | null;
+  const row = db.query("SELECT value FROM layer1_focus WHERE key = ?").get(key) as {
+    value: string;
+  } | null;
   return row?.value ?? null;
 }
 
@@ -16,9 +16,10 @@ export function getFocusWithMeta(
   db: Database,
   key: string,
 ): { value: string; updated_at: number } | null {
-  const row = db
-    .query("SELECT value, updated_at FROM layer1_focus WHERE key = ?")
-    .get(key) as { value: string; updated_at: number } | null;
+  const row = db.query("SELECT value, updated_at FROM layer1_focus WHERE key = ?").get(key) as {
+    value: string;
+    updated_at: number;
+  } | null;
   return row ?? null;
 }
 
@@ -47,26 +48,23 @@ export function deleteFocus(db: Database, key: string): void {
 // Same KV shape, no FTS, no triggers.
 
 export function getShadowFocus(db: Database, key: string): string | null {
-  const row = db
-    .query("SELECT value FROM layer1_focus_shadow WHERE key = ?")
-    .get(key) as { value: string } | null;
+  const row = db.query("SELECT value FROM layer1_focus_shadow WHERE key = ?").get(key) as {
+    value: string;
+  } | null;
   return row?.value ?? null;
 }
 
-export function setShadowFocus(
-  db: Database,
-  key: string,
-  value: string,
-): void {
+export function setShadowFocus(db: Database, key: string, value: string): void {
   db.query(
     "INSERT INTO layer1_focus_shadow (key, value, updated_at) VALUES (?, ?, unixepoch()) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
   ).run(key, value);
 }
 
 export function getAllShadowFocus(db: Database): Record<string, string> {
-  const rows = db
-    .query("SELECT key, value FROM layer1_focus_shadow")
-    .all() as { key: string; value: string }[];
+  const rows = db.query("SELECT key, value FROM layer1_focus_shadow").all() as {
+    key: string;
+    value: string;
+  }[];
   return Object.fromEntries(rows.map((r) => [r.key, r.value]));
 }
 

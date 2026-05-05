@@ -3,15 +3,15 @@
  * Covers whitelist, blacklist, length cap, TIME_BOUND, expires_at,
  * MEMORY_DEDUP_MODE_BY_CATEGORY, and defaultExpiresAt.
  */
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import {
+  defaultExpiresAt,
+  MEMORY_DEDUP_MODE_BY_CATEGORY,
+  TIME_BOUND_CATEGORIES,
   validateCategoryAndContent,
   validateExpiresAt,
-  WHITELIST_SHARED,
   WHITELIST_CONTEXT,
-  TIME_BOUND_CATEGORIES,
-  MEMORY_DEDUP_MODE_BY_CATEGORY,
-  defaultExpiresAt,
+  WHITELIST_SHARED,
 } from "../src/pipeline/agent-pipeline/post/validators";
 
 const NOW = Math.floor(Date.now() / 1000);
@@ -125,9 +125,9 @@ describe("validateExpiresAt", () => {
 
 describe("MEMORY_DEDUP_MODE_BY_CATEGORY", () => {
   test("profile/skill/architecture → strict", () => {
-    expect(MEMORY_DEDUP_MODE_BY_CATEGORY["profile"]).toBe("strict");
-    expect(MEMORY_DEDUP_MODE_BY_CATEGORY["skill"]).toBe("strict");
-    expect(MEMORY_DEDUP_MODE_BY_CATEGORY["architecture"]).toBe("strict");
+    expect(MEMORY_DEDUP_MODE_BY_CATEGORY.profile).toBe("strict");
+    expect(MEMORY_DEDUP_MODE_BY_CATEGORY.skill).toBe("strict");
+    expect(MEMORY_DEDUP_MODE_BY_CATEGORY.architecture).toBe("strict");
   });
 
   test("preference/goal/relationship/style/constraint → supersede", () => {

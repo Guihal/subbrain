@@ -18,14 +18,11 @@ import { MIN_EXTRACTION_LENGTH } from "../types";
 // negatives clutter long-term memory.
 export const SKIP_USER_PREFIXES = [
   "[from Claude Code CLI]", // subbrain-ping.py status updates
-  "🤖 Free agent —",        // free-agent TG digest echo (free-agent.ts:notify)
-  "[freelance scout]",      // scout TG alerts (scheduler/freelance/persist.ts)
+  "🤖 Free agent —", // free-agent TG digest echo (free-agent.ts:notify)
+  "[freelance scout]", // scout TG alerts (scheduler/freelance/persist.ts)
 ];
 
-export function shouldRunHippocampus(
-  combinedLen: number,
-  userMessage?: string,
-): boolean {
+export function shouldRunHippocampus(combinedLen: number, userMessage?: string): boolean {
   if (combinedLen < MIN_EXTRACTION_LENGTH) return false;
   if (typeof userMessage === "string" && userMessage.length > 0) {
     // NFC-normalize so emoji-bearing prefixes ("🤖 Free agent —") match

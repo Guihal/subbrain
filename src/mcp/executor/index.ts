@@ -1,19 +1,19 @@
 import type { MemoryDB } from "../../db";
 import type { ModelRouter } from "../../lib/model-router";
-import type { RAGPipeline } from "../../rag";
-import type { Userbot } from "../../telegram/userbot";
-import type { PlaywrightClient } from "../playwright";
-import type { ToolResult } from "../types";
-import { MemoryTools, EmbedTools, LogTools, WebTools, TasksTools } from "../tools/index";
-import { MemoryCurationTools } from "../tools/memory-curation-tools";
-import { sendReport } from "../tools/telegram-report";
 import type { CodeToolRegistry } from "../../pipeline/agent-loop/code-tools";
 import type { ArbitrationRoom } from "../../pipeline/arbitration";
+import type { RAGPipeline } from "../../rag";
 import type { MemoryService } from "../../services/memory";
-import type { ExecutorState } from "./types";
-import * as mem from "./ops-memory";
+import type { Userbot } from "../../telegram/userbot";
+import type { PlaywrightClient } from "../playwright";
+import { EmbedTools, LogTools, MemoryTools, TasksTools, WebTools } from "../tools/index";
+import { MemoryCurationTools } from "../tools/memory-curation-tools";
+import { sendReport } from "../tools/telegram-report";
+import type { ToolResult } from "../types";
 import * as data from "./ops-data";
+import * as mem from "./ops-memory";
 import * as tg from "./ops-tg";
+import type { ExecutorState } from "./types";
 
 export type { ToolResult } from "../types";
 export type { ExecutorState } from "./types";
@@ -25,8 +25,6 @@ export class ToolExecutor {
   private botNotify: ((text: string) => Promise<void>) | null = null;
   private _codeTools: CodeToolRegistry | null = null;
   private _room: ArbitrationRoom | null = null;
-  // M-FINAL2 / M-10: MemoryService wired post-ctor (depends on RAG). Kept here
-  // so curation tools (memory_promote/memory_reflect) can reach it.
   private _memoryService: MemoryService | null = null;
 
   readonly memoryTools: MemoryTools;
@@ -36,7 +34,10 @@ export class ToolExecutor {
   readonly webTools: WebTools;
   readonly tasksTools: TasksTools;
 
-  constructor(private memory: MemoryDB, private router: ModelRouter) {
+  constructor(
+    private memory: MemoryDB,
+    private router: ModelRouter,
+  ) {
     this.memoryTools = new MemoryTools(memory, () => this.rag);
     this.memoryCurationTools = new MemoryCurationTools(
       memory,
@@ -69,23 +70,46 @@ export class ToolExecutor {
     };
   }
 
-  setRAG(rag: RAGPipeline): void { this.rag = rag; }
-  setMemoryService(s: MemoryService): void { this._memoryService = s; this.memoryTools.setMemoryService(s); }
-  setBotNotify(fn: (text: string) => Promise<void>): void { this.botNotify = fn; }
-  setUserbot(userbot: Userbot): void { this.userbot = userbot; }
-  setCodeTools(codeTools: CodeToolRegistry): void { this._codeTools = codeTools; }
-  setRoom(room: ArbitrationRoom): void { this._room = room; }
-  setPlaywright(pw: PlaywrightClient): void { this.webTools.setPlaywright(pw); }
-
-  get memoryDb(): MemoryDB { return this.memory; }
-  get ragPipeline(): RAGPipeline | null { return this.rag; }
-  get codeTools(): CodeToolRegistry | null { return this._codeTools; }
-  get room(): ArbitrationRoom | null { return this._room; }
-  get modelRouter(): ModelRouter { return this.router; }
+  setRAG(rag: RAGPipeline) {
+    this.rag = rag;
+  }
+  setMemoryService(s: MemoryService) {
+    this._memoryService = s;
+    this.memoryTools.setMemoryService(s);
+  }
+  setBotNotify(fn: (text: string) => Promise<void>) {
+    this.botNotify = fn;
+  }
+  setUserbot(userbot: Userbot) {
+    this.userbot = userbot;
+  }
+  setCodeTools(codeTools: CodeToolRegistry) {
+    this._codeTools = codeTools;
+  }
+  setRoom(room: ArbitrationRoom) {
+    this._room = room;
+  }
+  setPlaywright(pw: PlaywrightClient) {
+    this.webTools.setPlaywright(pw);
+  }
+  get memoryDb(): MemoryDB {
+    return this.memory;
+  }
+  get ragPipeline(): RAGPipeline | null {
+    return this.rag;
+  }
+  get codeTools(): CodeToolRegistry | null {
+    return this._codeTools;
+  }
+  get room(): ArbitrationRoom | null {
+    return this._room;
+  }
+  get modelRouter(): ModelRouter {
+    return this.router;
+  }
 
   webCallTool = (name: string, args: Record<string, unknown>) => this.webTools.callTool(name, args);
 
-  // ─── Memory CRUD ─────────────────────────────────────────
   memoryRead = (id: string, layer?: string) => mem.memoryRead(this.state(), id, layer);
   memoryWrite = (params: Parameters<typeof mem.memoryWrite>[1], agentId: string | null = null) =>
     mem.memoryWrite(this.state(), params, agentId);
@@ -101,11 +125,13 @@ export class ToolExecutor {
     agentId: string | null = null,
   ) => mem.ragSearch(this.state(), query, layers, topN, skipRerank, agentId);
   contextSummary = (sessionId: string) => mem.contextSummary(this.state(), sessionId);
-
-  // ─── Logging + Embeddings ────────────────────────────────
   logAppend = (
-    requestId: string, sessionId: string, agentId: string,
-    role: string, content: string, tokenCount?: number,
+    requestId: string,
+    sessionId: string,
+    agentId: string,
+    role: string,
+    content: string,
+    tokenCount?: number,
   ) => data.logAppend(this.state(), requestId, sessionId, agentId, role, content, tokenCount);
   logRead = (sessionId?: string, requestId?: string, limit?: number) =>
     data.logRead(this.state(), sessionId, requestId, limit);
@@ -117,8 +143,6 @@ export class ToolExecutor {
     data.embedSearch(this.state(), query, topK, layer);
   rerank = (query: string, passages: string[], topN?: number) =>
     data.rerank(this.state(), query, passages, topN);
-
-  // ─── Telegram ────────────────────────────────────────────
   tgSendMessage = (text: string) => tg.tgSendMessage(this.state(), text);
   tgListChats = (limit = 100) => tg.tgListChats(this.state(), limit);
   tgReadChat = (chatId: string, limit = 50, offsetId?: number) =>
@@ -129,9 +153,8 @@ export class ToolExecutor {
     tg.tgExcludeChat(this.state(), chatId, chatTitle, reason);
   tgIncludeChat = (chatId: string) => tg.tgIncludeChat(this.state(), chatId);
   tgListExcluded = () => tg.tgListExcluded(this.state());
-  tgFtsSearch = (
-    query: string, chatId?: string, from?: string, to?: string, limit?: number,
-  ) => tg.tgFtsSearch(this.state(), query, chatId, from, to, limit);
+  tgFtsSearch = (query: string, chatId?: string, from?: string, to?: string, limit?: number) =>
+    tg.tgFtsSearch(this.state(), query, chatId, from, to, limit);
 
   async sendReportEnriched(
     text: string,

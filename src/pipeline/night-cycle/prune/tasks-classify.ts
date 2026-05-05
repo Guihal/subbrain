@@ -10,9 +10,10 @@
  * where it is. `Classifier` is a minimal structural interface so tests can
  * inject a fake without pulling the full ModelRouter/Priority types.
  */
+
+import type { TaskScope } from "../../../db";
 import type { Priority } from "../../../lib/model-map";
 import type { ChatParams, ChatResponse } from "../../../providers/types";
-import type { TaskScope } from "../../../db";
 import { parseJson } from "../types";
 
 export const TASK_TAG_KEYWORDS = [
@@ -24,12 +25,7 @@ export const TASK_TAG_KEYWORDS = [
   "задача",
 ] as const;
 
-export const BLACKLIST_TAGS = [
-  "architecture",
-  "design",
-  "pattern",
-  "how-to",
-] as const;
+export const BLACKLIST_TAGS = ["architecture", "design", "pattern", "how-to"] as const;
 
 // Tokens marking a completed/archived status. Checked per-token (not
 // substring) because "done" is short enough to collide with normal words.
@@ -93,10 +89,11 @@ export function hasBlacklistTag(tags: string): boolean {
 
 export function hasCompletedStatusTag(tags: string): boolean {
   if (!tags) return false;
-  const tokens = tags.toLowerCase().split(",").map((t) => t.trim());
-  return tokens.some((t) =>
-    (COMPLETED_STATUS_TAGS as readonly string[]).includes(t),
-  );
+  const tokens = tags
+    .toLowerCase()
+    .split(",")
+    .map((t) => t.trim());
+  return tokens.some((t) => (COMPLETED_STATUS_TAGS as readonly string[]).includes(t));
 }
 
 export async function classifyCandidate(
@@ -142,15 +139,12 @@ export async function classifyCandidate(
       ? Math.max(0, Math.min(10, Math.trunc(parsed.priority)))
       : 0;
   const due_at =
-    typeof parsed.due_at === "number" && Number.isFinite(parsed.due_at)
-      ? parsed.due_at
-      : null;
+    typeof parsed.due_at === "number" && Number.isFinite(parsed.due_at) ? parsed.due_at : null;
   return {
     action: "migrate",
     scope: parsed.scope,
     title: parsed.title.trim(),
-    description:
-      typeof parsed.description === "string" ? parsed.description : "",
+    description: typeof parsed.description === "string" ? parsed.description : "",
     priority,
     due_at,
   };

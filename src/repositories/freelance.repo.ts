@@ -1,13 +1,9 @@
 /**
  * FreelanceRepository — PR 27 (LAYER-5). Wraps `FreelanceLeadsTable`.
  */
-import { Database } from "bun:sqlite";
+import type { Database } from "bun:sqlite";
 import { FreelanceLeadsTable } from "../db/tables/freelance-leads";
-import type {
-  FreelanceLeadRow,
-  FreelanceSource,
-  FreelanceStatus,
-} from "../db/types";
+import type { FreelanceLeadRow, FreelanceSource, FreelanceStatus } from "../db/types";
 
 export class FreelanceRepository {
   private readonly freelance: FreelanceLeadsTable;
@@ -35,7 +31,6 @@ export class FreelanceRepository {
   }): { items: FreelanceLeadRow[]; total: number } => this.freelance.list(opts);
   updateFreelanceStatus = (id: string, status: FreelanceStatus): void =>
     this.freelance.updateStatus(id, status);
-  countFreelanceLeadsSince = (ts: number): number =>
-    this.freelance.countLeadsSince(ts);
+  countFreelanceLeadsSince = (ts: number): number => this.freelance.countLeadsSince(ts);
   lastFreelanceLeadAt = (): number | null => this.freelance.lastCreatedAt();
 }
