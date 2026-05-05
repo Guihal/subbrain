@@ -908,6 +908,31 @@ export function migrate(db: Database): void {
       }
     })();
   }
+
+  // Migration 18 (P3-5): memory_blocks table.
+  // Editable named text fragments scoped per role. UNIQUE(owner_role, label)
+  // enforces one block per role+label pair. version starts at 1 and bumps
+  // on every update. Additive table — no backfill, no data loss elsewhere.
+  if (version < 18) {
+    const mig18Stmts = [
+      `CREATE TABLE IF NOT EXISTS memory_blocks (
+        id         TEXT PRIMARY KEY,
+        owner_role TEXT NOT NULL,
+        label      TEXT NOT NULL,
+        body       TEXT NOT NULL,
+        created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+        updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
+        version    INTEGER NOT NULL DEFAULT 1,
+        UNIQUE(owner_role, label)
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_blocks_role ON memory_blocks(owner_role)`,
+      `CREATE INDEX IF NOT EXISTS idx_blocks_label ON memory_blocks(label)`,
+      `PRAGMA user_version = 18`,
+    ];
+    db.transaction(() => {
+      for (const sql of mig18Stmts) db.query(sql).run();
+    })();
+  }
 }
 
 export { EMBEDDING_DIM };

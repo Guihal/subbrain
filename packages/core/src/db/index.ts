@@ -426,6 +426,18 @@ export class MemoryDB {
     offset: number;
   }) => this._tasks.listCompletedSince(opts);
 
+  // ─── Memory blocks (P3-5, mig 18) ──────────────────────────
+  insertBlock = (id: string, ownerRole: string, label: string, body: string) =>
+    this.memoryRepo.insertBlock(id, ownerRole, label, body);
+  updateBlock = (id: string, fields: { owner_role?: string; label?: string; body?: string }) =>
+    this.memoryRepo.updateBlock(id, fields);
+  getBlock = (id: string) => this.memoryRepo.getBlock(id);
+  getBlockByLabel = (ownerRole: string, label: string) => this.memoryRepo.getBlockByLabel(ownerRole, label);
+  listBlocks = (limit?: number, offset?: number) => this.memoryRepo.listBlocks(limit, offset);
+  listBlocksByRole = (ownerRole: string) => this.memoryRepo.listBlocksByRole(ownerRole);
+  countBlocks = () => this.memoryRepo.countBlocks();
+  deleteBlock = (id: string) => this.memoryRepo.deleteBlock(id);
+
   // ─── Memory edges (M-05, mig 14) ───────────────────────────
   // Thin facade over EdgeRepository — kept for parity with the other
   // memory layers; new pipeline code can hold edgesRepo directly.
