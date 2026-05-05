@@ -4,6 +4,8 @@
 > Human/strong-model updates CP4-CP5 and TBD resolution.
 > Format: `status: <state>` + `last_cp: <cp0|cp1|cp2|cp3|done>` + `blocker: <none|...>`
 
+> **2026-05-06 — model-tier restriction lifted by user.** All packets formerly tagged `STRONG-MODEL ONLY` are now Kimi-eligible. `SECURITY` / `DB operator` tags remain (they describe required acceptance gates — integration tests, operator auth, schema-change rollback notes — not delegation tier).
+
 ## Legend
 
 - `not_started` — packet not dispatched
@@ -66,7 +68,7 @@
 
 | Phase | Packet | Status | Last CP | Blocker | Notes |
 |---|---|---|---|---|---|
-| P2-1 | Agent tasks schema (mig 19) | `not_started` | — | **STRONG-MODEL ONLY** | CRITIC-PASSED |
+| P2-1 | Agent tasks schema (mig 19) | `not_started` | — | — | CRITIC-PASSED. Tier lifted 2026-05-06. |
 | P2-2 | Agent tasks repository | `not_started` | — | blocks on P2-1 | CRITIC-PASSED |
 | P2-3 | Agent pool runner | `not_started` | — | blocks on P2-1 | CRITIC-PASSED |
 | P2-4 | Terminate + artifact tool | `not_started` | — | blocks on P2-3 | CRITIC-PASSED |
@@ -79,22 +81,22 @@
 | P3-2 | Bi-temporal nullable cols (mig 17) | `done` | `cp3` | — | CRITIC-PASSED. Worker ab9473b0. Commit 8e25ac4. |
 | P3-3 | Bi-temporal active filter in retrieval | `done` | `cp3` | — | CRITIC-PASSED. Commit e8727a7. |
 | P3-4 | Edge-walk boost in RAG pipeline | `done` | `cp3` | — | CRITIC-PASSED. Commit 283b66c. Worker a270dc9d06a8ef641. /tmp script bypass worked. 1013 tests pass (+10 new). |
-| P3-5 | Memory blocks table (mig 18) | `not_started` | — | **STRONG-MODEL ONLY**, blocks on P3-2 | CRITIC-PASSED |
+| P3-5 | Memory blocks table (mig 18) | `not_started` | — | blocks on P3-2 | CRITIC-PASSED. Tier lifted 2026-05-06. |
 | P3-6 | Metrics scope fix | `not_started` | — | blocks on P3-5 | CRITIC-PASSED |
 | P3-7 | Predicate parens fix | `not_started` | — | blocks on P3-6 | CRITIC-PASSED |
 | P3-8 | rag/pipeline.ts → index.ts | `not_started` | — | blocks on P3-7 | CRITIC-PASSED |
 | P3-9 | Memory archive + TTL | `not_started` | — | blocks on P3-8 | CRITIC-PASSED |
 | P6-1 | A2A room init | `done` | `cp3` | — | CRITIC-PASSED. Commit 615920b. 26 LOC, no scope creep. |
 | P6-2 | A2A dispatch hook | `done` | `cp3` | — | CRITIC-PASSED. Commit 9699845. Worker a22d163d. |
-| P6-3 | A2A transcripts schema | `not_started` | — | **STRONG-MODEL ONLY** (schema choice), blocks on P6-2 | CRITIC-PASSED |
+| P6-3 | A2A transcripts schema | `not_started` | — | blocks on P6-2 | CRITIC-PASSED. Tier lifted 2026-05-06. |
 | P6-4 | A2A transport wiring | `not_started` | — | `<A2A_TRANSPORT>`, blocks on P6-3 | CRITIC-PASSED |
 | P6-5 | A2A synthesis loop | `not_started` | — | blocks on P6-3, P6-4 | CRITIC-PASSED |
 | P6-6 | A2A cleanup + docs | `not_started` | — | blocks on P6-5 | CRITIC-PASSED |
 | A2-1 | Plugin registry init | `done` | `cp3` | — | CRITIC-PASSED. Commit 31b3e84. Bundled with spec-cleanup. |
 | A2-2 | Plugin loader | `done` | `cp3` | — | CRITIC-PASSED. Commit e90a153. |
 | A2-3 | Plugin sandbox | `done` | `cp3` | — | CRITIC-PASSED. Commit 237d2a0. Hook wiring in tool-runner.ts + tests. |
-| A2-4 | Plugin hooks (pre/post) | `fail` | `cp1` | missing setHooks, runChatParams, permission.ask | CRITIC-PASSED. Attempt #1: rogue worker discarded. Attempt #2: worktree at wrong commit, discarded. Attempt #3: worker a647fda3 — untracked test file, production wiring incomplete. Attempt #4: `/task` RLM cycle dispatched but chat session closed before completion; work lost. Attempt #5: dispatching now. |
-| A2-5 | ToolResult kind union | `not_started` | — | **STRONG-MODEL ONLY** | CRITIC-PASSED |
+| A2-4 | Plugin hooks (pre/post) | `done` | `cp3` | — | CRITIC-PASSED. Commit 58f2342. Worker a3ddfcbb. cp0-cp2-cp3 green, 8/8 tests pass. |
+| A2-5 | ToolResult kind union | `not_started` | — | — | CRITIC-PASSED. Tier lifted 2026-05-06. |
 | A2-6 | Code-tool guards | `not_started` | — | **SECURITY** — integration tests mandatory, blocks on A2-3, A2-5 | CRITIC-PASSED |
 | A2-7 | TG spam gates | `not_started` | — | **SECURITY** — integration tests mandatory, blocks on A2-3, A2-5 | CRITIC-PASSED |
 | A2-8 | Plugin config + reload | `not_started` | — | blocks on A2-3 | CRITIC-PASSED |
@@ -108,7 +110,7 @@
 
 | Phase | Packet | Status | Last CP | Blocker | Notes |
 |---|---|---|---|---|---|
-| 8a-1 | Approval schema (mig 20+) | `not_started` | — | **STRONG-MODEL ONLY** | CRITIC-PASSED |
+| 8a-1 | Approval schema (mig 20+) | `not_started` | — | — | CRITIC-PASSED. Tier lifted 2026-05-06. |
 | 8a-2 | Approval spam gate | `not_started` | — | **SECURITY** | CRITIC-PASSED |
 | 8a-3 | Approval request flow | `not_started` | — | blocks on A2-5 | CRITIC-PASSED |
 | 8a-4 | Approval operator chat | `not_started` | — | blocks on A2-5 | CRITIC-PASSED |
@@ -123,7 +125,7 @@
 | 8c-6 | Backup docs | `not_started` | — | **DB** — operator auth | CRITIC-PASSED |
 | 8e-1 | PII scrub lib | `done` | `cp3` | — | CRITIC-PASSED. Commit 2ea5db2. 15/15 pii tests pass. cp0-cp1-cp2 green. |
 | 8e-2 | PII table layer | `not_started` | — | — | CRITIC-PASSED |
-| 8e-3 | PII tg_chats schema (mig 20+) | `not_started` | — | **STRONG-MODEL ONLY** | CRITIC-PASSED |
+| 8e-3 | PII tg_chats schema (mig 20+) | `not_started` | — | — | CRITIC-PASSED. Tier lifted 2026-05-06. |
 | 8e-4 | PII backfill + progress | `not_started` | — | — | CRITIC-PASSED |
 | 8e-5 | PII policy tools | `not_started` | — | — | CRITIC-PASSED |
 | 8e-6 | PII search guard | `not_started` | — | — | CRITIC-PASSED |
@@ -157,9 +159,9 @@
 | `<PII_MODEL>` | 8e | **RESOLVED** | regex-only v1 locked |
 | P5-1 Langfuse-vs-Laminar | P5-1 | **RESOLVED** | Langfuse chosen; `docs/specs/observability-choice.md` written |
 | `<PERMISSION_ASK_UX>` | A2 | open | default sync return-true |
-| P5-1 Langfuse-vs-Laminar | P5-1 | open | **STRONG-MODEL ONLY** |
+| P5-1 Langfuse-vs-Laminar | P5-1 | open | — (tier lifted 2026-05-06) |
 | P2-5a AgentLoopRequest | P2-5a | **RESOLVED** | Commit 051fb30 |
-| P2-7a Mutex | P2-7a | open | **STRONG-MODEL ONLY** |
+| P2-7a Mutex | P2-7a | open | — (tier lifted 2026-05-06) |
 | P6-3 schema choice | P6-3 | open | transcripts table vs artifact_payload |
 | 8a-1 migration number | 8a-1 | open | next free ≥20 |
 | 8e-3 migration number | 8e-3 | **RESOLVED** | migration 20 (was 17) |
