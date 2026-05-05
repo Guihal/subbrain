@@ -15,7 +15,7 @@ import type { ModelRouter } from "@subbrain/core/lib/model-router";
 import { maybeCompress } from "./compressor-hook";
 import { runToolCall } from "./tool-dispatch";
 import type { ToolRunnerDeps } from "./tool-runner";
-import { estimateTokens, MAX_CONTEXT_TOKENS } from "./types";
+import { estimateTokens, MAX_CONTEXT_TOKENS, type AgentLoopRequest } from "./types";
 
 export interface StepDeps {
   router: ModelRouter;
@@ -61,6 +61,7 @@ export async function executeStep(
   input: StepInputs,
   log: Log,
   hooks: StepHooks = {},
+  req?: AgentLoopRequest,
 ): Promise<StepResult> {
   const span = getTracer().startSpan("subbrain.agent.step", {
     attributes: {
@@ -90,9 +91,13 @@ export async function executeStep(
           tool_choice: "auto",
           max_tokens: 128_000,
           temperature: 0.7,
+          signal: req?.signal,
         },
         priority,
       );
+      if (response.usage && req?.onUsage) {
+        req.onUsage(response.usage);
+      }
     } finally {
       messages.pop();
     }

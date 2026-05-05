@@ -101,6 +101,7 @@ export function runStreamLoop(
               },
               onWarn: () => emit("warn", { step, error: "Empty response, nudging" }),
             },
+            req,
           );
 
           if (result.kind === "done") {

@@ -74,6 +74,7 @@ export async function runLoop(
           steps.push({ step, role: "assistant", content });
         },
       },
+      req,
     );
 
     if (result.kind === "done") {

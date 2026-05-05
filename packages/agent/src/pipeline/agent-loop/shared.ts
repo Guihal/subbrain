@@ -122,8 +122,8 @@ export async function initAgentLoopContext(
     agentMode,
   );
   const messages: Message[] = [
-    { role: "system", content: systemPrompt },
-    { role: "user", content: req.task },
+    { role: "system", content: req.systemMessage ?? systemPrompt },
+    { role: "user", content: req.userMessage ?? req.task },
   ];
 
   return {

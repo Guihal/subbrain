@@ -61,6 +61,14 @@ export interface AgentLoopRequest {
    * scope (admin / legacy back-compat).
    */
   agentId?: string | null;
+  /** Override the default system prompt content. */
+  systemMessage?: string;
+  /** Override the default user message content (defaults to `task`). */
+  userMessage?: string;
+  /** Abort signal propagated to the upstream chat call. */
+  signal?: AbortSignal;
+  /** Callback invoked with token usage after each step's model response. */
+  onUsage?: (usage: { prompt_tokens: number; completion_tokens: number; total_tokens: number }) => void;
 }
 
 export interface AgentLoopStep {
