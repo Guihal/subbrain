@@ -30,7 +30,7 @@ VS Code (Continue) / Telegram / Web
 
 ## Модели
 
-> Per-role NVIDIA NIM primaries (см. src/lib/model-map.ts); MiniMax-M2.7 fallback.
+> Per-role NVIDIA NIM primaries (см. packages/core/src/lib/model-map.ts); MiniMax-M2.7 fallback.
 
 | Роль | Виртуальное имя | Реальная модель (provider) | Fallback (provider) |
 | ---- | --------------- | -------------------------- | ------------------- |
@@ -44,7 +44,7 @@ VS Code (Continue) / Telegram / Web
 
 Embeddings: `nvidia/llama-3.2-nemoretriever-300m-embed-v1` · Embed-code: `nvidia/nv-embedcode-7b-v1` · Rerank: `nvidia/rerank-qa-mistral-4b`
 
-Смена модели для роли — только в `src/lib/model-map.ts`. Список ролей отдаётся динамически через `GET /v1/models`.
+Смена модели для роли — только в `packages/core/src/lib/model-map.ts`. Список ролей отдаётся динамически через `GET /v1/models`.
 
 ---
 
@@ -64,7 +64,7 @@ Embeddings: `nvidia/llama-3.2-nemoretriever-300m-embed-v1` · Embed-code: `nvidi
 bun install
 cp .env.example .env  # заполнить согласно разделу «Переменные окружения»
 bun run scripts/seed.ts
-bun run src/index.ts
+bun run packages/server/src/index.ts
 ```
 
 Сервер стартует на `http://localhost:4000`.
@@ -262,7 +262,7 @@ SQLite (4 слоя памяти + FTS5 + sqlite-vec)
 
 ## Модели (виртуальные роли)
 
-> Per-role NVIDIA NIM primaries (см. src/lib/model-map.ts); MiniMax-M2.7 fallback.
+> Per-role NVIDIA NIM primaries (см. packages/core/src/lib/model-map.ts); MiniMax-M2.7 fallback.
 
 | Роль                 | Виртуальное имя | Реальная модель                                       |
 | -------------------- | --------------- | ----------------------------------------------------- |
@@ -300,7 +300,7 @@ cp .env.example .env
 bun run scripts/seed.ts
 
 # Запустить сервер
-bun run src/index.ts
+bun run packages/server/src/index.ts
 ```
 
 Сервер поднимется на `http://localhost:4000`.
@@ -477,16 +477,12 @@ sudo systemctl reload caddy
 ## Структура проекта
 
 ```
-src/
-  index.ts          # Точка входа, инициализация
-  db/               # MemoryDB (SQLite + FTS5 + sqlite-vec)
-  lib/              # Auth, logger, metrics, model-map, rate-limiter
-  mcp/              # MCP-сервер + единый Tool Registry (src/mcp/registry/)
-  pipeline/         # AgentPipeline, ArbitrationRoom, NightCycle, AgentLoop
-  providers/        # NVIDIA NIM + MiniMax + OpenRouter клиенты
-  rag/              # RAG: embed + hybrid search + rerank
-  routes/           # HTTP роуты
-  telegram/         # Telegram Bot + MTProto Userbot
+packages/
+  core/src/         # DB, repositories, lib primitives (logger, model-map, auth)
+  providers/src/    # Provider clients, ModelRouter, RateLimiter
+  plugin/src/       # Plugin types stub (A2 runtime hooks)
+  agent/src/        # Pipeline, services, MCP tools, scheduler, telegram, RAG
+  server/src/       # Elysia routes, app bootstrap, MCP transport, entrypoint
 scripts/
   seed.ts           # Наполнение Layer 1 + Shared Memory
   audit-db.ts       # Аудит состояния БД

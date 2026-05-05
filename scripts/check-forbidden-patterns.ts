@@ -17,9 +17,8 @@ interface Rule {
 }
 
 const consoleAllowlist = new Set([
-  "src/lib/logger.ts",
   "packages/core/src/lib/logger.ts",
-  "src/app/deps.ts",
+  "packages/server/src/app/deps.ts",
   "packages/providers/src/index.ts",
 ]);
 
@@ -45,14 +44,14 @@ const rules: Rule[] = [
   {
     name: "no-console-in-src",
     pattern: /\bconsole\.(log|warn|error|info)\s*\(/,
-    paths: ["src/", ...globPackagesSrc()],
+    paths: globPackagesSrc(),
     severity: STRICT ? "error" : "warn",
     message: "Use logger.* instead of console.*",
   },
   {
     name: "no-raw-sql-in-routes",
     pattern: /\b(SELECT|INSERT\s+INTO|UPDATE\s+.*SET|DELETE\s+FROM)\b/i,
-    paths: ["src/routes/", "src/app/", "packages/server/src/routes/", "packages/server/src/app/"],
+    paths: ["packages/server/src/routes/", "packages/server/src/app/"],
     severity: "error",
     message: "Raw SQL must not appear in routes or app layer",
   },

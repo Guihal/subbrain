@@ -36,6 +36,6 @@
       "@subbrain/server/*": ["./packages/server/src/*"]
     }
   },
-  "include": ["src/**/*.ts", "packages/*/src/**/*.ts", "tests/**/*.ts", "scripts/**/*.ts"],
+  "include": ["packages/*/src/**/*.ts", "scripts/**/*.ts", "tests/**/*.ts"],
   "exclude": ["node_modules", "web", "tests", "scripts"]
 }

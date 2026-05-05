@@ -27,7 +27,7 @@ contradict, `FAIL: spec-conflict` and stop.
 | Where does `src/services/*` go? | `packages/agent/src/services/`. Importers live in `mcp/`, `pipeline/`, `app/`, `scheduler/`, plus thin uses by `routes/`. **Exception:** `src/services/auth.service.ts` moves to `packages/core/src/services/auth.service.ts` in A1-2 (cycle pre-split — `lib/auth.ts` middleware needs it; auth-service has zero non-stdlib imports). |
 | Where does `src/app/*` go? | `packages/server/src/app/`. Bootstrap, deps wiring, schedulers, shutdown — these are entrypoint glue used only by `src/index.ts`. |
 | Where do leftover `src/lib/*` files go (auth, clock, errors, memory-decay, metrics{.ts,/}, redact, sse)? | `packages/core/src/lib/`. They are infrastructure primitives reused by ≥2 packages. |
-| Where do `src/providers/types.ts`, `src/rag/types.ts`, `src/pipeline/agent-loop/code-tools/types.ts` go? | `packages/core/src/types/{providers,rag,code-tool}.ts` — pre-split in A1-2 to break would-be cycles (`lib/messages.ts` needs `providers/types`; `lib/memory-decay.ts` needs `rag/types`; `db/tables/code-tools.ts` + `repositories/code-tools.repo.ts` need `code-tool/types`). The originals get re-exported from their old locations until A1-4/A1-5 move the implementations. |
+| Where do `src/providers/types.ts`, `src/rag/types.ts`, `packages/agent/src/pipeline/agent-loop/code-tools/types.ts` go? | `packages/core/src/types/{providers,rag,code-tool}.ts` — pre-split in A1-2 to break would-be cycles (`lib/messages.ts` needs `providers/types`; `lib/memory-decay.ts` needs `rag/types`; `db/tables/code-tools.ts` + `repositories/code-tools.repo.ts` need `code-tool/types`). The originals get re-exported from their old locations until A1-4/A1-5 move the implementations. |
 | Where does `src/lib/personas/*` and `src/lib/personas.ts` go? | `packages/agent/src/personas/` (spec line 568 explicit). Both names coexist — `personas.ts` keeps that name; `personas/` directory keeps that name. Linux ext4 allows both; if a packet's filesystem rejects, halt with `FAIL: name-collision`. (`personas-root.ts` fallback removed — confirmed unnecessary on target FS.) |
 | Where do `src/rag/*` and `src/telegram/*` go? | `packages/agent/src/rag/` and `packages/agent/src/telegram/`. They are integration logic the agent loop depends on; not part of HTTP transport. |
 | Where do `src/mcp/transport.ts` and `src/mcp/mcp-protocol.ts` go? | `packages/server/src/mcp-transport/` (View-tier — they import Elysia and define HTTP/SSE routes per CLAUDE.md three-layer SoC). The rest of `src/mcp/` (registry, executor, tools, telegram-tools, snapshot, types, playwright-client, index) goes to `packages/agent/src/mcp/`. |
@@ -512,7 +512,7 @@ docker compose build                                 # exit 0
   "file_count_max": 80,
   "rollback": "git reset --hard HEAD~1 and bun install.",
   "escalation_triggers": [
-    "Any provider file imports from src/pipeline/, src/mcp/, src/scheduler/, or src/routes/ — would create cycle once agent/server are built; if found → FAIL: package-cycle.",
+    "Any provider file imports from packages/agent/src/pipeline/, packages/agent/src/mcp/, packages/agent/src/scheduler/, or packages/server/src/routes/ — would create cycle once agent/server are built; if found → FAIL: package-cycle.",
     "model-router imports model-map directly via relative path that crosses package boundary — must use @subbrain/core → FAIL: cross-pkg-relative-import.",
     "tsc reports unresolved @subbrain/core import inside packages/providers — workspace symlink missing → FAIL: workspace-resolution.",
     "src/providers/types.ts shim cannot be retired because some importer still uses the old path — list importers in fail message → FAIL: shim-still-used."
@@ -600,7 +600,7 @@ docker compose build                                 # exit 0
 ```json
 {
   "task_id": "A1-6a",
-  "goal": "Move src/pipeline/ and remaining src/services/ into packages/agent, establishing the package's manifest and barrel shape.",
+  "goal": "Move the pipeline directory and remaining services into packages/agent, establishing the package's manifest and barrel shape.",
   "non_goals": [
     "Do not move src/mcp/, src/scheduler/, src/rag/, src/telegram/, src/lib/personas* in this packet — those land in A1-6b/c/d.",
     "Do not split files. The 150-line cap whitelist stays untouched in cap numbers; only path keys update.",
@@ -1130,7 +1130,7 @@ docker compose build                                 # exit 0
   "risk_tier": "public-api",
   "acceptance": [
     "! grep -rn 'src/services/' CLAUDE.md AGENTS.md README.md",
-    "! grep -rn 'src/pipeline/' CLAUDE.md AGENTS.md README.md docs/tasks/runtime-arch/",
+    "! grep -rn 'src/pipeline/' CLAUDE.md AGENTS.md README.md docs/tasks/runtime-arch/A2-plugin-runtime.md",
     "! grep -rn 'src/routes/' CLAUDE.md AGENTS.md README.md",
     "! grep -rn 'src/db/' CLAUDE.md AGENTS.md README.md",
     "node -e \"const t=require('./tsconfig.json'); if(t.include && t.include.some(p=>p.startsWith('src/'))) process.exit(1)\"",

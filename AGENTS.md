@@ -34,7 +34,7 @@
 
 ### Карта виртуальных ролей → реальные модели
 
-> Per-role NVIDIA NIM primaries (см. `src/lib/model-map.ts`); MiniMax-M2.7 used as fallback for most roles.
+> Per-role NVIDIA NIM primaries (см. `packages/core/src/lib/model-map.ts`); MiniMax-M2.7 used as fallback for most roles.
 
 | Role | Primary | Primary provider | Fallback | Fallback provider |
 |---|---|---|---|---|
@@ -53,7 +53,7 @@
 | Embeddings (RAG, 26 языков) | `nvidia/llama-3.2-nemoretriever-300m-embed-v1` |
 | Rerank (улучшение RAG)      | `nvidia/rerank-qa-mistral-4b`                  |
 
-> Смена модели для роли — только в `src/lib/model-map.ts`. Список виртуальных имён генерируется динамически из `MODEL_MAP` и отдаётся через `GET /v1/models`.
+> Смена модели для роли — только в `packages/core/src/lib/model-map.ts`. Список виртуальных имён генерируется динамически из `MODEL_MAP` и отдаётся через `GET /v1/models`.
 
 ### OpenAI-compat (optional)
 
@@ -144,7 +144,7 @@ Layer 4 (raw_log, RU Plain Text)
 | **Общая комната**    | Сложные архитектурные таски    | Параллельный вызов 3–4 специалистов (`Promise.all`), Тимлид синтезирует итог |
 | **Автономный режим** | Работа в фоне при неактивности | AgentLoop, каждые 15 мин: дайджест ТГ, поиск вакансий/идей, анализ рутины    |
 
-**Автономный агент** (`src/pipeline/agent-loop/`) имеет доступ ко всем публичным тулам реестра + agent-only мета-тулам:
+**Автономный агент** (`packages/agent/src/pipeline/agent-loop/`) имеет доступ ко всем публичным тулам реестра + agent-only мета-тулам:
 
 - **Память / RAG:** `memory_search` · `memory_write` · `memory_read` · `memory_delete` · `context_summary` · `rag_search`
 - **Лог и эмбеддинги:** `log_append` · `log_read` · `compress_history` · `embed_text` · `embed_search` · `rerank`
@@ -196,7 +196,7 @@ Layer 4 (raw_log, RU Plain Text)
        │
        ▼
 ┌──────────────────────────────────────────────────────────┐
-│          Tool Registry (src/mcp/registry/)               │
+│          Tool Registry (packages/agent/src/mcp/registry/)               │
 │  Единое описание тулов → REST + MCP JSON-RPC + AgentLoop │
 │  public:    memory_* · log_* · embed_* · rag_*           │
 │             tg_* · web_* (Playwright, out-of-process)    │

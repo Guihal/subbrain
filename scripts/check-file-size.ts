@@ -38,12 +38,6 @@ const DEFAULT_CAP = 150;
 
 // Permanent whitelist — каждое исключение требует обоснования (см. SKILL.md §1).
 export const CANONICAL_WHITELIST: Record<string, number> = {
-  "src/db/schema.ts": 1500,
-  "src/db/index.ts": 500,
-  "src/db/types.ts": 300,
-  "src/app/deps.ts": 500,
-  "src/lib/model-map.ts": 300,
-  "src/lib/logger.ts": 210,
   "packages/agent/src/pipeline/agent-loop/system-prompt.ts": 300,
   "packages/agent/src/rag/pipeline/index.ts": 200,
 };
@@ -62,6 +56,7 @@ export const CANONICAL_GLOB_WHITELIST: Array<{ glob: RegExp; cap: number; label:
 export const TRANSITIONAL_WHITELIST: Record<string, number> = {
   "scripts/check-file-size.ts": 200,
   "packages/agent/src/pipeline/context-compressor.ts": 300,
+  "packages/server/src/app/deps.ts": 500,
   "packages/core/src/db/schema.ts": 1500,
   "packages/core/src/db/index.ts": 500,
   "packages/core/src/db/types.ts": 300,

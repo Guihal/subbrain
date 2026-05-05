@@ -43,7 +43,7 @@
 | A1-7 | packages/server: routes/, app/, mcp-transport/, src/index.ts | `done` | `cp3` | — | CRITIC-PASSED |
 | A1-7a | AppDeps cycle break (free-agent.ts -> FreeAgentSchedulerDeps) | `done` | `cp3` | — | CRITIC-PASSED |
 | A1-8 | Docker build update | `done` | `cp3` | — | CRITIC-PASSED |
-| A1-9 | Cleanup, doc paths, root tsconfig narrowing | `dispatched` | — | — | bg worker ac5635e8dd10b27f2 (2026-05-05); path rewrites in progress |
+| A1-9 | Cleanup, doc paths, root tsconfig narrowing | `dispatched` | — | — | bg worker a4b961e56c9573ccb (2026-05-05); fixing duplicate key + SKILL.md whitelist sync |
 | P4-0 | Pin BAML CLI version | `done` | `cp3` | — | CRITIC-PASSED |
 | P4-1 | BAML init + lockfile | `done` | `cp3` | — | CRITIC-PASSED |
 | P4-2 | BAML ESM config | `done` | `cp3` | — | CRITIC-PASSED |

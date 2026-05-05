@@ -40,8 +40,6 @@ const SEGMENT_THRESHOLD = 3;
 // Transitional — known deep imports awaiting barrel/index re-export in their target folder.
 // Format: `<source-rel>:<importPath>`. Removed PR-by-PR as targets expose proper public API.
 const TRANSITIONAL_DEEP_IMPORTS = new Set<string>([
-  "scripts/freelance-probe.ts:../src/mcp/snapshot",
-  "scripts/migrate-tasks-from-memory.ts:../src/pipeline/night-cycle/prune/tasks-classify",
   "packages/agent/src/mcp/registry/code-mgmt.tools.ts:../../pipeline/agent-loop/code-tools/sandbox",
   "packages/agent/src/mcp/registry/code-mgmt.tools.ts:../../pipeline/agent-loop/code-tools/code-tool-validators",
 ]);
