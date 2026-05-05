@@ -5,10 +5,10 @@
 import type { RequestLogger } from "../../../lib/logger";
 import type { Metrics } from "../../../lib/metrics";
 import type { ModelRouter } from "../../../lib/model-router";
+import { getTracer } from "../../../lib/telemetry";
 import type { ChatResponse } from "../../../providers/types";
 import { injectSystemPrompt } from "../helpers";
 import type { PipelineRequest } from "../types";
-import { getTracer } from "../../../lib/telemetry";
 
 export interface MainResult {
   response: ChatResponse;

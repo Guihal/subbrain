@@ -10,8 +10,8 @@ import type { MemoryDB } from "../../db";
 import type { logger } from "../../lib/logger";
 import type { Priority } from "../../lib/model-map";
 import type { ModelRouter } from "../../lib/model-router";
-import type { Message, Tool, ToolCall } from "../../providers/types";
 import { getTracer } from "../../lib/telemetry";
+import type { Message, Tool, ToolCall } from "../../providers/types";
 import { maybeCompress } from "./compressor-hook";
 import { runToolCall } from "./tool-dispatch";
 import type { ToolRunnerDeps } from "./tool-runner";
@@ -84,19 +84,33 @@ export async function executeStep(
     try {
       response = await deps.router.chat(
         model,
-        { messages, tools: getAllTools(), tool_choice: "auto", max_tokens: 128_000, temperature: 0.7 },
+        {
+          messages,
+          tools: getAllTools(),
+          tool_choice: "auto",
+          max_tokens: 128_000,
+          temperature: 0.7,
+        },
         priority,
       );
     } finally {
       messages.pop();
     }
     const choice = response.choices[0];
-    if (!choice) { span.setStatus({ code: 2 }); return { kind: "error", error: "Empty response from model" }; }
+    if (!choice) {
+      span.setStatus({ code: 2 });
+      return { kind: "error", error: "Empty response from model" };
+    }
     const msg = choice.message;
     const reasoning = msg.reasoning_content || "";
     if (reasoning) hooks.onThinking?.(reasoning);
     if (msg.tool_calls && msg.tool_calls.length > 0) {
-      const assistantMsg: Message = { role: "assistant", content: msg.content, tool_calls: msg.tool_calls, ...(reasoning ? { reasoning_content: reasoning } : {}) };
+      const assistantMsg: Message = {
+        role: "assistant",
+        content: msg.content,
+        tool_calls: msg.tool_calls,
+        ...(reasoning ? { reasoning_content: reasoning } : {}),
+      };
       hooks.onAssistantWithTools?.(assistantMsg);
       messages.push(assistantMsg);
       for (const tc of msg.tool_calls) {
@@ -112,7 +126,11 @@ export async function executeStep(
     const content = visible || reasoning;
     if (content) {
       hooks.onAssistantContent?.(content);
-      messages.push({ role: "assistant", content: msg.content, ...(reasoning ? { reasoning_content: reasoning } : {}) });
+      messages.push({
+        role: "assistant",
+        content: msg.content,
+        ...(reasoning ? { reasoning_content: reasoning } : {}),
+      });
       messages.push({ role: "user", content: NUDGE_AFTER_CONTENT });
       return { kind: "assistant", content };
     }

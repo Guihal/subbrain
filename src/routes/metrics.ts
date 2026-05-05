@@ -18,7 +18,10 @@ interface MetricsSnapshot {
   errors: { "429": number; "5xx": number; timeout: number; other: number };
   latency: { count: number; p50: number; p95: number; p99: number; max: number };
   latency_by_stage: Record<string, { p50: number; p95: number; count: number }>;
-  models: Record<string, { requests: number; tokensIn: number; tokensOut: number; avgLatencyMs: number }>;
+  models: Record<
+    string,
+    { requests: number; tokensIn: number; tokensOut: number; avgLatencyMs: number }
+  >;
 }
 
 function aggregateSnapshots(rows: { timestamp: number; snapshot: string }[]) {
@@ -31,7 +34,10 @@ function aggregateSnapshots(rows: { timestamp: number; snapshot: string }[]) {
   let totalErrorsTimeout = 0;
   let totalErrorsOther = 0;
 
-  const modelAgg: Record<string, { requests: number; tokensIn: number; tokensOut: number; totalLatencyMs: number }> = {};
+  const modelAgg: Record<
+    string,
+    { requests: number; tokensIn: number; tokensOut: number; totalLatencyMs: number }
+  > = {};
   const latencies: number[] = [];
   const stageAgg: Record<string, { p50s: number[]; p95s: number[]; counts: number[] }> = {};
 
@@ -73,9 +79,13 @@ function aggregateSnapshots(rows: { timestamp: number; snapshot: string }[]) {
 
   const sorted = [...latencies].sort((a, b) => a - b);
   const p50 = sorted.length > 0 ? sorted[Math.floor(sorted.length * 0.5)] : 0;
-  const p95 = sorted.length > 0 ? sorted[Math.floor(sorted.length * 0.95)] || sorted[sorted.length - 1] : 0;
+  const p95 =
+    sorted.length > 0 ? sorted[Math.floor(sorted.length * 0.95)] || sorted[sorted.length - 1] : 0;
 
-  const models: Record<string, { requests: number; tokensIn: number; tokensOut: number; avgLatencyMs: number }> = {};
+  const models: Record<
+    string,
+    { requests: number; tokensIn: number; tokensOut: number; avgLatencyMs: number }
+  > = {};
   for (const [name, a] of Object.entries(modelAgg)) {
     models[name] = {
       requests: a.requests,
@@ -88,12 +98,14 @@ function aggregateSnapshots(rows: { timestamp: number; snapshot: string }[]) {
   const latency_by_stage: Record<string, { p50: number; p95: number; count: number }> = {};
   for (const [stage, a] of Object.entries(stageAgg)) {
     const totalCount = a.counts.reduce((s, c) => s + c, 0);
-    const weightedP50 = totalCount > 0
-      ? Math.round(a.p50s.reduce((s, v, i) => s + v * a.counts[i], 0) / totalCount)
-      : 0;
-    const weightedP95 = totalCount > 0
-      ? Math.round(a.p95s.reduce((s, v, i) => s + v * a.counts[i], 0) / totalCount)
-      : 0;
+    const weightedP50 =
+      totalCount > 0
+        ? Math.round(a.p50s.reduce((s, v, i) => s + v * a.counts[i], 0) / totalCount)
+        : 0;
+    const weightedP95 =
+      totalCount > 0
+        ? Math.round(a.p95s.reduce((s, v, i) => s + v * a.counts[i], 0) / totalCount)
+        : 0;
     latency_by_stage[stage] = { p50: weightedP50, p95: weightedP95, count: totalCount };
   }
 
@@ -114,27 +126,26 @@ function aggregateSnapshots(rows: { timestamp: number; snapshot: string }[]) {
 }
 
 export function metricsRunsRoute(metricsRepo: MetricsRepository) {
-  return new Elysia({ prefix: "/v1/metrics/runs" })
-    .get(
-      "/",
-      ({ query, set }) => {
-        const now = Math.floor(Date.now() / 1000);
-        const from = query.from ?? now - 86400;
-        const to = query.to ?? now;
+  return new Elysia({ prefix: "/v1/metrics/runs" }).get(
+    "/",
+    ({ query, set }) => {
+      const now = Math.floor(Date.now() / 1000);
+      const from = query.from ?? now - 86400;
+      const to = query.to ?? now;
 
-        if (from > to) {
-          set.status = 400;
-          return { error: { message: "from must not be greater than to" } };
-        }
+      if (from > to) {
+        set.status = 400;
+        return { error: { message: "from must not be greater than to" } };
+      }
 
-        const rows = metricsRepo.listInRange(from, to);
-        return aggregateSnapshots(rows);
-      },
-      {
-        query: t.Object({
-          from: t.Optional(t.Number({ minimum: 0 })),
-          to: t.Optional(t.Number({ minimum: 0 })),
-        }),
-      },
-    );
+      const rows = metricsRepo.listInRange(from, to);
+      return aggregateSnapshots(rows);
+    },
+    {
+      query: t.Object({
+        from: t.Optional(t.Number({ minimum: 0 })),
+        to: t.Optional(t.Number({ minimum: 0 })),
+      }),
+    },
+  );
 }

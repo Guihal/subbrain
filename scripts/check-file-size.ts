@@ -72,7 +72,7 @@ export const TRANSITIONAL_WHITELIST: Record<string, number> = {
   "src/pipeline/night-cycle/steps/cross-layer-dedup.ts": 245,
   "src/pipeline/agent-pipeline/pre/exec-summary.ts": 245,
   "src/pipeline/agent-pipeline/post/dedupe.ts": 241,
-  "src/pipeline/agent-loop/tool-runner.ts": 241,
+  "src/pipeline/agent-loop/tool-runner.ts": 250,
   "src/pipeline/agent-loop/shared.ts": 224,
   "src/pipeline/agent-pipeline/post/validators.ts": 211,
   "src/rag/report-context.ts": 208,
@@ -108,6 +108,7 @@ export const TRANSITIONAL_WHITELIST: Record<string, number> = {
   "src/pipeline/agent-loop/step.ts": 155,
   "web/app/pages/freelance.vue": 152,
   "src/lib/http-client.ts": 151,
+  "src/routes/metrics.ts": 155,
   "src/pipeline/night-cycle/janitor/phase-bc.ts": 165,
 };
 

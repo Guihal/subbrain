@@ -5,9 +5,9 @@
 
 import type { RequestLogger } from "../../../lib/logger";
 import type { Metrics } from "../../../lib/metrics";
+import { getTracer } from "../../../lib/telemetry";
 import type { ChatResponse } from "../../../providers/types";
 import type { ArbitrationRoom } from "../../arbitration";
-import { getTracer } from "../../../lib/telemetry";
 
 export interface RoomResult {
   response: ChatResponse;
@@ -37,7 +37,9 @@ export async function runRoom(args: {
   });
 
   try {
-    log.info("main", `Arbitration Room activated: ${roomConfig.agents.join(",")}`, { model: "room" });
+    log.info("main", `Arbitration Room activated: ${roomConfig.agents.join(",")}`, {
+      model: "room",
+    });
     const start = Date.now();
     const result = await room.run(userMessage, systemPrompt, roomConfig);
     const durationMs = Date.now() - start;

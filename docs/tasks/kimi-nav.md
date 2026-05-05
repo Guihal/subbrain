@@ -53,9 +53,9 @@
 | P4-6 | BAML pool artifact (deferred) | `not_started` | — | blocks on Phase 2 | CRITIC-PASSED |
 | P5-1 | Observability decision | `done` | `cp3` | — | CRITIC-PASSED |
 | P5-2 | OTel SDK init | `done` | `cp3` | — | CRITIC-PASSED |
-| P5-3 | Pipeline phase spans | `dispatched` | — | — | CRITIC-PASSED |
-| P5-4 | Agent-loop spans | `dispatched` | — | — | CRITIC-PASSED |
-| P5-5 | Metrics endpoint | `dispatched` | — | — | CRITIC-PASSED |
+| P5-3 | Pipeline phase spans | `done` | `cp3` | — | CRITIC-PASSED |
+| P5-4 | Agent-loop spans | `done` | `cp3` | — | CRITIC-PASSED |
+| P5-5 | Metrics endpoint | `done` | `cp3` | — | CRITIC-PASSED |
 | P5-6 | OTLP exporter wiring | `not_started` | — | — | CRITIC-PASSED |
 
 **Wave 1 merge gate:** ALL above `done` → unblocks Wave 2.

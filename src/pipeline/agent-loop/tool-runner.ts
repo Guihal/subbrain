@@ -119,7 +119,9 @@ function parseOk(result: string): { ok: boolean; code?: string } {
       return { ok: false, code };
     }
     if (p.success === false) return { ok: false };
-  } catch { /* non-JSON = success */ }
+  } catch {
+    /* non-JSON = success */
+  }
   return { ok: true };
 }
 
@@ -140,17 +142,31 @@ export async function executeAgentTool(
     return JSON.stringify({ error: "Invalid JSON arguments" });
   }
 
-  log.info("agent-loop", `Tool: ${name}(${JSON.stringify(args).slice(0, 200)})`, { meta: { tool: name } });
+  log.info("agent-loop", `Tool: ${name}(${JSON.stringify(args).slice(0, 200)})`, {
+    meta: { tool: name },
+  });
 
   try {
     const result = await withToolTimeout(name, async (signal) => {
       if (deps.registry.has(name)) {
-        const r = await deps.registry.callAsAgent(name, args, {
-          executor: deps.tools, router: deps.router, room: deps.room,
-          dynamicTools: deps.dynamicTools, persistDynamicTools: deps.persistDynamicTools,
-          codeTools: deps.codeTools, log, registry: deps.registry, session: deps.session,
-          agentId: deps.agentId, agentMode: deps.agentMode,
-        }, signal);
+        const r = await deps.registry.callAsAgent(
+          name,
+          args,
+          {
+            executor: deps.tools,
+            router: deps.router,
+            room: deps.room,
+            dynamicTools: deps.dynamicTools,
+            persistDynamicTools: deps.persistDynamicTools,
+            codeTools: deps.codeTools,
+            log,
+            registry: deps.registry,
+            session: deps.session,
+            agentId: deps.agentId,
+            agentMode: deps.agentMode,
+          },
+          signal,
+        );
         if (name === "done" && r.success && typeof r.data === "string") return r.data;
         return JSON.stringify(r);
       }
@@ -160,7 +176,10 @@ export async function executeAgentTool(
         const toolName = name.slice(5);
         const codeTool = deps.codeTools.getByName(toolName);
         if (codeTool) {
-          if (!codeTool.enabled) return JSON.stringify({ error: `Code tool "${toolName}" is disabled (too many errors)` });
+          if (!codeTool.enabled)
+            return JSON.stringify({
+              error: `Code tool "${toolName}" is disabled (too many errors)`,
+            });
           const input = (args.input as string) || "";
           log.info("agent-loop", `Executing code tool: ${toolName}`);
           const res = await executeSandboxed(codeTool.code, input);

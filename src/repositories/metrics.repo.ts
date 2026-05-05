@@ -1,5 +1,5 @@
 import type { Database } from "bun:sqlite";
-import { MetricsTable, type MetricsLogRow } from "../db/tables/metrics";
+import { type MetricsLogRow, MetricsTable } from "../db/tables/metrics";
 
 export class MetricsRepository {
   private readonly table: MetricsTable;

@@ -5,6 +5,7 @@ import type { MemoryDB } from "../../../db";
 import type { RequestLogger } from "../../../lib/logger";
 import type { Metrics } from "../../../lib/metrics";
 import type { ModelRouter } from "../../../lib/model-router";
+import { getTracer } from "../../../lib/telemetry";
 import type { ToolExecutor } from "../../../mcp";
 import type { ToolRegistry } from "../../../mcp/registry";
 import type { RAGPipeline } from "../../../rag";
@@ -12,7 +13,6 @@ import { injectSystemPrompt } from "../helpers";
 import type { PipelineRequest } from "../types";
 import { runPostFromStream } from "./post";
 import { runPre } from "./pre";
-import { getTracer } from "../../../lib/telemetry";
 
 const SSE_KEEPALIVE_MS = 8_000;
 

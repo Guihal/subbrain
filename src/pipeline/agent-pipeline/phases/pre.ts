@@ -8,12 +8,12 @@
  */
 import type { MemoryDB } from "../../../db";
 import type { ModelRouter } from "../../../lib/model-router";
+import { getTracer } from "../../../lib/telemetry";
 import type { RAGPipeline, RAGResult } from "../../../rag";
 import { buildSystemPrompt } from "../helpers";
 import { buildExecutiveSummary } from "../pre/exec-summary";
 import { buildSeedContext, loadFocusSeed } from "../pre/focus-inject";
 import type { PreProcessingOutput } from "../types";
-import { getTracer } from "../../../lib/telemetry";
 
 export interface PreStats {
   ragCount: number;
@@ -40,7 +40,17 @@ export async function runPre(args: {
   agentId?: string | null;
   requestId?: string;
 }): Promise<PreResult> {
-  const { memory, router, rag, model, userMessage, firstMessage, onProgress, agentId = null, requestId = "" } = args;
+  const {
+    memory,
+    router,
+    rag,
+    model,
+    userMessage,
+    firstMessage,
+    onProgress,
+    agentId = null,
+    requestId = "",
+  } = args;
   const tracer = getTracer();
   const span = tracer.startSpan("subbrain.pipeline.pre", {
     attributes: {
@@ -68,7 +78,9 @@ export async function runPre(args: {
       };
     }
     onProgress?.("🔍 Загрузка директив и фактов...\n");
-    onProgress?.(`📚 ${Object.keys(seed.focusEntries).length} директив, ${seed.sharedMemory.length} фактов\n`);
+    onProgress?.(
+      `📚 ${Object.keys(seed.focusEntries).length} директив, ${seed.sharedMemory.length} фактов\n`,
+    );
     if (seed.sharedMemory.length === 0 && Object.keys(seed.focusEntries).length === 0) {
       const preOutput: PreProcessingOutput = {
         executiveSummary: "",
@@ -84,7 +96,15 @@ export async function runPre(args: {
       };
     }
     const seedContext = buildSeedContext(seed);
-    const exec = await buildExecutiveSummary({ router, memory, rag, userMessage, seedContext, onProgress, agentId });
+    const exec = await buildExecutiveSummary({
+      router,
+      memory,
+      rag,
+      userMessage,
+      seedContext,
+      onProgress,
+      agentId,
+    });
     const rawMemoryBlock = buildRawMemoryBlock(seedContext, exec.ragResults);
     onProgress?.(`✅ Контекст собран за ${exec.steps} шагов (${exec.summary.length} символов)\n`);
     const preOutput: PreProcessingOutput = {
@@ -116,7 +136,9 @@ function buildRawMemoryBlock(seedContext: string, ragResults: RAGResult[]): stri
     parts.push("\n### RAG Results (task-relevant)");
     for (const r of ragResults) {
       const ts = r.updated_at || r.created_at;
-      const date = ts ? ` [${new Date(ts * 1000).toISOString().slice(0, 16).replace("T", " ")}]` : "";
+      const date = ts
+        ? ` [${new Date(ts * 1000).toISOString().slice(0, 16).replace("T", " ")}]`
+        : "";
       parts.push(`- (${r.layer})${date} **${r.title}**: ${r.snippet}`);
     }
   }

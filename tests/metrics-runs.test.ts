@@ -16,7 +16,9 @@ describe("GET /v1/metrics/runs", () => {
   });
 
   test("returns empty aggregate when no rows", async () => {
-    const res = await app.handle(new Request("http://localhost/v1/metrics/runs?from=0&to=9999999999"));
+    const res = await app.handle(
+      new Request("http://localhost/v1/metrics/runs?from=0&to=9999999999"),
+    );
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.snapshots).toBe(0);
@@ -35,9 +37,13 @@ describe("GET /v1/metrics/runs", () => {
       latency_by_stage: { pre: { p50: 50, p95: 100, count: 1 } },
       models: { teamlead: { requests: 2, tokensIn: 100, tokensOut: 200, avgLatencyMs: 150 } },
     };
-    db.db.query("INSERT INTO metrics_log (timestamp, snapshot) VALUES (1000, ?)").run(JSON.stringify(snap));
+    db.db
+      .query("INSERT INTO metrics_log (timestamp, snapshot) VALUES (1000, ?)")
+      .run(JSON.stringify(snap));
 
-    const res = await app.handle(new Request("http://localhost/v1/metrics/runs?from=0&to=9999999999"));
+    const res = await app.handle(
+      new Request("http://localhost/v1/metrics/runs?from=0&to=9999999999"),
+    );
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.snapshots).toBe(1);
@@ -58,8 +64,12 @@ describe("GET /v1/metrics/runs", () => {
       latency_by_stage: {},
       models: {},
     };
-    db.db.query("INSERT INTO metrics_log (timestamp, snapshot) VALUES (100, ?)").run(JSON.stringify(snap));
-    db.db.query("INSERT INTO metrics_log (timestamp, snapshot) VALUES (200, ?)").run(JSON.stringify(snap));
+    db.db
+      .query("INSERT INTO metrics_log (timestamp, snapshot) VALUES (100, ?)")
+      .run(JSON.stringify(snap));
+    db.db
+      .query("INSERT INTO metrics_log (timestamp, snapshot) VALUES (200, ?)")
+      .run(JSON.stringify(snap));
 
     const res = await app.handle(new Request("http://localhost/v1/metrics/runs?from=150&to=250"));
     expect(res.status).toBe(200);
@@ -87,7 +97,9 @@ describe("GET /v1/metrics/runs", () => {
       latency_by_stage: {},
       models: {},
     };
-    db.db.query("INSERT INTO metrics_log (timestamp, snapshot) VALUES (?, ?)").run(now - 3600, JSON.stringify(snap));
+    db.db
+      .query("INSERT INTO metrics_log (timestamp, snapshot) VALUES (?, ?)")
+      .run(now - 3600, JSON.stringify(snap));
 
     const res = await app.handle(new Request("http://localhost/v1/metrics/runs"));
     expect(res.status).toBe(200);
@@ -116,10 +128,16 @@ describe("GET /v1/metrics/runs", () => {
       latency_by_stage: {},
       models: { teamlead: { requests: 4, tokensIn: 200, tokensOut: 400, avgLatencyMs: 200 } },
     };
-    db.db.query("INSERT INTO metrics_log (timestamp, snapshot) VALUES (1000, ?)").run(JSON.stringify(snap1));
-    db.db.query("INSERT INTO metrics_log (timestamp, snapshot) VALUES (2000, ?)").run(JSON.stringify(snap2));
+    db.db
+      .query("INSERT INTO metrics_log (timestamp, snapshot) VALUES (1000, ?)")
+      .run(JSON.stringify(snap1));
+    db.db
+      .query("INSERT INTO metrics_log (timestamp, snapshot) VALUES (2000, ?)")
+      .run(JSON.stringify(snap2));
 
-    const res = await app.handle(new Request("http://localhost/v1/metrics/runs?from=0&to=9999999999"));
+    const res = await app.handle(
+      new Request("http://localhost/v1/metrics/runs?from=0&to=9999999999"),
+    );
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.snapshots).toBe(2);
