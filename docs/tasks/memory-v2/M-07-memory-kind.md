@@ -13,19 +13,19 @@ Foundation для **M-08** (forgetting curve — persona никогда не "з
 
 ## Файлы (scope-lock)
 
-- `src/db/schema.ts` — Migration **12** (assigned). `ALTER TABLE shared_memory ADD COLUMN kind TEXT NOT NULL DEFAULT 'semantic'` + backfill UPDATE по category mapping (см. ниже) + CHECK-constraint через trigger (SQLite ALTER не поддерживает ADD CHECK напрямую).
-- `src/db/types.ts` — `kind: 'persona' | 'semantic' | 'episodic' | 'procedural'` на `SharedRow` (NOT optional — NOT NULL DEFAULT в схеме).
-- `src/pipeline/agent-pipeline/post/validators.ts` — добавить функцию `categoryToKind(category: string, layer: 'shared' | 'context'): MemoryKind`. Маршрутизация:
+- `packages/core/packages/core/packages/core/src/db/schema.ts` — Migration **12** (assigned). `ALTER TABLE shared_memory ADD COLUMN kind TEXT NOT NULL DEFAULT 'semantic'` + backfill UPDATE по category mapping (см. ниже) + CHECK-constraint через trigger (SQLite ALTER не поддерживает ADD CHECK напрямую).
+- `packages/core/packages/core/packages/core/src/db/types.ts` — `kind: 'persona' | 'semantic' | 'episodic' | 'procedural'` на `SharedRow` (NOT optional — NOT NULL DEFAULT в схеме).
+- `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/validators.ts` — добавить функцию `categoryToKind(category: string, layer: 'shared' | 'context'): MemoryKind`. Маршрутизация:
   - shared.profile / preference / relationship → `persona`
   - shared.goal / skill / constraint / style → `semantic`
   - context.* → не используется (kind остаётся только на shared в M-07)
   - default → `semantic`
-- `src/pipeline/agent-pipeline/post/extractors.ts` — `writeShared` пробрасывает `kind` в `MemoryService.insertShared`.
-- `src/services/memory.service.ts` — `insertShared` принимает optional `kind?: MemoryKind`; default `'semantic'`. Прокидывается в `repo.insertShared` → `db/tables/shared.ts`.
-- `src/repositories/memory.repo.ts` — расширить сигнатуру.
-- `src/db/tables/shared.ts` — `insertShared` принимает `kind`; SELECT-list (если явный) расширить.
-- `src/rag/pipeline.ts` — в rerank scoring (или recency-boost функции) добавить `if (r.layer === 'shared' && r.kind === 'persona') score *= 1.1`. Тип `RAGResult` расширить `kind?: string` (optional т.к. context/archive/log не имеют поля).
-- `src/routes/memory.ts` — `GET /v1/memory/shared` принять опциональный `?kind=persona` query-param (TypeBox enum). Применить в SELECT.
+- `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/extractors.ts` — `writeShared` пробрасывает `kind` в `MemoryService.insertShared`.
+- `packages/agent/src/services/memory.service.ts` — `insertShared` принимает optional `kind?: MemoryKind`; default `'semantic'`. Прокидывается в `repo.insertShared` → `db/tables/shared.ts`.
+- `packages/core/src/repositories/memory.repo.ts` — расширить сигнатуру.
+- `packages/core/src/db/tables/shared.ts` — `insertShared` принимает `kind`; SELECT-list (если явный) расширить.
+- `packages/agent/packages/agent/src/rag/pipeline/index.ts` — в rerank scoring (или recency-boost функции) добавить `if (r.layer === 'shared' && r.kind === 'persona') score *= 1.1`. Тип `RAGResult` расширить `kind?: string` (optional т.к. context/archive/log не имеют поля).
+- `packages/server/packages/server/packages/server/src/routes/memory.ts` — `GET /v1/memory/shared` принять опциональный `?kind=persona` query-param (TypeBox enum). Применить в SELECT.
 - `web/app/composables/useMemory.ts` — добавить `kind` в shared filter state.
 - `web/app/pages/memory.vue` — kind dropdown на shared tab (`<select>` с 4 опциями + "all").
 - `tests/memory-kind.test.ts` — **NEW** файл.
@@ -74,7 +74,7 @@ PRAGMA user_version = 12;
 ### `categoryToKind` helper
 
 ```ts
-// src/pipeline/agent-pipeline/post/validators.ts
+// packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/validators.ts
 export type MemoryKind = 'persona' | 'semantic' | 'episodic' | 'procedural';
 
 const PERSONA_CATEGORIES = new Set(['profile', 'preference', 'relationship']);
@@ -131,8 +131,8 @@ if (r.layer === 'shared' && r.kind === 'persona') {
 4. `sqlite3 <db> "PRAGMA table_info(shared_memory);"` → новая колонка `kind` (TEXT, NOT NULL, default `'semantic'`).
 5. `sqlite3 <db> "SELECT name FROM sqlite_master WHERE type='trigger' AND name LIKE 'trg_shared_kind%'"` → 2 rows.
 6. `sqlite3 <db> "SELECT name FROM sqlite_master WHERE type='index' AND name='idx_shared_kind'"` → 1 row.
-7. `grep -n "categoryToKind\|MemoryKind" src/pipeline/agent-pipeline/post/{validators,extractors}.ts` → ≥3 hits.
-8. `grep -n "PERSONA_BOOST\|kind === 'persona'" src/rag/pipeline.ts` → ≥1 hit, в rerank-scoring блоке.
+7. `grep -n "categoryToKind\|MemoryKind" packages/agent/packages/agent/src/pipeline/agent-pipeline/post/{validators,extractors}.ts` → ≥3 hits.
+8. `grep -n "PERSONA_BOOST\|kind === 'persona'" packages/agent/packages/agent/src/rag/pipeline/index.ts` → ≥1 hit, в rerank-scoring блоке.
 9. `docs/tasks/memory-v2/M-07-memory-kind.md` — Status: DONE.
 
 ## Риск + mitigations

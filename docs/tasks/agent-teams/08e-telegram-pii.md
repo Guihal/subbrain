@@ -44,12 +44,12 @@ search/read tools operating on the same scrubbed text.
 4. **No PII scrub for autobot's own outbound messages.** `tg_send_message`
    output is model-generated; if it leaks PII it is an upstream prompt-leak
    issue and is governed by Phase 8a approval flow, not this phase.
-5. **Do not disable the existing night-cycle PII scrub step** (`src/pipeline/night-cycle/steps/scrub.ts`).
+5. **Do not disable the existing night-cycle PII scrub step** (`packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/steps/scrub.ts`).
    It stays for defense-in-depth (e.g. legacy rows, future ingest paths).
 6. **No new tracking of message author identity beyond what `tg_messages.from_name`
    already stores.** The spec already accepts that `from_name` is plaintext.
 7. **No frontend changes in this phase.** No edits under `web/app/`.
-8. **No new model roles.** No edits to `src/lib/model-map.ts`.
+8. **No new model roles.** No edits to `packages/core/packages/core/src/lib/model-map.ts`.
 9. **No changes to `tg_send_message`, `tg_list_chats` shape, or any other
    telegram tool besides the ones explicitly named in 8e-5.**
 10. **No backup-format changes.** That is Phase 8c.
@@ -60,7 +60,7 @@ search/read tools operating on the same scrubbed text.
   Today's ingest paths: `scripts/tg-reindex.ts` (backfill) and any code
   that calls `MemoryDB.insertTgMessage` / `insertTgMessages` (currently
   the reindex script and a future poller). The userbot live monitor
-  (`src/telegram/userbot/monitor.ts`) writes to `layer4_log` via
+  (`packages/agent/packages/agent/packages/agent/src/telegram/userbot/monitor.ts`) writes to `layer4_log` via
   `appendLog`, NOT to `tg_messages`. Layer 4 is out of scope for this
   phase.
 - **Policy** — a string column on `tg_chats` (new) that determines what
@@ -101,7 +101,7 @@ policy='exclude'`).
 
 - `nvidia/gliner-pii` was floated in the spec source, but as of
   2026-05-05 it is **not verified live on NIM free-tier** in this repo
-  (no entry in `src/lib/model-map.ts`, no provider call site). Adding a
+  (no entry in `packages/core/packages/core/src/lib/model-map.ts`, no provider call site). Adding a
   new NIM-hosted model with its own latency budget on the hot ingest
   path = scope creep.
 - A regex set is cheap, pure-function, deterministic, testable, and runs
@@ -141,7 +141,7 @@ Sequential. Each merges as one PR. Single packet ≤ 300 LOC, ≤ 4 files.
     "tests/pii-scrub.test.ts"
   ],
   "read_context": [
-    "src/lib/fts-utils.ts",
+    "packages/core/src/lib/fts-utils.ts",
     "docs/tasks/agent-teams/08e-telegram-pii.md"
   ],
   "risk_tier": "security",
@@ -175,23 +175,23 @@ Sequential. Each merges as one PR. Single packet ≤ 300 LOC, ≤ 4 files.
 ```json
 {
   "task_id": "8e-2",
-  "goal": "Add unconditional scrub to TgMessagesTable.insert in src/db/tables/tg-messages.ts so that text is replaced by scrubPII(text).scrubbed before SQL execution. insertMany delegates to insert. Add a pure helper `applyAtIngest(row)` in src/services/tg-ingest.ts that callers (scripts/tg-reindex.ts) invoke before passing rows to the repository; this helper scrubs text and will later (8e-5) read chat policy from tg_chats. pii_scrubbed_at column does not exist yet (8e-3), so do not reference it.",
+  "goal": "Add unconditional scrub to TgMessagesTable.insert in packages/core/packages/core/src/db/tables/tg-messages.ts so that text is replaced by scrubPII(text).scrubbed before SQL execution. insertMany delegates to insert. Add a pure helper `applyAtIngest(row)` in packages/agent/src/services/tg-ingest.ts that callers (scripts/tg-reindex.ts) invoke before passing rows to the repository; this helper scrubs text and will later (8e-5) read chat policy from tg_chats. pii_scrubbed_at column does not exist yet (8e-3), so do not reference it.",
   "non_goals": [
-    "Do not edit src/db/schema.ts in this packet (column add lives in 8e-3).",
-    "Do not edit src/repositories/telegram.repo.ts beyond adding a typed pass-through.",
+    "Do not edit packages/core/packages/core/src/db/schema.ts in this packet (column add lives in 8e-3).",
+    "Do not edit packages/core/packages/core/src/repositories/telegram.repo.ts beyond adding a typed pass-through.",
     "Do not change the wire shape of TgMessageInsert.",
     "Do not skip insert for empty scrubbed text — empty body is still a row (timestamp + sender are useful).",
-    "Do not import src/services/tg-ingest.ts from src/db/tables/tg-messages.ts (Data→Logic import violates SoC §1a). Table layer scrubs unconditionally; policy-aware routing lives in service layer only."
+    "Do not import packages/agent/src/services/tg-ingest.ts from packages/core/packages/core/src/db/tables/tg-messages.ts (Data→Logic import violates SoC §1a). Table layer scrubs unconditionally; policy-aware routing lives in service layer only."
   ],
   "allowed_write_paths": [
-    "src/services/tg-ingest.ts",
-    "src/db/tables/tg-messages.ts",
+    "packages/agent/src/services/tg-ingest.ts",
+    "packages/core/packages/core/src/db/tables/tg-messages.ts",
     "scripts/tg-reindex.ts",
     "tests/tg-ingest.test.ts"
   ],
   "read_context": [
-    "src/db/tables/tg-messages.ts",
-    "src/repositories/telegram.repo.ts",
+    "packages/core/packages/core/src/db/tables/tg-messages.ts",
+    "packages/core/packages/core/src/repositories/telegram.repo.ts",
     "scripts/tg-reindex.ts",
     "src/lib/pii-scrub.ts"
   ],
@@ -201,20 +201,20 @@ Sequential. Each merges as one PR. Single packet ≤ 300 LOC, ≤ 4 files.
     "bun run scripts/check-file-size.ts",
     "bun run scripts/check-deep-imports.ts",
     "bun test tests/tg-ingest.test.ts",
-    "grep -E '(insertTgMessage|insertTgMessages)' src/services/tg-ingest.ts",
-    "test -z \"$(grep -RE 'insertTgMessages?\\(' scripts/ src/ | grep -v src/services/tg-ingest.ts | grep -v src/db/tables/tg-messages.ts | grep -v src/repositories/telegram.repo.ts | grep -v src/db/index.ts | grep -v tests/)\""
+    "grep -E '(insertTgMessage|insertTgMessages)' packages/agent/src/services/tg-ingest.ts",
+    "test -z \"$(grep -RE 'insertTgMessages?\\(' scripts/ src/ | grep -v packages/agent/src/services/tg-ingest.ts | grep -v packages/core/packages/core/src/db/tables/tg-messages.ts | grep -v packages/core/packages/core/src/repositories/telegram.repo.ts | grep -v packages/core/packages/core/src/db/index.ts | grep -v tests/)\""
   ],
   "diff_budget_loc": 260,
   "file_count_max": 4,
   "rollback": "git revert; ingest reverts to direct insertTgMessages calls. No column was added, so DB stays compatible.",
-  "whitelist_add": "src/services/tg-ingest.ts → 260 (new ingest-orchestration module)",
+  "whitelist_add": "packages/agent/src/services/tg-ingest.ts → 260 (new ingest-orchestration module)",
   "escalation_triggers": [
     "A second ingest call site exists outside scripts/ that this packet does not enumerate (the spec lists scripts/tg-reindex.ts as the only current ingest path; if a poller-side insert is also writing tg_messages, escalate).",
     "TgMessagesTable.insertMany cannot be wrapped without breaking the in-place transaction semantics.",
     "tg-ingest.test.ts cannot reach >=80% line coverage of the new helper."
   ],
   "glossary": {
-    "applyAtIngest(row)": "Pure function in src/services/tg-ingest.ts: takes TgMessageInsert, returns TgMessageInsert with text replaced by scrubPII(text).scrubbed. Does not touch the DB. Tested in isolation."
+    "applyAtIngest(row)": "Pure function in packages/agent/src/services/tg-ingest.ts: takes TgMessageInsert, returns TgMessageInsert with text replaced by scrubPII(text).scrubbed. Does not touch the DB. Tested in isolation."
   }
 }
 ```
@@ -226,21 +226,21 @@ Sequential. Each merges as one PR. Single packet ≤ 300 LOC, ≤ 4 files.
 ```json
 {
   "task_id": "8e-3",
-  "goal": "Add SQLite migration 20 in src/db/schema.ts that creates table tg_chats(chat_id TEXT PRIMARY KEY, chat_title TEXT NOT NULL DEFAULT '', policy TEXT NOT NULL DEFAULT 'metadata_only' CHECK(policy IN ('ingest','ingest_scrubbed','metadata_only','exclude')), reason TEXT NOT NULL DEFAULT '', created_at INTEGER NOT NULL DEFAULT (unixepoch()), updated_at INTEGER NOT NULL DEFAULT (unixepoch())), seeds it from existing tg_excluded_chats with policy='exclude', drops tg_excluded_chats, recreates a SQL view named tg_excluded_chats SELECTing chat_id/chat_title/reason/created_at FROM tg_chats WHERE policy='exclude' for back-compat SELECTs only, and adds column pii_scrubbed_at INTEGER NULL to tg_messages — all inside a single db.transaction() with PRAGMA user_version = 20.",
+  "goal": "Add SQLite migration 20 in packages/core/packages/core/src/db/schema.ts that creates table tg_chats(chat_id TEXT PRIMARY KEY, chat_title TEXT NOT NULL DEFAULT '', policy TEXT NOT NULL DEFAULT 'metadata_only' CHECK(policy IN ('ingest','ingest_scrubbed','metadata_only','exclude')), reason TEXT NOT NULL DEFAULT '', created_at INTEGER NOT NULL DEFAULT (unixepoch()), updated_at INTEGER NOT NULL DEFAULT (unixepoch())), seeds it from existing tg_excluded_chats with policy='exclude', drops tg_excluded_chats, recreates a SQL view named tg_excluded_chats SELECTing chat_id/chat_title/reason/created_at FROM tg_chats WHERE policy='exclude' for back-compat SELECTs only, and adds column pii_scrubbed_at INTEGER NULL to tg_messages — all inside a single db.transaction() with PRAGMA user_version = 20.",
   "non_goals": [
-    "Do not edit any code under src/repositories/, src/db/tables/, src/services/, or src/mcp/ in this packet — the back-compat view keeps existing SELECTs working; DML updates to exclude/include are handled in 8e-5.",
+    "Do not edit any code under packages/core/src/repositories/, packages/core/src/db/tables/, packages/agent/src/services/, or packages/agent/src/mcp/ in this packet — the back-compat view keeps existing SELECTs working; DML updates to exclude/include are handled in 8e-5.",
     "Do not rename insertTgChat / getExcludedTgChats etc.",
     "Do not write any new index besides one on tg_chats(policy).",
     "Do not seed tg_chats from any source other than tg_excluded_chats (no auto-discovery from tg_messages.chat_id)."
   ],
   "allowed_write_paths": [
-    "src/db/schema.ts",
+    "packages/core/packages/core/src/db/schema.ts",
     "tests/schema-migration-20.test.ts"
   ],
   "read_context": [
-    "src/db/schema.ts:282-360",
-    "src/db/schema.ts:860-879",
-    "src/db/tables/chats.ts:80-110"
+    "packages/core/packages/core/src/db/schema.ts:282-360",
+    "packages/core/packages/core/src/db/schema.ts:860-879",
+    "packages/core/packages/core/src/db/tables/chats.ts:80-110"
   ],
   "risk_tier": "schema",
   "acceptance": [
@@ -286,7 +286,7 @@ Sequential. Each merges as one PR. Single packet ≤ 300 LOC, ≤ 4 files.
     "tests/tg-pii-backfill.test.ts"
   ],
   "read_context": [
-    "src/db/tables/tg-messages.ts",
+    "packages/core/packages/core/src/db/tables/tg-messages.ts",
     "src/lib/pii-scrub.ts",
     "scripts/tg-reindex.ts",
     "scripts/audit-db.ts"
@@ -322,7 +322,7 @@ Sequential. Each merges as one PR. Single packet ≤ 300 LOC, ≤ 4 files.
 ```json
 {
   "task_id": "8e-5",
-  "goal": "Register MCP tool tg_set_chat_policy(chat_id:string, policy:'ingest'|'ingest_scrubbed'|'metadata_only'|'exclude', chat_title?:string, reason?:string) in src/mcp/registry/telegram.tools.ts with scope:'agent-only' that UPSERTs into tg_chats and updates updated_at, extend ChatRepository with setChatPolicy(...) and listKnownTgChats() in src/repositories/chat.repo.ts (with raw SQL in src/db/tables/chats.ts), update ChatsTable.excludeTgChat to INSERT/UPDATE tg_chats with policy='exclude' and includeTgChat to DELETE from tg_chats (view is SELECT-only back-compat), and extend the existing tg_list_chats handler so the returned objects include a `policy` field sourced from tg_chats (default 'metadata_only' if no row).",
+  "goal": "Register MCP tool tg_set_chat_policy(chat_id:string, policy:'ingest'|'ingest_scrubbed'|'metadata_only'|'exclude', chat_title?:string, reason?:string) in packages/agent/packages/agent/src/mcp/registry/telegram.tools.ts with scope:'agent-only' that UPSERTs into tg_chats and updates updated_at, extend ChatRepository with setChatPolicy(...) and listKnownTgChats() in packages/core/packages/core/src/repositories/chat.repo.ts (with raw SQL in packages/core/packages/core/src/db/tables/chats.ts), update ChatsTable.excludeTgChat to INSERT/UPDATE tg_chats with policy='exclude' and includeTgChat to DELETE from tg_chats (view is SELECT-only back-compat), and extend the existing tg_list_chats handler so the returned objects include a `policy` field sourced from tg_chats (default 'metadata_only' if no row).",
   "non_goals": [
     "Do not change any other tg_* tool signature (tg_read_chat, tg_search_messages, telegram_search, tg_send_message, tg_list_excluded all stay byte-identical in shape).",
     "Do not add a frontend page or vue component for policy.",
@@ -330,16 +330,16 @@ Sequential. Each merges as one PR. Single packet ≤ 300 LOC, ≤ 4 files.
     "Do not auto-rescrub historical rows when policy changes (rescrub is a separate operator action via 8e-4 script)."
   ],
   "allowed_write_paths": [
-    "src/mcp/registry/telegram.tools.ts",
-    "src/repositories/chat.repo.ts",
-    "src/db/tables/chats.ts",
+    "packages/agent/packages/agent/src/mcp/registry/telegram.tools.ts",
+    "packages/core/packages/core/src/repositories/chat.repo.ts",
+    "packages/core/packages/core/src/db/tables/chats.ts",
     "tests/tg-policy-tool.test.ts"
   ],
   "read_context": [
-    "src/mcp/registry/telegram.tools.ts",
-    "src/db/tables/chats.ts:80-110",
-    "src/repositories/chat.repo.ts:30-50",
-    "src/mcp/telegram-tools.ts:80-110"
+    "packages/agent/packages/agent/src/mcp/registry/telegram.tools.ts",
+    "packages/core/packages/core/src/db/tables/chats.ts:80-110",
+    "packages/core/packages/core/src/repositories/chat.repo.ts:30-50",
+    "packages/agent/packages/agent/src/mcp/telegram-tools.ts:80-110"
   ],
   "risk_tier": "security",
   "acceptance": [
@@ -347,19 +347,19 @@ Sequential. Each merges as one PR. Single packet ≤ 300 LOC, ≤ 4 files.
     "bun run scripts/check-file-size.ts",
     "bun run scripts/check-deep-imports.ts",
     "bun test tests/tg-policy-tool.test.ts",
-    "grep -q 'tg_set_chat_policy' src/mcp/registry/telegram.tools.ts",
-    "grep -q \"scope: \\\"agent-only\\\"\" src/mcp/registry/telegram.tools.ts"
+    "grep -q 'tg_set_chat_policy' packages/agent/packages/agent/src/mcp/registry/telegram.tools.ts",
+    "grep -q \"scope: \\\"agent-only\\\"\" packages/agent/packages/agent/src/mcp/registry/telegram.tools.ts"
   ],
   "diff_budget_loc": 280,
   "file_count_max": 4,
   "rollback": "git revert. tg_chats rows added through the tool stay in the DB but are inert without the tool definition (legacy code only reads tg_excluded_chats view).",
   "escalation_triggers": [
     "agent-loop's tool dispatcher cannot resolve 'agent-only' scope for tg_set_chat_policy.",
-    "ToolExecutor in src/mcp/telegram-tools.ts has no pass-through for setChatPolicy and adding one breaks an unrelated test.",
+    "ToolExecutor in packages/agent/packages/agent/src/mcp/telegram-tools.ts has no pass-through for setChatPolicy and adding one breaks an unrelated test.",
     "tg_list_chats handler is shared with userbot listChats and adding a `policy` field breaks an existing consumer."
   ],
   "glossary": {
-    "agent-only": "Scope value defined in src/mcp/registry/tool-registry.ts; tool is exposed to the autonomous loop but NOT to the public REST/MCP surface. Intentional — only operator agents change ingest policy."
+    "agent-only": "Scope value defined in packages/agent/packages/agent/src/mcp/registry/tool-registry.ts; tool is exposed to the autonomous loop but NOT to the public REST/MCP surface. Intentional — only operator agents change ingest policy."
   }
 }
 ```
@@ -371,7 +371,7 @@ Sequential. Each merges as one PR. Single packet ≤ 300 LOC, ≤ 4 files.
 ```json
 {
   "task_id": "8e-6",
-  "goal": "Update the JSDoc on TgMessagesTable.search in src/db/tables/tg-messages.ts and on tg_search_messages + telegram_search registry entries in src/mcp/registry/telegram.tools.ts to state that the FTS index is built over scrubbed text (PII tokens appear as [REDACTED:<type>] in results) and that recall on PII queries is intentionally lower; add a runtime guard in src/db/tables/tg-messages.ts:search that, if the raw opts.query (before sanitizeFtsQuery) contains the literal substring 'REDACTED:', throws an Error('pii_query_blocked') so callers cannot probe the redaction marker.",
+  "goal": "Update the JSDoc on TgMessagesTable.search in packages/core/packages/core/src/db/tables/tg-messages.ts and on tg_search_messages + telegram_search registry entries in packages/agent/packages/agent/src/mcp/registry/telegram.tools.ts to state that the FTS index is built over scrubbed text (PII tokens appear as [REDACTED:<type>] in results) and that recall on PII queries is intentionally lower; add a runtime guard in packages/core/packages/core/src/db/tables/tg-messages.ts:search that, if the raw opts.query (before sanitizeFtsQuery) contains the literal substring 'REDACTED:', throws an Error('pii_query_blocked') so callers cannot probe the redaction marker.",
   "non_goals": [
     "Do not change the FTS schema, tokenizer, or trigger definitions.",
     "Do not introduce a separate non-scrubbed search path.",
@@ -379,14 +379,14 @@ Sequential. Each merges as one PR. Single packet ≤ 300 LOC, ≤ 4 files.
     "Do not log the rejected query string itself."
   ],
   "allowed_write_paths": [
-    "src/db/tables/tg-messages.ts",
-    "src/mcp/registry/telegram.tools.ts",
+    "packages/core/packages/core/src/db/tables/tg-messages.ts",
+    "packages/agent/packages/agent/src/mcp/registry/telegram.tools.ts",
     "tests/tg-search-redaction.test.ts"
   ],
   "read_context": [
-    "src/db/tables/tg-messages.ts",
-    "src/mcp/registry/telegram.tools.ts",
-    "src/lib/fts-utils.ts"
+    "packages/core/packages/core/src/db/tables/tg-messages.ts",
+    "packages/agent/packages/agent/src/mcp/registry/telegram.tools.ts",
+    "packages/core/src/lib/fts-utils.ts"
   ],
   "risk_tier": "security",
   "acceptance": [
@@ -429,11 +429,11 @@ Sequential. Each merges as one PR. Single packet ≤ 300 LOC, ≤ 4 files.
   ],
   "read_context": [
     "src/lib/pii-scrub.ts",
-    "src/services/tg-ingest.ts",
-    "src/db/tables/tg-messages.ts",
-    "src/mcp/registry/telegram.tools.ts",
+    "packages/agent/src/services/tg-ingest.ts",
+    "packages/core/packages/core/src/db/tables/tg-messages.ts",
+    "packages/agent/packages/agent/src/mcp/registry/telegram.tools.ts",
     "scripts/tg-pii-backfill.ts",
-    "src/pipeline/night-cycle/steps/scrub.ts"
+    "packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/steps/scrub.ts"
   ],
   "risk_tier": "ordinary",
   "acceptance": [

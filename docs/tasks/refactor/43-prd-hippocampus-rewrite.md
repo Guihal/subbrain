@@ -16,32 +16,32 @@ Post-pipeline extractor пишет фокусно: 0-3 факта на exchange,
 Эта задача — **prompt rewrite + hard cap + telemetry hook + tests update**. Pure logic + textual swap. Никакой schema-changes, никакого pool, никакого teamlead synthesis.
 
 **Allowed actions:**
-- Edit `src/pipeline/agent-pipeline/post/prompt.ts` — rewrite `getExtractorPrompt()` body. Только текст; signature остаётся.
-- Edit `src/pipeline/agent-pipeline/post/hippocampus.ts` — добавить `MAX_WRITES_PER_EXCHANGE=3` const + counter + cap-check; telemetry log entries.
+- Edit `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/prompt.ts` — rewrite `getExtractorPrompt()` body. Только текст; signature остаётся.
+- Edit `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/hippocampus.ts` — добавить `MAX_WRITES_PER_EXCHANGE=3` const + counter + cap-check; telemetry log entries.
 - Edit `tests/hippocampus-extraction.test.ts` — обновить expectations под новый prompt и cap.
 - Создать `tests/hippocampus-cap.test.ts` — purely cap behavior test.
-- Edit `src/lib/metrics.ts` если файл существует — добавить counter. Если не существует — НЕ создавать, использовать `logger.info` calls (см. §3).
+- Edit `packages/core/packages/core/src/lib/metrics.ts` если файл существует — добавить counter. Если не существует — НЕ создавать, использовать `logger.info` calls (см. §3).
 - `bunx tsc --noEmit`, `bun test`, `bun run scripts/check-file-size.ts`.
 - `git commit -m "feat(hippocampus): focused writes (≤3 per exchange) + supersede-aware (PR-D)"`.
 
 **Hard NO-GO:**
 - НЕ менять `MAX_HIPPO_STEPS=5` (это другая метрика).
 - НЕ менять signature `getExtractorPrompt`, `runHippocampus`, или `MIN_EXTRACTION_LENGTH`.
-- НЕ trogать `src/pipeline/agent-pipeline/post/extractors.ts`, `gate.ts` (они out-of-scope).
+- НЕ trogать `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/extractors.ts`, `gate.ts` (они out-of-scope).
 - НЕ менять `WHITELIST_*` из PR-A (это уже merged, contractual).
 - НЕ trogать pool/runners/teamlead/arbitration (PR-C/E территория).
 - НЕ создавать новый MCP tool / новый layer / новую таблицу.
 - НЕ менять `memory_search` cosine threshold для других callers — только в hippocampus prompt.
-- НЕ trogать `src/pipeline/arbitration/prompts.ts` (PR-E).
+- НЕ trogать `packages/agent/packages/agent/packages/agent/src/pipeline/arbitration/prompts.ts` (PR-E).
 - НЕ `git push`, НЕ `gh`, НЕ `--no-verify`.
 - НЕ запускать prod / docker / ssh — deploy не часть задачи.
 - В новом prompt'е НЕ писать «save tokens» / «be efficient» / «не пиши слишком много» (anti-economy, лимит даётся через rule #1, не через лозунг).
 
 **Diff boundary:** ровно эти файлы:
 ```
-src/pipeline/agent-pipeline/post/hippocampus.ts
-src/pipeline/agent-pipeline/post/prompt.ts
-src/lib/metrics.ts                                    # ТОЛЬКО если файл уже существует
+packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/hippocampus.ts
+packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/prompt.ts
+packages/core/src/lib/metrics.ts                                    # ТОЛЬКО если файл уже существует
 tests/hippocampus-extraction.test.ts
 tests/hippocampus-cap.test.ts
 ```
@@ -51,8 +51,8 @@ tests/hippocampus-cap.test.ts
 
 ## Файлы
 
-- [src/pipeline/agent-pipeline/post/prompt.ts](../../../src/pipeline/agent-pipeline/post/prompt.ts) — пересобрать `getExtractorPrompt` (текстовый swap; никаких behavior-changes в коде кроме prompt).
-- [src/pipeline/agent-pipeline/post/hippocampus.ts](../../../src/pipeline/agent-pipeline/post/hippocampus.ts) — добавить hard cap `MAX_WRITES_PER_EXCHANGE=3` (было `MAX_HIPPO_STEPS=5`, оставить — это другая метрика). После 3-го успешного write — `done` принудительно.
+- [packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/prompt.ts](../../../packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/prompt.ts) — пересобрать `getExtractorPrompt` (текстовый swap; никаких behavior-changes в коде кроме prompt).
+- [packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/hippocampus.ts](../../../packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/hippocampus.ts) — добавить hard cap `MAX_WRITES_PER_EXCHANGE=3` (было `MAX_HIPPO_STEPS=5`, оставить — это другая метрика). После 3-го успешного write — `done` принудительно.
 - [tests/hippocampus-extraction.test.ts](../../../tests/hippocampus-extraction.test.ts) — обновить ожидания.
 
 ## Изменение
@@ -108,7 +108,7 @@ if (writesCount >= MAX_WRITES_PER_EXCHANGE) {
 
 ### 3. Telemetry counter (для acceptance)
 
-Добавить в [src/lib/metrics.ts](../../../src/lib/metrics.ts) если есть, иначе log:
+Добавить в [packages/core/src/lib/metrics.ts](../../../packages/core/src/lib/metrics.ts) если есть, иначе log:
 - `hippocampus_writes_per_exchange` — histogram (в runtime — log entry с `{exchange_id, writes_count, skipped_dup_count}`).
 - При `cosine ≥0.92` skip → `logger.info("hippocampus", "skip_dup", {cosine, candidate_first_50})`.
 - При `cosine 0.85-0.92` supersede → `logger.info("hippocampus", "supersede", {old_id, new_content_first_50})`.
@@ -137,8 +137,8 @@ if (writesCount >= MAX_WRITES_PER_EXCHANGE) {
 | 4 | Supersede-aware logic пишет в `supersedes_id` несуществующий id (race с deletion) | `memory_search` возвращает live row из db; между search и write — single hippocampus step (sequential). Window race теоретически есть, но FK не enforced на supersedes_id (nullable hint, не constraint). | Если найдём dangling supersedes_id rows в night-janitor → janitor чистит. Не блокер этого PR. |
 | 5 | Telemetry log entries ломают log parser (новый formatter контракт) | Использовать `logger.info(stage, message, extra?)` 3-arg arity (см. CLAUDE.md guardrail #9). `extra` — plain object, JSON.stringify-able. | Если log meta corrupt — `logger.formatForDb` fallback. tsc + `bun test` ловит arity bug при ручной проверке. |
 | 6 | Новый prompt collision с PR-A whitelist validator (категория не в whitelist) | Rule #3 в prompt'е явно перечисляет whitelist categories (shared/context). Prompt инструктирует «если ни одна не подходит → не пиши, done». | Если LLM всё равно пишет non-whitelist → PR-A validator блокирует write с `validation_failed`. Hippocampus loop получает error в tool_result, переходит к следующему step / done. Test #5 в § Тесты явно проверяет. |
-| 7 | Файл-кап 150 строк сломан после добавления counter + telemetry в hippocampus.ts | Перед commit'ом проверить `wc -l src/pipeline/agent-pipeline/post/hippocampus.ts ≤150`. Если близко к лимиту — extract counter+cap-check helper в `post/cap-guard.ts` (но это уже expansion scope — proceed с осторожностью). | Если split неизбежен — добавить новый файл в diff boundary explicitly, обновить план. Не игнорировать file-cap. |
-| 8 | Anti-economy violation в новом prompt'е («save tokens» / «не пиши слишком много» / «постарайся уложиться») | Hard NO-GO в § Контракт. Self-check: `grep -niE 'save token\|be efficient\|постарайся уложиться\|не пиши слишком много\|не используй tool без нужды' src/pipeline/agent-pipeline/post/prompt.ts → 0 matches`. | Если grep matches — переписать prompt rule, лимит передаётся через rule #1 (cap=3), не лозунгами. |
+| 7 | Файл-кап 150 строк сломан после добавления counter + telemetry в hippocampus.ts | Перед commit'ом проверить `wc -l packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/hippocampus.ts ≤150`. Если близко к лимиту — extract counter+cap-check helper в `post/cap-guard.ts` (но это уже expansion scope — proceed с осторожностью). | Если split неизбежен — добавить новый файл в diff boundary explicitly, обновить план. Не игнорировать file-cap. |
+| 8 | Anti-economy violation в новом prompt'е («save tokens» / «не пиши слишком много» / «постарайся уложиться») | Hard NO-GO в § Контракт. Self-check: `grep -niE 'save token\|be efficient\|постарайся уложиться\|не пиши слишком много\|не используй tool без нужды' packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/prompt.ts → 0 matches`. | Если grep matches — переписать prompt rule, лимит передаётся через rule #1 (cap=3), не лозунгами. |
 | 9 | Existing tests падают на новом prompt тексте (assertion на старые фразы) | `tests/hippocampus-extraction.test.ts` обновляется в этом PR — assertions перепиваются под новый prompt. Stub LLM возвращает фиксированные tool_calls, prompt content не assert'ится дословно. | Если test фейлит на assertion `expect(prompt).toContain('старая фраза')` — заменить на новые phrases (surprising/non-obvious/actionable). |
 
 ## Приёмка
@@ -161,41 +161,41 @@ bun test 2>&1 | tail -3
 # 4. File caps
 bun run scripts/check-file-size.ts
 # expect: exit 0, "all files under cap"
-wc -l src/pipeline/agent-pipeline/post/hippocampus.ts src/pipeline/agent-pipeline/post/prompt.ts
+wc -l packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/hippocampus.ts packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/prompt.ts
 # expect: оба ≤150
 
 # 5. MAX_WRITES_PER_EXCHANGE constant added
-grep -nE 'MAX_WRITES_PER_EXCHANGE\s*=\s*3' src/pipeline/agent-pipeline/post/hippocampus.ts
+grep -nE 'MAX_WRITES_PER_EXCHANGE\s*=\s*3' packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/hippocampus.ts
 # expect: ≥1 match
 
 # 6. New prompt phrases active (Russian + English keywords)
-grep -nE 'surprising|non-obvious|actionable' src/pipeline/agent-pipeline/post/prompt.ts
+grep -nE 'surprising|non-obvious|actionable' packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/prompt.ts
 # expect: ≥3 matches (фразы из rule headers)
-grep -cE 'memory_search.*candidate' src/pipeline/agent-pipeline/post/prompt.ts
+grep -cE 'memory_search.*candidate' packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/prompt.ts
 # expect: ≥1 (rule #2 pre-write thinking step)
 
 # 7. Cap behavior — limit_exceeded path
-grep -nE 'limit_exceeded' src/pipeline/agent-pipeline/post/hippocampus.ts
+grep -nE 'limit_exceeded' packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/hippocampus.ts
 # expect: ≥1 match (tool_result error code)
 
 # 8. Anti-economy guard — НЕ должно быть в новом prompt'е
-grep -niE 'save token|be efficient|постарайся уложиться|не пиши слишком много|не используй tool без нужды' src/pipeline/agent-pipeline/post/prompt.ts
+grep -niE 'save token|be efficient|постарайся уложиться|не пиши слишком много|не используй tool без нужды' packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/prompt.ts
 # expect: 0 matches (HARD FAIL если хоть один)
 
 # 9. MAX_HIPPO_STEPS не тронут
-grep -nE 'MAX_HIPPO_STEPS\s*=\s*5' src/pipeline/agent-pipeline/post/hippocampus.ts
+grep -nE 'MAX_HIPPO_STEPS\s*=\s*5' packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/hippocampus.ts
 # expect: ≥1 match (constant сохраняется как было)
 
 # 10. Signature `getExtractorPrompt` сохранён
-grep -nE 'export function getExtractorPrompt\b' src/pipeline/agent-pipeline/post/prompt.ts
+grep -nE 'export function getExtractorPrompt\b' packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/prompt.ts
 # expect: ≥1 match — signature не менялась
 
 # 11. Diff boundary — только разрешённые файлы
 git diff --name-only HEAD
 # expect: ровно subset of {
-#   src/pipeline/agent-pipeline/post/hippocampus.ts,
-#   src/pipeline/agent-pipeline/post/prompt.ts,
-#   src/lib/metrics.ts (только если уже существовал),
+#   packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/hippocampus.ts,
+#   packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/prompt.ts,
+#   packages/core/src/lib/metrics.ts (только если уже существовал),
 #   tests/hippocampus-extraction.test.ts,
 #   tests/hippocampus-cap.test.ts
 # }
@@ -209,11 +209,11 @@ git diff --name-only HEAD | grep -E 'arbitration/prompts\.ts$'
 # expect: 0 matches
 
 # 14. logger.info arity (3-arg) если новые log calls добавлены
-grep -nE 'logger\.(info|warn)\("hippocampus"' src/pipeline/agent-pipeline/post/hippocampus.ts | grep -vE 'logger\.(info|warn)\("hippocampus",\s*"[^"]+",\s*\{'
+grep -nE 'logger\.(info|warn)\("hippocampus"' packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/hippocampus.ts | grep -vE 'logger\.(info|warn)\("hippocampus",\s*"[^"]+",\s*\{'
 # expect: 0 matches (каждый call имеет 3-й arg или строго 2-arg variant)
 
 # 15. Нет `as any`
-grep -nE '\bas\s+any\b' src/pipeline/agent-pipeline/post/hippocampus.ts src/pipeline/agent-pipeline/post/prompt.ts
+grep -nE '\bas\s+any\b' packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/hippocampus.ts packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/prompt.ts
 # expect: 0 matches
 ```
 

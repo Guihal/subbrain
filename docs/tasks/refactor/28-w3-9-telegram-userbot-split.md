@@ -6,20 +6,20 @@
 
 ## Цель
 
-Разбить `src/telegram/userbot.ts` (348 LOC) на split-folder. Public API = `Userbot` class.
+Разбить `packages/agent/packages/agent/src/telegram/userbot/index.ts` (348 LOC) на split-folder. Public API = `Userbot` class.
 
 ## Файлы
 
 **Удалить**:
-- `src/telegram/userbot.ts`
+- `packages/agent/packages/agent/src/telegram/userbot/index.ts`
 
 **Создать**:
-- `src/telegram/userbot/index.ts` — `Userbot` class (≤120 LOC). Сессия + ConvCache + thin делегации.
-- `src/telegram/userbot/cache.ts` — ConvCache (in-memory cache для conversations + messages).
-- `src/telegram/userbot/search.ts` — `searchMessages`, `findConversation` — FTS-подобные операции по cached сообщениям.
-- `src/telegram/userbot/parse.ts` — message parsing helpers (extract sender, links, attachments).
+- `packages/agent/packages/agent/packages/agent/src/telegram/userbot/index.ts` — `Userbot` class (≤120 LOC). Сессия + ConvCache + thin делегации.
+- `packages/agent/src/telegram/userbot/cache.ts` — ConvCache (in-memory cache для conversations + messages).
+- `packages/agent/packages/agent/packages/agent/src/telegram/userbot/search.ts` — `searchMessages`, `findConversation` — FTS-подобные операции по cached сообщениям.
+- `packages/agent/src/telegram/userbot/parse.ts` — message parsing helpers (extract sender, links, attachments).
 
-**Trigger**: `scripts/check-file-size.ts` `"src/telegram/userbot.ts": 349` → удалить.
+**Trigger**: `scripts/check-file-size.ts` `"packages/agent/packages/agent/src/telegram/userbot/index.ts": 349` → удалить.
 
 ## Изменение
 

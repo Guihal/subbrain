@@ -17,14 +17,14 @@ Archive имеет binary HIGH/LOW = семантическая разница. 
 
 ## Файлы (scope-lock)
 
-- `src/db/schema.ts` — Migration **15** (assigned). SQLite не позволяет ALTER COLUMN type → нужен rebuild через temp table + INSERT SELECT + DROP + RENAME. Pattern matches Migration 3/7 (layer4_log_new). Под `db.transaction()` + per-statement `.run()`. Idempotent guard `if (version < 15)`.
-- `src/db/types.ts` — `ArchiveRow.confidence: number | null` (заменить TEXT-union).
-- `src/db/tables/memory.ts` — `insertArchive`, `updateArchive`, `getArchive`, `searchArchive`, `getArchiveMany` — adjust типы. SELECT *... возвращает теперь REAL.
-- `src/repositories/memory.repo.ts` — отражает изменение типа.
-- `src/services/memory.service.ts` — если есть `insertArchive` методы — adjust.
-- `src/pipeline/night-cycle/steps/anti-patterns-step.ts` (или эквивалент) — это писатель в archive с HIGH/LOW. Mapping 'HIGH' → 0.9, 'LOW' → 0.4.
-- `src/pipeline/night-cycle/process-session.ts` (если пишет в archive) — same.
-- `src/routes/memory.ts` — admin endpoint `/v1/memory/archive` PATCH/POST validation: TypeBox `t.Optional(t.Number({minimum:0, maximum:1}))` вместо string-enum.
+- `packages/core/packages/core/packages/core/src/db/schema.ts` — Migration **15** (assigned). SQLite не позволяет ALTER COLUMN type → нужен rebuild через temp table + INSERT SELECT + DROP + RENAME. Pattern matches Migration 3/7 (layer4_log_new). Под `db.transaction()` + per-statement `.run()`. Idempotent guard `if (version < 15)`.
+- `packages/core/packages/core/packages/core/src/db/types.ts` — `ArchiveRow.confidence: number | null` (заменить TEXT-union).
+- `packages/core/src/db/tables/memory.ts` — `insertArchive`, `updateArchive`, `getArchive`, `searchArchive`, `getArchiveMany` — adjust типы. SELECT *... возвращает теперь REAL.
+- `packages/core/src/repositories/memory.repo.ts` — отражает изменение типа.
+- `packages/agent/src/services/memory.service.ts` — если есть `insertArchive` методы — adjust.
+- `packages/agent/packages/agent/src/pipeline/night-cycle/steps/anti-patterns-step.ts` (или эквивалент) — это писатель в archive с HIGH/LOW. Mapping 'HIGH' → 0.9, 'LOW' → 0.4.
+- `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/process-session.ts` (если пишет в archive) — same.
+- `packages/server/packages/server/packages/server/src/routes/memory.ts` — admin endpoint `/v1/memory/archive` PATCH/POST validation: TypeBox `t.Optional(t.Number({minimum:0, maximum:1}))` вместо string-enum.
 - `web/app/composables/useMemory.ts`, `web/app/components/MemoryRow.vue`, `web/app/pages/memory.vue` — frontend rendering: было label "HIGH"/"LOW", теперь число (или label по threshold ≥0.7 → "high", иначе "low"). Минимально invasive — один файл UI fix.
 - `tests/memory-archive-confidence.test.ts` — **NEW** ≤120 LOC. ≥6 кейсов.
 - `docs/02-audit.md` — `### MEM-14 ✅ archive confidence унификация (закрыто M-12)`.

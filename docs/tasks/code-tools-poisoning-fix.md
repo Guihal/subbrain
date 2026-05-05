@@ -18,7 +18,7 @@ Status: DONE (PR pending)
 
 ### F-4: tg_send_message hard-gate (scheduled-mode)
 
-`src/mcp/registry/telegram.tools.ts`. Перед `tgSendMessage` handler читает
+`packages/agent/packages/agent/packages/agent/src/mcp/registry/telegram.tools.ts`. Перед `tgSendMessage` handler читает
 `layer1_focus.no_repetitive_tg_spam` через `executor.memoryDb.getFocusWithMeta`.
 Trigger conditions (все одновременно):
 - `ctx.agentMode === "scheduled"` (interactive runs пропускаются — у юзера
@@ -33,7 +33,7 @@ Failure shape: `{success:false, error: "focus_blocked: ..."}`.
 
 ### F-3b: Hide stateful client code-tools от scheduled mode
 
-`src/pipeline/agent-loop/code-tools/scheduled-blacklist.ts` (NEW): Set с 4
+`packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/code-tools/scheduled-blacklist.ts` (NEW): Set с 4
 именами (overdue_reminder/silent_projects_check/critical_clients_monitor/
 client_followup_check). `CodeToolRegistry.toToolDefs(mode)` фильтрует по
 `isHiddenInMode`. `agent-loop/index.ts:getAllTools(mode)` пропускает mode.
@@ -44,7 +44,7 @@ LLM-bypass via remembered name acceptable; tool out of OpenAI tool list = LLM
 
 ### F-2: Hardcoded-facts validator в create_code_tool / edit_code_tool
 
-`src/pipeline/agent-loop/code-tools/code-tool-validators.ts` (NEW). Объединяет
+`packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/code-tools/code-tool-validators.ts` (NEW). Объединяет
 sandbox + facts проверки в `applyCodeToolGuards(code, name, log)`.
 
 5 regex patterns (key-bound, low FP):

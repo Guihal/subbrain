@@ -6,14 +6,14 @@
 
 ## Цель
 
-1. **MicroPR**: уменьшить `src/lib/logger.ts` 263 → ≤200 (canonical cap = 200, transitional cap = 263). Без split — squeeze multi-line statements + redundant patterns.
+1. **MicroPR**: уменьшить `packages/core/packages/core/src/lib/logger.ts` 263 → ≤200 (canonical cap = 200, transitional cap = 263). Без split — squeeze multi-line statements + redundant patterns.
 2. **P-C2**: закрыть FILE-SIZE-1 в audit (✅).
 
 ## Файлы
 
 **MicroPR (logger.ts squeeze)**:
-- Изменить: `src/lib/logger.ts` — uglify multi-line, объединить compact patterns. Целевой LOC ≤200.
-- Изменить: `scripts/check-file-size.ts` — удалить TRANSITIONAL_WHITELIST row `"src/lib/logger.ts": 263` (canonical 200 wins).
+- Изменить: `packages/core/packages/core/src/lib/logger.ts` — uglify multi-line, объединить compact patterns. Целевой LOC ≤200.
+- Изменить: `scripts/check-file-size.ts` — удалить TRANSITIONAL_WHITELIST row `"packages/core/src/lib/logger.ts": 263` (canonical 200 wins).
 
 **P-C2 закрытие**:
 - Изменить: `docs/02-audit.md` — FILE-SIZE-1 → ✅ CLOSED + дата.
@@ -25,13 +25,13 @@
 
 ### MicroPR
 
-1. Прочитать `src/lib/logger.ts` целиком.
+1. Прочитать `packages/core/packages/core/src/lib/logger.ts` целиком.
 2. Сжать без потери функциональности:
    - Multi-line `if (x) { return y; }` → `if (x) return y;`.
    - Multi-line ternary в console.log → 1-line или helper.
    - Удалить excess whitespace / blank lines между group'ами.
    - Combine type imports.
-3. Verify: `wc -l src/lib/logger.ts` ≤200.
+3. Verify: `wc -l packages/core/src/lib/logger.ts` ≤200.
 4. Verify guardrails: logger contract `(stage, message, extra?)` арность сохранена; `child("subsystem")` factory сохранена; `formatForDb` сохранён.
 
 ### P-C2
@@ -51,7 +51,7 @@
 
 ## Приёмка
 
-1. `wc -l src/lib/logger.ts` ≤ 200.
+1. `wc -l packages/core/src/lib/logger.ts` ≤ 200.
 2. `scripts/check-file-size.ts` без `logger.ts:263` row.
 3. `bun test tests/repo-rules.test.ts` — 5/5 STRICT.
 4. `bun run scripts/check-file-size.ts` exit 0.

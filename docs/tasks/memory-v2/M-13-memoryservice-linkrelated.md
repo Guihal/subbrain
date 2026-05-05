@@ -5,12 +5,12 @@
 
 ## Цель
 
-Empirically confirmed gap: `MemoryService.insertShared/insertContext` (single-source-of-truth для embed-first transactional writes) **не вызывает `linkRelated`**. Значит M-05/M-05.1/M-05.2 фичи (relates edges, A-MEM tag evolution, LLM contradiction detection) активны **только** через `src/pipeline/agent-pipeline/post/extractors.ts:writeShared/writeContext` — единственная hippocampus-driven post-extraction path.
+Empirically confirmed gap: `MemoryService.insertShared/insertContext` (single-source-of-truth для embed-first transactional writes) **не вызывает `linkRelated`**. Значит M-05/M-05.1/M-05.2 фичи (relates edges, A-MEM tag evolution, LLM contradiction detection) активны **только** через `packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/extractors.ts:writeShared/writeContext` — единственная hippocampus-driven post-extraction path.
 
 Не рисуют edges:
-1. **MCP `memory_write`** (agent-loop) → `MemoryTools` → `memoryService.insertShared` (`src/mcp/tools/memory-tools.ts:230`).
-2. **Night-cycle reflect** episodic→semantic promotion → `deps.memoryService.insertShared` (`src/pipeline/night-cycle/steps/reflect.ts:132`).
-3. **Night-cycle cross-layer dedup** context→shared promotion → `memoryService.insertShared` (`src/pipeline/night-cycle/steps/cross-layer-dedup.ts:152`).
+1. **MCP `memory_write`** (agent-loop) → `MemoryTools` → `memoryService.insertShared` (`packages/agent/src/mcp/tools/memory-tools.ts:230`).
+2. **Night-cycle reflect** episodic→semantic promotion → `deps.memoryService.insertShared` (`packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/steps/reflect.ts:132`).
+3. **Night-cycle cross-layer dedup** context→shared promotion → `memoryService.insertShared` (`packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/steps/cross-layer-dedup.ts:152`).
 4. **Admin REST POST `/v1/memory/shared`/`/v1/memory/context`** → `memoryService.insertShared/insertContext`.
 
 После M-13: `MemoryService.insertShared/insertContext` принимает optional `linkDeps?: { router: ModelRouter; log: RequestLogger }` через конструктор (single-place wiring). Если `linkDeps` set → после успешного `repo.transaction(insert + upsertEmbedding)` вызывает `linkRelated(memory, rag, router, id, layer, content, parseTagsCsv(tags), log)` **best-effort** (try/catch — никогда не abort write).
@@ -19,15 +19,15 @@ NO behavior change для test callers, что не передают linkDeps (d
 
 ## Файлы (scope-lock)
 
-- `src/services/memory.service.ts` — extend constructor + insertShared/insertContext post-hook. ≤230 LOC final.
-- `src/app/deps.ts` — pass `{ router, log }` в `new MemoryService(...)` constructor. ≤4 lines.
+- `packages/agent/src/services/memory.service.ts` — extend constructor + insertShared/insertContext post-hook. ≤230 LOC final.
+- `packages/server/packages/server/packages/server/src/app/deps.ts` — pass `{ router, log }` в `new MemoryService(...)` constructor. ≤4 lines.
 - `tests/memory-service-link-related.test.ts` — **NEW** файл (≤200 LOC). ≥4 cases.
 - `docs/02-audit.md` — `### MEM-22 ✅ MemoryService.linkRelated wiring (закрыто M-13)`.
 - `docs/tasks/memory-v2/M-13-memoryservice-linkrelated.md` (этот) — Status DONE.
 
 **НЕ трогать:**
-- `src/pipeline/agent-pipeline/post/extractors.ts` (hippocampus path остаётся как есть — duplicate call OK, see §Inertia).
-- `src/pipeline/agent-pipeline/post/link-related.ts` (M-05.2 артефакт).
+- `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/extractors.ts` (hippocampus path остаётся как есть — duplicate call OK, see §Inertia).
+- `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/link-related.ts` (M-05.2 артефакт).
 - M-05/M-05.1/M-05.2 plan files / audit entries.
 - Migrations / schema.
 - MCP tool registry (memory_write tool path остаётся; cascading benefit).
@@ -118,7 +118,7 @@ constructor(
 
 ### Caller wiring
 
-`src/app/deps.ts` — найти `new MemoryService(memory.memoryRepo, rag)` and extend:
+`packages/server/packages/server/packages/server/src/app/deps.ts` — найти `new MemoryService(memory.memoryRepo, rag)` and extend:
 ```ts
 const memoryService = new MemoryService(
   memory.memoryRepo,
@@ -158,8 +158,8 @@ Test DB: `data/test-mem13-link.db`. Per-test cleanup.
 1. `bunx tsc --noEmit` → exit 0.
 2. `bun test tests/memory-service-link-related.test.ts` → all green.
 3. `bun test` → ≥800 pass, 0 fail (795 baseline + ≥4 new).
-4. `grep -nE "linkDeps|linkRelated" src/services/memory.service.ts` → ≥4 hits (constructor field + 2 callsites + import).
-5. `grep -n "linkDeps:" src/app/deps.ts` → ≥1 hit (constructor wiring).
+4. `grep -nE "linkDeps|linkRelated" packages/agent/src/services/memory.service.ts` → ≥4 hits (constructor field + 2 callsites + import).
+5. `grep -n "linkDeps:" packages/server/packages/server/src/app/deps.ts` → ≥1 hit (constructor wiring).
 6. M-13 plan file Status: DONE.
 7. MEM-22 entry в `docs/02-audit.md`.
 
@@ -178,19 +178,19 @@ Test DB: `data/test-mem13-link.db`. Per-test cleanup.
 
 ## Реализация
 
-- `src/services/memory.service.ts` — расширил ctor двумя optional аргументами (`memoryDb: MemoryDB | null = null`, `linkDeps: MemoryServiceLinkDeps | null = null`) после существующего `logRepo`. Добавил приватный `runLinkRelated()` помощник, который вызывается в обоих `insertShared` и `insertContext` сразу после `repo.transaction()`. Best-effort try/catch — throw логируется в `linkDeps.log.warn`, write остаётся коммитнутым.
-- `src/app/deps.ts` — production wiring: `new MemoryService(memory.memoryRepo, rag, memory.logRepo, memory, { router, log: logger.forRequest("memory-svc", "memory-svc") })`. Synthetic RequestLogger, т.к. сервис долгоживущий (не request-bound).
+- `packages/agent/src/services/memory.service.ts` — расширил ctor двумя optional аргументами (`memoryDb: MemoryDB | null = null`, `linkDeps: MemoryServiceLinkDeps | null = null`) после существующего `logRepo`. Добавил приватный `runLinkRelated()` помощник, который вызывается в обоих `insertShared` и `insertContext` сразу после `repo.transaction()`. Best-effort try/catch — throw логируется в `linkDeps.log.warn`, write остаётся коммитнутым.
+- `packages/server/packages/server/packages/server/src/app/deps.ts` — production wiring: `new MemoryService(memory.memoryRepo, rag, memory.logRepo, memory, { router, log: logger.forRequest("memory-svc", "memory-svc") })`. Synthetic RequestLogger, т.к. сервис долгоживущий (не request-bound).
 - `tests/memory-service-link-related.test.ts` — 5 кейсов: legacy 3-arg ctor → 0 edges; full ctor → relates edge; M-05.1 tag evolution через сервис; throw в LLM-роутере не блокирует write; insertContext mirror.
 
 Existing 3-arg test callers (`tests/memory-kind.test.ts`, `tests/mcp-curation-tools.test.ts`, `tests/memory-routes-*.test.ts`, etc.) продолжают работать без правок — defaults `null` дают back-compat skip.
 
 Note: ctor сохранил `logRepo` как 3rd позиционный аргумент (вместо вытаскивания через `memoryDb.logRepo`) ради zero-touch back-compat для всех существующих 3-arg тест-вызовов. Plan §Memory access option A был ослаблен в этой части — итоговая сигнатура `(repo, rag, logRepo, memoryDb=null, linkDeps=null)`.
 
-Финальный размер `src/services/memory.service.ts`: 362 LOC (был 305; net +57). Pre-existing >250 violation унаследован — документировано в плане §Файлы.
+Финальный размер `packages/agent/src/services/memory.service.ts`: 362 LOC (был 305; net +57). Pre-existing >250 violation унаследован — документировано в плане §Файлы.
 
 Приёмка:
 - `bunx tsc --noEmit` → exit 0 ✓
 - `bun test tests/memory-service-link-related.test.ts` → 5/5 pass ✓
 - `bun test` → 800 pass, 0 fail (795 baseline + 5 new) ✓
-- `grep -nE "linkDeps|linkRelated" src/services/memory.service.ts` → 13 hits ✓
-- `grep -n "linkDeps:" src/app/deps.ts` → 1 hit (комментарий) ✓
+- `grep -nE "linkDeps|linkRelated" packages/agent/src/services/memory.service.ts` → 13 hits ✓
+- `grep -n "linkDeps:" packages/server/packages/server/src/app/deps.ts` → 1 hit (комментарий) ✓

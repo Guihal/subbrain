@@ -14,10 +14,10 @@
 | [04](04-auth-timing.md) | HIGH-10: timing-safe token compare | 0.5 часа | — |
 | [05](05-medium-pack.md) | MEDIUM pack: MED-1..MED-14 одним PR | 1 день | — |
 | [06](06-browser-playwright-direct.md) | BROWSER-1: апдейт `@playwright/mcp` → fallback на прямой `chromium.launch` + leak-smoke | 1–1.5 дня | — |
-| [07](07-split-index-to-app.md) | Splitting `src/index.ts` (440) → `src/app/*` | 0.5 дня | — |
-| [08](08-split-agent-loop.md) | Splitting `src/pipeline/agent-loop/index.ts` (625) | 1 день | после 01, 02 |
-| [09](09-split-agent-pipeline.md) | Splitting `src/pipeline/agent-pipeline/*` (pre/post/main phases) | 1 день | — |
-| [10](10-split-db-tables.md) | Splitting `src/db/index.ts` (716) → `db/tables/*` | 0.5 дня | — |
+| [07](07-split-index-to-app.md) | Splitting `packages/server/packages/server/packages/server/src/index.ts` (440) → `packages/server/src/app/*` | 0.5 дня | — |
+| [08](08-split-agent-loop.md) | Splitting `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/index.ts` (625) | 1 день | после 01, 02 |
+| [09](09-split-agent-pipeline.md) | Splitting `packages/agent/packages/agent/src/pipeline/agent-pipeline/*` (pre/post/main phases) | 1 день | — |
+| [10](10-split-db-tables.md) | Splitting `packages/core/packages/core/packages/core/src/db/index.ts` (716) → `db/tables/*` | 0.5 дня | — |
 | [11](11-split-memory-page.md) | Splitting `web/app/pages/memory.vue` (651) + `useMemory.ts` (440) | 1 день | — |
 | [12](12-split-use-chat.md) | Splitting `web/app/composables/useChat.ts` (430) | 0.5 дня | — |
 | [13](13-app-error-logger-envelope.md) | AppError + `logger.child` + `PaginatedResponse` | 0.5 дня | после 10 |
@@ -122,8 +122,8 @@
 
 Из секции «Что намеренно не трогаем» мастер-плана:
 
-- [src/pipeline/agent-loop/system-prompt.ts](../../../src/pipeline/agent-loop/system-prompt.ts) — цельный промпт.
-- [src/lib/model-map.ts](../../../src/lib/model-map.ts) — маленький и корректный.
-- [src/rag/pipeline.ts](../../../src/rag/pipeline.ts) — только точечные MED-правки.
-- MCP registry (`src/mcp/registry/*`) — уже разделён.
+- [packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/system-prompt.ts](../../../packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/system-prompt.ts) — цельный промпт.
+- [packages/core/src/lib/model-map.ts](../../../packages/core/src/lib/model-map.ts) — маленький и корректный.
+- [packages/agent/packages/agent/src/rag/pipeline/index.ts](../../../packages/agent/packages/agent/src/rag/pipeline/index.ts) — только точечные MED-правки.
+- MCP registry (`packages/agent/src/mcp/registry/*`) — уже разделён.
 - Telegram-модули — специфичная MTProto/Bot API логика, splitting без пользы.

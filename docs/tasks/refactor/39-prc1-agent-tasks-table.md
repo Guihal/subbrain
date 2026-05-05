@@ -7,7 +7,7 @@
 
 ## Контекст schema-state (важно для миграции)
 
-`src/db/schema.ts` уже содержит миграции до `PRAGMA user_version = 16` (последняя — telegram chats schema). PR-A не добавлял миграций (только tighten validators), так что после merge PR-B следующий свободный номер — **17**. Pre-check ниже обязан подтвердить это перед стартом.
+`packages/core/packages/core/packages/core/src/db/schema.ts` уже содержит миграции до `PRAGMA user_version = 16` (последняя — telegram chats schema). PR-A не добавлял миграций (только tighten validators), так что после merge PR-B следующий свободный номер — **17**. Pre-check ниже обязан подтвердить это перед стартом.
 
 ## Цель
 
@@ -36,14 +36,14 @@ git log -1 --format='%s' main | grep -qE 'merge\(PR-B\)' && echo "PR-B ok" || ec
 Эта задача — **только schema + data layer + repo facade + tests**. НИКАКОЙ интеграции с pool / scheduler / runners. Любая попытка «заодно подключить» = scope creep = FAIL.
 
 **Allowed actions** (только эти):
-- Создать новые файлы: `src/db/tables/agent-tasks.ts`, `src/repositories/agent-tasks.repo.ts`, `src/db/tables/agent-tasks/types.ts`, `tests/agent-tasks-repo.test.ts`, `tests/migration-17.test.ts`.
-- Edit `src/db/schema.ts` — добавить `migration_17_agent_tasks` в migrations array (после migration_16), **не трогать** существующие migration функции.
-- Edit `src/db/index.ts` — добавить `agentTasksRepo` поле + конструктор wire-up. **НЕ менять** другие repo / public API.
+- Создать новые файлы: `packages/core/src/db/tables/agent-tasks.ts`, `packages/core/src/repositories/agent-tasks.repo.ts`, `packages/core/src/db/tables/agent-tasks/types.ts`, `tests/agent-tasks-repo.test.ts`, `tests/migration-17.test.ts`.
+- Edit `packages/core/packages/core/packages/core/src/db/schema.ts` — добавить `migration_17_agent_tasks` в migrations array (после migration_16), **не трогать** существующие migration функции.
+- Edit `packages/core/packages/core/packages/core/src/db/index.ts` — добавить `agentTasksRepo` поле + конструктор wire-up. **НЕ менять** другие repo / public API.
 - `bunx tsc --noEmit`, `bun test`, `bun run scripts/check-file-size.ts`.
 - `git add` ТОЛЬКО перечисленных файлов. `git commit -m "feat(db): add agent_tasks table + repo (PR-C1)"`.
 
 **Hard NO-GO:**
-- НЕ редактировать `src/scheduler/free-agent.ts`, `src/pipeline/**`, `src/mcp/**`, `src/services/**` — это PR-C2/C3.
+- НЕ редактировать `packages/agent/packages/agent/packages/agent/src/scheduler/free-agent.ts`, `packages/agent/src/pipeline/**`, `packages/agent/src/mcp/**`, `packages/agent/src/services/**` — это PR-C2/C3.
 - НЕ создавать `done_with_artifact` MCP tool, runner-engine, pool — это PR-C2.
 - НЕ переименовывать существующие таблицы / migrations / индексы.
 - НЕ менять `PRAGMA user_version` если уже ≥17 (конфликт миграций — STOP, см. §Pre-check).
@@ -53,11 +53,11 @@ git log -1 --format='%s' main | grep -qE 'merge\(PR-B\)' && echo "PR-B ok" || ec
 
 **Diff boundary:** `git diff --name-only HEAD~1..HEAD` после commit MUST содержать ровно эти файлы (5 new + 2 modified):
 ```
-src/db/index.ts
-src/db/schema.ts
-src/db/tables/agent-tasks.ts
-src/db/tables/agent-tasks/types.ts
-src/repositories/agent-tasks.repo.ts
+packages/core/packages/core/src/db/index.ts
+packages/core/packages/core/src/db/schema.ts
+packages/core/src/db/tables/agent-tasks.ts
+packages/core/src/db/tables/agent-tasks/types.ts
+packages/core/src/repositories/agent-tasks.repo.ts
 tests/agent-tasks-repo.test.ts
 tests/migration-17.test.ts
 ```
@@ -67,11 +67,11 @@ tests/migration-17.test.ts
 
 ## Файлы
 
-- [src/db/schema.ts](../../../src/db/schema.ts) — migration entry: `migration_17_agent_tasks` (idempotent, после `migration_16`).
-- Новый [src/db/tables/agent-tasks.ts](../../../src/db/tables/agent-tasks.ts) (≤150 lines) — raw SQL + row→entity mapping. Только этот модуль ходит в SQL по `agent_tasks` и `idx_agent_tasks_pending`.
-- Новый [src/repositories/agent-tasks.repo.ts](../../../src/repositories/agent-tasks.repo.ts) (≤150 lines) — `AgentTasksRepository` фасад: `claim`, `listPending`, `getRunningOlderThan`, `complete`, `noop`, `fail`, `enqueue`, `markZombiesFailed`, `getDistribution24h`.
-- Новый [src/db/tables/agent-tasks/types.ts](../../../src/db/tables/agent-tasks/types.ts) (≤80 lines) — `AgentTaskRecord`, `AgentTaskStatus`, `AgentTaskType`, `EnqueueInput`.
-- [src/db/index.ts](../../../src/db/index.ts) — wire `AgentTasksRepository` instance в `MemoryDB` (поле `agentTasksRepo`).
+- [packages/core/packages/core/src/db/schema.ts](../../../packages/core/packages/core/src/db/schema.ts) — migration entry: `migration_17_agent_tasks` (idempotent, после `migration_16`).
+- Новый [packages/core/src/db/tables/agent-tasks.ts](../../../packages/core/src/db/tables/agent-tasks.ts) (≤150 lines) — raw SQL + row→entity mapping. Только этот модуль ходит в SQL по `agent_tasks` и `idx_agent_tasks_pending`.
+- Новый [packages/core/src/repositories/agent-tasks.repo.ts](../../../packages/core/src/repositories/agent-tasks.repo.ts) (≤150 lines) — `AgentTasksRepository` фасад: `claim`, `listPending`, `getRunningOlderThan`, `complete`, `noop`, `fail`, `enqueue`, `markZombiesFailed`, `getDistribution24h`.
+- Новый [packages/core/src/db/tables/agent-tasks/types.ts](../../../packages/core/src/db/tables/agent-tasks/types.ts) (≤80 lines) — `AgentTaskRecord`, `AgentTaskStatus`, `AgentTaskType`, `EnqueueInput`.
+- [packages/core/packages/core/src/db/index.ts](../../../packages/core/packages/core/src/db/index.ts) — wire `AgentTasksRepository` instance в `MemoryDB` (поле `agentTasksRepo`).
 
 ## Изменение
 
@@ -241,13 +241,13 @@ bun test tests/migration-17.test.ts 2>&1 | tail -3                             #
 bun test 2>&1 | tail -3                                                        # expect: "X pass / 0-2 fail" (no NEW regressions)
 
 # File caps
-wc -l src/db/tables/agent-tasks.ts                                             # expect: ≤150
-wc -l src/repositories/agent-tasks.repo.ts                                     # expect: ≤150
-wc -l src/db/tables/agent-tasks/types.ts                                       # expect: ≤80
+wc -l packages/core/src/db/tables/agent-tasks.ts                                             # expect: ≤150
+wc -l packages/core/src/repositories/agent-tasks.repo.ts                                     # expect: ≤150
+wc -l packages/core/src/db/tables/agent-tasks/types.ts                                       # expect: ≤80
 
 # Boundary check — никто кроме data/repo не ходит к agent_tasks ещё
-grep -rnE 'agent_tasks|agentTasksRepo' src/services/ src/pipeline/ src/scheduler/ 2>/dev/null  # expect: 0 matches
-grep -rnE 'agent_tasks|agentTasksRepo' src/routes/ 2>/dev/null                                  # expect: 0 matches
+grep -rnE 'agent_tasks|agentTasksRepo' packages/agent/src/services/ packages/agent/src/pipeline/ packages/agent/src/scheduler/ 2>/dev/null  # expect: 0 matches
+grep -rnE 'agent_tasks|agentTasksRepo' packages/server/src/routes/ 2>/dev/null                                  # expect: 0 matches
 
 # Migration applied
 bun -e 'import {MemoryDB} from "./src/db"; const db=new MemoryDB(":memory:"); console.log(db.db.query("PRAGMA user_version").get())'  # expect: { user_version: 17 }
@@ -259,8 +259,8 @@ bun -e 'import {MemoryDB} from "./src/db"; const db=new MemoryDB(":memory:"); co
 bun -e 'import {MemoryDB} from "./src/db"; const db=new MemoryDB(":memory:"); console.log(db.db.query("SELECT name FROM sqlite_master WHERE type=\"index\" AND tbl_name=\"agent_tasks\"").all())'  # expect: idx_agent_tasks_pending, idx_agent_tasks_running, idx_agent_tasks_distribution
 
 # No 'as any' / raw fetch
-grep -nE 'as any' src/db/tables/agent-tasks.ts src/repositories/agent-tasks.repo.ts             # expect: 0
-grep -nE '\bfetch\(' src/db/tables/agent-tasks.ts src/repositories/agent-tasks.repo.ts          # expect: 0
+grep -nE 'as any' packages/core/src/db/tables/agent-tasks.ts packages/core/src/repositories/agent-tasks.repo.ts             # expect: 0
+grep -nE '\bfetch\(' packages/core/src/db/tables/agent-tasks.ts packages/core/src/repositories/agent-tasks.repo.ts          # expect: 0
 ```
 
 ## Definition of Done
@@ -289,7 +289,7 @@ Rollback: восстановить `.pre-mig9` snapshot.
 
 - В этой задаче нет интеграции с `MemoryService` / pool / runners — это PR-C2.
 - `done_with_artifact` MCP tool НЕ создаём здесь — PR-C2.
-- Free-agent ([src/scheduler/free-agent.ts](../../../src/scheduler/free-agent.ts)) НЕ удаляем — PR-C2 заменит legacy-bridge'ом.
+- Free-agent ([packages/agent/packages/agent/src/scheduler/free-agent.ts](../../../packages/agent/packages/agent/src/scheduler/free-agent.ts)) НЕ удаляем — PR-C2 заменит legacy-bridge'ом.
 
 ## Escape hatch
 
@@ -304,7 +304,7 @@ Categories: `migration-conflict` | `tsc-error` | `test-fail` | `file-cap` | `dif
 Примеры:
 - `FAIL: migration-conflict: PRAGMA user_version=17 already (someone else added migration_17)`
 - `FAIL: claim-race: 2 concurrent claimNext returned same id=42`
-- `FAIL: boundary-leak: src/services/foo.ts:18 imports agentTasksRepo (forbidden until PR-C2)`
+- `FAIL: boundary-leak: packages/agent/src/services/foo.ts:18 imports agentTasksRepo (forbidden until PR-C2)`
 - `FAIL: file-cap: agent-tasks.ts is 167 lines, max 150`
 
 Stop, не push, не merge. Parent reads, decides.

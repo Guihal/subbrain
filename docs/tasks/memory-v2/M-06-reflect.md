@@ -17,15 +17,15 @@ Foundation для **M-09** (cross-layer dedup использует те же edg
 
 ## Файлы (scope-lock)
 
-- `src/pipeline/night-cycle/steps/reflect.ts` — **NEW** ≤200 LOC. Step функция `runReflect(deps): Promise<ReflectResult>` где `ReflectResult = { groups_examined, facts_promoted, edges_created, llm_failures }`. Использует:
+- `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/steps/reflect.ts` — **NEW** ≤200 LOC. Step функция `runReflect(deps): Promise<ReflectResult>` где `ReflectResult = { groups_examined, facts_promoted, edges_created, llm_failures }`. Использует:
   - `memory.searchContext` (или прямой query) для групп по category с `access_count >= 3` и `created_at < now - 86400`. Фильтр `activeOnly:true` + `notStale:true` (от M-06-era schema).
   - `router.chat({ model: "memory", messages: [...] })` через `MODEL_MAP` (single-source, не hardcode).
   - `memoryService.insertShared({ category, content, kind: 'semantic', confidence, source: 'reflect' })` — `kind='semantic'` явно (M-07 mapping не нужен — это уже semantic по природе).
   - `memory.linkEdge(srcId, 'context', newSharedId, 'shared', 'derives', 1.0)` для каждого исходного context.
   - `rag.search` ИЛИ `dedupe` от M-06-era (если есть) для cosine ≥ 0.85 skip-guard.
-- `src/pipeline/night-cycle/steps/index.ts` — добавить `runReflect` в order, **после** `runMemoryDedup` и `decaySalience` (чтобы reflect видел уже задедуплицированные + decayed rows).
-- `src/pipeline/night-cycle/post-steps.ts` (если используется для wiring) — wire.
-- `src/pipeline/night-cycle/types.ts` — `ReflectResult` если нужен для общего типа.
+- `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/steps/index.ts` — добавить `runReflect` в order, **после** `runMemoryDedup` и `decaySalience` (чтобы reflect видел уже задедуплицированные + decayed rows).
+- `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/post-steps.ts` (если используется для wiring) — wire.
+- `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/types.ts` — `ReflectResult` если нужен для общего типа.
 - `tests/night-cycle-reflect.test.ts` — **NEW** ≤300 LOC. ≥6 кейсов.
 - `docs/02-audit.md` — `### MEM-12 ✅ reflect step (CoALA, закрыто M-06)`.
 - `docs/tasks/memory-v2/M-06-reflect.md` — Status DONE.
@@ -152,8 +152,8 @@ Mocking router: использовать стиль M-04/M-05 — `router = { ra
 1. `bunx tsc --noEmit` → exit 0.
 2. `bun test tests/night-cycle-reflect.test.ts` → all green.
 3. `bun test` → ≥700 pass, 0 fail (baseline после wave-2).
-4. `grep -n "runReflect\|night.reflect" src/pipeline/night-cycle/steps/reflect.ts src/pipeline/night-cycle/steps/index.ts src/pipeline/night-cycle/post-steps.ts` → ≥3 hits.
-5. `grep -n "REFLECT_ENABLED\|REFLECT_MIN_ACCESS\|REFLECT_MIN_GROUP" src/pipeline/night-cycle/steps/reflect.ts` → ≥3 hits.
+4. `grep -n "runReflect\|night.reflect" packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/steps/reflect.ts packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/steps/index.ts packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/post-steps.ts` → ≥3 hits.
+5. `grep -n "REFLECT_ENABLED\|REFLECT_MIN_ACCESS\|REFLECT_MIN_GROUP" packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/steps/reflect.ts` → ≥3 hits.
 6. `docs/tasks/memory-v2/M-06-reflect.md` Status: DONE.
 
 ## Out of scope

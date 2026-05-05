@@ -6,21 +6,21 @@
 
 ## Цель
 
-Разбить `src/pipeline/arbitration-room.ts` (420 LOC) на split-folder. Public API = `ArbitrationRoom` class.
+Разбить `packages/agent/packages/agent/src/pipeline/arbitration/index.ts` (420 LOC) на split-folder. Public API = `ArbitrationRoom` class.
 
 ## Файлы
 
 **Удалить**:
-- `src/pipeline/arbitration-room.ts`
+- `packages/agent/packages/agent/src/pipeline/arbitration/index.ts`
 
 **Создать**:
-- `src/pipeline/arbitration/index.ts` — `ArbitrationRoom` orchestrator (≤120 LOC). Public методы (`runRoom`, `consult`, и т.д.) — thin делегации.
-- `src/pipeline/arbitration/prompts.ts` — system-prompt builders для specialists + teamlead synthesis prompt.
-- `src/pipeline/arbitration/weights.ts` — weight resolution (по virtual roles из model-map).
-- `src/pipeline/arbitration/dispatch.ts` — fan-out specialists через `Promise.allSettled` (НЕ `Promise.all`! guardrail). AbortSignal composition. Возвращает array of results.
-- `src/pipeline/arbitration/synthesis.ts` — teamlead synthesis call + result aggregation.
+- `packages/agent/packages/agent/packages/agent/src/pipeline/arbitration/index.ts` — `ArbitrationRoom` orchestrator (≤120 LOC). Public методы (`runRoom`, `consult`, и т.д.) — thin делегации.
+- `packages/agent/packages/agent/packages/agent/src/pipeline/arbitration/prompts.ts` — system-prompt builders для specialists + teamlead synthesis prompt.
+- `packages/agent/packages/agent/packages/agent/src/pipeline/arbitration/weights.ts` — weight resolution (по virtual roles из model-map).
+- `packages/agent/packages/agent/packages/agent/src/pipeline/arbitration/dispatch.ts` — fan-out specialists через `Promise.allSettled` (НЕ `Promise.all`! guardrail). AbortSignal composition. Возвращает array of results.
+- `packages/agent/packages/agent/packages/agent/src/pipeline/arbitration/synthesis.ts` — teamlead synthesis call + result aggregation.
 
-**Trigger**: `scripts/check-file-size.ts` `"src/pipeline/arbitration-room.ts": 421` → удалить.
+**Trigger**: `scripts/check-file-size.ts` `"packages/agent/packages/agent/src/pipeline/arbitration/index.ts": 421` → удалить.
 
 ## Изменение
 
@@ -42,7 +42,7 @@
 3. `bunx tsc --noEmit` — clean.
 4. `bun test tests/repo-rules.test.ts` — 5/5.
 5. `bun test` — 838/0 baseline.
-6. `grep -nE 'Promise\.all\b' src/pipeline/arbitration/` → пусто (только `Promise.allSettled`).
+6. `grep -nE 'Promise\.all\b' packages/agent/src/pipeline/arbitration/` → пусто (только `Promise.allSettled`).
 
 ## Constraints
 

@@ -28,15 +28,15 @@
 
 ## Сделанное в Phases 1-2 (чего повторять не надо)
 
-- `tasks` + `scheduler_state` таблицы (migration 6) в [src/db/schema.ts](../../../src/db/schema.ts).
-- TasksTable с upsertBySource (3-query tx, idempotent на terminal) в [src/db/tables/tasks.ts](../../../src/db/tables/tasks.ts).
-- SchedulerStateTable с `tryAcquireLock` (single-statement CAS через INSERT OR IGNORE + UPDATE...RETURNING) + `heartbeat` в [src/db/tables/scheduler-state.ts](../../../src/db/tables/scheduler-state.ts) — готов к использованию в Phase 4.
-- MCP `task_add/list/update/start/done/cancel` (scope=agent-only) в [src/mcp/registry/tasks.tools.ts](../../../src/mcp/registry/tasks.tools.ts).
-- Domain `TasksTools` в [src/mcp/tools/tasks-tools.ts](../../../src/mcp/tools/tasks-tools.ts).
-- REST `/v1/tasks` + `/history` в [src/routes/tasks.ts](../../../src/routes/tasks.ts).
-- Tool-runner: `task_*` timeout 3000ms в [src/pipeline/agent-loop/tool-runner.ts](../../../src/pipeline/agent-loop/tool-runner.ts).
-- System-prompt injection (`renderActiveTasks`, `renderTgStatus`) в [src/pipeline/agent-loop/prompt-blocks/tasks.ts](../../../src/pipeline/agent-loop/prompt-blocks/tasks.ts) + подключено в [src/pipeline/agent-loop/system-prompt.ts](../../../src/pipeline/agent-loop/system-prompt.ts).
-- `AUTONOMOUS_TASK` env fail-fast в [src/app/deps.ts](../../../src/app/deps.ts).
+- `tasks` + `scheduler_state` таблицы (migration 6) в [packages/core/packages/core/src/db/schema.ts](../../../packages/core/packages/core/src/db/schema.ts).
+- TasksTable с upsertBySource (3-query tx, idempotent на terminal) в [packages/core/packages/core/src/db/tables/tasks.ts](../../../packages/core/packages/core/src/db/tables/tasks.ts).
+- SchedulerStateTable с `tryAcquireLock` (single-statement CAS через INSERT OR IGNORE + UPDATE...RETURNING) + `heartbeat` в [packages/core/packages/core/src/db/tables/scheduler-state.ts](../../../packages/core/packages/core/src/db/tables/scheduler-state.ts) — готов к использованию в Phase 4.
+- MCP `task_add/list/update/start/done/cancel` (scope=agent-only) в [packages/agent/packages/agent/src/mcp/registry/tasks.tools.ts](../../../packages/agent/packages/agent/src/mcp/registry/tasks.tools.ts).
+- Domain `TasksTools` в [packages/agent/packages/agent/src/mcp/tools/tasks-tools.ts](../../../packages/agent/packages/agent/src/mcp/tools/tasks-tools.ts).
+- REST `/v1/tasks` + `/history` в [packages/server/packages/server/src/routes/tasks.ts](../../../packages/server/packages/server/src/routes/tasks.ts).
+- Tool-runner: `task_*` timeout 3000ms в [packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/tool-runner.ts](../../../packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/tool-runner.ts).
+- System-prompt injection (`renderActiveTasks`, `renderTgStatus`) в [packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/prompt-blocks/tasks.ts](../../../packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/prompt-blocks/tasks.ts) + подключено в [packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/system-prompt.ts](../../../packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/system-prompt.ts).
+- `AUTONOMOUS_TASK` env fail-fast в [packages/server/packages/server/src/app/deps.ts](../../../packages/server/packages/server/src/app/deps.ts).
 - 307 tests passing (275 Phase 1 + 32 Phase 2).
 
 ## Guardrails (для всех оставшихся фаз)
@@ -47,7 +47,7 @@
 - `Promise.allSettled` для fan-out. `AbortController` composed с external signal.
 - Per-tool timeout в tool-runner.ts (`task_=3000` уже есть, не менять).
 - SQLite: мутации в `db.transaction()`. FTS через `sanitizeFtsQuery`. Миграции per-statement `.run()`.
-- HTTP: `fetchJson`/`fetchStream` из `src/lib/http-client.ts`.
+- HTTP: `fetchJson`/`fetchStream` из `packages/core/packages/core/src/lib/http-client.ts`.
 - TypeBox для routes (t.Object / t.Union литералов).
 - `logger.child("stage").info("msg")` — двухаргументный у root, одноаргументный у child.
 - Tests `bun:test` без top-level `process.exit`; `*.live.ts` не подхватываются `bun test`.

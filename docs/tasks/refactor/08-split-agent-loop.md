@@ -6,11 +6,11 @@
 
 ## Цель
 
-[src/pipeline/agent-loop/index.ts](../../../src/pipeline/agent-loop/index.ts) (~625 строк) совмещает оркестрацию, шаг, диспатч tool_calls, SSE-heartbeat, hook компрессора и обвязку. Разнести по одной ответственности на файл, сам `index.ts` оставить ≤80 строк фасадом.
+[packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/index.ts](../../../packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/index.ts) (~625 строк) совмещает оркестрацию, шаг, диспатч tool_calls, SSE-heartbeat, hook компрессора и обвязку. Разнести по одной ответственности на файл, сам `index.ts` оставить ≤80 строк фасадом.
 
 ## Целевая структура
 
-Внутри той же папки `src/pipeline/agent-loop/`:
+Внутри той же папки `packages/agent/packages/agent/src/pipeline/agent-loop/`:
 
 ```
 agent-loop/
@@ -84,12 +84,12 @@ export class AgentLoop {
 
 ## Файлы
 
-- [src/pipeline/agent-loop/index.ts](../../../src/pipeline/agent-loop/index.ts) (сократить)
-- `src/pipeline/agent-loop/run.ts` (новый)
-- `src/pipeline/agent-loop/step.ts` (новый)
-- `src/pipeline/agent-loop/tool-dispatch.ts` (новый)
-- `src/pipeline/agent-loop/heartbeat.ts` (новый)
-- `src/pipeline/agent-loop/compressor-hook.ts` (новый)
+- [packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/index.ts](../../../packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/index.ts) (сократить)
+- `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/run.ts` (новый)
+- `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/step.ts` (новый)
+- `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/tool-dispatch.ts` (новый)
+- `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/heartbeat.ts` (новый)
+- `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/compressor-hook.ts` (новый)
 - `tests/agent-loop-step.test.ts`, `tests/agent-loop-dispatch.test.ts`
 - [CLAUDE.md](../../../CLAUDE.md) — обновить пути в секции «Pipelines fan out…».
 
@@ -107,6 +107,6 @@ export class AgentLoop {
 
 - [ ] `bunx tsc --noEmit` = 0.
 - [ ] `bun test` зелёные (≥80).
-- [ ] `wc -l src/pipeline/agent-loop/index.ts` ≤ 80.
+- [ ] `wc -l packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/index.ts` ≤ 80.
 - [ ] Все файлы в `agent-loop/` ≤ 250 строк.
 - [ ] `bun run tests/integration.live.ts` end-to-end проходит, autonomous-loop работает.

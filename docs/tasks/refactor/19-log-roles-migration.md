@@ -15,17 +15,17 @@
 
 Слой наблюдаемости иллюзорен: каждый `logger.info/warn/error` с включённым DB-бэкапом (default-режим) **молча проваливается**.
 
-- [src/db/schema.ts:305](../../../src/db/schema.ts#L305) — `CHECK(role IN ('user','assistant','system','tool','reasoning'))`.
-- [src/lib/logger.ts:75](../../../src/lib/logger.ts#L75) — `memory.appendLog(..., \`_log_\${entry.level}\`, content)`. Role получается `_log_info` / `_log_warn` / `_log_error` / `_log_debug` → CHECK violation, SQLite бросает.
-- [src/lib/logger.ts:78](../../../src/lib/logger.ts#L78) — `catch {}` полностью глотает. Ни одна запись в Layer 4 от logger'а не доходит.
-- [src/telegram/userbot.ts:319-325](../../../src/telegram/userbot.ts#L319-L325) — role `channel_message`. Тот же провал.
+- [packages/core/packages/core/src/db/schema.ts:305](../../../packages/core/packages/core/src/db/schema.ts#L305) — `CHECK(role IN ('user','assistant','system','tool','reasoning'))`.
+- [packages/core/src/lib/logger.ts:75](../../../packages/core/src/lib/logger.ts#L75) — `memory.appendLog(..., \`_log_\${entry.level}\`, content)`. Role получается `_log_info` / `_log_warn` / `_log_error` / `_log_debug` → CHECK violation, SQLite бросает.
+- [packages/core/src/lib/logger.ts:78](../../../packages/core/src/lib/logger.ts#L78) — `catch {}` полностью глотает. Ни одна запись в Layer 4 от logger'а не доходит.
+- [packages/agent/packages/agent/src/telegram/userbot/index.ts:319-325](../../../packages/agent/packages/agent/src/telegram/userbot/index.ts#L319-L325) — role `channel_message`. Тот же провал.
 
 Итог: Layer 4 содержит только то, что пишет pipeline напрямую (user/assistant/tool messages). Весь logger-трафик и все telegram-monitor события теряются без единого звука.
 
 ## Файлы
 
-- [src/db/schema.ts](../../../src/db/schema.ts) — migration 6.
-- [src/lib/logger.ts](../../../src/lib/logger.ts) — fix swallow.
+- [packages/core/packages/core/src/db/schema.ts](../../../packages/core/packages/core/src/db/schema.ts) — migration 6.
+- [packages/core/src/lib/logger.ts](../../../packages/core/src/lib/logger.ts) — fix swallow.
 
 ## Изменение
 

@@ -10,7 +10,7 @@
 
 ## Файлы
 
-- [src/routes/memory.ts](../../../src/routes/memory.ts) — `/v1/memory/pending`, `PATCH :id/status`.
+- [packages/server/packages/server/src/routes/memory.ts](../../../packages/server/packages/server/src/routes/memory.ts) — `/v1/memory/pending`, `PATCH :id/status`.
 - [web/app/pages/memory.vue](../../../web/app/pages/memory.vue) — таб «Pending».
 - [web/app/composables/useMemory.ts](../../../web/app/composables/useMemory.ts) — `approveMemory`, `rejectMemory`.
 - [web/app/components/MemoryRow.vue](../../../web/app/components/MemoryRow.vue) — при `status === "pending"` показывать кнопки.

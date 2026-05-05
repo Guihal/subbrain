@@ -15,14 +15,14 @@
 
 ## Файлы
 
-- [src/services/agent.service.ts](../../../src/services/agent.service.ts) — новый.
-- [src/routes/autonomous.ts](../../../src/routes/autonomous.ts) — thin.
-- [src/scheduler/autonomous.ts](../../../src/scheduler/autonomous.ts), [free-agent.ts](../../../src/scheduler/free-agent.ts) — через `agentService.run`.
-- [src/app/deps.ts](../../../src/app/deps.ts) — инстанцирует `AgentService`.
+- [packages/agent/packages/agent/src/services/agent.service.ts](../../../packages/agent/packages/agent/src/services/agent.service.ts) — новый.
+- [packages/server/packages/server/src/routes/autonomous.ts](../../../packages/server/packages/server/src/routes/autonomous.ts) — thin.
+- [packages/agent/src/scheduler/autonomous.ts](../../../packages/agent/src/scheduler/autonomous.ts), [free-agent.ts](../../../packages/agent/packages/agent/src/scheduler/free-agent.ts) — через `agentService.run`.
+- [packages/server/packages/server/src/app/deps.ts](../../../packages/server/packages/server/src/app/deps.ts) — инстанцирует `AgentService`.
 
 ## Изменение
 
-### 1. `src/services/agent.service.ts`
+### 1. `packages/agent/packages/agent/packages/agent/src/services/agent.service.ts`
 
 ```
 interface AgentRunOpts {

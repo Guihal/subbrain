@@ -10,7 +10,7 @@
 
 ## Файл
 
-[src/lib/auth.ts](../../../src/lib/auth.ts), строка ~40.
+[packages/core/src/lib/auth.ts](../../../packages/core/src/lib/auth.ts), строка ~40.
 
 ## Изменение
 

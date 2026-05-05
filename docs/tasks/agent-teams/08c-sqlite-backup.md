@@ -67,12 +67,12 @@ others.
 - **backup file** — file at `${BACKUP_DIR}/subbrain-YYYY-MM-DD.db` produced by
   `VACUUM INTO`. Date is UTC, formatted `YYYY-MM-DD` (10 chars, zero-padded).
 - **schema version** — integer from `PRAGMA user_version` (current = 16, see
-  `src/db/schema.ts:879`).
-- **MemoryDB** — class in `src/db/index.ts:61`; exposes raw `db: Database` for
+  `packages/core/packages/core/src/db/schema.ts:879`).
+- **MemoryDB** — class in `packages/core/packages/core/src/db/index.ts:61`; exposes raw `db: Database` for
   pragma reads + `db.run("VACUUM INTO ?", path)`.
-- **scheduler** — pattern from `src/app/schedulers.ts` returning `{ stop }`.
-- **authMiddleware** — Elysia plugin already used by `src/routes/freelance.ts`,
-  `src/routes/memory.ts`. Apply identically to backup status route.
+- **scheduler** — pattern from `packages/server/packages/server/packages/server/src/app/schedulers.ts` returning `{ stop }`.
+- **authMiddleware** — Elysia plugin already used by `packages/server/packages/server/packages/server/src/routes/freelance.ts`,
+  `packages/server/packages/server/packages/server/src/routes/memory.ts`. Apply identically to backup status route.
 - **VACUUM INTO** — SQLite single-statement online backup. Locks DB only at end
   for atomic file rename; safe with FTS5 + sqlite-vec. Reference:
   https://sqlite.org/lang_vacuum.html § "VACUUM INTO".
@@ -98,9 +98,9 @@ others.
     "src/lib/backup.ts"
   ],
   "read_context": [
-    "src/db/index.ts:60-100",
-    "src/db/schema.ts:262-280",
-    "src/lib/logger.ts",
+    "packages/core/packages/core/src/db/index.ts:60-100",
+    "packages/core/packages/core/src/db/schema.ts:262-280",
+    "packages/core/src/lib/logger.ts",
     "CLAUDE.md",
     "docs/tasks/agent-teams/08c-sqlite-backup.md"
   ],
@@ -141,7 +141,7 @@ others.
 ```json
 {
   "task_id": "8c-2",
-  "goal": "Create src/scheduler/backup.ts exporting installBackupScheduler(deps) that fires once per day at BACKUP_HOUR_UTC (default 4) and calls runBackup() into ${BACKUP_DIR}/subbrain-YYYY-MM-DD.db, skipping when today's file already exists.",
+  "goal": "Create packages/agent/src/scheduler/backup.ts exporting installBackupScheduler(deps) that fires once per day at BACKUP_HOUR_UTC (default 4) and calls runBackup() into ${BACKUP_DIR}/subbrain-YYYY-MM-DD.db, skipping when today's file already exists.",
   "non_goals": [
     "Do not run on every interval tick — at most one backup per UTC date.",
     "Do not block process shutdown waiting for an in-flight backup; track it via an inFlight flag and let SIGTERM win after stop().",
@@ -150,34 +150,34 @@ others.
     "Do not silently swallow errors from runBackup; log via logger.error with stage 'backup' and continue."
   ],
   "allowed_write_paths": [
-    "src/scheduler/backup.ts",
-    "src/app/schedulers.ts"
+    "packages/agent/src/scheduler/backup.ts",
+    "packages/server/packages/server/src/app/schedulers.ts"
   ],
   "read_context": [
-    "src/app/schedulers.ts",
-    "src/scheduler/free-agent.ts:1-40",
+    "packages/server/packages/server/src/app/schedulers.ts",
+    "packages/agent/packages/agent/src/scheduler/free-agent.ts:1-40",
     "src/lib/backup.ts",
-    "src/lib/logger.ts",
-    "src/app/deps.ts"
+    "packages/core/src/lib/logger.ts",
+    "packages/server/packages/server/src/app/deps.ts"
   ],
   "risk_tier": "db",
   "escalate_to_strong_model": true,
   "acceptance": [
-    "test -f src/scheduler/backup.ts",
-    "grep -E 'export function installBackupScheduler' src/scheduler/backup.ts",
-    "grep -E 'BACKUP_HOUR_UTC' src/scheduler/backup.ts",
-    "grep -E 'subbrain-[0-9]{4}-[0-9]{2}-[0-9]{2}\\.db' src/scheduler/backup.ts || grep -F 'subbrain-' src/scheduler/backup.ts",
-    "grep -E 'installBackupScheduler' src/app/schedulers.ts",
+    "test -f packages/agent/src/scheduler/backup.ts",
+    "grep -E 'export function installBackupScheduler' packages/agent/src/scheduler/backup.ts",
+    "grep -E 'BACKUP_HOUR_UTC' packages/agent/src/scheduler/backup.ts",
+    "grep -E 'subbrain-[0-9]{4}-[0-9]{2}-[0-9]{2}\\.db' packages/agent/src/scheduler/backup.ts || grep -F 'subbrain-' packages/agent/src/scheduler/backup.ts",
+    "grep -E 'installBackupScheduler' packages/server/packages/server/src/app/schedulers.ts",
     "bunx tsc --noEmit",
     "bun run scripts/check-file-size.ts",
     "bun run scripts/check-deep-imports.ts"
   ],
   "diff_budget_loc": 150,
   "file_count_max": 2,
-  "rollback": "Delete src/scheduler/backup.ts and revert the import + call in src/app/schedulers.ts.",
+  "rollback": "Delete packages/agent/src/scheduler/backup.ts and revert the import + call in packages/server/packages/server/src/app/schedulers.ts.",
   "escalation_triggers": [
     "AppDeps does not expose the MemoryDB instance under a stable name — STOP, do not invent a new DI path.",
-    "src/app/schedulers.ts already imports a backup scheduler under a different name — STOP and reconcile, do not double-install.",
+    "packages/server/packages/server/src/app/schedulers.ts already imports a backup scheduler under a different name — STOP and reconcile, do not double-install.",
     "Required env BACKUP_DIR resolution conflicts with DB_PATH derivation — STOP and request decision."
   ],
   "glossary": {
@@ -196,7 +196,7 @@ others.
 ```json
 {
   "task_id": "8c-3",
-  "goal": "Add pruneBackups(dir: string, keepN: number) to src/lib/backup.ts that lists files matching subbrain-YYYY-MM-DD.db, sorts by date ascending, deletes oldest until count <= keepN, and is invoked from src/scheduler/backup.ts after each successful runBackup.",
+  "goal": "Add pruneBackups(dir: string, keepN: number) to src/lib/backup.ts that lists files matching subbrain-YYYY-MM-DD.db, sorts by date ascending, deletes oldest until count <= keepN, and is invoked from packages/agent/src/scheduler/backup.ts after each successful runBackup.",
   "non_goals": [
     "Do not delete files that do not match the subbrain-YYYY-MM-DD.db regex; never glob on '*.db'.",
     "Do not run pruning in parallel with a backup-in-flight; call after runBackup resolves.",
@@ -206,18 +206,18 @@ others.
   ],
   "allowed_write_paths": [
     "src/lib/backup.ts",
-    "src/scheduler/backup.ts"
+    "packages/agent/src/scheduler/backup.ts"
   ],
   "read_context": [
     "src/lib/backup.ts",
-    "src/scheduler/backup.ts",
-    "src/lib/logger.ts"
+    "packages/agent/src/scheduler/backup.ts",
+    "packages/core/src/lib/logger.ts"
   ],
   "risk_tier": "db",
   "escalate_to_strong_model": true,
   "acceptance": [
     "grep -E 'export (async )?function pruneBackups' src/lib/backup.ts",
-    "grep -E 'BACKUP_RETAIN|keepN' src/scheduler/backup.ts",
+    "grep -E 'BACKUP_RETAIN|keepN' packages/agent/src/scheduler/backup.ts",
     "grep -E 'subbrain-[0-9]{4}-[0-9]{2}-[0-9]{2}\\.db' src/lib/backup.ts || grep -E '^subbrain-' src/lib/backup.ts",
     "bunx tsc --noEmit",
     "bun run scripts/check-file-size.ts",
@@ -225,7 +225,7 @@ others.
   ],
   "diff_budget_loc": 120,
   "file_count_max": 2,
-  "rollback": "Remove the pruneBackups export from src/lib/backup.ts and revert its call in src/scheduler/backup.ts.",
+  "rollback": "Remove the pruneBackups export from src/lib/backup.ts and revert its call in packages/agent/src/scheduler/backup.ts.",
   "escalation_triggers": [
     "Filesystem race: a backup file appears between readdir and unlink — accept ENOENT during unlink, do not retry the whole prune; log warn.",
     "BACKUP_RETAIN env value is non-numeric or < 1 — STOP, log error, do not prune.",
@@ -260,8 +260,8 @@ others.
     "scripts/restore-backup.ts"
   ],
   "read_context": [
-    "src/db/schema.ts:262-300",
-    "src/db/schema.ts:870-885",
+    "packages/core/packages/core/src/db/schema.ts:262-300",
+    "packages/core/packages/core/src/db/schema.ts:870-885",
     "src/lib/backup.ts",
     "scripts/rollback-migration.ts",
     "CLAUDE.md"
@@ -282,7 +282,7 @@ others.
   "file_count_max": 1,
   "rollback": "Delete scripts/restore-backup.ts. The pre-restore-<timestamp>.bak file produced by a prior run is the live recovery path.",
   "escalation_triggers": [
-    "Backup schema_version does not match the migrate() target version exported by src/db/schema.ts — STOP, print mismatch, do NOT swap files.",
+    "Backup schema_version does not match the migrate() target version exported by packages/core/packages/core/src/db/schema.ts — STOP, print mismatch, do NOT swap files.",
     "DB_PATH is not writable, parent dir missing, or the process is not running as expected uid — STOP, print error, do NOT swap.",
     "Backup file fails PRAGMA integrity_check (output != 'ok') — STOP, print failure, do NOT swap.",
     "Spec asks for in-process hot reload of the swapped DB — out of scope, STOP and instruct the operator to restart the container."
@@ -303,7 +303,7 @@ others.
 ```json
 {
   "task_id": "8c-5",
-  "goal": "Create src/routes/backup.ts exporting a route GET /v1/backup/status (mounted under authMiddleware) that returns {last_backup_at, last_backup_size, count, oldest, newest, retain, dir} where dates are ISO-8601 strings and sizes are bytes; mount it in the existing route registration site.",
+  "goal": "Create packages/server/src/routes/backup.ts exporting a route GET /v1/backup/status (mounted under authMiddleware) that returns {last_backup_at, last_backup_size, count, oldest, newest, retain, dir} where dates are ISO-8601 strings and sizes are bytes; mount it in the existing route registration site.",
   "non_goals": [
     "Do not expose POST/DELETE on this route; status is read-only in v1.",
     "Do not list every backup file in the response; only aggregate stats + oldest/newest dates.",
@@ -312,38 +312,38 @@ others.
     "Do not bypass authMiddleware."
   ],
   "allowed_write_paths": [
-    "src/routes/backup.ts",
-    "src/app/bootstrap.ts"
+    "packages/server/src/routes/backup.ts",
+    "packages/server/packages/server/src/app/bootstrap.ts"
   ],
   "read_context": [
-    "src/routes/freelance.ts:1-60",
-    "src/routes/memory.ts:1-60",
+    "packages/server/packages/server/src/routes/freelance.ts:1-60",
+    "packages/server/packages/server/src/routes/memory.ts:1-60",
     "src/lib/backup.ts",
-    "src/lib/api-envelope.ts",
-    "src/app/bootstrap.ts"
+    "packages/core/src/lib/api-envelope.ts",
+    "packages/server/packages/server/src/app/bootstrap.ts"
   ],
   "risk_tier": "db",
   "escalate_to_strong_model": true,
   "acceptance": [
-    "test -f src/routes/backup.ts",
-    "grep -E '/v1/backup/status' src/routes/backup.ts",
-    "grep -E 'authMiddleware' src/routes/backup.ts",
-    "grep -E 'backupRoute|registerBackup' src/app/bootstrap.ts",
+    "test -f packages/server/src/routes/backup.ts",
+    "grep -E '/v1/backup/status' packages/server/src/routes/backup.ts",
+    "grep -E 'authMiddleware' packages/server/src/routes/backup.ts",
+    "grep -E 'backupRoute|registerBackup' packages/server/packages/server/src/app/bootstrap.ts",
     "bunx tsc --noEmit",
     "bun run scripts/check-file-size.ts",
     "bun run scripts/check-deep-imports.ts"
   ],
   "diff_budget_loc": 130,
   "file_count_max": 2,
-  "rollback": "Delete src/routes/backup.ts and revert its mount in src/app/bootstrap.ts.",
+  "rollback": "Delete packages/server/src/routes/backup.ts and revert its mount in packages/server/packages/server/src/app/bootstrap.ts.",
   "escalation_triggers": [
     "BACKUP_DIR does not exist at request time — return 200 with {count:0, dir, retain} instead of 500.",
-    "src/app/bootstrap.ts mounts routes via a registry helper that this packet's mount call would conflict with — STOP and reconcile, do not duplicate.",
+    "packages/server/packages/server/src/app/bootstrap.ts mounts routes via a registry helper that this packet's mount call would conflict with — STOP and reconcile, do not duplicate.",
     "Spec asks for a POST to trigger an ad-hoc backup — out of scope in v1, STOP."
   ],
   "glossary": {
     "Response shape": "{ last_backup_at: string|null; last_backup_size: number|null; count: number; oldest: string|null; newest: string|null; retain: number; dir: string }. Dates from filename YYYY-MM-DD parsed at UTC midnight.",
-    "Mount point": "Same Elysia .group/.use pattern as src/routes/freelance.ts; under the same authMiddleware composition used there."
+    "Mount point": "Same Elysia .group/.use pattern as packages/server/packages/server/src/routes/freelance.ts; under the same authMiddleware composition used there."
   }
 }
 ```
@@ -363,7 +363,7 @@ others.
     "Do not write top-level code that calls process.exit; this kills bun test runner.",
     "Do not name the file with .live.ts suffix; this is a unit test.",
     "Do not mock bun:sqlite; use real in-memory or temp-file Databases.",
-    "Do not require a running server (no bun run src/index.ts in test setup)."
+    "Do not require a running server (no bun run packages/server/packages/server/src/index.ts in test setup)."
   ],
   "allowed_write_paths": [
     "tests/backup.test.ts"
@@ -371,7 +371,7 @@ others.
   "read_context": [
     "src/lib/backup.ts",
     "scripts/restore-backup.ts",
-    "src/db/schema.ts",
+    "packages/core/packages/core/src/db/schema.ts",
     "tests/rag.test.ts"
   ],
   "risk_tier": "db",

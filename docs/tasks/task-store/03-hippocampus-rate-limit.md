@@ -6,7 +6,7 @@
 
 ## Цель
 
-Hippocampus (post-processing агент в `src/pipeline/agent-pipeline/post/hippocampus.ts`) сейчас умеет `memory_search`/`memory_write`/`done`. Нужно научить его использовать `task_add` вместо `memory_write` для lifecycle items (TODO/reminder/deadline) и поставить rate-limit на все `task_*` мутации чтобы отсечь spam-галлюцинации.
+Hippocampus (post-processing агент в `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/hippocampus.ts`) сейчас умеет `memory_search`/`memory_write`/`done`. Нужно научить его использовать `task_add` вместо `memory_write` для lifecycle items (TODO/reminder/deadline) и поставить rate-limit на все `task_*` мутации чтобы отсечь spam-галлюцинации.
 
 ## Проблема которую решаем
 
@@ -16,7 +16,7 @@ Hippocampus (post-processing агент в `src/pipeline/agent-pipeline/post/hip
 
 ### 1. Update system-prompt в hippocampus
 
-`src/pipeline/agent-pipeline/post/hippocampus.ts` (или `post/extractors.ts` если prompt вынесен). Найти функцию типа `getExtractorPrompt()` или inline system-prompt. Добавить в конец секцию:
+`packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/hippocampus.ts` (или `post/extractors.ts` если prompt вынесен). Найти функцию типа `getExtractorPrompt()` или inline system-prompt. Добавить в конец секцию:
 
 ```
 Три стора — не смешивай:
@@ -35,7 +35,7 @@ Hippocampus (post-processing агент в `src/pipeline/agent-pipeline/post/hip
 
 ### 2. Добавить task_add в allowed tools hippocampus
 
-Найти где MAX_HIPPO_STEPS=5 и список tools формируется. Файлы: `src/pipeline/agent-pipeline/post/hippocampus.ts`, `post/extractors.ts`, `post/gate.ts`. Список tools обычно фильтруется по именам или scope. Добавить `task_add` в allow-list (но **не** весь `task_*` — hippocampus не должен мутировать чужие задачи).
+Найти где MAX_HIPPO_STEPS=5 и список tools формируется. Файлы: `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/hippocampus.ts`, `post/extractors.ts`, `post/gate.ts`. Список tools обычно фильтруется по именам или scope. Добавить `task_add` в allow-list (но **не** весь `task_*` — hippocampus не должен мутировать чужие задачи).
 
 Проверить: если hippocampus использует `registry.toOpenAITools("public")` — тогда `task_add` не попадёт потому что scope="agent-only". Нужно либо:
 - Вариант A: разрешить в hippocampus весь agent-only scope (проверить side-effects — может задеть `done`/`consult_*`).
@@ -45,7 +45,7 @@ Hippocampus (post-processing агент в `src/pipeline/agent-pipeline/post/hip
 
 ### 3. taskMutationBudget в AgentContext
 
-**File:** `src/pipeline/agent-loop/types.ts` или там где объявлен AgentContext. Если есть `AgentContext` interface — добавить:
+**File:** `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/types.ts` или там где объявлен AgentContext. Если есть `AgentContext` interface — добавить:
 
 ```ts
 export interface TaskMutationBudget {
@@ -53,7 +53,7 @@ export interface TaskMutationBudget {
 }
 ```
 
-**File:** `src/mcp/registry/tool-registry.ts` — в `ToolContext` добавить:
+**File:** `packages/agent/packages/agent/packages/agent/src/mcp/registry/tool-registry.ts` — в `ToolContext` добавить:
 
 ```ts
 export interface ToolContext {
@@ -62,7 +62,7 @@ export interface ToolContext {
 }
 ```
 
-**File:** `src/mcp/registry/tasks.tools.ts` — в каждом из 6 task_* handlers перед `ctx.executor.tasksTools.<action>(args)` вставить guard:
+**File:** `packages/agent/packages/agent/packages/agent/src/mcp/registry/tasks.tools.ts` — в каждом из 6 task_* handlers перед `ctx.executor.tasksTools.<action>(args)` вставить guard:
 
 ```ts
 handler: (args, ctx) => {
@@ -83,7 +83,7 @@ handler: (args, ctx) => {
 
 ### 4. Wire budget в hippocampus вызовах
 
-**File:** `src/pipeline/agent-pipeline/post/hippocampus.ts`. Где создаётся ctx для registry.call — передать `taskBudget: {remaining: 3}` в объект ctx. Budget создаётся один раз на entry hippocampus-loop и переиспользуется между tool calls. Если hippocampus-loop делает несколько registry.call — один и тот же объект (shared reference), `remaining` мутируется.
+**File:** `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/hippocampus.ts`. Где создаётся ctx для registry.call — передать `taskBudget: {remaining: 3}` в объект ctx. Budget создаётся один раз на entry hippocampus-loop и переиспользуется между tool calls. Если hippocampus-loop делает несколько registry.call — один и тот же объект (shared reference), `remaining` мутируется.
 
 Critical: если hippocampus-loop работает через agent-loop/run.ts (не direct registry.call) — нужно пробросить `taskBudget` через `ToolRunnerDeps` и далее в `ctx` в executeAgentTool. Проверить архитектуру.
 
@@ -120,14 +120,14 @@ bun test              # full suite, ожидаем ~315+ pass
 
 ## Guardrails reminder
 
-- `src/pipeline/agent-pipeline/post/hippocampus.ts` — file cap 250. Если >230 — не добавляй много кода, вынеси в helpers.
+- `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/hippocampus.ts` — file cap 250. Если >230 — не добавляй много кода, вынеси в helpers.
 - `logger.child("hippocampus")` — двухаргументный уже root, child — single.
 - Tests через `bun:test` describe/test/expect; не top-level `process.exit`.
 
 ## Что изменяется в git
 
 Новые: `tests/hippocampus-task-budget.test.ts`.
-Modified: `src/pipeline/agent-pipeline/post/hippocampus.ts`, `src/mcp/registry/tasks.tools.ts`, `src/mcp/registry/tool-registry.ts` (+ `AgentContext` types если они где-то централизованы).
+Modified: `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/hippocampus.ts`, `packages/agent/packages/agent/packages/agent/src/mcp/registry/tasks.tools.ts`, `packages/agent/packages/agent/packages/agent/src/mcp/registry/tool-registry.ts` (+ `AgentContext` types если они где-то централизованы).
 
 ## После завершения
 

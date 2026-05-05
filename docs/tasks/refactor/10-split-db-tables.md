@@ -1,4 +1,4 @@
-# Задача 10 — Splitting `src/db/index.ts` → `db/tables/*`
+# Задача 10 — Splitting `packages/core/packages/core/packages/core/src/db/index.ts` → `db/tables/*`
 
 **Оценка:** 0.5 дня
 **Зависимости:** —
@@ -6,12 +6,12 @@
 
 ## Цель
 
-[src/db/index.ts](../../../src/db/index.ts) ~716 строк смешивает CRUD по 5+ таблицам. Разнести по таблице на файл; сам `index.ts` собирает класс `MemoryDB` из mixin'ов / композитов.
+[packages/core/packages/core/src/db/index.ts](../../../packages/core/packages/core/src/db/index.ts) ~716 строк смешивает CRUD по 5+ таблицам. Разнести по таблице на файл; сам `index.ts` собирает класс `MemoryDB` из mixin'ов / композитов.
 
 ## Целевая структура
 
 ```
-src/db/
+packages/core/src/db/
 ├── index.ts            # MemoryDB orchestrator: open + migrate + сборка методов из tables/*
 ├── schema.ts           # уже есть — миграции v1..v3 (после MED-10 — в транзакции)
 ├── tables/
@@ -84,16 +84,16 @@ export class MemoryDB {
 
 ## Файлы
 
-- [src/db/index.ts](../../../src/db/index.ts) (сильно сократить)
-- `src/db/tables/memory.ts`, `tables/chats.ts`, `tables/logs.ts`, `tables/kv.ts`, `tables/users.ts?`
-- `src/db/types.ts` (новый)
-- [src/db/schema.ts](../../../src/db/schema.ts) — не трогать (только если PR 05 MED-10 ещё не закрыт — там обернуть v3 в транзакцию)
-- [CLAUDE.md](../../../CLAUDE.md) — обновить упоминания `src/db/index.ts` и пути миграций.
+- [packages/core/packages/core/src/db/index.ts](../../../packages/core/packages/core/src/db/index.ts) (сильно сократить)
+- `packages/core/src/db/tables/memory.ts`, `tables/chats.ts`, `tables/logs.ts`, `tables/kv.ts`, `tables/users.ts?`
+- `packages/core/packages/core/packages/core/src/db/types.ts` (новый)
+- [packages/core/packages/core/src/db/schema.ts](../../../packages/core/packages/core/src/db/schema.ts) — не трогать (только если PR 05 MED-10 ещё не закрыт — там обернуть v3 в транзакцию)
+- [CLAUDE.md](../../../CLAUDE.md) — обновить упоминания `packages/core/packages/core/packages/core/src/db/index.ts` и пути миграций.
 - [docs/completed/02-database-schema.md](../../completed/02-database-schema.md) — обновить структуру.
 
 ## Порядок исполнения
 
-1. Завести `src/db/types.ts` с row-типами (вытащить из существующего `index.ts`).
+1. Завести `packages/core/packages/core/packages/core/src/db/types.ts` с row-типами (вытащить из существующего `index.ts`).
 2. Вынести `tables/kv.ts` (самый маленький, минимальный риск).
 3. Вынести `tables/logs.ts`.
 4. Вынести `tables/chats.ts`.
@@ -105,7 +105,7 @@ export class MemoryDB {
 
 - [ ] `bunx tsc --noEmit` = 0.
 - [ ] `bun test` зелёные.
-- [ ] `wc -l src/db/index.ts` ≤ 150.
+- [ ] `wc -l packages/core/packages/core/src/db/index.ts` ≤ 150.
 - [ ] Все файлы в `db/tables/` ≤ 250 строк.
 - [ ] `bun run tests/integration.live.ts` end-to-end проходит.
 - [ ] `bun run scripts/audit-db.ts` без ошибок.

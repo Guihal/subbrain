@@ -46,29 +46,29 @@
 
 ### Wave 2 — backend SoC smells (4 PR) ✅ DONE
 
-- [x] **W2-1** `src/routes/logs.ts` SQL → repository methods
-- [x] **W2-2** `src/routes/tasks.ts` SQL → `task.repo.ts` + split (228→139)
-- [x] **W2-3** `src/mcp/tools/memory-tools.ts` → `mcp/tools/memory/` folder
-- [x] **W2-4** `src/pipeline/night-cycle/prune/stray-tasks.ts` → split-folder
+- [x] **W2-1** `packages/server/packages/server/packages/server/src/routes/logs.ts` SQL → repository methods
+- [x] **W2-2** `packages/server/packages/server/packages/server/src/routes/tasks.ts` SQL → `task.repo.ts` + split (228→139)
+- [x] **W2-3** `packages/agent/src/mcp/tools/memory-tools.ts` → `mcp/tools/memory/` folder
+- [x] **W2-4** `packages/agent/packages/agent/src/pipeline/night-cycle/prune/stray-tasks.ts` → split-folder
 
 ### Wave 3 — big modules (10 PR; STRICT internal order) ✅ DONE
 
 **Order (strict, см. § F.6 user override):** db (W3-3 ∥ W3-4) → repo (W3-2) → service (W3-1). W3-5..W3-10 параллельны после P0-A.
 
-- [x] **W3-3** `src/db/tables/memory.ts` → `db/tables/memory/` folder (456fba2)
-- [x] **W3-4** `src/db/tables/shared.ts` → `db/tables/shared/` folder (c84fe8e)
-- [x] **W3-2** `src/repositories/memory.repo.ts` → `repositories/memory/` folder (1217120)
-- [x] **W3-1** `src/services/memory.service.ts` → `services/memory/` folder (bb95645)
-- [x] **W3-5** `src/pipeline/arbitration-room.ts` → `pipeline/arbitration/` folder (43a3ada)
-- [x] **W3-6** `src/mcp/executor.ts` → `mcp/executor/` folder (c9c6e60)
-- [x] **W3-7** `src/mcp/playwright-client.ts` → `mcp/playwright/` folder (f8ab5b9)
-- [x] **W3-8** `src/telegram/bot.ts` → `telegram/bot/` folder (d4f9686)
-- [x] **W3-9** `src/telegram/userbot.ts` → `telegram/userbot/` folder (ddfd180)
-- [x] **W3-10** `src/services/chat.service.ts` → `services/chat/` folder (61e5380) — HOT PATH
+- [x] **W3-3** `packages/core/src/db/tables/memory.ts` → `db/tables/memory/` folder (456fba2)
+- [x] **W3-4** `packages/core/src/db/tables/shared.ts` → `db/tables/shared/` folder (c84fe8e)
+- [x] **W3-2** `packages/core/src/repositories/memory.repo.ts` → `repositories/memory/` folder (1217120)
+- [x] **W3-1** `packages/agent/src/services/memory.service.ts` → `services/memory/` folder (bb95645)
+- [x] **W3-5** `packages/agent/packages/agent/src/pipeline/arbitration/index.ts` → `pipeline/arbitration/` folder (43a3ada)
+- [x] **W3-6** `packages/agent/packages/agent/src/mcp/executor/index.ts` → `mcp/executor/` folder (c9c6e60)
+- [x] **W3-7** `packages/agent/packages/agent/src/mcp/playwright/index.ts` → `mcp/playwright/` folder (f8ab5b9)
+- [x] **W3-8** `packages/agent/packages/agent/src/telegram/bot/index.ts` → `telegram/bot/` folder (d4f9686)
+- [x] **W3-9** `packages/agent/packages/agent/src/telegram/userbot/index.ts` → `telegram/userbot/` folder (ddfd180)
+- [x] **W3-10** `packages/agent/src/services/chat.service.ts` → `services/chat/` folder (61e5380) — HOT PATH
 
 ### Wave 4 — rag/pipeline split (1 PR) ✅ DONE
 
-- [x] **W4-1** `src/rag/pipeline.ts` → `rag/pipeline/` folder (1a9332d). Whitelist `rag/pipeline/index.ts:200`. Bench invariants deferred (run from prod after deploy).
+- [x] **W4-1** `packages/agent/packages/agent/src/rag/pipeline/index.ts` → `rag/pipeline/` folder (1a9332d). Whitelist `rag/pipeline/index.ts:200`. Bench invariants deferred (run from prod after deploy).
 
 ### P-C2 — strict-mode flip + close ✅ DONE
 
@@ -79,7 +79,7 @@
 
 ### MicroPR — squeeze logger.ts ≤200 ✅ DONE
 
-- [x] `src/lib/logger.ts` 262 → 190 LOC (bc8008a). Whitelist cap 200 covers it.
+- [x] `packages/core/packages/core/src/lib/logger.ts` 262 → 190 LOC (bc8008a). Whitelist cap 200 covers it.
 
 ## Принятые user-overrides (§F плана)
 

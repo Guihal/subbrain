@@ -14,15 +14,15 @@
 
 ## Файлы
 
-- [src/repositories/](../../../src/repositories/) — новая директория, файлы:
+- [packages/core/src/repositories/](../../../packages/core/src/repositories/) — новая директория, файлы:
   - `memory.repo.ts` (обёртка над `db/tables/memory.ts`, `shared.ts`, `agent.ts`)
   - `chat.repo.ts` (`db/tables/chats.ts`)
   - `log.repo.ts` (`db/tables/logs.ts`)
   - `telegram.repo.ts` (`db/tables/tg-*`)
   - `freelance.repo.ts` (`db/tables/freelance.ts` если есть)
-- [src/services/memory.service.ts](../../../src/services/memory.service.ts) и т.д. — ctor принимает repos.
-- [src/app/deps.ts](../../../src/app/deps.ts) — инстанцирует repos.
-- [src/db/index.ts](../../../src/db/index.ts) — `MemoryDB` остаётся тонким facade для back-compat переходного периода.
+- [packages/agent/src/services/memory.service.ts](../../../packages/agent/src/services/memory.service.ts) и т.д. — ctor принимает repos.
+- [packages/server/packages/server/src/app/deps.ts](../../../packages/server/packages/server/src/app/deps.ts) — инстанцирует repos.
+- [packages/core/packages/core/src/db/index.ts](../../../packages/core/packages/core/src/db/index.ts) — `MemoryDB` остаётся тонким facade для back-compat переходного периода.
 
 ## Изменение
 
@@ -68,7 +68,7 @@ constructor(
 
 ### 3. `MemoryDB` facade
 
-`src/db/index.ts` — сохраняется, **но** все методы делегируют в repo instances внутри. Back-compat: старый код (`scripts/seed.ts`, `scripts/audit-db.ts` и т.д.) продолжает работать.
+`packages/core/packages/core/packages/core/src/db/index.ts` — сохраняется, **но** все методы делегируют в repo instances внутри. Back-compat: старый код (`scripts/seed.ts`, `scripts/audit-db.ts` и т.д.) продолжает работать.
 
 ### 4. Grep-guardrail
 
@@ -76,7 +76,7 @@ constructor(
 
 ```
 test("raw SQL lives only in db/tables/ and repositories/", async () => {
-  const hits = await grepRepo(`/\b(?:INSERT|UPDATE|DELETE|SELECT)\s/i`, ["src/services/", "src/routes/", "src/pipeline/"]);
+  const hits = await grepRepo(`/\b(?:INSERT|UPDATE|DELETE|SELECT)\s/i`, ["packages/agent/src/services/", "packages/server/src/routes/", "packages/agent/src/pipeline/"]);
   expect(hits).toEqual([]);   // Если non-empty — слой пробит
 });
 ```
@@ -99,9 +99,9 @@ Plus layer-boundary test выше.
 - [ ] `bunx tsc --noEmit` = 0.
 - [ ] Новые тесты зелёные.
 - [ ] 25b/26a/26b tests остаются зелёными без изменений в самих сервисах (только ctor изменён).
-- [ ] Layer-boundary test ловит попытку писать `INSERT INTO ...` в `src/services/` (проверено искусственной инъекцией).
-- [ ] `grep -rn 'memory\.\(insert\|update\|delete\|list\|get\|count\|search\)' src/services/ src/routes/` — 0 совпадений (только через repo).
-- [ ] `docs/CLAUDE.md` обновлён: упомянуть `src/repositories/` в «Conventions» секции.
+- [ ] Layer-boundary test ловит попытку писать `INSERT INTO ...` в `packages/agent/src/services/` (проверено искусственной инъекцией).
+- [ ] `grep -rn 'memory\.\(insert\|update\|delete\|list\|get\|count\|search\)' packages/agent/src/services/ packages/server/src/routes/` — 0 совпадений (только через repo).
+- [ ] `docs/CLAUDE.md` обновлён: упомянуть `packages/core/src/repositories/` в «Conventions» секции.
 
 ## Deploy note
 

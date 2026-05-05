@@ -6,21 +6,21 @@
 
 ## Цель
 
-Разбить `src/db/tables/shared.ts` (396 LOC) на split-folder. Public API = `SharedTable` class — сохранить все методы 1:1.
+Разбить `packages/core/src/db/tables/shared.ts` (396 LOC) на split-folder. Public API = `SharedTable` class — сохранить все методы 1:1.
 
 ## Файлы
 
 **Удалить**:
-- `src/db/tables/shared.ts`
+- `packages/core/src/db/tables/shared.ts`
 
 **Создать**:
-- `src/db/tables/shared/index.ts` — `SharedTable` orchestrator class (≤120 LOC).
-- `src/db/tables/shared/insert.ts` — `insertShared`, `upsertShared` + helper `categoryToKind` если приватный.
-- `src/db/tables/shared/update.ts` — `updateShared` + ALLOW map.
-- `src/db/tables/shared/select.ts` — `getShared`, `listShared`, `countShared` + FTS-related selects.
-- `src/db/tables/shared/delete.ts` — `deleteShared`.
+- `packages/core/packages/core/packages/core/src/db/tables/shared/index.ts` — `SharedTable` orchestrator class (≤120 LOC).
+- `packages/core/src/db/tables/shared/insert.ts` — `insertShared`, `upsertShared` + helper `categoryToKind` если приватный.
+- `packages/core/src/db/tables/shared/update.ts` — `updateShared` + ALLOW map.
+- `packages/core/src/db/tables/shared/select.ts` — `getShared`, `listShared`, `countShared` + FTS-related selects.
+- `packages/core/src/db/tables/shared/delete.ts` — `deleteShared`.
 
-**Trigger**: `scripts/check-file-size.ts` `"src/db/tables/shared.ts": 397` → удалить.
+**Trigger**: `scripts/check-file-size.ts` `"packages/core/src/db/tables/shared.ts": 397` → удалить.
 
 ## Изменение
 

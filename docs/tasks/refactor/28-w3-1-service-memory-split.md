@@ -6,22 +6,22 @@
 
 ## Цель
 
-Разбить `src/services/memory.service.ts` (380 LOC) на split-folder. Public API = `MemoryService` class.
+Разбить `packages/agent/src/services/memory.service.ts` (380 LOC) на split-folder. Public API = `MemoryService` class.
 
 ## Файлы
 
 **Удалить**:
-- `src/services/memory.service.ts`
+- `packages/agent/src/services/memory.service.ts`
 
 **Создать**:
-- `src/services/memory/index.ts` — `MemoryService` orchestrator (≤120 LOC).
-- `src/services/memory/insert.ts` — `insertShared`, `insertContext`, `insertArchive` + embed-first transactional logic. Pure functions taking `{repo, rag}` deps.
-- `src/services/memory/update.ts` — `updateShared`, `updateContext`, `updateArchive`.
-- `src/services/memory/search.ts` — высокоуровневый `search()` объединяющий FTS + vec + rerank (если есть).
-- `src/services/memory/link-related.ts` — `linkRelated`, `linkSemanticEdges` (если есть).
-- `src/services/memory/dedupe.ts` — dedup-related logic (если есть в текущем файле).
+- `packages/agent/packages/agent/packages/agent/src/services/memory/index.ts` — `MemoryService` orchestrator (≤120 LOC).
+- `packages/agent/src/services/memory/insert.ts` — `insertShared`, `insertContext`, `insertArchive` + embed-first transactional logic. Pure functions taking `{repo, rag}` deps.
+- `packages/agent/src/services/memory/update.ts` — `updateShared`, `updateContext`, `updateArchive`.
+- `packages/agent/src/services/memory/search.ts` — высокоуровневый `search()` объединяющий FTS + vec + rerank (если есть).
+- `packages/agent/src/services/memory/link-related.ts` — `linkRelated`, `linkSemanticEdges` (если есть).
+- `packages/agent/src/services/memory/dedupe.ts` — dedup-related logic (если есть в текущем файле).
 
-**Trigger**: `scripts/check-file-size.ts` `"src/services/memory.service.ts": 381` → удалить.
+**Trigger**: `scripts/check-file-size.ts` `"packages/agent/src/services/memory.service.ts": 381` → удалить.
 
 ## Изменение
 

@@ -4,27 +4,27 @@
 
 ## Цель
 
-Закрыть аудит-айтем **MEM-2** (`docs/02-audit.md:206-209` — "shared_memory rows are not embedded by writers"). Все ingress-paths, создающие строки в `shared_memory`, должны embed-ить контент через NVIDIA NIM и записывать вектор в `vec_embeddings(layer='shared')` под одной транзакцией с insert'ом. Сейчас только hippocampus extractor (`src/pipeline/agent-pipeline/post/extractors.ts:108-125`) делает это правильно; остальные пишут "сухие" строки → vec-branch RAG-pipeline пуст для слоя `shared`.
+Закрыть аудит-айтем **MEM-2** (`docs/02-audit.md:206-209` — "shared_memory rows are not embedded by writers"). Все ingress-paths, создающие строки в `shared_memory`, должны embed-ить контент через NVIDIA NIM и записывать вектор в `vec_embeddings(layer='shared')` под одной транзакцией с insert'ом. Сейчас только hippocampus extractor (`packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/extractors.ts:108-125`) делает это правильно; остальные пишут "сухие" строки → vec-branch RAG-pipeline пуст для слоя `shared`.
 
 После тикета: `SELECT count(*) FROM shared_memory WHERE id NOT IN (SELECT id FROM vec_embeddings WHERE layer='shared')` = **0** на полностью прогнанной БД (после `bun run scripts/seed.ts`).
 
 ## Файлы (scope-lock — изменять ТОЛЬКО эти)
 
 - `scripts/seed.ts` — line 108: `db.insertShared(...)` raw, без embed.
-- `src/mcp/tools/memory-tools.ts` — line ~162: `this.memory.insertShared(...)` (`memory: MemoryDB` raw, без embed).
-- `src/pipeline/context-compressor.ts` — interface `CompressorMemory` (~line 27) + call-site (~line 237).
-- `src/pipeline/agent-loop/compressor-hook.ts` — line ~16: caller-side, передаёт `memory` в `compressContext`.
-- `src/services/chat.service.ts` — line ~111: caller-side, передаёт `this.memoryRepo` в `compressContext`.
+- `packages/agent/src/mcp/tools/memory-tools.ts` — line ~162: `this.memory.insertShared(...)` (`memory: MemoryDB` raw, без embed).
+- `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/context-compressor.ts` — interface `CompressorMemory` (~line 27) + call-site (~line 237).
+- `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/compressor-hook.ts` — line ~16: caller-side, передаёт `memory` в `compressContext`.
+- `packages/agent/src/services/chat.service.ts` — line ~111: caller-side, передаёт `this.memoryRepo` в `compressContext`.
 - `tests/shared-embed-writers.test.ts` — **NEW** файл.
 - `docs/02-audit.md` — закрыть MEM-2 entry (mark ✅, ссылка на этот тикет).
 - `docs/tasks/memory-v2/M-01-shared-embed-writers.md` — обновить `Status: DONE (PR …)` в конце.
 
 **НЕ трогать:**
-- `src/services/memory.service.ts` — `insertShared` уже корректный (embed-first + transaction wrap).
-- `src/pipeline/agent-pipeline/post/extractors.ts` — hippocampus уже embed-ит.
-- `src/repositories/memory.repo.ts` — это сырой repo-layer, не место для embed (по архитектуре — embed в Service-layer).
-- `src/db/schema.ts`, миграции — без изменений схемы.
-- `src/db/tables/shared.ts` — без изменений (там сырые helpers).
+- `packages/agent/src/services/memory.service.ts` — `insertShared` уже корректный (embed-first + transaction wrap).
+- `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/extractors.ts` — hippocampus уже embed-ит.
+- `packages/core/src/repositories/memory.repo.ts` — это сырой repo-layer, не место для embed (по архитектуре — embed в Service-layer).
+- `packages/core/packages/core/packages/core/src/db/schema.ts`, миграции — без изменений схемы.
+- `packages/core/src/db/tables/shared.ts` — без изменений (там сырые helpers).
 
 ## Изменение
 
@@ -40,16 +40,16 @@
 - Изменение: импортировать `MemoryService` + `EmbedService` (или их фабрику), сконструировать service на тот же `db`, заменить `db.insertShared(...)` на `await memoryService.insertShared({ id, category, content, tags, source, ... })`.
 - Если seed-скрипт не должен зависеть от LLM-провайдера (для CI/offline-режима) — добавить env-флаг `SEED_SKIP_EMBED=1`, при котором падать обратно к raw insert (с громкой console.warn). По умолчанию embed включён.
 
-**2. `src/mcp/tools/memory-tools.ts:162`**
+**2. `packages/agent/src/mcp/tools/memory-tools.ts:162`**
 - Сейчас: `private memory: MemoryDB` + `this.memory.insertShared(...)`.
 - Изменение: внедрить `MemoryService` через DI (constructor takes `MemoryService` или дополнительно к `MemoryDB`). Заменить call-site на `await this.memoryService.insertShared({...})`.
-- Грепнуть инстанциацию `MemoryTools`: грейс заменить там, где конструируется (likely `src/mcp/tools/index.ts` или `app/dependencies.ts`).
+- Грепнуть инстанциацию `MemoryTools`: грейс заменить там, где конструируется (likely `packages/agent/packages/agent/packages/agent/src/mcp/tools/index.ts` или `app/dependencies.ts`).
 
-**3. `src/pipeline/context-compressor.ts` + два caller'а**
+**3. `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/context-compressor.ts` + два caller'а**
 - `CompressorMemory` interface — `insertShared` сейчас sync `(...) => void`. Service-level `insertShared` async `Promise<string>`. Решение: **расширить интерфейс** до async-совместимой формы — `insertShared(...) => void | Promise<unknown>`, а внутри compressor'а (`line ~237`) сделать `await memory.insertShared(...)` (compressor сам уже в async-fn `compressContext`).
 - Caller-сайд:
-  - `src/services/chat.service.ts:111` — passes `this.memoryRepo`. Переключить на `this.memoryService` (если ChatService уже имеет ссылку — проверить; если нет — добавить в constructor).
-  - `src/pipeline/agent-loop/compressor-hook.ts:16` — passes `memory` (origin: agent-loop owner). Переключить на `MemoryService`-инстанс (поднять через `AgentToolContext.memoryService` или эквивалент; если нет — расширить контекст; держать backward-compat — приёмная сторона compressor'а просто требует объект с `insertShared`).
+  - `packages/agent/src/services/chat.service.ts:111` — passes `this.memoryRepo`. Переключить на `this.memoryService` (если ChatService уже имеет ссылку — проверить; если нет — добавить в constructor).
+  - `packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/compressor-hook.ts:16` — passes `memory` (origin: agent-loop owner). Переключить на `MemoryService`-инстанс (поднять через `AgentToolContext.memoryService` или эквивалент; если нет — расширить контекст; держать backward-compat — приёмная сторона compressor'а просто требует объект с `insertShared`).
 - Альтернатива (минимизировать diff): не менять ABI compressor'а; в caller'ах оборачивать `memoryService` лямбдой `{ insertShared: (...) => memoryService.insertShared({...}) }`. Менее красиво, но scope меньше. Subagent волен выбрать — главное чтобы embed случился.
 
 ### Транзакционность
@@ -79,7 +79,7 @@
 2. `bun test tests/shared-embed-writers.test.ts` → all green.
 3. `bun test` (полный suite) → exit 0, ≥633 tests pass, 0 fail (baseline, не регрессия).
 4. `grep -rn "db\.insertShared\|MemoryDB.*insertShared" src/ scripts/ | grep -v "//\|^\s*\*\|test"` → **0 строк** (либо все hits — это `MemoryService.insertShared` через service-объект, не raw).
-5. `grep -n "memory\.insertShared\|this\.memory\.insertShared" src/mcp/tools/memory-tools.ts src/pipeline/context-compressor.ts` → должны быть либо `this.memoryService.insertShared` либо вызов через service-shim, не raw `MemoryDB`.
+5. `grep -n "memory\.insertShared\|this\.memory\.insertShared" packages/agent/src/mcp/tools/memory-tools.ts packages/agent/packages/agent/packages/agent/src/pipeline/context-compressor.ts` → должны быть либо `this.memoryService.insertShared` либо вызов через service-shim, не raw `MemoryDB`.
 6. `docs/02-audit.md` — MEM-2 секция помечена `✅` со ссылкой на этот PR.
 7. Этот файл (`docs/tasks/memory-v2/M-01-shared-embed-writers.md`) — внизу `Status: DONE (PR <commit-sha>)`.
 

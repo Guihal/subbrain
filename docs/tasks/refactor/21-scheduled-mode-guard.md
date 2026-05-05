@@ -10,22 +10,22 @@
 
 Проблемные точки:
 
-- [src/pipeline/agent-loop/system-prompt.ts:167-184](../../../src/pipeline/agent-loop/system-prompt.ts#L167-L184) — промпт явно предлагает модели звать `create_code_tool` и писать TypeScript с `fetch()` доступом к любым API.
-- [src/pipeline/agent-loop/code-tools/sandbox.ts:1-14](../../../src/pipeline/agent-loop/code-tools/sandbox.ts#L1-L14) — сам комментарий признаёт: «Not a hard security boundary. Hostile code can still escape via regex-bypass obfuscation ... or any Bun Worker global we haven't nuked.»
+- [packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/system-prompt.ts:167-184](../../../packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/system-prompt.ts#L167-L184) — промпт явно предлагает модели звать `create_code_tool` и писать TypeScript с `fetch()` доступом к любым API.
+- [packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/code-tools/sandbox.ts:1-14](../../../packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/code-tools/sandbox.ts#L1-L14) — сам комментарий признаёт: «Not a hard security boundary. Hostile code can still escape via regex-bypass obfuscation ... or any Bun Worker global we haven't nuked.»
 - Entrypoints, запускающие агент без человека в цикле:
-  - `src/scheduler/autonomous.ts` — AUTONOMOUS loop
-  - `src/scheduler/free-agent.ts` — free-agent loop
+  - `packages/agent/src/scheduler/autonomous.ts` — AUTONOMOUS loop
+  - `packages/agent/packages/agent/packages/agent/src/scheduler/free-agent.ts` — free-agent loop
   - `src/night-cycle/*` — если вызывает AgentLoop внутри (проверить; post/hippocampus вызывает `AgentPipeline` с маленьким tool-кругом, но всё равно зона риска)
 
 Интерактивный `POST /v1/autonomous` (routes/autonomous.ts) — триггерится человеком, сохраняем полный доступ.
 
 ## Файлы
 
-- [src/pipeline/agent-loop/run.ts](../../../src/pipeline/agent-loop/run.ts), [stream.ts](../../../src/pipeline/agent-loop/stream.ts), [types.ts](../../../src/pipeline/agent-loop/types.ts) — `agentMode: "scheduled" | "interactive"` в `RunOptions`.
-- [src/mcp/registry/index.ts](../../../src/mcp/registry/index.ts) (или `tool-registry.ts`) — `listForAgent(mode)`.
-- [src/pipeline/agent-loop/system-prompt.ts](../../../src/pipeline/agent-loop/system-prompt.ts) — секция про code tools условная.
-- [src/scheduler/autonomous.ts](../../../src/scheduler/autonomous.ts), [src/scheduler/free-agent.ts](../../../src/scheduler/free-agent.ts) — передают `agentMode: "scheduled"`.
-- [src/routes/autonomous.ts](../../../src/routes/autonomous.ts) — передаёт `agentMode: "interactive"`.
+- [packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/run.ts](../../../packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/run.ts), [stream.ts](../../../packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/stream.ts), [types.ts](../../../packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/types.ts) — `agentMode: "scheduled" | "interactive"` в `RunOptions`.
+- [packages/agent/packages/agent/src/mcp/registry/index.ts](../../../packages/agent/packages/agent/src/mcp/registry/index.ts) (или `tool-registry.ts`) — `listForAgent(mode)`.
+- [packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/system-prompt.ts](../../../packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/system-prompt.ts) — секция про code tools условная.
+- [packages/agent/src/scheduler/autonomous.ts](../../../packages/agent/src/scheduler/autonomous.ts), [packages/agent/packages/agent/src/scheduler/free-agent.ts](../../../packages/agent/packages/agent/src/scheduler/free-agent.ts) — передают `agentMode: "scheduled"`.
+- [packages/server/packages/server/src/routes/autonomous.ts](../../../packages/server/packages/server/src/routes/autonomous.ts) — передаёт `agentMode: "interactive"`.
 - [src/night-cycle/](../../../src/night-cycle/) — ревизия; если вызывает AgentLoop — `scheduled`.
 
 ## Изменение
@@ -96,8 +96,8 @@ interface RunOptions {
 
 - [ ] `bunx tsc --noEmit` = 0.
 - [ ] Все новые тесты зелёные.
-- [ ] `grep -n 'agentMode' src/scheduler/*.ts src/routes/autonomous.ts` показывает явное значение в каждом entrypoint.
-- [ ] `grep -rn 'create_code_tool' src/pipeline/agent-loop/system-prompt.ts` — присутствует только внутри условного блока.
+- [ ] `grep -n 'agentMode' packages/agent/src/scheduler/*.ts packages/server/packages/server/src/routes/autonomous.ts` показывает явное значение в каждом entrypoint.
+- [ ] `grep -rn 'create_code_tool' packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/system-prompt.ts` — присутствует только внутри условного блока.
 - [ ] SCHED-1 вычеркнут в [docs/02-audit.md](../../02-audit.md).
 
 ## Deploy note

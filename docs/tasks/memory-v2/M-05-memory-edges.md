@@ -23,16 +23,16 @@ Foundation для **M-06** (reflect step CoALA — promote'ит context patterns
 
 ## Файлы (scope-lock)
 
-- `src/db/schema.ts` — Migration **14** (assigned). `CREATE TABLE memory_edges` + 3 индекса + backfill из `derived_from` JSON. Idempotent под `IF NOT EXISTS` + `user_version < 14` guard. `db.transaction()` + per-statement `.run()`.
-- `src/db/tables/edges.ts` — **NEW** файл (≤150 LOC). `EdgesTable` класс с методами:
+- `packages/core/packages/core/packages/core/src/db/schema.ts` — Migration **14** (assigned). `CREATE TABLE memory_edges` + 3 индекса + backfill из `derived_from` JSON. Idempotent под `IF NOT EXISTS` + `user_version < 14` guard. `db.transaction()` + per-statement `.run()`.
+- `packages/core/packages/core/packages/core/src/db/tables/edges.ts` — **NEW** файл (≤150 LOC). `EdgesTable` класс с методами:
   - `addEdge(srcId, srcLayer, dstId, dstLayer, kind, weight): void`
   - `getEdgesFromSrc(srcId, srcLayer, kinds?): EdgeRow[]`
   - `getEdgesToDst(dstId, dstLayer, kinds?): EdgeRow[]`
   - `getRelated(id, layer, depth?: 1, kinds?): { id, layer }[]` (returns deduped neighbours, layer-pair preserved)
-- `src/repositories/edges.repo.ts` — **NEW** файл (≤80 LOC). Wraps `EdgesTable`. Methods: `link / getRelated / getEdgesFromSrc / getEdgesToDst`.
-- `src/db/types.ts` — `EdgeRow` interface (src_id, src_layer, dst_id, dst_layer, kind, weight, created_at) + `EdgeKind` type union.
-- `src/db/index.ts` — экспорт `EdgesTable`, `EdgeRepository` если нужно для facade.
-- `src/pipeline/agent-pipeline/post/extractors.ts` — после `dedupe` в `writeContext` / `writeShared` (если успешный insert и есть rag) → `linkRelated(insertedId, layer)`:
+- `packages/core/packages/core/packages/core/src/repositories/edges.repo.ts` — **NEW** файл (≤80 LOC). Wraps `EdgesTable`. Methods: `link / getRelated / getEdgesFromSrc / getEdgesToDst`.
+- `packages/core/packages/core/packages/core/src/db/types.ts` — `EdgeRow` interface (src_id, src_layer, dst_id, dst_layer, kind, weight, created_at) + `EdgeKind` type union.
+- `packages/core/packages/core/packages/core/src/db/index.ts` — экспорт `EdgesTable`, `EdgeRepository` если нужно для facade.
+- `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/extractors.ts` — после `dedupe` в `writeContext` / `writeShared` (если успешный insert и есть rag) → `linkRelated(insertedId, layer)`:
   ```ts
   // M-05: top-3 vec neighbors → kind='relates' edges
   const neighbours = await rag.search({ query: content, layers: [layer], rerankTopN: 3, skipRerank: true });
@@ -159,7 +159,7 @@ Depth=1 = direct edges (out + in). Depth=2 = 1-hop further (set difference из 
 3. `bun test` → ≥678 pass, 0 fail.
 4. `sqlite3 <db> "SELECT name FROM sqlite_master WHERE name='memory_edges'"` → 1 row.
 5. `sqlite3 <db> "SELECT count(*) FROM sqlite_master WHERE type='index' AND name LIKE 'idx_edges%'"` → 3.
-6. `grep -n "linkRelated\|EdgeRepository\|memory_edges" src/pipeline/agent-pipeline/post/extractors.ts src/repositories/edges.repo.ts src/db/tables/edges.ts` — ≥4 hits.
+6. `grep -n "linkRelated\|EdgeRepository\|memory_edges" packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/post/extractors.ts packages/core/packages/core/src/repositories/edges.repo.ts packages/core/packages/core/src/db/tables/edges.ts` — ≥4 hits.
 7. `docs/tasks/memory-v2/M-05-memory-edges.md` Status: DONE.
 
 ## Out of scope

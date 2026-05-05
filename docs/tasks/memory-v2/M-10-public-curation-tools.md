@@ -18,10 +18,10 @@ Foundation для **M-09** (cross-layer dedup использует supersede/pro
 
 ## Файлы (scope-lock)
 
-- `src/mcp/registry/memory.tools.ts` — добавить 4 tool registrations (TypeBox schema + handler). Каждый `scope: "agent-only"`.
-- `src/mcp/tools/memory-tools.ts` — domain logic для 4 ops. `link`, `supersede`, `promote`, `reflect` методы. ~120 LOC suma. Используют существующие primitives: `MemoryDB.linkEdge` (M-05), `MemoryService.insertShared` (M-01), `runReflect` (M-06).
-- `src/mcp/executor.ts` — пробросить новые ops в `ToolExecutor`.
-- `src/db/index.ts` — facade methods для supersede / promote если нужны (вряд ли — service layer достаточен).
+- `packages/agent/packages/agent/packages/agent/src/mcp/registry/memory.tools.ts` — добавить 4 tool registrations (TypeBox schema + handler). Каждый `scope: "agent-only"`.
+- `packages/agent/src/mcp/tools/memory-tools.ts` — domain logic для 4 ops. `link`, `supersede`, `promote`, `reflect` методы. ~120 LOC suma. Используют существующие primitives: `MemoryDB.linkEdge` (M-05), `MemoryService.insertShared` (M-01), `runReflect` (M-06).
+- `packages/agent/packages/agent/src/mcp/executor/index.ts` — пробросить новые ops в `ToolExecutor`.
+- `packages/core/packages/core/packages/core/src/db/index.ts` — facade methods для supersede / promote если нужны (вряд ли — service layer достаточен).
 - `tests/mcp-curation-tools.test.ts` — **NEW** ≤200 LOC. ≥8 кейсов.
 - `docs/02-audit.md` — `### MEM-15 ✅ public MCP curation tools (закрыто M-10)`.
 - `docs/tasks/memory-v2/M-10-public-curation-tools.md` (этот) — Status DONE.
@@ -146,8 +146,8 @@ Requires M-06's `runReflect` to accept optional `categoryFilter` + `dryRun` para
 1. `bunx tsc --noEmit` → exit 0.
 2. `bun test tests/mcp-curation-tools.test.ts` → all green.
 3. `bun test` → ≥725 pass, 0 fail.
-4. `grep -n "memory_link\|memory_supersede\|memory_promote\|memory_reflect" src/mcp/registry/memory.tools.ts` → ≥4 hits.
-5. `grep -n 'scope: *"agent-only"' src/mcp/registry/memory.tools.ts` → ≥4 (старые `memory_log_search` от M-04 + новые 4).
+4. `grep -n "memory_link\|memory_supersede\|memory_promote\|memory_reflect" packages/agent/packages/agent/src/mcp/registry/memory.tools.ts` → ≥4 hits.
+5. `grep -n 'scope: *"agent-only"' packages/agent/packages/agent/src/mcp/registry/memory.tools.ts` → ≥4 (старые `memory_log_search` от M-04 + новые 4).
 6. M-10 plan file Status: DONE.
 
 ## Out of scope

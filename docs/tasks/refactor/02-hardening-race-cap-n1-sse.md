@@ -12,7 +12,7 @@
 
 ### HIGH-1 — атомарный `tryAcquire()` в rate-limiter
 
-**Файл:** [src/lib/rate-limiter.ts](../../../src/lib/rate-limiter.ts)
+**Файл:** [packages/providers/src/rate-limiter.ts](../../../packages/providers/src/rate-limiter.ts)
 
 - Сейчас две асинхронные проверки `hasBudget` → `consume` — между ними другой caller может превысить лимит.
 - Под `Map<provider, Mutex>` (или `async-mutex` / ручной семафор на `queueMicrotask`) реализовать:
@@ -25,7 +25,7 @@
 
 ### HIGH-4 — `MAX_FALLBACK_ATTEMPTS=1`
 
-**Файл:** [src/lib/model-router.ts](../../../src/lib/model-router.ts)
+**Файл:** [packages/core/src/lib/model-router.ts](../../../packages/core/src/lib/model-router.ts)
 
 - Сейчас цепочка fallback может уходить вглубь неограниченно при 4xx от провайдера.
 - Ввести константу `MAX_FALLBACK_ATTEMPTS = 1`. После 2-го 4xx подряд → `throw new UpstreamExhaustedError({ lastStatus, lastBody })` → в HTTP-роутинге 502 c `{ error: { code: "upstream_exhausted" } }`.
@@ -35,7 +35,7 @@
 
 ### HIGH-7 — batch vecSearch + кэш recency
 
-**Файл:** [src/rag/pipeline.ts](../../../src/rag/pipeline.ts)
+**Файл:** [packages/agent/packages/agent/src/rag/pipeline/index.ts](../../../packages/agent/packages/agent/src/rag/pipeline/index.ts)
 
 - Сейчас `vecSearch` делает по SELECT на каждый id → до 60 SELECT'ов на RAG-запрос.
 - Заменить на один `WHERE id IN (?,?,…)` (batch, параметризованный список).
@@ -45,7 +45,7 @@
 
 ### HIGH-9 — SSE write-after-close в `wrapStreamForChat`
 
-**Файл:** [src/routes/chat.ts](../../../src/routes/chat.ts), функция `wrapStreamForChat`
+**Файл:** [packages/server/packages/server/src/routes/chat.ts](../../../packages/server/packages/server/src/routes/chat.ts), функция `wrapStreamForChat`
 
 - Сейчас: клиент дисконнектится на 3-м chunk, но `db.updateChatMessage` продолжает писать остаток — в БД сохраняется частичный ответ.
 - Ввести флаг `isClosed` (замкнут на `signal.aborted || ws.closed`). После срабатывания — запретить `db.updateChatMessage`.
@@ -54,11 +54,11 @@
 
 ## Файлы
 
-- [src/lib/rate-limiter.ts](../../../src/lib/rate-limiter.ts)
-- [src/lib/model-router.ts](../../../src/lib/model-router.ts)
-- [src/rag/pipeline.ts](../../../src/rag/pipeline.ts)
-- [src/routes/chat.ts](../../../src/routes/chat.ts)
-- [src/lib/errors.ts](../../../src/lib/errors.ts) или аналог — новый `UpstreamExhaustedError`
+- [packages/providers/src/rate-limiter.ts](../../../packages/providers/src/rate-limiter.ts)
+- [packages/core/src/lib/model-router.ts](../../../packages/core/src/lib/model-router.ts)
+- [packages/agent/packages/agent/src/rag/pipeline/index.ts](../../../packages/agent/packages/agent/src/rag/pipeline/index.ts)
+- [packages/server/packages/server/src/routes/chat.ts](../../../packages/server/packages/server/src/routes/chat.ts)
+- [packages/core/src/lib/errors.ts](../../../packages/core/src/lib/errors.ts) или аналог — новый `UpstreamExhaustedError`
 - `tests/rate-limiter.test.ts`, `tests/model-router.test.ts`, `tests/rag.test.ts`, `tests/chat-stream.test.ts`
 
 ## Порядок исполнения

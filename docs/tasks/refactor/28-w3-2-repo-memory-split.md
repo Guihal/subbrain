@@ -6,22 +6,22 @@
 
 ## Цель
 
-Разбить `src/repositories/memory.repo.ts` (380 LOC) на split-folder. Public API = `MemoryRepository` class — сохранить все методы 1:1.
+Разбить `packages/core/src/repositories/memory.repo.ts` (380 LOC) на split-folder. Public API = `MemoryRepository` class — сохранить все методы 1:1.
 
 ## Файлы
 
 **Удалить**:
-- `src/repositories/memory.repo.ts`
+- `packages/core/src/repositories/memory.repo.ts`
 
 **Создать**:
-- `src/repositories/memory/index.ts` — `MemoryRepository` orchestrator (≤120 LOC).
-- `src/repositories/memory/queries.ts` — non-search query proxies (CRUD: get/insert/update/delete по 5 слоям, batch operations).
-- `src/repositories/memory/search-shared.ts` — `searchShared` + `searchSharedFts` + rerank wiring (если есть).
-- `src/repositories/memory/search-context.ts` — `searchContext` + `searchContextFts`.
-- `src/repositories/memory/search-archive.ts` — `searchArchive` + `searchArchiveFts`.
-- `src/repositories/memory/crud.ts` — `insertContext/Archive/Agent` + `updateContext/Archive/Agent` proxies (если queries.ts перегружен — иначе сюда).
+- `packages/core/packages/core/packages/core/src/repositories/memory/index.ts` — `MemoryRepository` orchestrator (≤120 LOC).
+- `packages/core/src/repositories/memory/queries.ts` — non-search query proxies (CRUD: get/insert/update/delete по 5 слоям, batch operations).
+- `packages/core/src/repositories/memory/search-shared.ts` — `searchShared` + `searchSharedFts` + rerank wiring (если есть).
+- `packages/core/src/repositories/memory/search-context.ts` — `searchContext` + `searchContextFts`.
+- `packages/core/src/repositories/memory/search-archive.ts` — `searchArchive` + `searchArchiveFts`.
+- `packages/core/src/repositories/memory/crud.ts` — `insertContext/Archive/Agent` + `updateContext/Archive/Agent` proxies (если queries.ts перегружен — иначе сюда).
 
-**Trigger**: `scripts/check-file-size.ts` `"src/repositories/memory.repo.ts": 381` → удалить.
+**Trigger**: `scripts/check-file-size.ts` `"packages/core/src/repositories/memory.repo.ts": 381` → удалить.
 
 ## Изменение
 

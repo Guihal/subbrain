@@ -18,7 +18,7 @@ against an outdated provider/model story.
 
 ## Source-of-truth for models
 
-`src/lib/model-map.ts` is authoritative. Every claim about which model a
+`packages/core/packages/core/src/lib/model-map.ts` is authoritative. Every claim about which model a
 virtual role uses must match that file. Current literal table (copy as-is into
 docs):
 
@@ -36,7 +36,7 @@ Embed model (full literal): `nvidia/llama-3.2-nemoretriever-300m-embed-v1`.
 Embed-code model (full literal): `nvidia/nv-embedcode-7b-v1`.
 Rerank model (full literal): `nvidia/rerank-qa-mistral-4b`.
 
-If `src/lib/model-map.ts` differs from this table at execution time, the
+If `packages/core/packages/core/src/lib/model-map.ts` differs from this table at execution time, the
 worker must fail with `FAIL: spec-vs-code: model-map drift` instead of
 guessing.
 
@@ -47,10 +47,10 @@ write paths but should run in order P0-1 → P0-2 → P0-3 to keep diffs small
 and reviewable.
 
 - **P0-1** — Sync `AGENTS.md` model table, blockquote, request-pipeline
-  ASCII, and architecture ASCII from `src/lib/model-map.ts`.
+  ASCII, and architecture ASCII from `packages/core/packages/core/src/lib/model-map.ts`.
 - **P0-2** — Sync `README.md` model tables, architecture blocks, env-table
   provider descriptions, project-structure comment, and provider language
-  from `src/lib/model-map.ts`.
+  from `packages/core/packages/core/src/lib/model-map.ts`.
 - **P0-3** — Stage the working-tree deletions of obsolete `docs/*` files
   (already moved to `docs/old/неактуальное/`) and add a single forwarding
   README in `docs/old/неактуальное/` pointing back to
@@ -133,18 +133,18 @@ acceptance use string content, not line numbers, to stay robust.
 ```json
 {
   "task_id": "P0-1",
-  "goal": "Replace the outdated MiniMax-everywhere claims in AGENTS.md (blockquote, role table, request-pipeline ASCII labels, architecture ASCII labels) with the per-role NVIDIA NIM primary table copied from src/lib/model-map.ts.",
+  "goal": "Replace the outdated MiniMax-everywhere claims in AGENTS.md (blockquote, role table, request-pipeline ASCII labels, architecture ASCII labels) with the per-role NVIDIA NIM primary table copied from packages/core/src/lib/model-map.ts.",
   "non_goals": [
     "Do not edit src/, web/, scripts/, tests/, docs/specs/, README.md, or anything outside AGENTS.md.",
     "Do not change role names, add new roles, or remove the OpenAI-compat section.",
     "Do not redraw the architecture ASCII box layout, the request-pipeline ASCII arrows, or the night-cycle ASCII — only swap the model/provider labels inside them.",
-    "Do not modify embed/rerank/embed-code model IDs unless they differ from src/lib/model-map.ts EMBED_MODEL/EMBED_CODE_MODEL/RERANK_MODEL constants.",
+    "Do not modify embed/rerank/embed-code model IDs unless they differ from packages/core/src/lib/model-map.ts EMBED_MODEL/EMBED_CODE_MODEL/RERANK_MODEL constants.",
     "Do not edit the memory-section, MCP-tools section, or scheduler section beyond the model labels."
   ],
   "allowed_write_paths": ["AGENTS.md"],
   "read_context": [
     "AGENTS.md",
-    "src/lib/model-map.ts",
+    "packages/core/src/lib/model-map.ts",
     "docs/specs/subbrain-main.md:46-66",
     "docs/tasks/agent-teams/00-docs-sync.md"
   ],
@@ -171,15 +171,15 @@ acceptance use string content, not line numbers, to stay robust.
   "file_count_max": 1,
   "rollback": "git checkout -- AGENTS.md.",
   "escalation_triggers": [
-    "src/lib/model-map.ts MODEL_MAP keys differ from {teamlead,coder,critic,flash,chaos,generalist,memory} → FAIL: spec contradicts code: model-map drift.",
+    "packages/core/src/lib/model-map.ts MODEL_MAP keys differ from {teamlead,coder,critic,flash,chaos,generalist,memory} → FAIL: spec contradicts code: model-map drift.",
     "AGENTS.md contains a section the contract did not anticipate that still claims MiniMax-only routing → FAIL: spec contradicts code: ambiguous AGENTS section, list section heading.",
     "Architecture ASCII at lines 170-210 cannot be edited without redrawing the box layout (e.g. label widths force frame breakage) → FAIL: spec contradicts code: ASCII reflow needed, return current diff.",
     "Any acceptance grep flips after the third edit attempt → FAIL: verifier-loop, return diff so far.",
     "Diff exceeds diff_budget_loc 140 → FAIL: budget, return current diff."
   ],
   "glossary": {
-    "primary": "MODEL_MAP[role].primary string in src/lib/model-map.ts.",
-    "fallback": "MODEL_MAP[role].fallback string in src/lib/model-map.ts.",
+    "primary": "MODEL_MAP[role].primary string in packages/core/src/lib/model-map.ts.",
+    "fallback": "MODEL_MAP[role].fallback string in packages/core/src/lib/model-map.ts.",
     "provider": "MODEL_MAP[role].primaryProvider/fallbackProvider literal: 'nvidia' | 'minimax' | 'openrouter' | 'openai-compat'.",
     "role": "Top-level key in MODEL_MAP: teamlead, coder, critic, flash, chaos, generalist, memory.",
     "request-pipeline ASCII": "AGENTS.md fenced-code block around lines 85-120 starting with 'Запрос пользователя' and ending with the post-processing step.",
@@ -192,7 +192,7 @@ acceptance use string content, not line numbers, to stay robust.
 
 - The blockquote at AGENTS.md line ~37 ("Все роли используют
   **MiniMax-M2.7**…") becomes: "Per-role NVIDIA NIM primaries (см.
-  `src/lib/model-map.ts`); MiniMax-M2.7 used as fallback for most roles."
+  `packages/core/packages/core/src/lib/model-map.ts`); MiniMax-M2.7 used as fallback for most roles."
 - The role table directly below it (lines ~39-47) must be replaced with the
   literal table from this contract.
 - The request-pipeline ASCII at AGENTS.md lines ~97 and ~111 currently says
@@ -215,7 +215,7 @@ acceptance use string content, not line numbers, to stay robust.
 ```json
 {
   "task_id": "P0-2",
-  "goal": "Replace stale GitHub Models / Copilot and MiniMax-everywhere claims across all twelve identified spots in README.md (architecture ASCII, both model tables, both env-variable tables, embeddings line, MiniMaxProvider sentence, project-structure comment) with the per-role NVIDIA NIM primary table and provider list copied from src/lib/model-map.ts.",
+  "goal": "Replace stale GitHub Models / Copilot and MiniMax-everywhere claims across all twelve identified spots in README.md (architecture ASCII, both model tables, both env-variable tables, embeddings line, MiniMaxProvider sentence, project-structure comment) with the per-role NVIDIA NIM primary table and provider list copied from packages/core/src/lib/model-map.ts.",
   "non_goals": [
     "Do not edit src/, web/, scripts/, tests/, docs/, AGENTS.md, or any file outside README.md.",
     "Do not rewrite Quickstart, Docker, Deploy, Continue config, or API endpoints sections beyond the provider claim swap.",
@@ -226,7 +226,7 @@ acceptance use string content, not line numbers, to stay robust.
   "allowed_write_paths": ["README.md"],
   "read_context": [
     "README.md",
-    "src/lib/model-map.ts",
+    "packages/core/src/lib/model-map.ts",
     "docs/specs/subbrain-main.md:46-66",
     "docs/tasks/agent-teams/00-docs-sync.md"
   ],
@@ -257,15 +257,15 @@ acceptance use string content, not line numbers, to stay robust.
   "file_count_max": 1,
   "rollback": "git checkout -- README.md.",
   "escalation_triggers": [
-    "src/lib/model-map.ts MODEL_MAP keys differ from {teamlead,coder,critic,flash,chaos,generalist,memory} → FAIL: spec contradicts code: model-map drift.",
+    "packages/core/src/lib/model-map.ts MODEL_MAP keys differ from {teamlead,coder,critic,flash,chaos,generalist,memory} → FAIL: spec contradicts code: model-map drift.",
     "README.md still contains the string 'GitHub Models', 'Copilot API', 'GitHub Copilot', 'MiniMaxProvider', or '10 RPM' after the planned edits and the remaining occurrence is not inside a fenced code block dated as historical → FAIL: spec contradicts code: stale provider claim, list line numbers.",
     "README.md upper and lower model tables disagree on the primary model for any role after the edit → FAIL: spec contradicts code: table drift.",
     "Any acceptance grep flips after the third edit attempt → FAIL: verifier-loop, return diff so far.",
     "Diff exceeds diff_budget_loc 220 → FAIL: budget, return current diff."
   ],
   "glossary": {
-    "primary": "MODEL_MAP[role].primary string in src/lib/model-map.ts.",
-    "fallback": "MODEL_MAP[role].fallback string in src/lib/model-map.ts.",
+    "primary": "MODEL_MAP[role].primary string in packages/core/src/lib/model-map.ts.",
+    "fallback": "MODEL_MAP[role].fallback string in packages/core/src/lib/model-map.ts.",
     "provider": "MODEL_MAP[role].primaryProvider/fallbackProvider literal: 'nvidia' | 'minimax' | 'openrouter' | 'openai-compat'.",
     "role": "Top-level key in MODEL_MAP: teamlead, coder, critic, flash, chaos, generalist, memory.",
     "upper model table": "README.md table in the '## 🤖 Провайдеры и модели' section, lines ~37-43.",
@@ -285,7 +285,7 @@ acceptance use string content, not line numbers, to stay robust.
      fallback line.
   2. **Upper blockquote (line ~33):** replace
      `Все LLM-роли используют **GitHub Models (Copilot API)**` with
-     `Per-role NVIDIA NIM primaries (см. src/lib/model-map.ts); MiniMax-M2.7
+     `Per-role NVIDIA NIM primaries (см. packages/core/src/lib/model-map.ts); MiniMax-M2.7
      fallback`.
   3. **Upper model table (lines ~37-43):** rewrite each row to match the
      literal table at the top of this contract.

@@ -19,10 +19,10 @@ Pool диверсифицирован — 5 типов runner'ов. `find-new-ta
 
 **Allowed actions:**
 - Создать 7 новых файлов (runners 4 + pool/find-new.ts + digest.ts + tg/handler).
-- Edit `src/scheduler/agent-pool/index.ts` — расширить tick на switch + auto-enqueue find-new-task + daily rollup cron.
+- Edit `packages/agent/src/scheduler/agent-pool/index.ts` — расширить tick на switch + auto-enqueue find-new-task + daily rollup cron.
 - Edit `.env.example` — добавить ровно перечисленные env vars.
-- Edit `src/mcp/registry/index.ts` (или эквивалент) для регистрации `agent_tasks_enqueue` tool (agent-only scope).
-- Создать `src/mcp/tools/pool/agent-tasks-enqueue.ts` (≤80 lines) — handler для нового tool.
+- Edit `packages/agent/packages/agent/packages/agent/src/mcp/registry/index.ts` (или эквивалент) для регистрации `agent_tasks_enqueue` tool (agent-only scope).
+- Создать `packages/agent/src/mcp/tools/pool/agent-tasks-enqueue.ts` (≤80 lines) — handler для нового tool.
 - `bunx tsc --noEmit`, `bun test`, `bun run scripts/check-file-size.ts`.
 - `git commit -m "feat(pool): clear/check-tg/research/find-new-task runners + digest (PR-C3)"`.
 
@@ -32,9 +32,9 @@ Pool диверсифицирован — 5 типов runner'ов. `find-new-ta
 - НЕ менять `done_with_artifact` schema/handler (PR-C2).
 - НЕ менять `maxConcurrent` дефолт (PR-C4).
 - НЕ менять `agentMode: "scheduled"` semantics.
-- НЕ удалять `src/scheduler/free-agent.ts` (PR-C2 bridge остаётся).
-- НЕ trogать `src/pipeline/agent-pipeline/post/**` (PR-D).
-- НЕ trogать `src/pipeline/arbitration/prompts.ts` (PR-E).
+- НЕ удалять `packages/agent/packages/agent/packages/agent/src/scheduler/free-agent.ts` (PR-C2 bridge остаётся).
+- НЕ trogать `packages/agent/packages/agent/src/pipeline/agent-pipeline/post/**` (PR-D).
+- НЕ trogать `packages/agent/packages/agent/packages/agent/src/pipeline/arbitration/prompts.ts` (PR-E).
 - НЕ создавать `tg_send_message` calls в clear/check-tg/research runners (forbidden tools).
 - НЕ обходить registry scope filter — все forbidden tools отрезает scope, а не runtime if.
 - НЕ `git push`, НЕ `gh`, НЕ `--no-verify`.
@@ -45,22 +45,22 @@ Pool диверсифицирован — 5 типов runner'ов. `find-new-ta
 **Diff boundary:** ровно эти файлы (новые + modified):
 ```
 .env.example
-src/scheduler/agent-pool/index.ts
-src/scheduler/agent-pool/runners/clear.ts
-src/scheduler/agent-pool/runners/check-tg.ts
-src/scheduler/agent-pool/runners/research.ts
-src/scheduler/agent-pool/runners/find-new-task.ts
-src/scheduler/agent-pool/pool/find-new.ts
-src/scheduler/agent-pool/digest.ts
-src/telegram/bot/handlers/digest-mode.ts
-src/mcp/registry/index.ts                       # минимальный wire-up agent_tasks_enqueue
-src/mcp/tools/pool/agent-tasks-enqueue.ts
+packages/agent/src/scheduler/agent-pool/index.ts
+packages/agent/src/scheduler/agent-pool/runners/clear.ts
+packages/agent/src/scheduler/agent-pool/runners/check-tg.ts
+packages/agent/src/scheduler/agent-pool/runners/research.ts
+packages/agent/src/scheduler/agent-pool/runners/find-new-task.ts
+packages/agent/src/scheduler/agent-pool/pool/find-new.ts
+packages/agent/src/scheduler/agent-pool/digest.ts
+packages/agent/src/telegram/bot/handlers/digest-mode.ts
+packages/agent/packages/agent/src/mcp/registry/index.ts                       # минимальный wire-up agent_tasks_enqueue
+packages/agent/src/mcp/tools/pool/agent-tasks-enqueue.ts
 tests/agent-pool-runners.test.ts
 tests/find-new-task-logic.test.ts
 tests/digest-format.test.ts
 tests/check-tg-runner.test.ts
 ```
-Любой extra (в т.ч. в `src/db/`, `src/services/`, `src/pipeline/`) = STOP, FAIL.
+Любой extra (в т.ч. в `packages/core/src/db/`, `packages/agent/src/services/`, `packages/agent/src/pipeline/`) = STOP, FAIL.
 
 **Output contract:** `OK <sha7> feat(pool): clear/check-tg/research/find-new-task runners + digest (PR-C3)` или `FAIL: <reason>`.
 
@@ -68,21 +68,21 @@ tests/check-tg-runner.test.ts
 
 ### Новые runners
 
-- [src/scheduler/agent-pool/runners/clear.ts](../../../src/scheduler/agent-pool/runners/clear.ts) (≤120 lines) — memory cleanup, одна (layer, category) пара за тик.
-- [src/scheduler/agent-pool/runners/check-tg.ts](../../../src/scheduler/agent-pool/runners/check-tg.ts) (≤120 lines) — read-only TG monitoring (auto-detect `last_message_ts > now-1d`, blocklist via `CHECK_TG_EXCLUDE`).
-- [src/scheduler/agent-pool/runners/research.ts](../../../src/scheduler/agent-pool/runners/research.ts) (≤120 lines) — focused research, ≤3 supersede-aware shared facts артефакт.
-- [src/scheduler/agent-pool/runners/find-new-task.ts](../../../src/scheduler/agent-pool/runners/find-new-task.ts) (≤120 lines) — meta-runner, enqueue 1-3 новых tasks.
-- [src/scheduler/agent-pool/pool/find-new.ts](../../../src/scheduler/agent-pool/pool/find-new.ts) (≤120 lines) — pure logic для find-new-task: distribution skew check, dedup-search, enqueue helpers (используется runner'ом). Single responsibility — не путать с runner-обёрткой.
+- [packages/agent/src/scheduler/agent-pool/runners/clear.ts](../../../packages/agent/src/scheduler/agent-pool/runners/clear.ts) (≤120 lines) — memory cleanup, одна (layer, category) пара за тик.
+- [packages/agent/src/scheduler/agent-pool/runners/check-tg.ts](../../../packages/agent/src/scheduler/agent-pool/runners/check-tg.ts) (≤120 lines) — read-only TG monitoring (auto-detect `last_message_ts > now-1d`, blocklist via `CHECK_TG_EXCLUDE`).
+- [packages/agent/src/scheduler/agent-pool/runners/research.ts](../../../packages/agent/src/scheduler/agent-pool/runners/research.ts) (≤120 lines) — focused research, ≤3 supersede-aware shared facts артефакт.
+- [packages/agent/src/scheduler/agent-pool/runners/find-new-task.ts](../../../packages/agent/src/scheduler/agent-pool/runners/find-new-task.ts) (≤120 lines) — meta-runner, enqueue 1-3 новых tasks.
+- [packages/agent/src/scheduler/agent-pool/pool/find-new.ts](../../../packages/agent/src/scheduler/agent-pool/pool/find-new.ts) (≤120 lines) — pure logic для find-new-task: distribution skew check, dedup-search, enqueue helpers (используется runner'ом). Single responsibility — не путать с runner-обёрткой.
 
 ### Digest
 
-- [src/scheduler/agent-pool/digest.ts](../../../src/scheduler/agent-pool/digest.ts) (≤100 lines) — `composeDailyRollup(tasks)`, `composeInstantAlert(task)`, switch по `digest_mode`.
-- [src/telegram/bot/handlers/digest-mode.ts](../../../src/telegram/bot/handlers/digest-mode.ts) (≤80 lines) — handler команды `/digest_mode quiet|verbose`, single `setFocus("digest_mode", value)` call.
+- [packages/agent/src/scheduler/agent-pool/digest.ts](../../../packages/agent/src/scheduler/agent-pool/digest.ts) (≤100 lines) — `composeDailyRollup(tasks)`, `composeInstantAlert(task)`, switch по `digest_mode`.
+- [packages/agent/src/telegram/bot/handlers/digest-mode.ts](../../../packages/agent/src/telegram/bot/handlers/digest-mode.ts) (≤80 lines) — handler команды `/digest_mode quiet|verbose`, single `setFocus("digest_mode", value)` call.
 
 ### Изменения
 
-- [src/scheduler/agent-pool/index.ts](../../../src/scheduler/agent-pool/index.ts) — расширить tick: dispatch по `task.type` через switch на 5 runner'ов; на empty pool + 10-min cooldown → enqueue `find-new-task`; daily rollup cron в 21:00 local.
-- [src/scheduler/agent-pool/runners/free.ts](../../../src/scheduler/agent-pool/runners/free.ts) — без изменений (PR-C2).
+- [packages/agent/src/scheduler/agent-pool/index.ts](../../../packages/agent/src/scheduler/agent-pool/index.ts) — расширить tick: dispatch по `task.type` через switch на 5 runner'ов; на empty pool + 10-min cooldown → enqueue `find-new-task`; daily rollup cron в 21:00 local.
+- [packages/agent/src/scheduler/agent-pool/runners/free.ts](../../../packages/agent/src/scheduler/agent-pool/runners/free.ts) — без изменений (PR-C2).
 - [.env.example](../../../.env.example) — добавить блок:
   ```
   AGENT_POOL_MAX_TOKENS_RESEARCH=80000
@@ -292,29 +292,29 @@ bun test tests/check-tg-runner.test.ts 2>&1 | tail -3                           
 bun test 2>&1 | tail -3                                                                      # expect: regression ≤ baseline+0
 
 # File caps (≤120 для runners, ≤100/80 для пр.)
-for f in clear check-tg research find-new-task; do echo -n "$f: "; wc -l < src/scheduler/agent-pool/runners/$f.ts; done  # expect: каждый ≤120
-wc -l src/scheduler/agent-pool/pool/find-new.ts                                              # expect: ≤120
-wc -l src/scheduler/agent-pool/digest.ts                                                     # expect: ≤100
-wc -l src/telegram/bot/handlers/digest-mode.ts                                               # expect: ≤80
-wc -l src/mcp/tools/pool/agent-tasks-enqueue.ts                                              # expect: ≤80
-wc -l src/scheduler/agent-pool/index.ts                                                      # expect: ≤100 (orchestrator cap)
+for f in clear check-tg research find-new-task; do echo -n "$f: "; wc -l < packages/agent/src/scheduler/agent-pool/runners/$f.ts; done  # expect: каждый ≤120
+wc -l packages/agent/src/scheduler/agent-pool/pool/find-new.ts                                              # expect: ≤120
+wc -l packages/agent/src/scheduler/agent-pool/digest.ts                                                     # expect: ≤100
+wc -l packages/agent/src/telegram/bot/handlers/digest-mode.ts                                               # expect: ≤80
+wc -l packages/agent/src/mcp/tools/pool/agent-tasks-enqueue.ts                                              # expect: ≤80
+wc -l packages/agent/src/scheduler/agent-pool/index.ts                                                      # expect: ≤100 (orchestrator cap)
 
 # Anti-economy guard — все 4 runner system-prompt'a
 for f in clear check-tg research find-new-task; do
-  count=$(grep -ciE 'save tokens|be efficient|постарайся уложиться|не используй tool без нужды' src/scheduler/agent-pool/runners/$f.ts)
+  count=$(grep -ciE 'save tokens|be efficient|постарайся уложиться|не используй tool без нужды' packages/agent/src/scheduler/agent-pool/runners/$f.ts)
   echo "$f: $count violations"
 done                                                                                         # expect: каждый "0 violations"
 
 # Type-quota logic
-grep -nE 'RESEARCH_QUOTA|>\s*0\.7|research.*ratio|TYPE BALANCE' src/scheduler/agent-pool/pool/find-new.ts  # expect: ≥1 match
+grep -nE 'RESEARCH_QUOTA|>\s*0\.7|research.*ratio|TYPE BALANCE' packages/agent/src/scheduler/agent-pool/pool/find-new.ts  # expect: ≥1 match
 
 # Switch dispatch covers all 5 types
-grep -E 'case "(free|clear|check-tg|research|find-new-task)":' src/scheduler/agent-pool/index.ts | wc -l  # expect: 5
+grep -E 'case "(free|clear|check-tg|research|find-new-task)":' packages/agent/src/scheduler/agent-pool/index.ts | wc -l  # expect: 5
 
 # Forbidden tool scope
-grep -n 'tg_send_message' src/scheduler/agent-pool/runners/check-tg.ts                       # expect: 0 matches in availableTools list (только в forbidden comment OK)
-grep -nE 'agent_tasks_enqueue' src/scheduler/agent-pool/runners/find-new-task.ts             # expect: ≥1 match (allowed)
-grep -nE 'agent_tasks_enqueue' src/scheduler/agent-pool/runners/{clear,check-tg,research,free}.ts  # expect: 0
+grep -n 'tg_send_message' packages/agent/src/scheduler/agent-pool/runners/check-tg.ts                       # expect: 0 matches in availableTools list (только в forbidden comment OK)
+grep -nE 'agent_tasks_enqueue' packages/agent/src/scheduler/agent-pool/runners/find-new-task.ts             # expect: ≥1 match (allowed)
+grep -nE 'agent_tasks_enqueue' packages/agent/src/scheduler/agent-pool/runners/{clear,check-tg,research,free}.ts  # expect: 0
 
 # .env.example documentation
 grep -nE 'AGENT_POOL_MAX_TOKENS_(RESEARCH|CHECK_TG|CLEAR)' .env.example                      # expect: 3 matches
@@ -322,10 +322,10 @@ grep -nE 'CHECK_TG_(EXCLUDE|KEYWORDS)' .env.example                             
 grep -nE 'AGENT_POOL_DIGEST_HOUR_LOCAL' .env.example                                         # expect: ≥1 match
 
 # Subbrain guardrails
-grep -rnE 'as any' src/scheduler/agent-pool/runners/ src/scheduler/agent-pool/pool/find-new.ts src/scheduler/agent-pool/digest.ts  # expect: 0
-grep -rnE 'Promise\.all\b' src/scheduler/agent-pool/                                         # expect: 0
-grep -rnE '\bfetch\(' src/scheduler/agent-pool/                                              # expect: 0
-grep -rnE 'logger\.(info|warn|error|debug)\([^,)]+\)' src/scheduler/agent-pool/runners/      # expect: 0 (single-arg = bug)
+grep -rnE 'as any' packages/agent/src/scheduler/agent-pool/runners/ packages/agent/src/scheduler/agent-pool/pool/find-new.ts packages/agent/src/scheduler/agent-pool/digest.ts  # expect: 0
+grep -rnE 'Promise\.all\b' packages/agent/src/scheduler/agent-pool/                                         # expect: 0
+grep -rnE '\bfetch\(' packages/agent/src/scheduler/agent-pool/                                              # expect: 0
+grep -rnE 'logger\.(info|warn|error|debug)\([^,)]+\)' packages/agent/src/scheduler/agent-pool/runners/      # expect: 0 (single-arg = bug)
 ```
 
 Manual smoke (опционально, локально):
@@ -378,6 +378,6 @@ Categories: `tsc-error` | `test-fail` | `file-cap` | `diff-boundary` | `anti-eco
 - `FAIL: anti-economy-violation: research.ts:31 contains "be efficient"`
 - `FAIL: quota-logic-bug: find-new.ts ratio includes find-new-task in denominator`
 - `FAIL: digest-format: composeDailyRollup throws on empty array`
-- `FAIL: boundary-leak: edited src/db/schema.ts (PR-C1 territory)`
+- `FAIL: boundary-leak: edited packages/core/packages/core/src/db/schema.ts (PR-C1 territory)`
 
 Stop. Не push, не deploy, не enqueue real tasks в prod. Parent reads, decides.

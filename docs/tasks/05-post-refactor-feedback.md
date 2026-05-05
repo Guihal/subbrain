@@ -15,7 +15,7 @@ Status: DONE (A1/A2/A3/A4/B4 закрыты; D1/D2 отложены)
 
 ### A2. Контекст чата теряется
 В одном и том же чате — **и в обычном, и в агентном режиме** — модель не видит предыдущие сообщения (ни свои, ни пользователя).
-- Грепать сборку messages в `src/routes/chat.ts`, `AgentPipeline.execute`, `AgentLoop.run`.
+- Грепать сборку messages в `packages/server/packages/server/packages/server/src/routes/chat.ts`, `AgentPipeline.execute`, `AgentLoop.run`.
 - Проверить `normalizeMessages()` и загрузку истории чата из `chats` таблицы.
 - Вероятная регрессия из PR про разнос `agent-pipeline` / `agent-loop` (потерялся шаг «подгрузи историю сессии перед main.ts»).
 - Тест: `tests/chat-continuity.test.ts` — два последовательных POST в один `chat_id`, во втором запросе модель видит содержимое первого.
@@ -24,15 +24,15 @@ Status: DONE (A1/A2/A3/A4/B4 закрыты; D1/D2 отложены)
 - Почти наверняка упирается в scope-таймаут `tool-runner.ts` (`consult_*=20s`) либо общий HTTP timeout.
 - Модели-критики (Copilot/NVIDIA) легко тратят 30-60s на rationale.
 - Фикс: отдельный scope `critic_*` с таймаутом 120s, либо настраиваемый через env `CRITIC_TIMEOUT_MS=120000`.
-- Место: `src/pipeline/agent-loop/tool-runner.ts` (scope-map), `src/lib/http-client.ts` (если оттуда дёргается).
+- Место: `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/tool-runner.ts` (scope-map), `packages/core/packages/core/src/lib/http-client.ts` (если оттуда дёргается).
 
 ### A4. Таймауты в целом слишком низкие
 - NVIDIA NIM: **не стримится**, ответ прилетает целиком в конце — зато бесплатно. Текущие 60s default / 180s copilot недостаточны для длинных non-stream ответов.
 - Поднять:
-  - `src/lib/http-client.ts` default 60s → 180s.
+  - `packages/core/packages/core/src/lib/http-client.ts` default 60s → 180s.
   - Copilot streams 180s → 300s.
   - NVIDIA non-stream — отдельный scope 240s.
-- Tool scopes (`src/pipeline/agent-loop/tool-runner.ts`):
+- Tool scopes (`packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/tool-runner.ts`):
   - `consult_*` 20s → 60s.
   - `critic_*` новый, 120s (см. A3).
   - default 5s → 10s.

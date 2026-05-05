@@ -12,18 +12,18 @@
 
 ### HIGH-2 — `arbitration-room.ts`: `Promise.all` → `Promise.allSettled` + abort остальных
 
-**Файл:** [src/pipeline/arbitration-room.ts](../../../src/pipeline/arbitration-room.ts)
+**Файл:** [packages/agent/packages/agent/src/pipeline/arbitration/index.ts](../../../packages/agent/packages/agent/src/pipeline/arbitration/index.ts)
 
 - `Promise.all` над N специалистами → один падает → падает арбитраж целиком. Заменить на `allSettled`, пропустить упавших.
 - Первый `fulfilled` → `AbortController.abort()` на остальных; сигнал пробрасывается в `ModelRouter.chat()` и далее в провайдеры.
-- Провайдеры ([src/providers/copilot.ts](../../../src/providers/copilot.ts), [src/providers/nvidia.ts](../../../src/providers/nvidia.ts)) проверяют `signal.aborted` перед стартом `fetch` и в SSE-callback.
+- Провайдеры ([packages/providers/src/nvidia.ts](../../../packages/providers/src/nvidia.ts), [packages/providers/src/nvidia.ts](../../../packages/providers/src/nvidia.ts)) проверяют `signal.aborted` перед стартом `fetch` и в SSE-callback.
 - `ModelRouter.chat()` принимает `{ signal?: AbortSignal }` и прокидывает в провайдер.
 
 **Тест:** `tests/arbitration.test.ts` — моковый провайдер, который кидает на 2-м шаге; арбитраж возвращает результат от оставшихся N-1.
 
 ### HIGH-3 — per-tool timeout в `agent-loop/tool-runner.ts`
 
-**Файл:** [src/pipeline/agent-loop/tool-runner.ts](../../../src/pipeline/agent-loop/tool-runner.ts)
+**Файл:** [packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/tool-runner.ts](../../../packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/tool-runner.ts)
 
 - `Promise.race([exec, timeoutPromise(N)])` вокруг каждого `handler.call`.
 - N по scope:
@@ -38,16 +38,16 @@
 
 ### HIGH-5 — FTS-санитизация тегов в night-cycle
 
-**Файл:** [src/pipeline/night-cycle/steps.ts](../../../src/pipeline/night-cycle/steps.ts), строка ~187
+**Файл:** [packages/agent/packages/agent/src/pipeline/night-cycle/steps.ts](../../../packages/agent/packages/agent/src/pipeline/night-cycle/steps.ts), строка ~187
 
 - Теги (user-supplied, могут содержать `"`, `:`, `*`) напрямую идут в `MATCH` → throw.
-- Прогнать через `sanitizeFtsQuery` из [src/lib/fts-utils.ts](../../../src/lib/fts-utils.ts).
+- Прогнать через `sanitizeFtsQuery` из [packages/core/src/lib/fts-utils.ts](../../../packages/core/src/lib/fts-utils.ts).
 
 **Тест:** `tests/night-cycle.test.ts` — подсунуть тег `tag"with:quote*` → step отрабатывает без exception.
 
 ### HIGH-6 — транзакция insertArchive + indexEntry
 
-**Файл:** [src/pipeline/night-cycle/index.ts](../../../src/pipeline/night-cycle/index.ts), строки 86-101
+**Файл:** [packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/index.ts](../../../packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/index.ts), строки 86-101
 
 - Сейчас: `insertArchive()` коммитится, затем `rag.indexEntry()` падает на эмбеддинге → архив с `NULL`-вектором навсегда невидим для RAG.
 - Обернуть в `db.transaction(() => { insertArchive(); rag.indexEntry(); })`. Фейл эмбеддинга → откат, `logger.warn("night-cycle", "archive_retry_next_cycle", {id})`, retry следующей ночью.
@@ -56,13 +56,13 @@
 
 ## Файлы
 
-- [src/pipeline/arbitration-room.ts](../../../src/pipeline/arbitration-room.ts)
-- [src/pipeline/agent-loop/tool-runner.ts](../../../src/pipeline/agent-loop/tool-runner.ts)
-- [src/pipeline/night-cycle/steps.ts](../../../src/pipeline/night-cycle/steps.ts)
-- [src/pipeline/night-cycle/index.ts](../../../src/pipeline/night-cycle/index.ts)
-- [src/providers/types.ts](../../../src/providers/types.ts) — `ChatRequest` получает `signal?`
-- [src/providers/copilot.ts](../../../src/providers/copilot.ts), [src/providers/nvidia.ts](../../../src/providers/nvidia.ts) — проверка `signal.aborted`
-- [src/lib/model-router.ts](../../../src/lib/model-router.ts) — проброс signal
+- [packages/agent/packages/agent/src/pipeline/arbitration/index.ts](../../../packages/agent/packages/agent/src/pipeline/arbitration/index.ts)
+- [packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/tool-runner.ts](../../../packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/tool-runner.ts)
+- [packages/agent/packages/agent/src/pipeline/night-cycle/steps.ts](../../../packages/agent/packages/agent/src/pipeline/night-cycle/steps.ts)
+- [packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/index.ts](../../../packages/agent/packages/agent/packages/agent/src/pipeline/night-cycle/index.ts)
+- [packages/providers/src/types.ts](../../../packages/providers/src/types.ts) — `ChatRequest` получает `signal?`
+- [packages/providers/src/nvidia.ts](../../../packages/providers/src/nvidia.ts), [packages/providers/src/nvidia.ts](../../../packages/providers/src/nvidia.ts) — проверка `signal.aborted`
+- [packages/core/src/lib/model-router.ts](../../../packages/core/src/lib/model-router.ts) — проброс signal
 - `tests/arbitration.test.ts` (новый/расширить)
 - `tests/tool-runner.test.ts` (новый/расширить)
 - `tests/night-cycle.test.ts` (новый/расширить)

@@ -42,7 +42,7 @@ upstream docs (`https://docs.getbifrost.ai/quickstart/gateway/setting-up`,
 
 ## Phase goal
 
-Move LLM routing/fallback/rate-limit/cost concerns out of `src/lib/model-router/*`
+Move LLM routing/fallback/rate-limit/cost concerns out of `packages/providers/src/model-router/*`
 and into a Bifrost LLM-gateway side-car, **behind a feature flag**, **without
 deleting the existing router**. Parity bridge first, replacement later.
 
@@ -54,12 +54,12 @@ Bifrost only owns chat + chat-stream.
 These resolve the round-1 critic findings; workers must NOT redesign them:
 
 1. **Virtual-role mapping ownership.** Subbrain keeps virtual roles
-   (`teamlead`/`coder`/...) in `src/lib/model-map.ts`. Bifrost only knows
+   (`teamlead`/`coder`/...) in `packages/core/packages/core/src/lib/model-map.ts`. Bifrost only knows
    provider names + their API keys + their rate limits. Subbrain resolves
    `role → {provider, model}` first, then forwards `model` (the real model
    string) to Bifrost. Bifrost is a transport gateway, not a role registry.
 2. **Bifrost injection point.** `BifrostProvider` is **NOT** added to
-   `ProviderName` union in `src/lib/model-map.ts` and **NOT** stored in the
+   `ProviderName` union in `packages/core/packages/core/src/lib/model-map.ts` and **NOT** stored in the
    `ModelRouter.backends: Record<ProviderName, Backend>` map. Instead,
    `ModelRouter` gets a new optional private field `private bifrost?:
    BifrostProvider`, populated in the constructor only when
@@ -78,14 +78,14 @@ These resolve the round-1 critic findings; workers must NOT redesign them:
    fallback. Bifrost owns provider fallback internally; if Bifrost itself is
    unreachable or misconfigured, surface `UpstreamExhaustedError` (matches
    existing capped-fallback semantics). Direct-mode (`X-Direct-Mode: true`
-   header in `src/services/chat/*`) remains the **only** operator-triggered
+   header in `packages/agent/src/services/chat/*`) remains the **only** operator-triggered
    bypass and routes to the legacy path; Bifrost is not in that path.
 5. **Heartbeat owner is unchanged by this phase.** The `: ping\n\n` heartbeat
-   currently lives **only** in `src/pipeline/agent-loop/heartbeat.ts`
-   (consumed by `src/pipeline/agent-loop/stream.ts`) and
-   `src/mcp/mcp-protocol.ts`. The chat SSE path
-   (`src/services/chat/sse-wrap.ts` + `src/services/chat/run.ts`) currently
-   relies on `idleTimeout: 255` set in `src/index.ts:19` only. Phase 1 does
+   currently lives **only** in `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/heartbeat.ts`
+   (consumed by `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/stream.ts`) and
+   `packages/server/src/mcp-transport/mcp-protocol.ts`. The chat SSE path
+   (`packages/agent/packages/agent/packages/agent/src/services/chat/sse-wrap.ts` + `packages/agent/packages/agent/packages/agent/src/services/chat/run.ts`) currently
+   relies on `idleTimeout: 255` set in `packages/server/packages/server/src/index.ts:19` only. Phase 1 does
    not add or move heartbeats. If a worker discovers a new heartbeat is
    needed, that is **out of scope** — `FAIL: scope`.
 6. **P1-6 is mandatory for Phase 1 completion**, not optional. Round-1
@@ -119,15 +119,15 @@ P1-6 fills the providers map and proves parity; without it Phase 1 is incomplete
 
 Every packet `non_goals` repeats these because the spec demands it:
 
-1. Do not remove or rewrite `src/lib/model-router/*` (parity must be proven first).
+1. Do not remove or rewrite `packages/providers/src/model-router/*` (parity must be proven first).
 2. Do not introduce a DB-driven model editor or any DB migration.
 3. Do not add a roles UI or any frontend change.
 4. Do not break direct mode (`X-Direct-Mode: true` header path in
-   `src/services/chat/*` — must keep working with `BIFROST_ENABLED=false`).
+   `packages/agent/src/services/chat/*` — must keep working with `BIFROST_ENABLED=false`).
 5. Do not change provider rate-limiter behavior visible to clients
-   (`src/lib/rate-limiter.ts` semantics, `PROVIDER_RPM` numbers, `429` backoff).
+   (`packages/providers/src/rate-limiter.ts` semantics, `PROVIDER_RPM` numbers, `429` backoff).
 6. Do not change `MODEL_MAP` role assignments, embed model, or rerank model.
-7. Do not add `bifrost` to the `ProviderName` union in `src/lib/model-map.ts`.
+7. Do not add `bifrost` to the `ProviderName` union in `packages/core/packages/core/src/lib/model-map.ts`.
 8. Do not run `docker compose build/up`, do not read `.env` at packet time, do
    not push commits.
 9. Do not add new dependencies to `package.json` (use `Bun.file().json()` /
@@ -136,20 +136,20 @@ Every packet `non_goals` repeats these because the spec demands it:
 
 ## Universal guardrails (CLAUDE.md echoes)
 
-- Outbound HTTP only via `src/lib/http-client.ts` (`fetchJson` / `fetchStream`).
+- Outbound HTTP only via `packages/core/packages/core/src/lib/http-client.ts` (`fetchJson` / `fetchStream`).
 - Fan-out concurrency via `Promise.allSettled`, not `Promise.all`.
 - Threading: every chat/stream entry receives `params.signal?: AbortSignal`,
   forwarded to `fetchJson` / `fetchStream`. Pre-flight `signal.aborted` check
   before first network call (matches `NvidiaProvider.chat` at
-  `src/providers/nvidia.ts:50-51`).
+  `packages/providers/src/nvidia.ts:50-51`).
 - Logger contract: `logger.info("bifrost", "...", extra?)` — three-arg form
   only (CLAUDE.md guardrail #9).
 - Errors: map upstream non-2xx to `ProviderError(status, body)` (definition at
-  `src/providers/nvidia.ts:155-165`, re-exported via `src/providers/index.ts:14`).
+  `packages/providers/src/nvidia.ts:155-165`, re-exported via `packages/providers/packages/server/src/index.ts:14`).
   Never echo upstream body > 200 chars; `ProviderError` constructor itself runs
-  `redactSecrets` from `src/lib/errors.ts`.
+  `redactSecrets` from `packages/core/packages/core/src/lib/errors.ts`.
 - File caps: every new TS file ≤ 150 LOC (`scripts/check-file-size.ts` enforces;
-  template `src/providers/nvidia.ts` shape, currently 153 lines but legacy-
+  template `packages/providers/src/nvidia.ts` shape, currently 153 lines but legacy-
   whitelisted).
 
 ---
@@ -168,7 +168,7 @@ Every packet `non_goals` repeats these because the spec demands it:
     "Do not break X-Direct-Mode header path.",
     "Do not run docker compose build/up; only static config validation.",
     "Do not add a yaml/js-yaml dependency — config is JSON; use JSON.parse / Bun.file().json().",
-    "Do not add bifrost to the ProviderName union (src/lib/model-map.ts:6).",
+    "Do not add bifrost to the ProviderName union (packages/core/src/lib/model-map.ts:6).",
     "Do not commit any real API key value into config.json — use the env.VAR_NAME literal string syntax."
   ],
   "allowed_write_paths": [
@@ -182,7 +182,7 @@ Every packet `non_goals` repeats these because the spec demands it:
     ".env.example",
     "docs/specs/subbrain-main.md:404-424",
     "docs/tasks/agent-teams/01-bifrost-gateway.md:operator-pre-fill section",
-    "src/lib/model-map.ts:1-30"
+    "packages/core/src/lib/model-map.ts:1-30"
   ],
   "risk_tier": "public-api",
   "acceptance": [
@@ -210,7 +210,7 @@ Every packet `non_goals` repeats these because the spec demands it:
   ],
   "glossary": {
     "Bifrost side-car": "Container running maximhq/bifrost:latest, exposed only on the compose internal network (no host port mapping). Subbrain reaches it via http://bifrost:8080/v1/chat/completions.",
-    "BIFROST_ENABLED": "Env flag, default false. When false the existing src/lib/model-router/* path stays active end-to-end.",
+    "BIFROST_ENABLED": "Env flag, default false. When false the existing packages/providers/src/model-router/* path stays active end-to-end.",
     "empty-providers config": "bifrost/config.json must include the $schema URL and providers: {} (empty object). P1-6 fills it.",
     "env.VAR_NAME literal": "Bifrost-specific config syntax: providers[*].keys[*].value = 'env.NVIDIA_API_KEY' (string starting with 'env.') tells Bifrost to read the env var at runtime. Do NOT substitute the actual value.",
     "config mount": "Volume bind: ./bifrost on host → /app/data inside the container. Bifrost reads /app/data/config.json automatically (per upstream quickstart).",
@@ -269,54 +269,54 @@ mount on a fresh checkout.
 ```json
 {
   "task_id": "P1-2",
-  "goal": "Add src/providers/bifrost.ts implementing LLMProvider.chat() against the Bifrost OpenAI-compatible HTTP endpoint, plus a unit test for payload shape and ProviderError mapping.",
+  "goal": "Add packages/providers/src/bifrost.ts implementing LLMProvider.chat() against the Bifrost OpenAI-compatible HTTP endpoint, plus a unit test for payload shape and ProviderError mapping.",
   "non_goals": [
     "Do not implement chatStream() in this packet — P1-3 handles it (throw 'not implemented in P1-2' for now).",
     "Do not implement embed/rerank — throw with explicit 'use raw NVIDIA path' message; embed/rerank stays on raw NVIDIA per Phase 1 architectural decision #3.",
-    "Do not register the provider in src/providers/index.ts (P1-4 wires it).",
-    "Do not modify src/lib/model-router.ts in this packet.",
-    "Do not modify src/lib/model-map.ts (BifrostProvider is NOT a ProviderName entry).",
+    "Do not register the provider in packages/providers/packages/server/src/index.ts (P1-4 wires it).",
+    "Do not modify packages/core/src/lib/model-router.ts in this packet.",
+    "Do not modify packages/core/src/lib/model-map.ts (BifrostProvider is NOT a ProviderName entry).",
     "Do not change MODEL_MAP, rate-limiter, or direct-mode behavior.",
     "Do not add new dependencies to package.json.",
     "Do not add an idle-stream heartbeat — the chat SSE path heartbeat owner is unchanged (architectural decision #5)."
   ],
   "allowed_write_paths": [
-    "src/providers/bifrost.ts",
+    "packages/providers/src/bifrost.ts",
     "tests/bifrost-provider.test.ts"
   ],
   "read_context": [
-    "src/providers/types.ts",
-    "src/providers/nvidia.ts:1-100",
-    "src/providers/nvidia.ts:155-165",
-    "src/lib/http-client.ts",
-    "src/lib/errors.ts"
+    "packages/providers/src/types.ts",
+    "packages/providers/src/nvidia.ts:1-100",
+    "packages/providers/src/nvidia.ts:155-165",
+    "packages/core/src/lib/http-client.ts",
+    "packages/core/src/lib/errors.ts"
   ],
   "risk_tier": "public-api",
   "acceptance": [
     "bunx tsc --noEmit",
     "bun test tests/bifrost-provider.test.ts",
-    "grep -q 'fetchJson' src/providers/bifrost.ts",
-    "grep -q 'params.signal' src/providers/bifrost.ts",
-    "grep -q 'ProviderError' src/providers/bifrost.ts",
-    "wc -l src/providers/bifrost.ts | awk '{ exit ($1 <= 150) ? 0 : 1 }'",
+    "grep -q 'fetchJson' packages/providers/src/bifrost.ts",
+    "grep -q 'params.signal' packages/providers/src/bifrost.ts",
+    "grep -q 'ProviderError' packages/providers/src/bifrost.ts",
+    "wc -l packages/providers/src/bifrost.ts | awk '{ exit ($1 <= 150) ? 0 : 1 }'",
     "wc -l tests/bifrost-provider.test.ts | awk '{ exit ($1 <= 150) ? 0 : 1 }'",
     "bun run scripts/check-file-size.ts",
     "bun run scripts/check-deep-imports.ts"
   ],
   "diff_budget_loc": 220,
   "file_count_max": 2,
-  "rollback": "git rm src/providers/bifrost.ts tests/bifrost-provider.test.ts",
+  "rollback": "git rm packages/providers/src/bifrost.ts tests/bifrost-provider.test.ts",
   "escalation_triggers": [
     "Bifrost upstream non-OpenAI-compatible request shape (verified via test against a Bun.serve mock) — STOP with FAIL: upstream-docs.",
-    "LLMProvider interface in src/providers/types.ts changed since this contract was written (chat signature differs from src/providers/nvidia.ts:49) — STOP with FAIL: precheck.",
-    "ProviderError export path moved off src/providers/nvidia.ts:155 (e.g. relocated to src/lib/errors.ts) — STOP with FAIL: precheck.",
+    "LLMProvider interface in packages/providers/src/types.ts changed since this contract was written (chat signature differs from packages/providers/src/nvidia.ts:49) — STOP with FAIL: precheck.",
+    "ProviderError export path moved off packages/providers/src/nvidia.ts:155 (e.g. relocated to packages/core/src/lib/errors.ts) — STOP with FAIL: precheck.",
     "Implementation requires touching ModelRouter or any model-router/* file — STOP with FAIL: scope.",
     "Spec contradicts code (e.g. read_context line ranges no longer match actual file contents) — STOP with FAIL: precheck:spec-mismatch."
   ],
   "glossary": {
     "BifrostProvider": "Class implementing LLMProvider; constructor(baseUrl: string, apiKey: string). NOT registered in ProviderName union — passed into ModelRouter via a new optional constructor arg in P1-4.",
     "OpenAI-compatible payload": "POST {baseUrl}/v1/chat/completions with body { model, messages, temperature?, max_tokens?, top_p?, tools?, tool_choice?, stream: false }, Authorization: 'Bearer ${apiKey}'. Path is exactly /v1/chat/completions per upstream quickstart.",
-    "ProviderError mapping": "On non-2xx, throw `new ProviderError(status, body)` from src/providers/nvidia.ts:155. ProviderError constructor itself runs redactSecrets and slices body to 200 chars — do NOT pre-redact in BifrostProvider.",
+    "ProviderError mapping": "On non-2xx, throw `new ProviderError(status, body)` from packages/providers/src/nvidia.ts:155. ProviderError constructor itself runs redactSecrets and slices body to 200 chars — do NOT pre-redact in BifrostProvider.",
     "use raw NVIDIA path message": "embed/rerank/listModels throw new Error('bifrost does not proxy embed/rerank — use ModelRouter.scheduleRaw / .raw for NVIDIA NIM directly')."
   }
 }
@@ -325,7 +325,7 @@ mount on a fresh checkout.
 ### Required shape (P1-2)
 
 ```ts
-// src/providers/bifrost.ts (≤150 LOC)
+// packages/providers/src/bifrost.ts (≤150 LOC)
 import { HttpError } from "../lib/errors";
 import { fetchJson } from "../lib/http-client";
 import { ProviderError } from "./nvidia";
@@ -391,57 +391,57 @@ Test must cover:
   "task_id": "P1-3",
   "goal": "Implement BifrostProvider.chatStream() returning ReadableStream<Uint8Array> via fetchStream + createProxyStream, preserving AbortSignal threading.",
   "non_goals": [
-    "Do not modify src/services/chat/run.ts, src/services/chat/sse-wrap.ts, or src/index.ts (idleTimeout owner).",
-    "Do not modify src/providers/stream-utils.ts or src/providers/sse-parser.ts.",
-    "Do not add a heartbeat ping inside the provider — the chat SSE path heartbeat owner is unchanged (architectural decision #5; existing : ping lives only in src/pipeline/agent-loop/heartbeat.ts and src/mcp/mcp-protocol.ts).",
-    "Do not register the provider in src/providers/index.ts (P1-4).",
+    "Do not modify packages/agent/packages/agent/src/services/chat/run.ts, packages/agent/packages/agent/src/services/chat/sse-wrap.ts, or packages/server/packages/server/src/index.ts (idleTimeout owner).",
+    "Do not modify packages/providers/src/stream-utils.ts or packages/providers/src/sse-parser.ts.",
+    "Do not add a heartbeat ping inside the provider — the chat SSE path heartbeat owner is unchanged (architectural decision #5; existing : ping lives only in packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/heartbeat.ts and packages/server/src/mcp-transport/mcp-protocol.ts).",
+    "Do not register the provider in packages/providers/packages/server/src/index.ts (P1-4).",
     "Do not change rate-limiter or direct-mode behavior.",
     "Do not change embed/rerank or MODEL_MAP."
   ],
   "allowed_write_paths": [
-    "src/providers/bifrost.ts",
+    "packages/providers/src/bifrost.ts",
     "tests/bifrost-stream.test.ts"
   ],
   "read_context": [
-    "src/providers/nvidia.ts:69-84",
-    "src/providers/stream-utils.ts",
-    "src/lib/http-client.ts",
-    "src/services/chat/sse-wrap.ts",
-    "src/services/chat/run.ts"
+    "packages/providers/src/nvidia.ts:69-84",
+    "packages/providers/src/stream-utils.ts",
+    "packages/core/src/lib/http-client.ts",
+    "packages/agent/packages/agent/src/services/chat/sse-wrap.ts",
+    "packages/agent/packages/agent/src/services/chat/run.ts"
   ],
   "risk_tier": "public-api",
   "acceptance": [
     "bunx tsc --noEmit",
     "bun test tests/bifrost-stream.test.ts",
-    "grep -q 'createProxyStream' src/providers/bifrost.ts",
-    "grep -q 'fetchStream' src/providers/bifrost.ts",
-    "grep -q 'params.signal' src/providers/bifrost.ts",
-    "wc -l src/providers/bifrost.ts | awk '{ exit ($1 <= 150) ? 0 : 1 }'",
+    "grep -q 'createProxyStream' packages/providers/src/bifrost.ts",
+    "grep -q 'fetchStream' packages/providers/src/bifrost.ts",
+    "grep -q 'params.signal' packages/providers/src/bifrost.ts",
+    "wc -l packages/providers/src/bifrost.ts | awk '{ exit ($1 <= 150) ? 0 : 1 }'",
     "wc -l tests/bifrost-stream.test.ts | awk '{ exit ($1 <= 150) ? 0 : 1 }'",
     "bun run scripts/check-file-size.ts",
     "bun run scripts/check-deep-imports.ts"
   ],
   "diff_budget_loc": 200,
   "file_count_max": 2,
-  "rollback": "git checkout HEAD -- src/providers/bifrost.ts && git rm tests/bifrost-stream.test.ts",
+  "rollback": "git checkout HEAD -- packages/providers/src/bifrost.ts && git rm tests/bifrost-stream.test.ts",
   "escalation_triggers": [
     "createProxyStream signature changed since this contract — STOP with FAIL: precheck.",
-    "Implementation requires modifying any heartbeat owner (src/pipeline/agent-loop/heartbeat.ts, src/mcp/mcp-protocol.ts, src/index.ts) — STOP with FAIL: scope.",
+    "Implementation requires modifying any heartbeat owner (packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/heartbeat.ts, packages/server/src/mcp-transport/mcp-protocol.ts, packages/server/packages/server/src/index.ts) — STOP with FAIL: scope.",
     "Implementation requires modifying providers/stream-utils.ts — STOP with FAIL: scope.",
     "Bun fetchStream cannot thread signal — STOP with FAIL: precheck.",
     "Spec contradicts code (read_context line ranges no longer match actual file contents) — STOP with FAIL: precheck:spec-mismatch."
   ],
   "glossary": {
     "Streaming shape": "Mirror NvidiaProvider.chatStream lines 69-84 verbatim, swap baseUrl/headers, keep timeoutMs: 180_000 + signal: params.signal. URL ends with /v1/chat/completions.",
-    "wrapStreamForChat compatibility": "The returned ReadableStream<Uint8Array> must emit raw OpenAI SSE bytes ('data: {...}\\n\\n', terminated by 'data: [DONE]\\n\\n') so wrapStreamForChat (src/services/chat/sse-wrap.ts:9) parses chunks unchanged. Bifrost is OpenAI-compatible so this is automatic.",
-    "Heartbeat ownership": "Phase 1 does not introduce a heartbeat in the chat SSE path. The autonomous agent-loop has its own heartbeat in src/pipeline/agent-loop/heartbeat.ts; MCP transport has its own in src/mcp/mcp-protocol.ts:65. Chat SSE relies on Bun idleTimeout: 255 set in src/index.ts:19. Do not touch any of these."
+    "wrapStreamForChat compatibility": "The returned ReadableStream<Uint8Array> must emit raw OpenAI SSE bytes ('data: {...}\\n\\n', terminated by 'data: [DONE]\\n\\n') so wrapStreamForChat (packages/agent/packages/agent/src/services/chat/sse-wrap.ts:9) parses chunks unchanged. Bifrost is OpenAI-compatible so this is automatic.",
+    "Heartbeat ownership": "Phase 1 does not introduce a heartbeat in the chat SSE path. The autonomous agent-loop has its own heartbeat in packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/heartbeat.ts; MCP transport has its own in packages/server/src/mcp-transport/mcp-protocol.ts:65. Chat SSE relies on Bun idleTimeout: 255 set in packages/server/packages/server/src/index.ts:19. Do not touch any of these."
   }
 }
 ```
 
 ### Required shape (P1-3)
 
-Append to `src/providers/bifrost.ts` (replace the throw stub from P1-2):
+Append to `packages/providers/src/bifrost.ts` (replace the throw stub from P1-2):
 
 ```ts
 import { fetchStream } from "../lib/http-client";
@@ -479,53 +479,53 @@ error chunk via createProxyStream's existing behaviour.
   "task_id": "P1-4",
   "goal": "Add an optional bifrost?: BifrostProvider parameter to ModelRouter constructor and an early-branch in chat() / chatStream() that routes through it when process.env.BIFROST_ENABLED === 'true', without touching backends map or ProviderName union.",
   "non_goals": [
-    "Do not delete any code in src/lib/model-router/* — only add an early-branch in ModelRouter.chat / ModelRouter.chatStream.",
+    "Do not delete any code in packages/providers/src/model-router/* — only add an early-branch in ModelRouter.chat / ModelRouter.chatStream.",
     "Do not change scheduleRaw, raw, isOverloadedFor, or stats getters.",
-    "Do not add bifrost to the ProviderName union in src/lib/model-map.ts:6.",
-    "Do not add bifrost to PROVIDER_RPM in src/lib/model-router/constants.ts.",
+    "Do not add bifrost to the ProviderName union in packages/core/src/lib/model-map.ts:6.",
+    "Do not add bifrost to PROVIDER_RPM in packages/providers/src/model-router/constants.ts.",
     "Do not store BifrostProvider in this.backends — use a separate private field this.bifrost.",
     "Do not change MODEL_MAP role mappings.",
-    "Do not break X-Direct-Mode behavior in src/services/chat — flag-off path is byte-identical to current behavior.",
+    "Do not break X-Direct-Mode behavior in packages/agent/src/services/chat — flag-off path is byte-identical to current behavior.",
     "Do not delete .env.example BIFROST_* keys (added by P1-1).",
     "Do not invoke runChatDispatch / createFallbackStream as a second-level fallback when the Bifrost path errors (architectural decision #4)."
   ],
   "allowed_write_paths": [
-    "src/lib/model-router.ts",
-    "src/providers/index.ts",
-    "src/app/deps.ts"
+    "packages/core/src/lib/model-router.ts",
+    "packages/providers/packages/server/src/index.ts",
+    "packages/server/packages/server/src/app/deps.ts"
   ],
   "read_context": [
-    "src/lib/model-router.ts",
-    "src/lib/model-router/dispatch.ts",
-    "src/lib/model-router/stream.ts",
-    "src/providers/index.ts",
-    "src/providers/bifrost.ts",
-    "src/app/deps.ts"
+    "packages/core/src/lib/model-router.ts",
+    "packages/providers/src/model-router/dispatch.ts",
+    "packages/providers/src/model-router/stream.ts",
+    "packages/providers/packages/server/src/index.ts",
+    "packages/providers/src/bifrost.ts",
+    "packages/server/packages/server/src/app/deps.ts"
   ],
   "risk_tier": "public-api",
   "acceptance": [
     "bunx tsc --noEmit",
     "bun test tests/model-router.test.ts",
-    "grep -q 'BIFROST_ENABLED' src/lib/model-router.ts",
-    "grep -q 'BifrostProvider' src/providers/index.ts",
-    "grep -q 'private bifrost' src/lib/model-router.ts",
-    "wc -l src/lib/model-router.ts | awk '{ exit ($1 <= 150) ? 0 : 1 }'",
-    "wc -l src/providers/index.ts | awk '{ exit ($1 <= 175) ? 0 : 1 }'",
+    "grep -q 'BIFROST_ENABLED' packages/core/src/lib/model-router.ts",
+    "grep -q 'BifrostProvider' packages/providers/packages/server/src/index.ts",
+    "grep -q 'private bifrost' packages/core/src/lib/model-router.ts",
+    "wc -l packages/core/src/lib/model-router.ts | awk '{ exit ($1 <= 150) ? 0 : 1 }'",
+    "wc -l packages/providers/packages/server/src/index.ts | awk '{ exit ($1 <= 175) ? 0 : 1 }'",
     "bun run scripts/check-file-size.ts",
     "bun run scripts/check-deep-imports.ts"
   ],
   "diff_budget_loc": 150,
   "file_count_max": 3,
-  "rollback": "git checkout HEAD -- src/lib/model-router.ts src/providers/index.ts src/app/deps.ts",
+  "rollback": "git checkout HEAD -- packages/core/src/lib/model-router.ts packages/providers/packages/server/src/index.ts packages/server/packages/server/src/app/deps.ts",
   "escalation_triggers": [
-    "ModelRouter chat/chatStream branch cannot be added without pushing src/lib/model-router.ts past 150 lines — STOP with FAIL: scope:file-cap (parent must split-file or raise budget in a follow-up packet).",
-    "Wiring requires modifying src/app/bootstrap.ts beyond pass-through into ModelRouter — STOP with FAIL: scope.",
+    "ModelRouter chat/chatStream branch cannot be added without pushing packages/core/src/lib/model-router.ts past 150 lines — STOP with FAIL: scope:file-cap (parent must split-file or raise budget in a follow-up packet).",
+    "Wiring requires modifying packages/server/packages/server/src/app/bootstrap.ts beyond pass-through into ModelRouter — STOP with FAIL: scope.",
     "Flag-off path produces non-identical behavior on existing tests — STOP with FAIL: test.",
     "BIFROST_BASE_URL or BIFROST_API_KEY missing while BIFROST_ENABLED=true — log via logger.warn('bifrost', 'flag enabled but env missing — falling back to legacy router', { url: !!process.env.BIFROST_BASE_URL, key: !!process.env.BIFROST_API_KEY }) and proceed flag-off; do NOT throw, do NOT exit.",
     "Spec contradicts code (read_context line ranges no longer match actual file contents) — STOP with FAIL: precheck:spec-mismatch."
   ],
   "glossary": {
-    "Constructor signature change": "ModelRouter constructor adds a second optional parameter `bifrost?: BifrostProvider`. Existing call sites (src/app/deps.ts) pass undefined unless BIFROST_ENABLED is set. This is additive — TypeScript-compatible with all existing callers.",
+    "Constructor signature change": "ModelRouter constructor adds a second optional parameter `bifrost?: BifrostProvider`. Existing call sites (packages/server/packages/server/src/app/deps.ts) pass undefined unless BIFROST_ENABLED is set. This is additive — TypeScript-compatible with all existing callers.",
     "Flag-on routing": "When this.bifrost is defined AND process.env.BIFROST_ENABLED === 'true', ModelRouter.chat / chatStream short-circuit: resolve virtualModel via resolveModel() to get { model, provider } → call this.bifrost.chat({ ...params, model: resolved.model }) → return. No fallback to runChatDispatch on error (architectural decision #4); errors surface as ProviderError or UpstreamExhaustedError.",
     "Flag-off routing": "this.bifrost === undefined OR process.env.BIFROST_ENABLED !== 'true' — current runChatDispatch + createFallbackStream paths run unchanged, byte-identical to pre-merge.",
     "Bifrost limiter": "BifrostProvider calls do NOT go through any subbrain RateLimiter — Bifrost owns its own rate limiting. This is explicit because architectural decision #2 keeps BifrostProvider out of the backends map. (Trade-off accepted: if Bifrost is slower than expected, dispatch back-pressure happens at the HTTP layer, not the limiter queue.)"
@@ -535,7 +535,7 @@ error chunk via createProxyStream's existing behaviour.
 
 ### Required shape (P1-4)
 
-`src/providers/index.ts` adds (≤25 new LOC):
+`packages/providers/packages/server/src/index.ts` adds (≤25 new LOC):
 
 ```ts
 import { BifrostProvider } from "./bifrost";
@@ -549,7 +549,7 @@ export function createBifrostProvider(): BifrostProvider | undefined {
 }
 ```
 
-`src/lib/model-router.ts` adds (≤25 new LOC; current file is 121 lines, target
+`packages/core/src/lib/model-router.ts` adds (≤25 new LOC; current file is 121 lines, target
 ≤146 after edit):
 
 ```ts
@@ -574,7 +574,7 @@ if (this.bifrost && process.env.BIFROST_ENABLED === "true") {
 // in chatStream(), analogous early branch returning Promise.resolve(this.bifrost.chatStream(...))
 ```
 
-`src/app/deps.ts` change is one line: pass `createBifrostProvider()` as the
+`packages/server/packages/server/packages/server/src/app/deps.ts` change is one line: pass `createBifrostProvider()` as the
 second arg to `new ModelRouter(...)`.
 
 ---
@@ -600,12 +600,12 @@ second arg to `new ModelRouter(...)`.
     "tests/bifrost-auth-errors.test.ts"
   ],
   "read_context": [
-    "src/providers/bifrost.ts",
-    "src/lib/model-router.ts",
-    "src/providers/nvidia.ts:1-100",
-    "src/providers/nvidia.ts:155-165",
+    "packages/providers/src/bifrost.ts",
+    "packages/core/src/lib/model-router.ts",
+    "packages/providers/src/nvidia.ts:1-100",
+    "packages/providers/src/nvidia.ts:155-165",
     "tests/model-router.test.ts",
-    "src/lib/errors.ts"
+    "packages/core/src/lib/errors.ts"
   ],
   "risk_tier": "ordinary",
   "acceptance": [
@@ -624,7 +624,7 @@ second arg to `new ModelRouter(...)`.
     "Test requires modifying src/ to inject a mock — STOP with FAIL: scope.",
     "Mock Bun.serve cannot accept POST + SSE — STOP with FAIL: precheck.",
     "Test cannot deterministically verify cancel propagation (flake > 1/100) — STOP with FAIL: test.",
-    "Spec contradicts code (e.g. ProviderError signature differs from src/providers/nvidia.ts:155-165) — STOP with FAIL: precheck:spec-mismatch."
+    "Spec contradicts code (e.g. ProviderError signature differs from packages/providers/src/nvidia.ts:155-165) — STOP with FAIL: precheck:spec-mismatch."
   ],
   "glossary": {
     "Fallback test": "BIFROST_ENABLED=true, BifrostProvider returns ECONNREFUSED → ModelRouter.chat MUST surface UpstreamExhaustedError (or wrapped fetch error). It MUST NOT call runChatDispatch as a second-level fallback (assert dispatch.ts not invoked — easiest: spy on backends.nvidia.provider.chat, assert callCount === 0).",
@@ -646,7 +646,7 @@ second arg to `new ModelRouter(...)`.
     "Do not run this packet until P1-1..P1-5 are merged green.",
     "Do not remove cliproxy from docker-compose.yml — openai-compat in Bifrost POINTS AT cliproxy, not replaces it.",
     "Do not change MODEL_MAP role assignments.",
-    "Do not modify src/providers/bifrost.ts (config-only change).",
+    "Do not modify packages/providers/src/bifrost.ts (config-only change).",
     "Do not change rate-limiter or direct-mode behavior.",
     "Do not break BIFROST_ENABLED=false default.",
     "Do not commit any real API key value into config.json — use the env.VAR_NAME literal string syntax.",
@@ -658,8 +658,8 @@ second arg to `new ModelRouter(...)`.
   ],
   "read_context": [
     "bifrost/config.json",
-    "src/lib/model-map.ts:1-30",
-    "src/providers/index.ts:35-42",
+    "packages/core/src/lib/model-map.ts:1-30",
+    "packages/providers/packages/server/src/index.ts:35-42",
     "docker-compose.yml:1-20"
   ],
   "risk_tier": "public-api",
@@ -684,8 +684,8 @@ second arg to `new ModelRouter(...)`.
     "OpenRouter or MiniMax env keys absent from .env.example after P1-1..P1-5 merges — STOP with FAIL: precheck:env-missing."
   ],
   "glossary": {
-    "Parity test": "Static assertion: every ProviderName from src/lib/model-map.ts:6 ('nvidia'/'openrouter'/'minimax'/'openai-compat') appears as a key under bifrost/config.json::providers. Mapping note: subbrain ProviderName 'nvidia' maps to Bifrost provider key 'openai' (with NVIDIA NIM base_url) because Bifrost groups OpenAI-protocol providers under the 'openai' type. Test must encode this mapping explicitly: const PARITY_MAP = { nvidia: 'openai', openrouter: 'openrouter', minimax: 'minimax', 'openai-compat': 'openai-compat' }.",
-    "openai-compat in Bifrost": "Provider entry pointing to the same cliproxy URL as src/providers/index.ts:127 default (http://cliproxy:8317/v1 — port 8317 per docker-compose.yml:9, NOT 8080). Bifrost is the gateway; cliproxy is the upstream — no loop.",
+    "Parity test": "Static assertion: every ProviderName from packages/core/src/lib/model-map.ts:6 ('nvidia'/'openrouter'/'minimax'/'openai-compat') appears as a key under bifrost/config.json::providers. Mapping note: subbrain ProviderName 'nvidia' maps to Bifrost provider key 'openai' (with NVIDIA NIM base_url) because Bifrost groups OpenAI-protocol providers under the 'openai' type. Test must encode this mapping explicitly: const PARITY_MAP = { nvidia: 'openai', openrouter: 'openrouter', minimax: 'minimax', 'openai-compat': 'openai-compat' }.",
+    "openai-compat in Bifrost": "Provider entry pointing to the same cliproxy URL as packages/providers/packages/server/src/index.ts:127 default (http://cliproxy:8317/v1 — port 8317 per docker-compose.yml:9, NOT 8080). Bifrost is the gateway; cliproxy is the upstream — no loop.",
     "env.VAR_NAME literal": "Bifrost config syntax for env-var-from-runtime: e.g. 'value': 'env.NVIDIA_API_KEY'. Confirmed from upstream quickstart. NEVER inline a real API key."
   }
 }

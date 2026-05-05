@@ -6,13 +6,13 @@
 
 ## Цель
 
-TG-поллер сейчас нестабилен: агент говорит "я проверил TG" но галлюцинирует содержимое. Решение: poller записывает непрочитанные DMs как `tasks` (scope="tg") через идемпотентный `upsertTaskBySource`. Агент видит их в промпте через уже существующий [renderTgStatus](../../../src/pipeline/agent-loop/prompt-blocks/tasks.ts) и `Active tasks` блок. Ответил → `task_done`. Сообщение удалилось → `ToolError{tg_gone}` → агент сам `task_cancel`.
+TG-поллер сейчас нестабилен: агент говорит "я проверил TG" но галлюцинирует содержимое. Решение: poller записывает непрочитанные DMs как `tasks` (scope="tg") через идемпотентный `upsertTaskBySource`. Агент видит их в промпте через уже существующий [renderTgStatus](../../../packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/prompt-blocks/tasks.ts) и `Active tasks` блок. Ответил → `task_done`. Сообщение удалилось → `ToolError{tg_gone}` → агент сам `task_cancel`.
 
 Также: single-statement CAS-lock (`tryAcquireLock` уже написан в Phase 1, нужно подключить) + supervisor с exponential backoff + `AbortController` для graceful shutdown race.
 
 ## Контекст
 
-**Существующий TG-поллер:** поискать `src/scheduler/telegram-poller.ts` или аналог в `src/scheduler/`, `src/telegram/`. Если нет — **это означает что TG-чек сейчас делается ad-hoc через MCP tools** (`tg_list_chats`, `tg_read_chat`). Тогда задача расширяется: создать scheduler с нуля. Grep `grep -rn "telegram-poller\|TelegramPoller" src/` чтобы понять состояние.
+**Существующий TG-поллер:** поискать `packages/agent/packages/agent/packages/agent/src/scheduler/telegram-poller.ts` или аналог в `packages/agent/src/scheduler/`, `packages/agent/src/telegram/`. Если нет — **это означает что TG-чек сейчас делается ad-hoc через MCP tools** (`tg_list_chats`, `tg_read_chat`). Тогда задача расширяется: создать scheduler с нуля. Grep `grep -rn "telegram-poller\|TelegramPoller" src/` чтобы понять состояние.
 
 **Phase 1 предоставил:**
 - `memory.upsertTaskBySource(source, fields, newId)` — idempotent.
@@ -27,7 +27,7 @@ TG-поллер сейчас нестабилен: агент говорит "я
 
 ### 1. TG-поллер: source key + idempotent upsert
 
-**File:** `src/scheduler/telegram-poller.ts` (modify existing или new ≤250 lines).
+**File:** `packages/agent/packages/agent/packages/agent/src/scheduler/telegram-poller.ts` (modify existing или new ≤250 lines).
 
 Для каждого unread message через MTProto:
 ```ts
@@ -123,7 +123,7 @@ async function tick() {
 
 ### 5. Wire в bootstrap
 
-`src/app/bootstrap.ts` или `src/app/schedulers.ts` — если `TELEGRAM_POLLER_ENABLED === "true"` (env flag, default "false"), запустить supervisor в background. Shutdown handler ждёт `shutdownRequested=true; currentPollAbort?.abort(); await pollerPromise`.
+`packages/server/packages/server/packages/server/src/app/bootstrap.ts` или `packages/server/packages/server/packages/server/src/app/schedulers.ts` — если `TELEGRAM_POLLER_ENABLED === "true"` (env flag, default "false"), запустить supervisor в background. Shutdown handler ждёт `shutdownRequested=true; currentPollAbort?.abort(); await pollerPromise`.
 
 ### 6. Tests
 
@@ -169,7 +169,7 @@ bun test              # full regression
 
 ## Guardrails reminder
 
-- `src/scheduler/telegram-poller.ts` ≤ 250 lines.
+- `packages/agent/packages/agent/packages/agent/src/scheduler/telegram-poller.ts` ≤ 250 lines.
 - `logger.child("tg.poller").info("stage","message")` — двухаргументный у root, одноаргументный у child. Проверь что не путаешь.
 - MTProto calls — через `fetchJson`/`fetchStream` если HTTP, или через существующий MTProto wrapper.
 - Shutdown: signal composing через `AbortSignal.any([externalSignal, currentPollAbort.signal])`.
@@ -177,5 +177,5 @@ bun test              # full regression
 
 ## Что изменяется в git
 
-Новые: `src/scheduler/telegram-poller.ts` (или modified если существует), `tests/telegram-poller.test.ts`, опционально `docs/completed/telegram-poller.md`.
-Modified: `src/app/bootstrap.ts` (или `schedulers.ts`), `.env.example` (+`TELEGRAM_POLLER_ENABLED`, `TG_PRIORITY_HANDLES`), MTProto tools если меняется error code для `tg_gone`.
+Новые: `packages/agent/packages/agent/packages/agent/src/scheduler/telegram-poller.ts` (или modified если существует), `tests/telegram-poller.test.ts`, опционально `docs/completed/telegram-poller.md`.
+Modified: `packages/server/packages/server/packages/server/src/app/bootstrap.ts` (или `schedulers.ts`), `.env.example` (+`TELEGRAM_POLLER_ENABLED`, `TG_PRIORITY_HANDLES`), MTProto tools если меняется error code для `tg_gone`.

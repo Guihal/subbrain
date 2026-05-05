@@ -10,13 +10,13 @@
 
 ## Файлы
 
-- [src/services/chat.service.ts](../../../src/services/chat.service.ts) — новый.
-- [src/routes/chat.ts](../../../src/routes/chat.ts) — становится thin.
-- [src/app/deps.ts](../../../src/app/deps.ts) — инстанцирует `ChatService`.
+- [packages/agent/src/services/chat.service.ts](../../../packages/agent/src/services/chat.service.ts) — новый.
+- [packages/server/packages/server/src/routes/chat.ts](../../../packages/server/packages/server/src/routes/chat.ts) — становится thin.
+- [packages/server/packages/server/src/app/deps.ts](../../../packages/server/packages/server/src/app/deps.ts) — инстанцирует `ChatService`.
 
 ## Изменение
 
-### 1. `src/services/chat.service.ts`
+### 1. `packages/agent/src/services/chat.service.ts`
 
 ```
 class ChatService {
@@ -72,7 +72,7 @@ const chatService = new ChatService(router, pipeline, memory);
 
 - [ ] `bunx tsc --noEmit` = 0.
 - [ ] Оба теста зелёные.
-- [ ] `wc -l src/routes/chat.ts` <= 80.
+- [ ] `wc -l packages/server/packages/server/src/routes/chat.ts` <= 80.
 - [ ] Все старые тесты chat остаются зелёными.
 - [ ] LAYER-3 вычеркнут в [docs/02-audit.md](../../02-audit.md).
 

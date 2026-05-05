@@ -6,22 +6,22 @@
 
 ## Цель
 
-Разбить `src/db/tables/memory.ts` (451 LOC) на split-folder. Public API = `MemoryTable` class — сохранить все методы 1:1.
+Разбить `packages/core/src/db/tables/memory.ts` (451 LOC) на split-folder. Public API = `MemoryTable` class — сохранить все методы 1:1.
 
 ## Файлы
 
 **Удалить**:
-- `src/db/tables/memory.ts`
+- `packages/core/src/db/tables/memory.ts`
 
 **Создать**:
-- `src/db/tables/memory/index.ts` — `MemoryTable` orchestrator class (≤120 LOC). Конструктор + thin делегации в submodules.
-- `src/db/tables/memory/insert.ts` — `insertContext(...)`, `insertArchive(...)`, `insertAgent(...)` (CRUD insert по 5 слоям). Pure functions taking `db` + params.
-- `src/db/tables/memory/update.ts` — `updateContext(...)`, `updateArchive(...)`, `updateAgent(...)` + helpers (ALLOW maps for `updateRow`).
-- `src/db/tables/memory/select.ts` — `getContext`, `getArchive`, `getAgent`, `listContext`, `listArchive`, `listAgent`, `count*` helpers.
-- `src/db/tables/memory/delete.ts` — `deleteContext`, `deleteArchive`, `deleteAgent`.
-- `src/db/tables/memory/schema-helpers.ts` — type/row mapping helpers (если есть `mapRowToContext`/`mapRowToArchive` etc).
+- `packages/core/packages/core/packages/core/src/db/tables/memory/index.ts` — `MemoryTable` orchestrator class (≤120 LOC). Конструктор + thin делегации в submodules.
+- `packages/core/src/db/tables/memory/insert.ts` — `insertContext(...)`, `insertArchive(...)`, `insertAgent(...)` (CRUD insert по 5 слоям). Pure functions taking `db` + params.
+- `packages/core/src/db/tables/memory/update.ts` — `updateContext(...)`, `updateArchive(...)`, `updateAgent(...)` + helpers (ALLOW maps for `updateRow`).
+- `packages/core/src/db/tables/memory/select.ts` — `getContext`, `getArchive`, `getAgent`, `listContext`, `listArchive`, `listAgent`, `count*` helpers.
+- `packages/core/src/db/tables/memory/delete.ts` — `deleteContext`, `deleteArchive`, `deleteAgent`.
+- `packages/core/src/db/tables/memory/schema-helpers.ts` — type/row mapping helpers (если есть `mapRowToContext`/`mapRowToArchive` etc).
 
-**Trigger**: `scripts/check-file-size.ts` `"src/db/tables/memory.ts": 452` → удалить.
+**Trigger**: `scripts/check-file-size.ts` `"packages/core/src/db/tables/memory.ts": 452` → удалить.
 
 ## Изменение
 

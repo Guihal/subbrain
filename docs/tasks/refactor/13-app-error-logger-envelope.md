@@ -15,10 +15,10 @@
 
 ### 1. AppError + central `onError`
 
-**Файлы:** `src/lib/errors.ts`, `src/app/bootstrap.ts` (после PR 07).
+**Файлы:** `packages/core/packages/core/src/lib/errors.ts`, `packages/server/packages/server/packages/server/src/app/bootstrap.ts` (после PR 07).
 
 ```ts
-// src/lib/errors.ts
+// packages/core/src/lib/errors.ts
 export class AppError extends Error {
   constructor(
     public code: string,
@@ -64,7 +64,7 @@ app.onError(({ error, set }) => {
 
 ### 2. `logger.child("stage")`
 
-**Файл:** [src/lib/logger.ts](../../../src/lib/logger.ts)
+**Файл:** [packages/core/src/lib/logger.ts](../../../packages/core/src/lib/logger.ts)
 
 ```ts
 export interface ScopedLogger {
@@ -96,7 +96,7 @@ export const logger = createLogger("root");
 
 ### 3. `lib/api-envelope.ts`
 
-**Файл:** `src/lib/api-envelope.ts` (новый), `src/routes/memory.ts`, потенциально `routes/chats.ts`, `routes/logs.ts`.
+**Файл:** `packages/core/packages/core/src/lib/api-envelope.ts` (новый), `packages/server/packages/server/packages/server/src/routes/memory.ts`, потенциально `routes/chats.ts`, `routes/logs.ts`.
 
 ```ts
 export interface PaginatedResponse<T> {
@@ -144,11 +144,11 @@ export async function paginate<T>(
 
 ## Файлы
 
-- `src/lib/errors.ts` (новый/расширить)
-- `src/lib/logger.ts` (расширить)
-- `src/lib/api-envelope.ts` (новый)
-- `src/app/bootstrap.ts` (central onError)
-- `src/routes/*.ts` — удалить локальные `.onError`, переключить на envelope.
+- `packages/core/packages/core/src/lib/errors.ts` (новый/расширить)
+- `packages/core/packages/core/src/lib/logger.ts` (расширить)
+- `packages/core/packages/core/src/lib/api-envelope.ts` (новый)
+- `packages/server/packages/server/packages/server/src/app/bootstrap.ts` (central onError)
+- `packages/server/src/routes/*.ts` — удалить локальные `.onError`, переключить на envelope.
 - Все файлы где сейчас `logger.info("stage", ...)` повторяется ≥3 раз → завести `const log = logger.child("stage")`.
 - Тесты выше.
 
@@ -163,6 +163,6 @@ export async function paginate<T>(
 
 - [ ] `bunx tsc --noEmit` = 0.
 - [ ] `bun test` зелёные.
-- [ ] Grep `\.onError\(` в `src/routes/` → 0 совпадений (всё через central).
+- [ ] Grep `\.onError\(` в `packages/server/src/routes/` → 0 совпадений (всё через central).
 - [ ] Grep `logger\.(info|warn|error|debug)\("[^"]+",\s*"` в файлах с ≥3 совпадениями → переведено на `log.<level>(...)`.
 - [ ] Memory admin endpoints возвращают `PaginatedResponse<T>`-совместимый объект — frontend не сломан.

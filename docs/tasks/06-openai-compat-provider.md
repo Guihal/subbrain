@@ -11,19 +11,19 @@ Source: RLM cycle 2026-04-25 (plan 2 iter ok, impl 5 iter ok, see ~/vault/RLM/Da
 ## Файлы
 
 Новые:
-- `src/providers/openai-compat.ts` (≤ 30 LOC)
-- `src/lib/model-map/openai-compat-overrides.ts` (≤ 60 LOC)
+- `packages/providers/src/openai-compat.ts` (≤ 30 LOC)
+- `packages/core/packages/core/src/lib/model-map/openai-compat-overrides.ts` (≤ 60 LOC)
 - `tests/providers/openai-compat.test.ts` (≤ 250 LOC)
 - `tests/lib/errors-redact.test.ts` (≤ 30 LOC)
 - `scripts/preflight-openai-compat.sh` (18 LOC, chmod +x)
 
 Модифицируемые:
-- `src/lib/errors.ts` — `redactSecrets()` + sanitize HttpError `.message` AND `.body`
-- `src/providers/nvidia.ts` — sanitize ProviderError `.message` AND `.body`
-- `src/lib/model-map.ts` — расширить `ProviderName`, allowlist `detectProvider`, re-export
-- `src/providers/index.ts` — ветка openai-compat в `createProviders()`
-- `src/lib/model-router/constants.ts` — `PROVIDER_RPM["openai-compat"] = 30`
-- `src/app/deps.ts` — `applyOpenAICompatOverrides()` ПЕРЕД `createProviders()`
+- `packages/core/packages/core/src/lib/errors.ts` — `redactSecrets()` + sanitize HttpError `.message` AND `.body`
+- `packages/providers/src/nvidia.ts` — sanitize ProviderError `.message` AND `.body`
+- `packages/core/packages/core/src/lib/model-map.ts` — расширить `ProviderName`, allowlist `detectProvider`, re-export
+- `packages/providers/packages/server/src/index.ts` — ветка openai-compat в `createProviders()`
+- `packages/providers/src/model-router/constants.ts` — `PROVIDER_RPM["openai-compat"] = 30`
+- `packages/server/packages/server/packages/server/src/app/deps.ts` — `applyOpenAICompatOverrides()` ПЕРЕД `createProviders()`
 - `docker-compose.yml` — сервис `cliproxy`
 - `.env.example` — секция `OPENAI_COMPAT_*`
 - `AGENTS.md` — секция "OpenAI-compat (optional)"
@@ -32,7 +32,7 @@ Source: RLM cycle 2026-04-25 (plan 2 iter ok, impl 5 iter ok, see ~/vault/RLM/Da
 
 ## Изменение (детально)
 
-### 1. `src/lib/errors.ts` — secret redaction
+### 1. `packages/core/packages/core/src/lib/errors.ts` — secret redaction
 
 ```ts
 const SECRET_PATTERNS: RegExp[] = [
@@ -66,7 +66,7 @@ export class HttpError extends Error {
 }
 ```
 
-### 2. `src/providers/nvidia.ts` — ProviderError sanitize
+### 2. `packages/providers/src/nvidia.ts` — ProviderError sanitize
 
 ```ts
 import { redactSecrets } from "../lib/errors";
@@ -83,7 +83,7 @@ export class ProviderError extends Error {
 }
 ```
 
-### 3. `src/lib/model-map.ts` — widening + allowlist + re-export
+### 3. `packages/core/packages/core/src/lib/model-map.ts` — widening + allowlist + re-export
 
 ```ts
 export type ProviderName =
@@ -107,7 +107,7 @@ export { applyOpenAICompatOverrides } from "./model-map/openai-compat-overrides"
 
 Note: `gpt-5-codex` Copilot model overlaps allowlist при ENABLED=true — acceptable, fallback на minimax спасает; documented в `docs/completed/03-model-router.md`.
 
-### 4. `src/lib/model-map/openai-compat-overrides.ts` — новый файл
+### 4. `packages/core/packages/core/src/lib/model-map/openai-compat-overrides.ts` — новый файл
 
 ```ts
 import { MODEL_MAP, type ModelRoute } from "../model-map";
@@ -146,7 +146,7 @@ export function applyOpenAICompatOverrides(
 }
 ```
 
-### 5. `src/providers/openai-compat.ts` — новый файл
+### 5. `packages/providers/src/openai-compat.ts` — новый файл
 
 ```ts
 import { NvidiaProvider } from "./nvidia";
@@ -158,7 +158,7 @@ export class OpenAICompatProvider extends NvidiaProvider {
 }
 ```
 
-### 6. `src/providers/index.ts` — добавить ветку openai-compat
+### 6. `packages/providers/packages/server/src/index.ts` — добавить ветку openai-compat
 
 ```ts
 // imports:
@@ -178,7 +178,7 @@ if (required.has("openai-compat")) {
 return { nvidia, openrouter, copilot, minimax, "openai-compat": openaiCompat };
 ```
 
-### 7. `src/lib/model-router/constants.ts` — добавить ключ
+### 7. `packages/providers/src/model-router/constants.ts` — добавить ключ
 
 ```ts
 export const PROVIDER_RPM: Record<ProviderName, number> = {
@@ -194,7 +194,7 @@ export const PROVIDER_RPM: Record<ProviderName, number> = {
 
 Без этого `bunx tsc --noEmit` падает (Record exhaustive).
 
-### 8. `src/app/deps.ts:200` — bootstrap pin
+### 8. `packages/server/packages/server/src/app/deps.ts:200` — bootstrap pin
 
 ```ts
 import { applyOpenAICompatOverrides } from "../lib/model-map";
@@ -299,7 +299,7 @@ See `docs/completed/03-model-router.md`.
 
 Top-level imports — только types и helpers (NO `OpenAICompatProvider` top-level — bun mock.module не rebind cached transitive imports). Provider загружается через `freshProvider()` dynamic import после `mockHttp()`.
 
-Mock signature: `(url, init?, opts?)` — signal читается из `opts.signal`, не `init.signal` (соответствует [src/providers/nvidia.ts:65](src/providers/nvidia.ts#L65)).
+Mock signature: `(url, init?, opts?)` — signal читается из `opts.signal`, не `init.signal` (соответствует [packages/providers/src/nvidia.ts:65](packages/providers/src/nvidia.ts#L65)).
 
 Кейсы:
 1. `chat: posts to configured base URL` — POST `/v1/chat/completions`.
@@ -357,21 +357,21 @@ bun test tests/providers/openai-compat.test.ts    # 12 кейсов pass
 bun test tests/lib/errors-redact.test.ts          # 2 кейса pass
 
 # File-cap проверка:
-wc -l src/providers/openai-compat.ts              # ≤ 30
-wc -l src/lib/model-map/openai-compat-overrides.ts # ≤ 60
+wc -l packages/providers/src/openai-compat.ts              # ≤ 30
+wc -l packages/core/src/lib/model-map/openai-compat-overrides.ts # ≤ 60
 wc -l tests/providers/openai-compat.test.ts       # ≤ 250
 
 # Grep-проверки:
-grep -q '"openai-compat":' src/lib/model-router/constants.ts
-grep -q 'OpenAICompatProvider' src/providers/index.ts
-grep -q 'applyOpenAICompatOverrides' src/app/deps.ts
+grep -q '"openai-compat":' packages/providers/src/model-router/constants.ts
+grep -q 'OpenAICompatProvider' packages/providers/packages/server/src/index.ts
+grep -q 'applyOpenAICompatOverrides' packages/server/packages/server/src/app/deps.ts
 grep -q 'OPENAI_COMPAT_ENABLED' .env.example
 grep -q 'cliproxy:' docker-compose.yml
-grep -q 'redactSecrets' src/lib/errors.ts
-grep -q 'redactSecrets' src/providers/nvidia.ts
+grep -q 'redactSecrets' packages/core/src/lib/errors.ts
+grep -q 'redactSecrets' packages/providers/src/nvidia.ts
 
 # Нет raw fetch в новом коде:
-grep -n 'fetch(' src/providers/openai-compat.ts || echo "no raw fetch — OK"
+grep -n 'fetch(' packages/providers/src/openai-compat.ts || echo "no raw fetch — OK"
 
 # Preflight script executable:
 test -x scripts/preflight-openai-compat.sh
@@ -405,7 +405,7 @@ bun -e 'import("./src/lib/model-map").then(m => { console.log(m.MODEL_MAP.teamle
 - Bun-only (`bun:test`, `Bun.file`).
 - Elysia + TypeBox для validations (не Zod).
 - Logger: `logger.info(stage, message, extra?)` — single-arg = bug.
-- Все outbound HTTP через `src/lib/http-client.ts` (NvidiaProvider уже complies).
+- Все outbound HTTP через `packages/core/packages/core/src/lib/http-client.ts` (NvidiaProvider уже complies).
 - Repository layer (PR 27) — раз SQL не трогаем, не релевантно.
 - См. полный subbrain-guardrails в `.claude/skills/subbrain-guardrails/SKILL.md`.
 

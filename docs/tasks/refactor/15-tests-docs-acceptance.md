@@ -46,7 +46,7 @@
 
 | Файл | Что обновить |
 |---|---|
-| [docs/completed/01-server-skeleton.md](../../completed/01-server-skeleton.md) | Структура `src/app/*` после PR 07 |
+| [docs/completed/01-server-skeleton.md](../../completed/01-server-skeleton.md) | Структура `packages/server/src/app/*` после PR 07 |
 | [docs/completed/06-agent-pipeline.md](../../completed/06-agent-pipeline.md) | Phases pre/main/post + post/{hippocampus,extractors,gate} после PR 09 |
 | [docs/completed/02-database-schema.md](../../completed/02-database-schema.md) | `db/tables/*` после PR 10 |
 | [docs/02-audit.md](../../02-audit.md) | По каждому закрытому пункту HIGH/MED — ✅ + ссылка на PR |
@@ -61,31 +61,31 @@
 # Repo map
 
 ## Server
-- src/index.ts             — entrypoint (~50 строк)
-- src/app/                 — bootstrap, schedulers, autonomous-run, shutdown
-- src/routes/              — Elysia routes (chat, memory, embeddings, logs, ...)
+- packages/server/packages/server/src/index.ts             — entrypoint (~50 строк)
+- packages/server/src/app/                 — bootstrap, schedulers, autonomous-run, shutdown
+- packages/server/src/routes/              — Elysia routes (chat, memory, embeddings, logs, ...)
 
 ## Pipelines
-- src/pipeline/agent-pipeline/  — pre/main/post phases + direct-mode
-- src/pipeline/agent-loop/      — autonomous loop, step, tool-dispatch, heartbeat
-- src/pipeline/night-cycle/     — daily memory consolidation
-- src/pipeline/arbitration-room.ts — multi-specialist debate
-- src/pipeline/context-compressor.ts — soft-limit collapse
+- packages/agent/packages/agent/src/pipeline/agent-pipeline/  — pre/main/post phases + direct-mode
+- packages/agent/packages/agent/src/pipeline/agent-loop/      — autonomous loop, step, tool-dispatch, heartbeat
+- packages/agent/packages/agent/src/pipeline/night-cycle/     — daily memory consolidation
+- packages/agent/packages/agent/src/pipeline/arbitration/index.ts — multi-specialist debate
+- packages/agent/packages/agent/packages/agent/src/pipeline/context-compressor.ts — soft-limit collapse
 
 ## Providers
-- src/providers/copilot.ts, nvidia.ts, openrouter.ts
-- src/providers/sse-parser.ts (shared SSE chunk parsing)
-- src/providers/types.ts
+- packages/providers/src/nvidia.ts, nvidia.ts, openrouter.ts
+- packages/providers/src/sse-parser.ts (shared SSE chunk parsing)
+- packages/providers/src/types.ts
 
 ## DB / Memory
-- src/db/index.ts (orchestrator), schema.ts, types.ts
-- src/db/tables/{memory,chats,logs,kv,users}.ts
-- src/rag/pipeline.ts (FTS + sqlite-vec + rerank)
+- packages/core/packages/core/src/db/index.ts (orchestrator), schema.ts, types.ts
+- packages/core/src/db/tables/{memory,chats,logs,kv,users}.ts
+- packages/agent/packages/agent/src/rag/pipeline/index.ts (FTS + sqlite-vec + rerank)
 
 ## MCP
-- src/mcp/registry/*.tools.ts (single source of truth)
-- src/mcp/tools/* (domain logic)
-- src/mcp/playwright-client.ts (direct chromium)
+- packages/agent/src/mcp/registry/*.tools.ts (single source of truth)
+- packages/agent/src/mcp/tools/* (domain logic)
+- packages/agent/packages/agent/src/mcp/playwright/index.ts (direct chromium)
 
 ## Lib
 - http-client, errors, logger, api-envelope, fts-utils, model-map, model-router, rate-limiter, sse, auth
@@ -113,7 +113,7 @@
 
 ### `request_id` middleware
 
-В `src/app/bootstrap.ts` — middleware:
+В `packages/server/packages/server/packages/server/src/app/bootstrap.ts` — middleware:
 ```ts
 .derive(() => ({ requestId: crypto.randomUUID() }))
 .onBeforeHandle(({ requestId, request }) => {
@@ -127,8 +127,8 @@
 
 - Все тесты выше.
 - Все доки выше.
-- `src/lib/metrics.ts` — добавить недостающие call-points.
-- `src/app/bootstrap.ts` — request_id middleware.
+- `packages/core/packages/core/src/lib/metrics.ts` — добавить недостающие call-points.
+- `packages/server/packages/server/packages/server/src/app/bootstrap.ts` — request_id middleware.
 
 ## Порядок исполнения
 

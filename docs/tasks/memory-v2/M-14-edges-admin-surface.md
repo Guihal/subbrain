@@ -6,7 +6,7 @@
 ## Цель
 
 После M-05/M-05.1/M-05.2 + M-13 в DB живут `memory_edges` с kind ∈ {relates, derives, supersedes, contradicts} (+ weight). Но:
-- `src/routes/memory.ts` — 0 endpoints для edges.
+- `packages/server/packages/server/packages/server/src/routes/memory.ts` — 0 endpoints для edges.
 - `web/app/` — 0 references на `memory_edges`.
 
 Значит куратор / админ через UI не видит ни relates-граф, ни contradicts-конфликты — вся M-05.* работа невидима. M-14 закрывает: read-only REST endpoints + минимальная UI sidebar в `MemoryRow.vue` показывает related rows + contradicts (если есть).
@@ -20,8 +20,8 @@ NO мутации (delete/update edge) в M-14 — только read. Curation t
 
 ## Файлы (scope-lock)
 
-- `src/routes/memory.ts` — добавить 2 endpoint'а (≤30 LOC). Use existing `paginate()` envelope helper. Под `authMiddleware`.
-- `src/repositories/edges.repo.ts` — если `getRelated` не подходит (returns `{id,layer}[]` без kind/weight), добавить `getRelatedDetailed(id, layer, kinds?)` returning `EdgeRow[]`. ≤20 LOC delta. **Если уже подходит** — skip (use existing).
+- `packages/server/packages/server/packages/server/src/routes/memory.ts` — добавить 2 endpoint'а (≤30 LOC). Use existing `paginate()` envelope helper. Под `authMiddleware`.
+- `packages/core/packages/core/packages/core/src/repositories/edges.repo.ts` — если `getRelated` не подходит (returns `{id,layer}[]` без kind/weight), добавить `getRelatedDetailed(id, layer, kinds?)` returning `EdgeRow[]`. ≤20 LOC delta. **Если уже подходит** — skip (use existing).
 - `web/app/composables/useMemory.ts` — добавить `fetchEdges(id, layer)` API call. ≤15 LOC.
 - `web/app/components/MemoryRow.vue` — collapsible "🔗 Edges" section. Lazy-load on expand. ≤40 LOC delta.
 - `tests/routes-memory-edges.test.ts` — **NEW** файл (≤150 LOC). ≥4 cases (auth, list-from, list-related, kind filter).
@@ -29,8 +29,8 @@ NO мутации (delete/update edge) в M-14 — только read. Curation t
 - `docs/tasks/memory-v2/M-14-edges-admin-surface.md` (этот) — Status DONE.
 
 **НЕ трогать:**
-- `src/db/tables/edges.ts` — schema layer, M-05 territory.
-- `src/mcp/tools/memory-curation-tools.ts` (write surface через MCP — already exists).
+- `packages/core/packages/core/packages/core/src/db/tables/edges.ts` — schema layer, M-05 territory.
+- `packages/agent/packages/agent/packages/agent/src/mcp/tools/memory-curation-tools.ts` (write surface через MCP — already exists).
 - M-05/M-05.1/M-05.2/M-13 plan files / extractors / link-related.ts.
 - Migrations / schema / triggers.
 - Edge weight semantics (relates=1.0, contradicts=LLM-conf).
@@ -39,7 +39,7 @@ NO мутации (delete/update edge) в M-14 — только read. Curation t
 
 ### REST endpoints
 
-`src/routes/memory.ts` — два GET:
+`packages/server/packages/server/packages/server/src/routes/memory.ts` — два GET:
 
 ```ts
 .get(
@@ -158,7 +158,7 @@ Test DB `data/test-mem14-edges.db`. App boot via existing test helper.
 1. `bunx tsc --noEmit` → exit 0.
 2. `bun test tests/routes-memory-edges.test.ts` → all green.
 3. `bun test` → ≥800 pass, 0 fail (depends on M-13 baseline; if M-13 lands first → 800+; standalone → 795+4=799).
-4. `grep -n "/edges" src/routes/memory.ts` → ≥2 hits (2 routes).
+4. `grep -n "/edges" packages/server/packages/server/src/routes/memory.ts` → ≥2 hits (2 routes).
 5. `grep -n "fetchEdges\|edges" web/app/components/MemoryRow.vue` → ≥1 hit.
 6. M-14 plan file Status: DONE.
 7. MEM-23 entry в `docs/02-audit.md`.
@@ -190,5 +190,5 @@ Test DB `data/test-mem14-edges.db`. App boot via existing test helper.
 - `bunx tsc --noEmit` → exit 0
 - `bun test tests/routes-memory-edges.test.ts` → 10 pass / 0 fail
 - `bun test` → **810 pass / 0 fail** (800 baseline + 10 new)
-- `grep -n "/edges" src/routes/memory.ts` → 2 hits ✅
+- `grep -n "/edges" packages/server/packages/server/src/routes/memory.ts` → 2 hits ✅
 - `grep -n "fetchEdges\|edges" web/app/components/MemoryRow.vue` → 21 hits ✅

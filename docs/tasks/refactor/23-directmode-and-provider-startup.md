@@ -10,23 +10,23 @@
 
 ### 23a — directMode триггерится не тем провайдером
 
-[src/routes/chat.ts:31-33](../../../src/routes/chat.ts#L31-L33) — `directMode = headers["x-direct-mode"] === "true" || router.isOverloaded`.
+[packages/server/packages/server/src/routes/chat.ts:31-33](../../../packages/server/packages/server/src/routes/chat.ts#L31-L33) — `directMode = headers["x-direct-mode"] === "true" || router.isOverloaded`.
 
-[src/lib/model-router.ts:61-63](../../../src/lib/model-router.ts#L61-L63) — `get isOverloaded` смотрит **только на NVIDIA** limiter (`availableSlots < 8`).
+[packages/core/src/lib/model-router.ts:61-63](../../../packages/core/src/lib/model-router.ts#L61-L63) — `get isOverloaded` смотрит **только на NVIDIA** limiter (`availableSlots < 8`).
 
-Но все virtual roles сейчас primary=MiniMax ([src/lib/model-map.ts:21-52](../../../src/lib/model-map.ts#L21-L52)). Когда NVIDIA перегружена (RAG/embed/rerank занял слоты), чат идёт через MiniMax, но **внезапно переключается в direct mode** — обходит agent-pipeline, память, executive summary. Пользователь получает сырой ответ от MiniMax без исполнительного контекста.
+Но все virtual roles сейчас primary=MiniMax ([packages/core/src/lib/model-map.ts:21-52](../../../packages/core/src/lib/model-map.ts#L21-L52)). Когда NVIDIA перегружена (RAG/embed/rerank занял слоты), чат идёт через MiniMax, но **внезапно переключается в direct mode** — обходит agent-pipeline, память, executive summary. Пользователь получает сырой ответ от MiniMax без исполнительного контекста.
 
 ### 23b — startup требует недоступные провайдеры
 
-[src/providers/index.ts:23+](../../../src/providers/index.ts#L23) — создаёт `nvidia`, `openrouter`, `copilot` вне зависимости от того, используются ли они. Если в окружении нет `COPILOT_TOKEN` / `OPENROUTER_API_KEY` — сервер падает на старте.
+[packages/providers/packages/server/src/index.ts:23+](../../../packages/providers/packages/server/src/index.ts#L23) — создаёт `nvidia`, `openrouter`, `copilot` вне зависимости от того, используются ли они. Если в окружении нет `COPILOT_TOKEN` / `OPENROUTER_API_KEY` — сервер падает на старте.
 
 В текущей model-map-раскладке Copilot и OpenRouter нигде не primary, только как fallback → их фактически не вызывают, но ключи всё равно обязательны.
 
 ## Файлы
 
-- [src/lib/model-router.ts](../../../src/lib/model-router.ts) — `isOverloadedFor(provider)` + deprecation `isOverloaded`.
-- [src/routes/chat.ts](../../../src/routes/chat.ts) — `resolveModel(...).provider` и `isOverloadedFor(...)`.
-- [src/providers/index.ts](../../../src/providers/index.ts) — optional loading.
+- [packages/core/src/lib/model-router.ts](../../../packages/core/src/lib/model-router.ts) — `isOverloadedFor(provider)` + deprecation `isOverloaded`.
+- [packages/server/packages/server/src/routes/chat.ts](../../../packages/server/packages/server/src/routes/chat.ts) — `resolveModel(...).provider` и `isOverloadedFor(...)`.
+- [packages/providers/packages/server/src/index.ts](../../../packages/providers/packages/server/src/index.ts) — optional loading.
 
 ## Изменение
 

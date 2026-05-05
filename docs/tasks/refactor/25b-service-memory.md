@@ -12,13 +12,13 @@
 
 ## Файлы
 
-- [src/services/memory.service.ts](../../../src/services/memory.service.ts) — новый.
-- [src/routes/memory.ts](../../../src/routes/memory.ts) — становится thin: TypeBox + delegation + paginate.
-- [src/app/deps.ts](../../../src/app/deps.ts) — инстанцирует `MemoryService`.
+- [packages/agent/src/services/memory.service.ts](../../../packages/agent/src/services/memory.service.ts) — новый.
+- [packages/server/packages/server/src/routes/memory.ts](../../../packages/server/packages/server/src/routes/memory.ts) — становится thin: TypeBox + delegation + paginate.
+- [packages/server/packages/server/src/app/deps.ts](../../../packages/server/packages/server/src/app/deps.ts) — инстанцирует `MemoryService`.
 
 ## Изменение
 
-### 1. `src/services/memory.service.ts`
+### 1. `packages/agent/src/services/memory.service.ts`
 
 Методы (строго по тому, что routes/memory.ts сегодня делает):
 
@@ -56,7 +56,7 @@ class MemoryService {
 
 Методы с мутацией — через `updateRow(table, ALLOW, id, patch)` (guardrail §4). FTS-запросы — через существующие `MemoryDB.search*`, которые внутри `sanitizeFtsQuery`.
 
-### 2. `src/routes/memory.ts`
+### 2. `packages/server/packages/server/packages/server/src/routes/memory.ts`
 
 Было ~300 LoC с inline-логикой. Становится ~100 LoC:
 
@@ -102,8 +102,8 @@ return { ..., memoryService };
 
 - [ ] `bunx tsc --noEmit` = 0.
 - [ ] `bun test tests/memory-service.test.ts tests/memory-routes-contract.test.ts` зелёные.
-- [ ] `wc -l src/routes/memory.ts` <= 120 (было ~300).
-- [ ] `grep -n 'memory.insert\|memory.db' src/routes/memory.ts` = 0.
+- [ ] `wc -l packages/server/packages/server/src/routes/memory.ts` <= 120 (было ~300).
+- [ ] `grep -n 'memory.insert\|memory.db' packages/server/packages/server/src/routes/memory.ts` = 0.
 - [ ] LAYER-2 вычеркнут в [docs/02-audit.md](../../02-audit.md).
 
 ## Deploy note

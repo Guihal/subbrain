@@ -12,14 +12,14 @@
 
 ## Файлы
 
-- [src/services/auth.service.ts](../../../src/services/auth.service.ts) — новый файл.
-- [src/lib/auth.ts](../../../src/lib/auth.ts) — становится тонкий: middleware делегирует.
-- [src/app/deps.ts](../../../src/app/deps.ts) — инстанцирует `AuthService` и пробрасывает в middleware + decoration.
-- [src/app/bootstrap.ts](../../../src/app/bootstrap.ts) — middleware получает `authService` вместо raw `token`.
+- [packages/core/packages/agent/src/services/auth.service.ts](../../../packages/core/packages/agent/src/services/auth.service.ts) — новый файл.
+- [packages/core/src/lib/auth.ts](../../../packages/core/src/lib/auth.ts) — становится тонкий: middleware делегирует.
+- [packages/server/packages/server/src/app/deps.ts](../../../packages/server/packages/server/src/app/deps.ts) — инстанцирует `AuthService` и пробрасывает в middleware + decoration.
+- [packages/server/packages/server/src/app/bootstrap.ts](../../../packages/server/packages/server/src/app/bootstrap.ts) — middleware получает `authService` вместо raw `token`.
 
 ## Изменение
 
-### 1. `src/services/auth.service.ts`
+### 1. `packages/core/packages/core/packages/agent/src/services/auth.service.ts`
 
 ```
 export class AuthService {
@@ -93,7 +93,7 @@ return { ..., authService };
 
 - [ ] `bunx tsc --noEmit` = 0.
 - [ ] Тесты зелёные.
-- [ ] `grep -n 'createHash\|timingSafeEqual' src/lib/auth.ts src/app/bootstrap.ts src/routes/*.ts` — 0 совпадений (только в `services/auth.service.ts`).
+- [ ] `grep -n 'createHash\|timingSafeEqual' packages/core/src/lib/auth.ts packages/server/packages/server/src/app/bootstrap.ts packages/server/src/routes/*.ts` — 0 совпадений (только в `services/auth.service.ts`).
 - [ ] Все тесты `auth-coverage.test.ts` (из PR 17) остаются зелёными.
 - [ ] LAYER-1 вычеркнут в [docs/02-audit.md](../../02-audit.md).
 
@@ -108,4 +108,4 @@ docker compose build && docker compose up -d
 
 ## Паттерн для последующих сервисов
 
-Все service-файлы в `src/services/*.service.ts`. Зависимости получают в ctor. Не знают про Elysia/HTTP. Routes делают только TypeBox + shape + delegation. `deps.ts` — место где сервисы собираются.
+Все service-файлы в `packages/agent/src/services/*.service.ts`. Зависимости получают в ctor. Не знают про Elysia/HTTP. Routes делают только TypeBox + shape + delegation. `deps.ts` — место где сервисы собираются.

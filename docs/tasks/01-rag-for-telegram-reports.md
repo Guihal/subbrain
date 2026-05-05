@@ -16,7 +16,7 @@ Status: DONE
 
 ### 1. Новый MCP-тул `report_context`
 
-Файл: `src/mcp/registry/report.tools.ts` (новый), регистрация в `src/mcp/registry/index.ts`.
+Файл: `packages/agent/packages/agent/packages/agent/src/mcp/registry/report.tools.ts` (новый), регистрация в `packages/agent/packages/agent/packages/agent/src/mcp/registry/index.ts`.
 
 - `scope: "agent-only"` — не отдаём по REST.
 - Вход: `{ topic?: string, since_hours?: number }`. `topic` — тема отчёта (если нет — берём последние сообщения сессии как query). `since_hours` default 24.
@@ -35,7 +35,7 @@ Status: DONE
   - <context/archive hit 2>
   ```
 
-### 2. Сборщик `src/rag/report-context.ts` (новый)
+### 2. Сборщик `packages/agent/packages/agent/packages/agent/src/rag/report-context.ts` (новый)
 
 - `MemoryDB.searchShared(topic)` через FTS — топ N фактов (N=10 default).
 - `rag.hybridSearch(topic)` — гибридный поиск по `context`+`archive` с rerank, топ K (K=5 default).
@@ -44,7 +44,7 @@ Status: DONE
 
 ### 3. Обёртка отправки
 
-В `src/mcp/tools/telegram-tools.ts` — новая функция `sendReport(ctx, text, opts?)`. Алгоритм:
+В `packages/agent/src/mcp/tools/telegram-tools.ts` — новая функция `sendReport(ctx, text, opts?)`. Алгоритм:
 
 1. Если `REPORT_RAG=true` (default) — вызвать `report_context` через `ctx.executor` с `topic=opts.topic ?? extractTopic(text)`.
 2. Склеить: `context + "\n\n---\n\n" + text`.
@@ -61,7 +61,7 @@ Status: DONE
 
 (из [05 секция C2/C3](05-post-refactor-feedback.md)) Каждый дайджест (TG-отчёт, freelance-отчёт, ночной цикл) должен перед генерацией текста запустить **общий сбор RLM** — не просто `report_context`, а полноценную многоступенчатую сборку через `/task` или эквивалент.
 
-- Новый helper: `src/pipeline/digest-prepare.ts` — вызывает `/task`-подобный цикл (агент + критик) с задачей «собери факты для дайджеста на тему X за период Y». Возвращает структурированный markdown.
+- Новый helper: `packages/agent/src/pipeline/digest-prepare.ts` — вызывает `/task`-подобный цикл (агент + критик) с задачей «собери факты для дайджеста на тему X за период Y». Возвращает структурированный markdown.
 - Интеграция: `sendReport` сначала пробует `digestPrepare()`, если `DIGEST_RLM=true` (default). При ошибке/таймауте — fallback на `report_context`.
 - В system prompt моделей-сборщиков дайджестов — жёсткое правило: «**перед текстом дайджеста обязательно вызови `memory_search` + `telegram_search` + `rlm_collect`**». Без подтверждения использования — модель не отдаёт финальный ответ.
 - Env `DIGEST_RLM=true|false` (default `true`), `DIGEST_RLM_TIMEOUT_MS=300000`.
@@ -76,16 +76,16 @@ Status: DONE
 
 ## Файлы
 
-- `src/mcp/registry/report.tools.ts` (новый)
-- `src/mcp/registry/index.ts` (регистрация)
-- `src/rag/report-context.ts` (новый)
-- `src/mcp/tools/telegram-tools.ts` (обёртка `sendReport`)
+- `packages/agent/packages/agent/packages/agent/src/mcp/registry/report.tools.ts` (новый)
+- `packages/agent/packages/agent/packages/agent/src/mcp/registry/index.ts` (регистрация)
+- `packages/agent/packages/agent/packages/agent/src/rag/report-context.ts` (новый)
+- `packages/agent/src/mcp/tools/telegram-tools.ts` (обёртка `sendReport`)
 - вызовы `telegram_send` для отчётов — заменить на `sendReport` (грепнуть по коду, чтобы не пропустить)
 - `tests/report-context.test.ts` (новый)
 
 ## Порядок исполнения
 
-1. `src/rag/report-context.ts` + unit-test.
+1. `packages/agent/packages/agent/packages/agent/src/rag/report-context.ts` + unit-test.
 2. MCP-тул `report_context` + регистрация.
 3. Обёртка `sendReport` + перевод всех call-sites.
 4. Env `REPORT_RAG` + kill-switch проверка.

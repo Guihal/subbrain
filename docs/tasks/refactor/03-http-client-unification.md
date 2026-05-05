@@ -11,12 +11,12 @@
 ## Текущее состояние
 
 Места с повторным `fetch`:
-- [src/providers/copilot.ts](../../../src/providers/copilot.ts) — 2 места (JSON + stream).
-- [src/providers/nvidia.ts](../../../src/providers/nvidia.ts).
-- [src/rag/pipeline.ts](../../../src/rag/pipeline.ts) — NVIDIA rerank.
-- [src/telegram/bot.ts](../../../src/telegram/bot.ts) — Bot API.
-- [src/telegram/userbot.ts](../../../src/telegram/userbot.ts) — MTProto-specific, если там есть чистый `fetch` — тоже.
-- Возможно [src/providers/openrouter.ts](../../../src/providers/openrouter.ts).
+- [packages/providers/src/nvidia.ts](../../../packages/providers/src/nvidia.ts) — 2 места (JSON + stream).
+- [packages/providers/src/nvidia.ts](../../../packages/providers/src/nvidia.ts).
+- [packages/agent/packages/agent/src/rag/pipeline/index.ts](../../../packages/agent/packages/agent/src/rag/pipeline/index.ts) — NVIDIA rerank.
+- [packages/agent/packages/agent/src/telegram/bot/index.ts](../../../packages/agent/packages/agent/src/telegram/bot/index.ts) — Bot API.
+- [packages/agent/packages/agent/src/telegram/userbot/index.ts](../../../packages/agent/packages/agent/src/telegram/userbot/index.ts) — MTProto-specific, если там есть чистый `fetch` — тоже.
+- Возможно [packages/providers/src/bifrost.ts](../../../packages/providers/src/bifrost.ts).
 
 У каждого — свой timeout, свой способ разобрать ошибку, своя обработка 4xx vs 5xx.
 
@@ -25,7 +25,7 @@
 ### API
 
 ```ts
-// src/lib/http-client.ts
+// packages/core/src/lib/http-client.ts
 export interface FetchJsonOpts {
   timeoutMs?: number;       // default 60_000; Copilot stream: 180_000
   signal?: AbortSignal;     // внешний signal (composed with timeout)
@@ -86,8 +86,8 @@ export async function fetchStream(
 
 ## Файлы
 
-- [src/lib/http-client.ts](../../../src/lib/http-client.ts) (новый)
-- [src/lib/errors.ts](../../../src/lib/errors.ts) — `HttpError`, `AbortError`
+- [packages/core/src/lib/http-client.ts](../../../packages/core/src/lib/http-client.ts) (новый)
+- [packages/core/src/lib/errors.ts](../../../packages/core/src/lib/errors.ts) — `HttpError`, `AbortError`
 - `tests/http-client.test.ts` (новый)
 - Все 7 call-sites.
 
@@ -95,6 +95,6 @@ export async function fetchStream(
 
 - [ ] `bunx tsc --noEmit` = 0.
 - [ ] `bun test tests/http-client.test.ts` — все кейсы (включая compose) зелёные.
-- [ ] Grep по `fetch(` в `src/providers/`, `src/rag/`, `src/telegram/` → нет прямых вызовов, только через `fetchJson`/`fetchStream`.
+- [ ] Grep по `fetch(` в `packages/providers/src/`, `packages/agent/src/rag/`, `packages/agent/src/telegram/` → нет прямых вызовов, только через `fetchJson`/`fetchStream`.
 - [ ] Ручной smoke: оборвать сеть во время Copilot-запроса → получаем `AbortError` с timeout, не повисает.
 - [ ] HIGH-8 вычеркнут в [docs/02-audit.md](../../02-audit.md).

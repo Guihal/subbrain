@@ -14,11 +14,11 @@ Pool на полной мощности — `maxConcurrent=3` параллель
 Эта задача — **concurrency primitives + parallel tick + type-quota enforcement + claim-by-id race-safety**. НЕ создавать новые runner типы. НЕ менять system-prompt'ы runner'ов. НЕ trogать hippocampus / teamlead (PR-D/E).
 
 **Allowed actions:**
-- Создать `src/scheduler/agent-pool/pool/concurrency.ts` (≤100), `src/scheduler/agent-pool/pool/rate-limits.ts` (≤80).
-- Edit `src/scheduler/agent-pool/index.ts` — расширить tick на parallel dispatch + Promise.allSettled.
-- Edit `src/scheduler/agent-pool/pool/find-new.ts` — расширить distribution-skew enforcement (был информационный, стал блокирующий: `enqueueForcedNonResearch`).
-- Edit `src/db/tables/agent-tasks.ts` — добавить `peekNextPending()` + изменить `claim` на `claim(id)`. **Если** существующий `claimNext()` API нужен другим callers — **сохранить** его (deprecation) и добавить `claim(id)` рядом.
-- Edit `src/repositories/agent-tasks.repo.ts` — expose `peekNextPending()` + `claim(id)`.
+- Создать `packages/agent/src/scheduler/agent-pool/pool/concurrency.ts` (≤100), `packages/agent/src/scheduler/agent-pool/pool/rate-limits.ts` (≤80).
+- Edit `packages/agent/src/scheduler/agent-pool/index.ts` — расширить tick на parallel dispatch + Promise.allSettled.
+- Edit `packages/agent/src/scheduler/agent-pool/pool/find-new.ts` — расширить distribution-skew enforcement (был информационный, стал блокирующий: `enqueueForcedNonResearch`).
+- Edit `packages/core/src/db/tables/agent-tasks.ts` — добавить `peekNextPending()` + изменить `claim` на `claim(id)`. **Если** существующий `claimNext()` API нужен другим callers — **сохранить** его (deprecation) и добавить `claim(id)` рядом.
+- Edit `packages/core/src/repositories/agent-tasks.repo.ts` — expose `peekNextPending()` + `claim(id)`.
 - Edit `.env.example` — поднять `AGENT_POOL_MAX_CONCURRENT` дефолт до 3.
 - `bunx tsc --noEmit`, `bun test`, `bun run scripts/check-file-size.ts`.
 - `git commit -m "feat(pool): parallel concurrency + per-type rate limits + type-quota (PR-C4)"`.
@@ -32,19 +32,19 @@ Pool на полной мощности — `maxConcurrent=3` параллель
 - НЕ заменять `Promise.allSettled` на `Promise.all` (guardrail §2).
 - НЕ использовать raw `Mutex` impl — должен быть существующий `lib/mutex` (если нет — STOP, отдельный pre-req).
 - НЕ менять `agentMode: "scheduled"` semantics.
-- НЕ trogать `src/pipeline/`, `src/services/`, `src/routes/` — strict scope.
+- НЕ trogать `packages/agent/src/pipeline/`, `packages/agent/src/services/`, `packages/server/src/routes/` — strict scope.
 - НЕ `git push`, НЕ `gh`, НЕ `--no-verify`.
 - НЕ запускать prod / docker / ssh — deploy не часть задачи.
 
 **Diff boundary:** ровно эти файлы:
 ```
 .env.example
-src/db/tables/agent-tasks.ts
-src/repositories/agent-tasks.repo.ts
-src/scheduler/agent-pool/index.ts
-src/scheduler/agent-pool/pool/concurrency.ts
-src/scheduler/agent-pool/pool/find-new.ts
-src/scheduler/agent-pool/pool/rate-limits.ts
+packages/core/src/db/tables/agent-tasks.ts
+packages/core/src/repositories/agent-tasks.repo.ts
+packages/agent/src/scheduler/agent-pool/index.ts
+packages/agent/src/scheduler/agent-pool/pool/concurrency.ts
+packages/agent/src/scheduler/agent-pool/pool/find-new.ts
+packages/agent/src/scheduler/agent-pool/pool/rate-limits.ts
 tests/agent-pool-concurrency.test.ts
 tests/agent-pool-rate-limits.test.ts
 tests/find-new-type-quota.test.ts
@@ -56,10 +56,10 @@ tests/agent-pool-claim-race.test.ts
 
 ## Файлы
 
-- [src/scheduler/agent-pool/index.ts](../../../src/scheduler/agent-pool/index.ts) — расширить tick: parallel dispatch до `AGENT_POOL_MAX_CONCURRENT`. `Promise.allSettled` для fan-out (НЕ `Promise.all` — guardrail §2).
-- [src/scheduler/agent-pool/pool/concurrency.ts](../../../src/scheduler/agent-pool/pool/concurrency.ts) (≤100 lines) — новый: `RunnerSlots` — Mutex-guarded counter активных runner'ов per-type. `tryAcquire(type): boolean`, `release(type)`.
-- [src/scheduler/agent-pool/pool/rate-limits.ts](../../../src/scheduler/agent-pool/pool/rate-limits.ts) (≤80 lines) — новый: per-type cooldowns (`check-tg`=5min, `clear`=max-1-parallel, `free`/`research`=без сверх-лимитов).
-- [src/scheduler/agent-pool/pool/find-new.ts](../../../src/scheduler/agent-pool/pool/find-new.ts) — расширить distribution-skew enforcement (был информационный в C3, стал блокирующий: type-quota REJECT enqueue вместо `find-new-task` если skew нарушен).
+- [packages/agent/src/scheduler/agent-pool/index.ts](../../../packages/agent/src/scheduler/agent-pool/index.ts) — расширить tick: parallel dispatch до `AGENT_POOL_MAX_CONCURRENT`. `Promise.allSettled` для fan-out (НЕ `Promise.all` — guardrail §2).
+- [packages/agent/src/scheduler/agent-pool/pool/concurrency.ts](../../../packages/agent/src/scheduler/agent-pool/pool/concurrency.ts) (≤100 lines) — новый: `RunnerSlots` — Mutex-guarded counter активных runner'ов per-type. `tryAcquire(type): boolean`, `release(type)`.
+- [packages/agent/src/scheduler/agent-pool/pool/rate-limits.ts](../../../packages/agent/src/scheduler/agent-pool/pool/rate-limits.ts) (≤80 lines) — новый: per-type cooldowns (`check-tg`=5min, `clear`=max-1-parallel, `free`/`research`=без сверх-лимитов).
+- [packages/agent/src/scheduler/agent-pool/pool/find-new.ts](../../../packages/agent/src/scheduler/agent-pool/pool/find-new.ts) — расширить distribution-skew enforcement (был информационный в C3, стал блокирующий: type-quota REJECT enqueue вместо `find-new-task` если skew нарушен).
 - [.env.example](../../../.env.example) — `AGENT_POOL_MAX_CONCURRENT=3` (default — было 1 в C2).
 
 ## Изменение
@@ -191,7 +191,7 @@ export class RateLimits {
 
 ### 4. Type-quota enforcement (find-new-task)
 
-В [pool/find-new.ts](../../../src/scheduler/agent-pool/pool/find-new.ts) расширить логику:
+В [pool/find-new.ts](../../../packages/agent/src/scheduler/agent-pool/pool/find-new.ts) расширить логику:
 
 ```ts
 const dist = repo.getDistributionSince(now - 86400);
@@ -277,32 +277,32 @@ bun test tests/agent-pool-claim-race.test.ts 2>&1 | tail -3                     
 bun test 2>&1 | tail -3                                                              # expect: regression ≤ baseline+0
 
 # File caps
-wc -l src/scheduler/agent-pool/pool/concurrency.ts                                   # expect: ≤100
-wc -l src/scheduler/agent-pool/pool/rate-limits.ts                                   # expect: ≤80
-wc -l src/scheduler/agent-pool/index.ts                                              # expect: ≤100
+wc -l packages/agent/src/scheduler/agent-pool/pool/concurrency.ts                                   # expect: ≤100
+wc -l packages/agent/src/scheduler/agent-pool/pool/rate-limits.ts                                   # expect: ≤80
+wc -l packages/agent/src/scheduler/agent-pool/index.ts                                              # expect: ≤100
 
 # Promise.allSettled, не all
-grep -cE 'Promise\.all\b' src/scheduler/agent-pool/index.ts                          # expect: 0
-grep -cE 'Promise\.allSettled' src/scheduler/agent-pool/index.ts                     # expect: ≥1
+grep -cE 'Promise\.all\b' packages/agent/src/scheduler/agent-pool/index.ts                          # expect: 0
+grep -cE 'Promise\.allSettled' packages/agent/src/scheduler/agent-pool/index.ts                     # expect: ≥1
 
 # RunnerSlots cap config
-grep -nE 'clear:\s*1' src/scheduler/agent-pool/index.ts                              # expect: ≥1 (RunnerSlots config wire-up)
+grep -nE 'clear:\s*1' packages/agent/src/scheduler/agent-pool/index.ts                              # expect: ≥1 (RunnerSlots config wire-up)
 
 # Type-quota logic correct
-grep -nE "type !== 'find-new-task'" src/scheduler/agent-pool/pool/find-new.ts        # expect: ≥1 (denominator filter)
-grep -nE 'enqueueForcedNonResearch' src/scheduler/agent-pool/pool/find-new.ts        # expect: ≥1
+grep -nE "type !== 'find-new-task'" packages/agent/src/scheduler/agent-pool/pool/find-new.ts        # expect: ≥1 (denominator filter)
+grep -nE 'enqueueForcedNonResearch' packages/agent/src/scheduler/agent-pool/pool/find-new.ts        # expect: ≥1
 
 # claim-by-id atomic
-grep -nE "WHERE id=\?\s+AND\s+status='pending'" src/db/tables/agent-tasks.ts         # expect: ≥1
-grep -nE 'RETURNING \*' src/db/tables/agent-tasks.ts                                 # expect: ≥1
+grep -nE "WHERE id=\?\s+AND\s+status='pending'" packages/core/src/db/tables/agent-tasks.ts         # expect: ≥1
+grep -nE 'RETURNING \*' packages/core/src/db/tables/agent-tasks.ts                                 # expect: ≥1
 
 # .env default updated
 grep -nE 'AGENT_POOL_MAX_CONCURRENT=3' .env.example                                  # expect: ≥1 match
 
 # Subbrain guardrails
-grep -rnE 'as any' src/scheduler/agent-pool/pool/                                    # expect: 0
-grep -rnE '\bfetch\(' src/scheduler/agent-pool/pool/                                 # expect: 0
-grep -rnE 'logger\.(info|warn|error|debug)\([^,)]+\)' src/scheduler/agent-pool/pool/ # expect: 0 (single-arg = bug)
+grep -rnE 'as any' packages/agent/src/scheduler/agent-pool/pool/                                    # expect: 0
+grep -rnE '\bfetch\(' packages/agent/src/scheduler/agent-pool/pool/                                 # expect: 0
+grep -rnE 'logger\.(info|warn|error|debug)\([^,)]+\)' packages/agent/src/scheduler/agent-pool/pool/ # expect: 0 (single-arg = bug)
 
 # Concurrency stress test (50 race iterations)
 bun test tests/agent-pool-claim-race.test.ts --test-name-pattern "50 parallel"       # expect: pass

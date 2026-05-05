@@ -12,7 +12,7 @@ Phase 5 adds OpenTelemetry instrumentation across the request →
 pre → main → tools → post → writes pipeline, exports traces to a single chosen
 backend (Langfuse OR Laminar), and exposes a cost/latency summary endpoint.
 
-The existing `metrics_log` table and `src/lib/metrics.ts` aggregator are NOT
+The existing `metrics_log` table and `packages/core/packages/core/src/lib/metrics.ts` aggregator are NOT
 replaced — OTel runs alongside them. The summary endpoint reads `metrics_log`.
 
 ## Non-goals (apply to every packet below)
@@ -41,16 +41,16 @@ P5-2..P5-5 may run in parallel after P5-2 lands. P5-6 waits on P5-1 + P5-2.
 
 ## Glossary (shared)
 
-- **request_id** — id stamped on every request in `src/routes/chat.ts`; reused
+- **request_id** — id stamped on every request in `packages/server/packages/server/packages/server/src/routes/chat.ts`; reused
   across pipeline phases for Layer 4 partitioning.
-- **virtual role** — value from `src/lib/model-map.ts` (`teamlead`, `coder`,
+- **virtual role** — value from `packages/core/packages/core/src/lib/model-map.ts` (`teamlead`, `coder`,
   `critic`, `generalist`, `flash`, `chaos`, `memory`).
 - **phase** — one of `pre | main | post | room | stream | direct`
-  (files in `src/pipeline/agent-pipeline/phases/*.ts`).
-- **step** — one iteration of the agent loop (`src/pipeline/agent-loop/step.ts`).
-- **tool call** — dispatch in `src/pipeline/agent-loop/tool-dispatch.ts`.
-- **metrics_log** — existing SQLite table (`src/db/schema.ts:218`) holding
-  JSON snapshots written by `src/lib/metrics.ts:93`.
+  (files in `packages/agent/packages/agent/src/pipeline/agent-pipeline/phases/*.ts`).
+- **step** — one iteration of the agent loop (`packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/step.ts`).
+- **tool call** — dispatch in `packages/agent/packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/tool-dispatch.ts`.
+- **metrics_log** — existing SQLite table (`packages/core/packages/core/src/db/schema.ts:218`) holding
+  JSON snapshots written by `packages/core/src/lib/metrics.ts:93`.
 
 ---
 
@@ -76,8 +76,8 @@ P5-2..P5-5 may run in parallel after P5-2 lands. P5-6 waits on P5-1 + P5-2.
     "docs/specs/subbrain-main.md:490-504",
     "docs/tasks/agent-teams/04-observability.md",
     "CLAUDE.md",
-    "src/db/schema.ts:218-224",
-    "src/lib/metrics.ts"
+    "packages/core/packages/core/src/db/schema.ts:218-224",
+    "packages/core/src/lib/metrics.ts"
   ],
   "risk_tier": "public-api",
   "acceptance": [
@@ -111,7 +111,7 @@ P5-2..P5-5 may run in parallel after P5-2 lands. P5-6 waits on P5-1 + P5-2.
 ```json
 {
   "task_id": "P5-2",
-  "goal": "Add @opentelemetry/api and @opentelemetry/sdk-node, expose getTracer() from src/lib/telemetry.ts, default to NoOp tracer when OTEL_ENABLED is not 'true'.",
+  "goal": "Add @opentelemetry/api and @opentelemetry/sdk-node, expose getTracer() from packages/core/src/lib/telemetry.ts, default to NoOp tracer when OTEL_ENABLED is not 'true'.",
   "non_goals": [
     "Do not auto-instrument HTTP/fetch in this packet — manual spans only.",
     "Do not add any backend-specific exporter (Langfuse/Laminar) here.",
@@ -120,14 +120,14 @@ P5-2..P5-5 may run in parallel after P5-2 lands. P5-6 waits on P5-1 + P5-2.
     "Do not call NodeSDK.start() more than once per process — initTelemetry must guard against double-init via a module-level flag (e.g. sdkInitialized)."
   ],
   "allowed_write_paths": [
-    "src/lib/telemetry.ts",
-    "src/app/bootstrap.ts",
+    "packages/core/src/lib/telemetry.ts",
+    "packages/server/packages/server/src/app/bootstrap.ts",
     "package.json",
     ".env.example"
   ],
   "read_context": [
-    "src/app/bootstrap.ts",
-    "src/lib/logger.ts",
+    "packages/server/packages/server/src/app/bootstrap.ts",
+    "packages/core/src/lib/logger.ts",
     "package.json",
     "docs/tasks/agent-teams/04-observability.md"
   ],
@@ -135,18 +135,18 @@ P5-2..P5-5 may run in parallel after P5-2 lands. P5-6 waits on P5-1 + P5-2.
   "acceptance": [
     "grep -F '@opentelemetry/api' package.json",
     "grep -F '@opentelemetry/sdk-node' package.json",
-    "grep -E 'export function getTracer' src/lib/telemetry.ts",
-    "grep -E 'OTEL_ENABLED' src/lib/telemetry.ts .env.example",
-    "grep -E 'sdkInitialized|isInitialized|started' src/lib/telemetry.ts",
+    "grep -E 'export function getTracer' packages/core/src/lib/telemetry.ts",
+    "grep -E 'OTEL_ENABLED' packages/core/src/lib/telemetry.ts .env.example",
+    "grep -E 'sdkInitialized|isInitialized|started' packages/core/src/lib/telemetry.ts",
     "OTEL_ENABLED=false bunx tsc --noEmit",
     "bun -e \"import('@opentelemetry/sdk-node').then(()=>process.exit(0)).catch(e=>{console.error(e);process.exit(1)})\"",
     "bun run scripts/check-file-size.ts",
     "bun run scripts/check-deep-imports.ts",
-    "grep -F 'initTelemetry' src/app/bootstrap.ts"
+    "grep -F 'initTelemetry' packages/server/packages/server/src/app/bootstrap.ts"
   ],
   "diff_budget_loc": 200,
   "file_count_max": 4,
-  "rollback": "Remove src/lib/telemetry.ts, revert bootstrap.ts hunk, drop the two @opentelemetry/* deps from package.json + bun.lock.",
+  "rollback": "Remove packages/core/src/lib/telemetry.ts, revert bootstrap.ts hunk, drop the two @opentelemetry/* deps from package.json + bun.lock.",
   "escalation_triggers": [
     "@opentelemetry/sdk-node fails to import under Bun (verify with `bun -e \"import('@opentelemetry/sdk-node')\"`) — escalate before adding the dep.",
     "Bootstrap order conflicts with existing bootstrap.ts (initTelemetry must run before createProviders) — escalate, do not reorder unrelated init steps.",
@@ -155,7 +155,7 @@ P5-2..P5-5 may run in parallel after P5-2 lands. P5-6 waits on P5-1 + P5-2.
   ],
   "glossary": {
     "NoOp tracer": "Tracer returned by @opentelemetry/api when no SDK is registered; spans are created but discarded.",
-    "getTracer()": "Single export of src/lib/telemetry.ts returning a tracer named 'subbrain' for use by all instrumentation packets."
+    "getTracer()": "Single export of packages/core/src/lib/telemetry.ts returning a tracer named 'subbrain' for use by all instrumentation packets."
   }
 }
 ```
@@ -175,25 +175,25 @@ P5-2..P5-5 may run in parallel after P5-2 lands. P5-6 waits on P5-1 + P5-2.
     "Do not skip a phase file — all five must be instrumented."
   ],
   "allowed_write_paths": [
-    "src/pipeline/agent-pipeline/phases/pre.ts",
-    "src/pipeline/agent-pipeline/phases/main.ts",
-    "src/pipeline/agent-pipeline/phases/post.ts",
-    "src/pipeline/agent-pipeline/phases/room.ts",
-    "src/pipeline/agent-pipeline/phases/stream.ts"
+    "packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/phases/pre.ts",
+    "packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/phases/main.ts",
+    "packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/phases/post.ts",
+    "packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/phases/room.ts",
+    "packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/phases/stream.ts"
   ],
   "read_context": [
-    "src/pipeline/agent-pipeline/phases/pre.ts",
-    "src/pipeline/agent-pipeline/phases/main.ts",
-    "src/pipeline/agent-pipeline/phases/post.ts",
-    "src/pipeline/agent-pipeline/phases/room.ts",
-    "src/pipeline/agent-pipeline/phases/stream.ts",
-    "src/lib/telemetry.ts"
+    "packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/phases/pre.ts",
+    "packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/phases/main.ts",
+    "packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/phases/post.ts",
+    "packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/phases/room.ts",
+    "packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/phases/stream.ts",
+    "packages/core/src/lib/telemetry.ts"
   ],
   "risk_tier": "ordinary",
   "acceptance": [
-    "grep -lF 'getTracer' src/pipeline/agent-pipeline/phases/pre.ts src/pipeline/agent-pipeline/phases/main.ts src/pipeline/agent-pipeline/phases/post.ts src/pipeline/agent-pipeline/phases/room.ts src/pipeline/agent-pipeline/phases/stream.ts | wc -l | awk '{ exit ($1==5)?0:1 }'",
-    "grep -RhE \"subbrain\\.pipeline\\.(pre|main|post|room|stream)\" src/pipeline/agent-pipeline/phases | wc -l | awk '{ exit ($1>=5)?0:1 }'",
-    "grep -RhF 'subbrain.request_id' src/pipeline/agent-pipeline/phases | wc -l | awk '{ exit ($1>=5)?0:1 }'",
+    "grep -lF 'getTracer' packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/phases/pre.ts packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/phases/main.ts packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/phases/post.ts packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/phases/room.ts packages/agent/packages/agent/packages/agent/src/pipeline/agent-pipeline/phases/stream.ts | wc -l | awk '{ exit ($1==5)?0:1 }'",
+    "grep -RhE \"subbrain\\.pipeline\\.(pre|main|post|room|stream)\" packages/agent/packages/agent/src/pipeline/agent-pipeline/phases | wc -l | awk '{ exit ($1>=5)?0:1 }'",
+    "grep -RhF 'subbrain.request_id' packages/agent/packages/agent/src/pipeline/agent-pipeline/phases | wc -l | awk '{ exit ($1>=5)?0:1 }'",
     "bunx tsc --noEmit",
     "bun run scripts/check-file-size.ts",
     "bun run scripts/check-deep-imports.ts"
@@ -230,22 +230,22 @@ P5-2..P5-5 may run in parallel after P5-2 lands. P5-6 waits on P5-1 + P5-2.
     "Do not auto-instrument http/fetch — only the listed call sites get spans."
   ],
   "allowed_write_paths": [
-    "src/pipeline/agent-loop/step.ts",
-    "src/pipeline/agent-loop/tool-runner.ts"
+    "packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/step.ts",
+    "packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/tool-runner.ts"
   ],
   "read_context": [
-    "src/pipeline/agent-loop/step.ts",
-    "src/pipeline/agent-loop/tool-runner.ts",
-    "src/pipeline/agent-loop/tool-dispatch.ts",
-    "src/pipeline/agent-loop/types.ts",
-    "src/lib/telemetry.ts"
+    "packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/step.ts",
+    "packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/tool-runner.ts",
+    "packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/tool-dispatch.ts",
+    "packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/types.ts",
+    "packages/core/src/lib/telemetry.ts"
   ],
   "risk_tier": "ordinary",
   "acceptance": [
-    "grep -F 'subbrain.agent.step' src/pipeline/agent-loop/step.ts",
-    "grep -F 'subbrain.tool.call' src/pipeline/agent-loop/tool-runner.ts",
-    "grep -E 'SpanStatusCode\\.ERROR|setStatus' src/pipeline/agent-loop/tool-runner.ts",
-    "grep -F 'subbrain.tool.name' src/pipeline/agent-loop/tool-runner.ts",
+    "grep -F 'subbrain.agent.step' packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/step.ts",
+    "grep -F 'subbrain.tool.call' packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/tool-runner.ts",
+    "grep -E 'SpanStatusCode\\.ERROR|setStatus' packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/tool-runner.ts",
+    "grep -F 'subbrain.tool.name' packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/tool-runner.ts",
     "bunx tsc --noEmit",
     "bun run scripts/check-file-size.ts",
     "bun run scripts/check-deep-imports.ts"
@@ -260,8 +260,8 @@ P5-2..P5-5 may run in parallel after P5-2 lands. P5-6 waits on P5-1 + P5-2.
     "Agent-loop instrumentation contradicts existing tool-runner or step.ts semantics — FAIL: spec contradicts code, list mismatch."
   ],
   "glossary": {
-    "Step": "One iteration of the agent loop in src/pipeline/agent-loop/step.ts.",
-    "Tool dispatch": "The executeAgentTool function in src/pipeline/agent-loop/tool-runner.ts:130-198 that resolves registry → dynamic → code-tools."
+    "Step": "One iteration of the agent loop in packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/step.ts.",
+    "Tool dispatch": "The executeAgentTool function in packages/agent/packages/agent/packages/agent/src/pipeline/agent-loop/tool-runner.ts:130-198 that resolves registry → dynamic → code-tools."
   }
 }
 ```
@@ -282,25 +282,25 @@ P5-2..P5-5 may run in parallel after P5-2 lands. P5-6 waits on P5-1 + P5-2.
     "Do not mount the route before authMiddleware."
   ],
   "allowed_write_paths": [
-    "src/routes/metrics.ts",
-    "src/app/bootstrap.ts",
+    "packages/server/packages/server/src/routes/metrics.ts",
+    "packages/server/packages/server/src/app/bootstrap.ts",
     "tests/metrics-runs.test.ts"
   ],
   "read_context": [
-    "src/db/schema.ts:215-225",
-    "src/lib/metrics.ts",
-    "src/lib/metrics/snapshot.ts",
-    "src/routes/freelance.ts",
-    "src/lib/api-envelope.ts",
-    "src/app/bootstrap.ts"
+    "packages/core/packages/core/src/db/schema.ts:215-225",
+    "packages/core/src/lib/metrics.ts",
+    "packages/core/src/lib/metrics/snapshot.ts",
+    "packages/server/packages/server/src/routes/freelance.ts",
+    "packages/core/src/lib/api-envelope.ts",
+    "packages/server/packages/server/src/app/bootstrap.ts"
   ],
   "risk_tier": "public-api",
   "acceptance": [
-    "test -f src/routes/metrics.ts",
-    "grep -E \"'/v1/metrics/runs'|\\\"/v1/metrics/runs\\\"\" src/routes/metrics.ts",
-    "grep -F 'authMiddleware' src/app/bootstrap.ts",
-    "grep -F 'metrics_log' src/routes/metrics.ts",
-    "grep -E 'from *> *to|from>to|400' src/routes/metrics.ts",
+    "test -f packages/server/packages/server/src/routes/metrics.ts",
+    "grep -E \"'/v1/metrics/runs'|\\\"/v1/metrics/runs\\\"\" packages/server/packages/server/src/routes/metrics.ts",
+    "grep -F 'authMiddleware' packages/server/packages/server/src/app/bootstrap.ts",
+    "grep -F 'metrics_log' packages/server/packages/server/src/routes/metrics.ts",
+    "grep -E 'from *> *to|from>to|400' packages/server/packages/server/src/routes/metrics.ts",
     "bunx tsc --noEmit",
     "bun test tests/metrics-runs.test.ts",
     "bun run scripts/check-file-size.ts",
@@ -308,7 +308,7 @@ P5-2..P5-5 may run in parallel after P5-2 lands. P5-6 waits on P5-1 + P5-2.
   ],
   "diff_budget_loc": 250,
   "file_count_max": 3,
-  "rollback": "Delete src/routes/metrics.ts and tests/metrics-runs.test.ts; revert the bootstrap.ts mount hunk.",
+  "rollback": "Delete packages/server/packages/server/src/routes/metrics.ts and tests/metrics-runs.test.ts; revert the bootstrap.ts mount hunk.",
   "escalation_triggers": [
     "metrics_log snapshot JSON has only `models` field (no per-role or per-provider breakdown in current MetricsSnapshot) — that is expected; map `models` to `by_model`. If caller demands by_role/by_provider, escalate as separate schema-tier PR; do NOT invent fields here.",
     "No timingSafeEqual auth helper available for the route — escalate, do not roll a custom compare.",
@@ -316,7 +316,7 @@ P5-2..P5-5 may run in parallel after P5-2 lands. P5-6 waits on P5-1 + P5-2.
     "Metrics endpoint contradicts existing api-envelope or auth middleware patterns — FAIL: spec contradicts code, list mismatch."
   ],
   "glossary": {
-    "Run": "One row in metrics_log corresponding to one rolling snapshot written by src/lib/metrics.ts.",
+    "Run": "One row in metrics_log corresponding to one rolling snapshot written by packages/core/src/lib/metrics.ts.",
     "from/to": "Unix epoch seconds; default to last 24h if both missing; reject if from>to with HTTP 400.",
     "by_model": "Map<modelId, {count, avg_latency_ms, total_cost_usd}> derived from MetricsSnapshot.models. This is the ONLY breakdown the existing snapshot supports — virtual_role and provider are NOT tracked at the request-metric layer."
   }
@@ -333,7 +333,7 @@ P5-2..P5-5 may run in parallel after P5-2 lands. P5-6 waits on P5-1 + P5-2.
 ```json
 {
   "task_id": "P5-6",
-  "goal": "Wire the backend chosen in docs/specs/observability-choice.md as an OTLP exporter inside src/lib/telemetry.ts, gated by OTEL_ENABLED=true and OTEL_EXPORTER_OTLP_ENDPOINT.",
+  "goal": "Wire the backend chosen in docs/specs/observability-choice.md as an OTLP exporter inside packages/core/src/lib/telemetry.ts, gated by OTEL_ENABLED=true and OTEL_EXPORTER_OTLP_ENDPOINT.",
   "non_goals": [
     "Do not pick a backend in this packet — read the decision file.",
     "Do not start ANY edit if docs/specs/observability-choice.md is absent — the existence test of the decision doc MUST run as the first acceptance step; if it fails, exit 1 without touching any file.",
@@ -343,14 +343,14 @@ P5-2..P5-5 may run in parallel after P5-2 lands. P5-6 waits on P5-1 + P5-2.
     "Do not install the OTLP exporter at `latest` — pin to a Bun-tested version (verify via `bun -e \"import('@opentelemetry/exporter-trace-otlp-http')\"` first)."
   ],
   "allowed_write_paths": [
-    "src/lib/telemetry.ts",
+    "packages/core/src/lib/telemetry.ts",
     "package.json",
     ".env.example",
     "docker-compose.yml"
   ],
   "read_context": [
     "docs/specs/observability-choice.md",
-    "src/lib/telemetry.ts",
+    "packages/core/src/lib/telemetry.ts",
     "package.json",
     ".env.example",
     "docker-compose.yml"
@@ -358,9 +358,9 @@ P5-2..P5-5 may run in parallel after P5-2 lands. P5-6 waits on P5-1 + P5-2.
   "risk_tier": "ordinary",
   "acceptance": [
     "test -f docs/specs/observability-choice.md",
-    "grep -E 'OTEL_EXPORTER_OTLP_ENDPOINT' .env.example src/lib/telemetry.ts",
+    "grep -E 'OTEL_EXPORTER_OTLP_ENDPOINT' .env.example packages/core/src/lib/telemetry.ts",
     "grep -E '@opentelemetry/exporter-trace-otlp-(http|proto)' package.json",
-    "grep -E 'OTEL_ENABLED *=== *.true.' src/lib/telemetry.ts",
+    "grep -E 'OTEL_ENABLED *=== *.true.' packages/core/src/lib/telemetry.ts",
     "OTEL_ENABLED=false bunx tsc --noEmit",
     "bun run scripts/check-file-size.ts",
     "bun run scripts/check-deep-imports.ts"
