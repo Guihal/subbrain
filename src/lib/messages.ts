@@ -1,4 +1,4 @@
-import type { Message } from "../providers/types";
+import type { Message } from "@subbrain/core/types/providers";
 
 /**
  * Flatten an OpenAI-style content field to a plain string.

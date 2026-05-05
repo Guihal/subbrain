@@ -9,7 +9,7 @@
 // M-08.1: per-kind tau multiplier (episodic ×0.5, procedural ×2.0,
 // semantic/undefined ×1.0). Persona handled by `skipPersona` (R=1.0 pin).
 
-import type { RAGResult } from "../rag/types";
+import type { RAGResult } from "@subbrain/core/types/rag";
 
 const SECONDS_PER_DAY = 86400;
 

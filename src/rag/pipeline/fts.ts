@@ -1,5 +1,6 @@
 import type { MemoryDB } from "../../db";
-import { type RAGResult, sanitizeFtsQuery } from "../types";
+import { sanitizeFtsQuery } from "../../lib/fts-utils";
+import type { RAGResult } from "../types";
 
 /**
  * FTS5-only search (no RPM cost, fast).

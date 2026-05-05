@@ -8,7 +8,7 @@
  */
 
 import { describe, expect, test } from "bun:test";
-import { AuthService } from "../src/services/auth.service";
+import { AuthService } from "@subbrain/core/services/auth";
 
 describe("AuthService.validateBearer", () => {
   const svc = new AuthService("abc");

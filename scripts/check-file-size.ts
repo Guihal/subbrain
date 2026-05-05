@@ -107,6 +107,8 @@ export const TRANSITIONAL_WHITELIST: Record<string, number> = {
   "src/pipeline/agent-loop/prompt-blocks/tasks.ts": 157,
   "src/pipeline/agent-loop/step.ts": 155,
   "web/app/pages/freelance.vue": 152,
+  "packages/core/src/lib/auth.ts": 36,
+  "packages/core/src/services/auth.service.ts": 66,
   "src/lib/http-client.ts": 151,
   "src/routes/metrics.ts": 155,
   "src/pipeline/night-cycle/janitor/phase-bc.ts": 165,

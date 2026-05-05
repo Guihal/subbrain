@@ -1,6 +1,6 @@
 import { staticPlugin } from "@elysiajs/static";
 import { Elysia } from "elysia";
-import { authMiddleware } from "../lib/auth";
+import { authMiddleware } from "@subbrain/core/lib/auth";
 import { AppError } from "../lib/errors";
 import { logger } from "../lib/logger";
 import { mcpProtocolRoute, mcpRoute } from "../mcp";

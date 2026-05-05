@@ -6,7 +6,7 @@
  * for `enabled` (sqlite stores 0/1) live in the registry, not in the table.
  */
 import type { Database } from "bun:sqlite";
-import type { CodeTool } from "../../pipeline/agent-loop/code-tools/types";
+import type { CodeTool } from "@subbrain/core/types/code-tool";
 
 export class CodeToolsTable {
   constructor(private db: Database) {}

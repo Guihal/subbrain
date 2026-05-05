@@ -12,7 +12,7 @@ import { FREE_AGENT_TASK } from "../scheduler/free-agent";
 import { FreelanceScout, type FreelanceScoutConfig } from "../scheduler/freelance";
 import { TelegramPoller } from "../scheduler/telegram-poller";
 import { AgentService } from "../services/agent.service";
-import { AuthService } from "../services/auth.service";
+import { AuthService } from "@subbrain/core/services/auth";
 import { ChatService } from "../services/chat";
 import { MemoryService } from "../services/memory";
 import { TelegramBot, Userbot } from "../telegram";

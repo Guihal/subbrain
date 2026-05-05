@@ -7,7 +7,7 @@
  */
 import type { Database } from "bun:sqlite";
 import { CodeToolsTable } from "../db/tables/code-tools";
-import type { CodeTool } from "../pipeline/agent-loop/code-tools/types";
+import type { CodeTool } from "@subbrain/core/types/code-tool";
 
 export class CodeToolsRepository {
   private readonly table: CodeToolsTable;

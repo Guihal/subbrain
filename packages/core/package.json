@@ -1,0 +1,13 @@
+{
+  "name": "@subbrain/core",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./types/providers": "./src/types/providers.ts",
+    "./types/rag": "./src/types/rag.ts",
+    "./types/code-tool": "./src/types/code-tool.ts",
+    "./services/auth": "./src/services/auth.service.ts",
+    "./lib/auth": "./src/lib/auth.ts"
+  }
+}

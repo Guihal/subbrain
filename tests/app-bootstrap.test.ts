@@ -14,7 +14,7 @@ import { createApp } from "../src/app/bootstrap";
 import type { AppDeps } from "../src/app/deps";
 import { MemoryDB } from "../src/db";
 import { Metrics } from "../src/lib/metrics";
-import { AuthService } from "../src/services/auth.service";
+import { AuthService } from "@subbrain/core/services/auth";
 
 const TEST_DB = "data/test-bootstrap.db";
 try {
