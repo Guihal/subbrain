@@ -45,11 +45,11 @@
 | A1-8 | Docker build update | `done` | `cp3` | — | CRITIC-PASSED |
 | A1-9 | Cleanup, doc paths, root tsconfig narrowing | `done` | `cp3` | — | CRITIC-PASSED. Worker a4b961e56c9573ccb. Commit 5a7fd40. ORCHESTRATOR RULE-BREAK: committed staged code files from previous worker (34331d3). |
 | P4-0 | Pin BAML CLI version | `done` | `cp3` | — | CRITIC-PASSED |
-| P4-1 | BAML init + lockfile | `done` | `cp3` | — | CRITIC-PASSED |
-| P4-2 | BAML ESM config | `done` | `cp3` | — | CRITIC-PASSED |
-| P4-3 | BAML promptfoo provider | `done` | `cp3` | — | CRITIC-PASSED |
-| P4-4 | BAML promptfoo eval | `done` | `cp3` | — | CRITIC-PASSED |
-| P4-5 | CI gate promptfoo:ci | `done` | `cp3` | — | CRITIC-PASSED |
+| P4-1 | BAML init + lockfile | `done` | `cp3` | — | CRITIC-PASSED. **FALSE SIGNAL**: types wired, runtime NOT used. |
+| P4-2 | BAML ESM config | `done` | `cp3` | — | CRITIC-PASSED. **FALSE SIGNAL**: types wired, runtime NOT used. |
+| P4-3 | BAML promptfoo provider | `done` | `cp3` | — | CRITIC-PASSED. **FALSE SIGNAL**: types wired, runtime NOT used. |
+| P4-4 | BAML promptfoo eval | `done` | `cp3` | — | CRITIC-PASSED. **FALSE SIGNAL**: types wired, runtime NOT used. |
+| P4-5 | CI gate promptfoo:ci | `done` | `cp3` | — | CRITIC-PASSED. **FALSE SIGNAL**: types wired, runtime NOT used. |
 | P4-6 | BAML pool artifact (deferred) | `not_started` | — | blocks on Phase 2 | CRITIC-PASSED |
 | P5-1 | Observability decision | `done` | `cp3` | — | CRITIC-PASSED |
 | P5-2 | OTel SDK init | `done` | `cp3` | — | CRITIC-PASSED |
@@ -92,7 +92,7 @@
 | P6-6 | A2A cleanup + docs | `not_started` | — | blocks on P6-5 | CRITIC-PASSED |
 | A2-1 | Plugin registry init | `done` | `cp3` | — | CRITIC-PASSED. Commit 31b3e84. Bundled with spec-cleanup. |
 | A2-2 | Plugin loader | `done` | `cp3` | — | CRITIC-PASSED. Commit e90a153. |
-| A2-3 | Plugin sandbox | `dispatched` | — | blocks on A2-2 | CRITIC-PASSED. Retry #3/3 (final). Killed broken worktree, redispatch on main without isolation. |
+| A2-3 | Plugin sandbox | `done` | `cp3` | — | CRITIC-PASSED. Commit 237d2a0. Hook wiring in tool-runner.ts + tests. |
 | A2-4 | Plugin hooks (pre/post) | `not_started` | — | blocks on A2-3 | CRITIC-PASSED |
 | A2-5 | ToolResult kind union | `not_started` | — | **STRONG-MODEL ONLY** | CRITIC-PASSED |
 | A2-6 | Code-tool guards | `not_started` | — | **SECURITY** — integration tests mandatory, blocks on A2-3, A2-5 | CRITIC-PASSED |
@@ -166,6 +166,29 @@
 
 ---
 
+## Post-audit cleanup gaps (2026-05-05 — Grade B assessment)
+
+> These are NOT packets in a numbered wave; they are cross-cutting cleanups identified by owner audit. Dispatch as capacity allows, but do NOT mark downstream packets done until blockers below are resolved.
+
+| # | Item | Status | Blocker | Scope | Notes |
+|---|---|---|---|---|---|
+| C1 | BAML runtime wire (hippocampus + arbitration) | `not_started` | — | P4 revisit | Replace `parseMemoryWriteArgs` local parser in `packages/agent/src/pipeline/agent-pipeline/post/hippocampus.ts:199` with actual `b.ExtractMemoryWrite()` BAML runtime call. Same for arbitration path. Acceptance: grep proves BAML function called in production path, not just imported. |
+| C2 | Split `packages/server/src/app/deps.ts` (367→4 files) | `not_started` | — | A1 revisit | True split: `loadConfig.ts`, `prompts/autonomous-task.ts` (75-line literal), `init-services.ts`, `init-telegram.ts`. No `// TODO: split` leftovers. File-cap 150 per file. |
+| C3 | Drop dead barrels + shim | `not_started` | — | A1 revisit | Remove `packages/agent/src/index.ts` (11 re-exports, zero consumers). Remove `packages/agent/src/pipeline/agent-pipeline/post/validators.ts` (6-line back-compat shim for non-existent consumers). Verify with `grep -r` across repo. |
+| C4 | Type transport boundary (TypeBox guards) | `not_started` | — | security | Replace `as unknown as` / `as any` at `packages/server/src/mcp-transport/mcp-protocol.ts:108` and `packages/server/src/routes/telegram.ts:29` with proper TypeBox validation. Acceptance: zero `as unknown` / `as any` in those two files. |
+
+---
+
+## Active workers (this session)
+
+| Packet | Worker | Status | Started |
+|---|---|---|---|
+| A2-3 | aff87e3a89b0420c1 | **DONE** | commit 237d2a0 |
+| P3-3 | acc1b1f1cce6970b4 | `dispatched` | Wave A parallel |
+| P3-4 | a7f9c300f48c51a4b | `dispatched` | Wave A parallel |
+
+---
+
 ## Last Updated
 
-2026-05-05 — P2-7a redispatched with bun-e workaround. P2-5a/A2-3 prev attempts failed (hook). cp0-cp3 green.
+2026-05-05 — A2-3 done (commit 237d2a0). P3-3 + P3-4 dispatched in parallel (Wave A). P4-1..5 flagged FALSE SIGNAL (types-only, runtime not wired). Cleanup gaps C1-C4 added post owner audit.
