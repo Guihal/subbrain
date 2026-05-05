@@ -86,6 +86,7 @@ export class AgentPipeline {
       userMessage,
       firstMessage: firstMsg,
       agentId,
+      requestId,
     });
     if (firstMsg) {
       this.metrics?.record({
@@ -134,6 +135,7 @@ export class AgentPipeline {
       enrichedSystemPrompt: pre.enrichedSystemPrompt,
       metrics: this.metrics,
       log,
+      requestId,
     });
     const msg = main.response.choices[0]?.message;
     await fire(msg?.content || "", req.model, {

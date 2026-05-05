@@ -7,6 +7,7 @@ import type { RequestLogger } from "../../../lib/logger";
 import type { Metrics } from "../../../lib/metrics";
 import type { ChatResponse } from "../../../providers/types";
 import type { ArbitrationRoom } from "../../arbitration";
+import { getTracer } from "../../../lib/telemetry";
 
 export interface RoomResult {
   response: ChatResponse;
@@ -24,39 +25,54 @@ export async function runRoom(args: {
 }): Promise<RoomResult> {
   const { room, userMessage, systemPrompt, roomConfig, requestId, metrics, log } = args;
 
-  log.info("main", `Arbitration Room activated: ${roomConfig.agents.join(",")}`, { model: "room" });
-  const start = Date.now();
-  const result = await room.run(userMessage, systemPrompt, roomConfig);
-  const durationMs = Date.now() - start;
-
-  log.info("main", `Room synthesis complete: ${result.synthesis.length} chars`, {
-    model: "teamlead",
-    durationMs,
-  });
-  metrics?.record({
-    model: "room",
-    priority: "critical",
-    stage: "main",
-    latencyMs: durationMs,
-    tokensIn: 0,
-    tokensOut: 0,
-    status: "ok",
+  const tracer = getTracer();
+  const span = tracer.startSpan("subbrain.pipeline.room", {
+    attributes: {
+      "subbrain.phase": "room",
+      "subbrain.role": "room",
+      "subbrain.request_id": requestId,
+      "subbrain.tokens.prompt": 0,
+      "subbrain.tokens.completion": 0,
+    },
   });
 
-  const response: ChatResponse = {
-    id: `chatcmpl-${requestId}`,
-    object: "chat.completion",
-    created: Math.floor(Date.now() / 1000),
-    model: "teamlead",
-    choices: [
-      {
-        index: 0,
-        message: { role: "assistant", content: result.synthesis },
-        finish_reason: "stop",
-      },
-    ],
-    usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
-  };
+  try {
+    log.info("main", `Arbitration Room activated: ${roomConfig.agents.join(",")}`, { model: "room" });
+    const start = Date.now();
+    const result = await room.run(userMessage, systemPrompt, roomConfig);
+    const durationMs = Date.now() - start;
 
-  return { response, synthesis: result.synthesis };
+    log.info("main", `Room synthesis complete: ${result.synthesis.length} chars`, {
+      model: "teamlead",
+      durationMs,
+    });
+    metrics?.record({
+      model: "room",
+      priority: "critical",
+      stage: "main",
+      latencyMs: durationMs,
+      tokensIn: 0,
+      tokensOut: 0,
+      status: "ok",
+    });
+
+    const response: ChatResponse = {
+      id: `chatcmpl-${requestId}`,
+      object: "chat.completion",
+      created: Math.floor(Date.now() / 1000),
+      model: "teamlead",
+      choices: [
+        {
+          index: 0,
+          message: { role: "assistant", content: result.synthesis },
+          finish_reason: "stop",
+        },
+      ],
+      usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
+    };
+
+    return { response, synthesis: result.synthesis };
+  } finally {
+    span.end();
+  }
 }

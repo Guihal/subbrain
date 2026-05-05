@@ -9,6 +9,7 @@ import type { RAGPipeline } from "../../../rag";
 
 import { shouldRunHippocampus } from "../post/gate";
 import { runHippocampus } from "../post/hippocampus";
+import { getTracer } from "../../../lib/telemetry";
 
 export interface RunPostArgs {
   memory: MemoryDB;
@@ -50,56 +51,71 @@ export async function runPost(args: RunPostArgs): Promise<void> {
     agentId,
   } = args;
 
-  const log = logger.forRequest(requestId, sessionId);
-  log.info(
-    "post",
-    `Post-processing: user=${userMessage.length}ch assistant=${assistantMessage.length}ch`,
-    { model },
-  );
+  const tracer = getTracer();
+  const span = tracer.startSpan("subbrain.pipeline.post", {
+    attributes: {
+      "subbrain.phase": "post",
+      "subbrain.role": model,
+      "subbrain.request_id": requestId,
+      "subbrain.tokens.prompt": usage?.prompt_tokens ?? 0,
+      "subbrain.tokens.completion": usage?.completion_tokens ?? 0,
+    },
+  });
 
-  if (!options?.skipRawLog) {
-    memory.appendLog(requestId, sessionId, model, "user", userMessage);
-    memory.appendLog(
-      requestId,
-      sessionId,
-      model,
-      "assistant",
-      assistantMessage,
-      usage?.completion_tokens,
-    );
-    if (reasoning?.length) {
-      memory.appendLog(requestId, sessionId, model, "reasoning", reasoning);
-      log.info("post", `Reasoning logged: ${reasoning.length} chars`, { model });
-    }
-  }
-  const assistantText = assistantMessage || reasoning || "";
-  const combinedLen = (userMessage?.length ?? 0) + assistantText.length;
-  if (!shouldRunHippocampus(combinedLen, userMessage)) {
-    log.debug("post", `Skip hippocampus: combinedLen=${combinedLen}`, { model });
-    return;
-  }
-  const start = Date.now();
   try {
-    const stats = await runHippocampus({
-      memory,
-      router,
-      rag,
-      executor,
-      registry,
-      userMessage,
-      assistantText,
-      reasoning,
-      requestId,
-      log,
-      agentId: agentId ?? null,
-    });
+    const log = logger.forRequest(requestId, sessionId);
     log.info(
       "post",
-      `Extraction done in ${Date.now() - start}ms: ${stats.factsWritten} facts, ${stats.tasksAdded} tasks, ${stats.searchCalls} searches, ${stats.steps} tool calls`,
-      { meta: { ...stats } },
+      `Post-processing: user=${userMessage.length}ch assistant=${assistantMessage.length}ch`,
+      { model },
     );
-  } catch (err) {
-    log.error("post", `Agentic extraction failed: ${err instanceof Error ? err.message : err}`);
+
+    if (!options?.skipRawLog) {
+      memory.appendLog(requestId, sessionId, model, "user", userMessage);
+      memory.appendLog(
+        requestId,
+        sessionId,
+        model,
+        "assistant",
+        assistantMessage,
+        usage?.completion_tokens,
+      );
+      if (reasoning?.length) {
+        memory.appendLog(requestId, sessionId, model, "reasoning", reasoning);
+        log.info("post", `Reasoning logged: ${reasoning.length} chars`, { model });
+      }
+    }
+    const assistantText = assistantMessage || reasoning || "";
+    const combinedLen = (userMessage?.length ?? 0) + assistantText.length;
+    if (!shouldRunHippocampus(combinedLen, userMessage)) {
+      log.debug("post", `Skip hippocampus: combinedLen=${combinedLen}`, { model });
+      return;
+    }
+    const start = Date.now();
+    try {
+      const stats = await runHippocampus({
+        memory,
+        router,
+        rag,
+        executor,
+        registry,
+        userMessage,
+        assistantText,
+        reasoning,
+        requestId,
+        log,
+        agentId: agentId ?? null,
+      });
+      log.info(
+        "post",
+        `Extraction done in ${Date.now() - start}ms: ${stats.factsWritten} facts, ${stats.tasksAdded} tasks, ${stats.searchCalls} searches, ${stats.steps} tool calls`,
+        { meta: { ...stats } },
+      );
+    } catch (err) {
+      log.error("post", `Agentic extraction failed: ${err instanceof Error ? err.message : err}`);
+    }
+  } finally {
+    span.end();
   }
 }
 

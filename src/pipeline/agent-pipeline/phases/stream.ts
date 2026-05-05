@@ -12,6 +12,7 @@ import { injectSystemPrompt } from "../helpers";
 import type { PipelineRequest } from "../types";
 import { runPostFromStream } from "./post";
 import { runPre } from "./pre";
+import { getTracer } from "../../../lib/telemetry";
 
 const SSE_KEEPALIVE_MS = 8_000;
 
@@ -49,6 +50,17 @@ export function buildPipelineStream(args: {
 
   return new ReadableStream({
     async start(controller) {
+      const tracer = getTracer();
+      const span = tracer.startSpan("subbrain.pipeline.stream", {
+        attributes: {
+          "subbrain.phase": "stream",
+          "subbrain.role": req.model,
+          "subbrain.request_id": requestId,
+          "subbrain.tokens.prompt": 0,
+          "subbrain.tokens.completion": 0,
+        },
+      });
+
       const keepalive = setInterval(() => {
         try {
           controller.enqueue(encoder.encode(": keepalive\n\n"));
@@ -73,6 +85,7 @@ export function buildPipelineStream(args: {
           firstMessage,
           onProgress: firstMessage ? emit : undefined,
           agentId,
+          requestId,
         });
         const preDur = Date.now() - preStart;
         log.info(
@@ -155,6 +168,8 @@ export function buildPipelineStream(args: {
         controller.enqueue(makeProgressChunk(`\n❌ Ошибка: ${errMsg}\n`));
         controller.enqueue(encoder.encode(`data: [DONE]\n\n`));
         controller.close();
+      } finally {
+        span.end();
       }
     },
   });
