@@ -93,7 +93,7 @@
 | A2-1 | Plugin registry init | `done` | `cp3` | — | CRITIC-PASSED. Commit 31b3e84. Bundled with spec-cleanup. |
 | A2-2 | Plugin loader | `done` | `cp3` | — | CRITIC-PASSED. Commit e90a153. |
 | A2-3 | Plugin sandbox | `done` | `cp3` | — | CRITIC-PASSED. Commit 237d2a0. Hook wiring in tool-runner.ts + tests. |
-| A2-4 | Plugin hooks (pre/post) | `dispatched` | — | blocks on A2-3, **cp0 red** | CRITIC-PASSED. Attempt #1: rogue worker discarded. Attempt #2: worktree at wrong commit, discarded. Attempt #3: worker a647fda3 — OK c1993cb (clean impl, no any). Cleanup worker merged c1993cb → main (2696372). **POST-MERGE VERIFY FAIL**: cp0 red on pre-existing `packages/agent/src/pipeline/agent-pipeline/index.ts` 157>150 (file existed in main but not in c1993cb base). Squeeze worker dispatched to fix. |
+| A2-4 | Plugin hooks (pre/post) | `cp3_passed` | `cp3` | **cp1 red** (biome packages/** inclusion exposes generated + source issues) | CRITIC-PASSED. Commits: 0e9677d squeeze index.ts, d07cf0e hook wiring. cp0/cp2/cp3 green. |
 | A2-5 | ToolResult kind union | `not_started` | — | **STRONG-MODEL ONLY** | CRITIC-PASSED |
 | A2-6 | Code-tool guards | `not_started` | — | **SECURITY** — integration tests mandatory, blocks on A2-3, A2-5 | CRITIC-PASSED |
 | A2-7 | TG spam gates | `not_started` | — | **SECURITY** — integration tests mandatory, blocks on A2-3, A2-5 | CRITIC-PASSED |
@@ -191,4 +191,4 @@
 
 ## Last Updated
 
-2026-05-05 — 8e-1 DONE (commit 2ea5db2). A2-4 attempt #3 DONE (c1993cb), cleanup worker merging into main. cp0 green, cp1 red (worktree biome.json), cp2 green, cp3 green (1028 pass). Next: A2-8 unblocked.
+2026-05-05 — A2-4 cp3_passed (commits 0e9677d + d07cf0e). cp0/cp2/cp3 green, cp1 red (149 errors: baml_client generated files + source formatting). Biome cleanup worker dispatching. Next: A2-8 unblocked once cp1 green.
