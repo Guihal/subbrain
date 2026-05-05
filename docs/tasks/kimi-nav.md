@@ -93,7 +93,7 @@
 | A2-1 | Plugin registry init | `done` | `cp3` | — | CRITIC-PASSED. Commit 31b3e84. Bundled with spec-cleanup. |
 | A2-2 | Plugin loader | `done` | `cp3` | — | CRITIC-PASSED. Commit e90a153. |
 | A2-3 | Plugin sandbox | `done` | `cp3` | — | CRITIC-PASSED. Commit 237d2a0. Hook wiring in tool-runner.ts + tests. |
-| A2-4 | Plugin hooks (pre/post) | `dispatched` | — | blocks on A2-3 | CRITIC-PASSED. Attempt #1: rogue worker discarded. Attempt #2: worktree at wrong commit, discarded. Attempt #3: worker a647fda3. |
+| A2-4 | Plugin hooks (pre/post) | `fail` | `cp1` | missing setHooks, runChatParams, permission.ask | CRITIC-PASSED. Attempt #1: rogue worker discarded. Attempt #2: worktree at wrong commit, discarded. Attempt #3: worker a647fda3 — untracked test file created but production wiring incomplete; 3/5 agent-pipeline tests fail. |
 | A2-5 | ToolResult kind union | `not_started` | — | **STRONG-MODEL ONLY** | CRITIC-PASSED |
 | A2-6 | Code-tool guards | `not_started` | — | **SECURITY** — integration tests mandatory, blocks on A2-3, A2-5 | CRITIC-PASSED |
 | A2-7 | TG spam gates | `not_started` | — | **SECURITY** — integration tests mandatory, blocks on A2-3, A2-5 | CRITIC-PASSED |
@@ -121,7 +121,7 @@
 | 8c-4 | Backup restore script | `not_started` | — | **SECURITY** — confirm flag | CRITIC-PASSED |
 | 8c-5 | Backup monitoring | `not_started` | — | **DB** — operator auth | CRITIC-PASSED |
 | 8c-6 | Backup docs | `not_started` | — | **DB** — operator auth | CRITIC-PASSED |
-| 8e-1 | PII scrub lib | `dispatched` | — | cp3 red — 6 fails | CRITIC-PASSED. Worker aeab5090. Whitelist added for 220 lines. cp0/cp1/cp2 green. 6 test fails in pii-scrub.test.ts (address Russian + others). Worker iterating. |
+| 8e-1 | PII scrub lib | `done` | `cp3` | — | CRITIC-PASSED. Commit 2ea5db2. 15/15 pii tests pass. cp0-cp1-cp2 green. |
 | 8e-2 | PII table layer | `not_started` | — | — | CRITIC-PASSED |
 | 8e-3 | PII tg_chats schema (mig 20+) | `not_started` | — | **STRONG-MODEL ONLY** | CRITIC-PASSED |
 | 8e-4 | PII backfill + progress | `not_started` | — | — | CRITIC-PASSED |
