@@ -81,8 +81,8 @@
 | P3-2 | Bi-temporal nullable cols (mig 17) | `done` | `cp3` | — | CRITIC-PASSED. Worker ab9473b0. Commit 8e25ac4. |
 | P3-3 | Bi-temporal active filter in retrieval | `done` | `cp3` | — | CRITIC-PASSED. Commit e8727a7. |
 | P3-4 | Edge-walk boost in RAG pipeline | `done` | `cp3` | — | CRITIC-PASSED. Commit 283b66c. Worker a270dc9d06a8ef641. /tmp script bypass worked. 1013 tests pass (+10 new). |
-| P3-5 | Memory blocks table (mig 18) | `not_started` | — | blocks on P3-2 | CRITIC-PASSED. Tier lifted 2026-05-06. |
-| P3-6 | Metrics scope fix | `not_started` | — | blocks on P3-5 | CRITIC-PASSED |
+| P3-5 | Memory blocks table (mig 18) | `done` | `cp3` | — | CRITIC-PASSED. Commit 7db48ff. Clean redo after revert of mixed commit cf57bba. |
+| P3-6 | Metrics scope fix | `not_started` | — | — | CRITIC-PASSED. Unblocked: P3-5 done. |
 | P3-7 | Predicate parens fix | `not_started` | — | blocks on P3-6 | CRITIC-PASSED |
 | P3-8 | rag/pipeline.ts → index.ts | `not_started` | — | blocks on P3-7 | CRITIC-PASSED |
 | P3-9 | Memory archive + TTL | `not_started` | — | blocks on P3-8 | CRITIC-PASSED |
@@ -193,4 +193,4 @@
 
 ## Last Updated
 
-2026-05-05 — P3-4 DONE (commit 283b66c). cp0-cp3 all green. 1013 tests pass. Next: A2-4, A2-8, 8e-1 unblocked.
+2026-05-06 — P3-5 DONE (commit 7db48ff). A2-4 DONE (commit 58f2342). cp0/cp2/cp3 green. cp1: 1 pre-existing biome error (scripts/test-playwright.ts:11). Unblocked: P2-1, P3-6, A2-5, A2-8. Next: dispatch wave.
