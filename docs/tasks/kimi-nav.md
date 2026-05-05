@@ -77,7 +77,7 @@
 | P2-7a | Mutex primitive | `done` | `cp3` | — | CRITIC-PASSED. Commit 06ef49b. Worker ac668624. |
 | P3-1 | Memory bi-temporal verify | `done` | `cp3` | — | CRITIC-PASSED. Commit ed96d90. Extra doc cleanup bundled. |
 | P3-2 | Bi-temporal nullable cols (mig 17) | `done` | `cp3` | — | CRITIC-PASSED. Worker ab9473b0. Commit 8e25ac4. |
-| P3-3 | Shared memory path fix | `not_started` | — | blocks on P3-2 | CRITIC-PASSED |
+| P3-3 | Bi-temporal active filter in retrieval | `done` | `cp3` | — | CRITIC-PASSED. Commit e8727a7. |
 | P3-4 | NIGHT_CYCLE_MODEL dedup | `not_started` | — | blocks on P3-2 | CRITIC-PASSED |
 | P3-5 | Memory blocks table (mig 18) | `not_started` | — | **STRONG-MODEL ONLY**, blocks on P3-2 | CRITIC-PASSED |
 | P3-6 | Metrics scope fix | `not_started` | — | blocks on P3-5 | CRITIC-PASSED |
@@ -184,11 +184,11 @@
 | Packet | Worker | Status | Started |
 |---|---|---|---|
 | A2-3 | aff87e3a89b0420c1 | **DONE** | commit 237d2a0 |
-| P3-3 | a4f1ad165aa3fd294 | `dispatched` | Wave A |
-| P3-4 | — | `not_started` | — |
+| P3-3 | a4f1ad165aa3fd294 | **DONE** | commit e8727a7 |
+| P3-4 | af63beafa5e750ad2 | `dispatched` | Wave A |
 
 ---
 
 ## Last Updated
 
-2026-05-05 — P3-3 redispatched (worker a4f1ad165aa3fd294, sequential, no isolation). P3-4 reset to not_started (awaiting P3-3 merge). P4-1..5 FALSE SIGNAL flagged. C1-C4 cleanup gaps open.
+2026-05-05 — P3-3 DONE (commit e8727a7, verify cp0-cp3 green). P3-4 dispatched. P4-1..5 FALSE SIGNAL flagged. C1-C4 cleanup gaps open.
