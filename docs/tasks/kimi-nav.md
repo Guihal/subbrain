@@ -85,7 +85,7 @@
 | P3-8 | rag/pipeline.ts → index.ts | `not_started` | — | blocks on P3-7 | CRITIC-PASSED |
 | P3-9 | Memory archive + TTL | `not_started` | — | blocks on P3-8 | CRITIC-PASSED |
 | P6-1 | A2A room init | `done` | `cp3` | — | CRITIC-PASSED. Commit 615920b. 26 LOC, no scope creep. |
-| P6-2 | A2A dispatch hook | `dispatched` | — | — | CRITIC-PASSED. Redispatch: prev worker stuck in guard-bypass loop. Using node-write strategy. |
+| P6-2 | A2A dispatch hook | `done` | `cp3` | — | CRITIC-PASSED. Commit 9699845. Worker a22d163d. |
 | P6-3 | A2A transcripts schema | `not_started` | — | **STRONG-MODEL ONLY** (schema choice), blocks on P6-2 | CRITIC-PASSED |
 | P6-4 | A2A transport wiring | `not_started` | — | `<A2A_TRANSPORT>`, blocks on P6-3 | CRITIC-PASSED |
 | P6-5 | A2A synthesis loop | `not_started` | — | blocks on P6-3, P6-4 | CRITIC-PASSED |
@@ -168,4 +168,4 @@
 
 ## Last Updated
 
-2026-05-05 — Wave 1 ALL done. Spec cleanup + A2-1 merged in commit 31b3e84. cp0-cp3 green. 23 historical src/ refs remain in docs (intentional). Next dispatch: P3-1 + P6-1.
+2026-05-05 — P6-2 done (commit 9699845). A2-2 done (commit e90a153). P3-1 done (commit ed96d90). P6-1 done (commit 615920b). cp0-cp3 green. Next dispatch: A2-3.
