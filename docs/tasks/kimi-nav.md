@@ -194,4 +194,4 @@
 
 ## Last Updated
 
-2026-05-06 — P3-5 DONE (commit 7db48ff). A2-4 DONE (commit 58f2342). cp0/cp2/cp3 green. cp1: 1 pre-existing biome error (scripts/test-playwright.ts:11). Unblocked: P2-1, P3-6, A2-5, A2-8. Next: dispatch wave.
+2026-05-06 — P3-5 DONE (commit 7db48ff). A2-4 DONE (commit 58f2342). cp2/cp3 green. cp0: RED — untracked junk `packages/core/src/db/tables/agent-tasks.ts` (172 lines) from prior session. cp1: 1 pre-existing biome error. Active wave: A2-5, P2-1, A2-8. Unblocked waiting: P3-6.
