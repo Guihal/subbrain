@@ -59,6 +59,17 @@ services:
       retries: 3
       start_period: 60s
 
+  bifrost:
+    image: maximhq/bifrost:latest
+    container_name: subbrain-bifrost
+    restart: unless-stopped
+    expose: ["8080"]
+    env_file: [.env]
+    volumes:
+      - type: bind
+        source: ./bifrost
+        target: /app/data
+
   web:
     build: ./web
     container_name: subbrain-web

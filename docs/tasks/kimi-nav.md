@@ -32,7 +32,7 @@
 | P1-5 | Bifrost SSE proxy | `not_started` | — | — | CRITIC-PASSED |
 | P1-6 | Bifrost custom provider | `not_started` | — | custom-provider base_url shape | CRITIC-PASSED |
 | A1-1 | Workspace skeleton + guardrail scan roots | `done` | `cp3` | — | CRITIC-PASSED |
-| A1-2 | Shared types pre-split + AuthService -> packages/core | `not_started` | — | — | CRITIC-PASSED |
+| A1-2 | Shared types pre-split + AuthService -> packages/core | `done` | `cp3` | — | CRITIC-PASSED |
 | A1-3 | packages/core: db/, repositories/, lib/* implementations | `not_started` | — | — | CRITIC-PASSED |
 | A1-4 | packages/providers | `not_started` | — | — | CRITIC-PASSED |
 | A1-5 | packages/plugin (types-only stub) | `not_started` | — | — | CRITIC-PASSED |
@@ -56,7 +56,7 @@
 | P5-3 | Pipeline phase spans | `done` | `cp3` | — | CRITIC-PASSED |
 | P5-4 | Agent-loop spans | `done` | `cp3` | — | CRITIC-PASSED |
 | P5-5 | Metrics endpoint | `done` | `cp3` | — | CRITIC-PASSED |
-| P5-6 | OTLP exporter wiring | `not_started` | — | — | CRITIC-PASSED |
+| P5-6 | OTLP exporter wiring | `done` | `cp3` | — | CRITIC-PASSED |
 
 **Wave 1 merge gate:** ALL above `done` → unblocks Wave 2.
 
