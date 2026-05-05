@@ -76,7 +76,7 @@
 | P2-7 | Pool safety (rate-limit) | `not_started` | — | blocks on P2-7a, P2-6 | CRITIC-PASSED |
 | P2-7a | Mutex primitive | `done` | `cp3` | — | CRITIC-PASSED. Commit 06ef49b. Worker ac668624. |
 | P3-1 | Memory bi-temporal verify | `done` | `cp3` | — | CRITIC-PASSED. Commit ed96d90. Extra doc cleanup bundled. |
-| P3-2 | Bi-temporal nullable cols (mig 17) | `not_started` | — | **STRONG-MODEL ONLY** | CRITIC-PASSED |
+| P3-2 | Bi-temporal nullable cols (mig 17) | `dispatched` | — | **STRONG-MODEL ONLY** | CRITIC-PASSED. Worker ab9473b0. |
 | P3-3 | Shared memory path fix | `not_started` | — | blocks on P3-2 | CRITIC-PASSED |
 | P3-4 | NIGHT_CYCLE_MODEL dedup | `not_started` | — | blocks on P3-2 | CRITIC-PASSED |
 | P3-5 | Memory blocks table (mig 18) | `not_started` | — | **STRONG-MODEL ONLY**, blocks on P3-2 | CRITIC-PASSED |
