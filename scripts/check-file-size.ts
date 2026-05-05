@@ -112,6 +112,7 @@ export const TRANSITIONAL_WHITELIST: Record<string, number> = {
   "src/lib/http-client.ts": 151,
   "src/routes/metrics.ts": 155,
   "src/pipeline/night-cycle/janitor/phase-bc.ts": 165,
+  "packages/core/src/lib/fts-utils.ts": 175,
 };
 
 function lookupCap(rel: string): number {

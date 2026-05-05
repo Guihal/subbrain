@@ -1,7 +1,7 @@
 import { afterAll, describe, expect, test } from "bun:test";
-import { Elysia } from "elysia";
 import { authMiddleware } from "@subbrain/core/lib/auth";
 import { AuthService } from "@subbrain/core/services/auth";
+import { Elysia } from "elysia";
 
 const TOKEN = "test-secret-token";
 const app = new Elysia()

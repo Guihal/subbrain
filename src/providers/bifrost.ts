@@ -1,6 +1,7 @@
 import { HttpError } from "../lib/errors";
-import { fetchJson } from "../lib/http-client";
+import { fetchJson, fetchStream } from "../lib/http-client";
 import { ProviderError } from "./nvidia";
+import { createProxyStream } from "./stream-utils";
 import type {
   ChatParams,
   ChatResponse,
@@ -47,8 +48,20 @@ export class BifrostProvider implements LLMProvider {
     }
   }
 
-  chatStream(_p: ChatParams): ReadableStream<Uint8Array> {
-    throw new Error("BifrostProvider.chatStream — implemented in P1-3");
+  chatStream(params: ChatParams): ReadableStream<Uint8Array> {
+    const url = `${this.baseUrl}/v1/chat/completions`;
+    const headers = this.headers();
+    const body = JSON.stringify({ ...params, stream: true });
+    return createProxyStream(() => {
+      if (params.signal?.aborted) {
+        throw params.signal.reason ?? new DOMException("Aborted", "AbortError");
+      }
+      return fetchStream(
+        url,
+        { method: "POST", headers, body },
+        { timeoutMs: 180_000, signal: params.signal },
+      );
+    });
   }
 
   embed(_p: EmbedParams): Promise<EmbedResponse> {

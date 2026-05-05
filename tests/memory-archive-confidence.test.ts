@@ -16,15 +16,15 @@
 import { Database } from "bun:sqlite";
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { existsSync, unlinkSync } from "node:fs";
+import { authMiddleware } from "@subbrain/core/lib/auth";
+import { AuthService } from "@subbrain/core/services/auth";
 import { Elysia } from "elysia";
 import * as sqliteVec from "sqlite-vec";
 import { MemoryDB } from "../src/db";
 import { migrate, openDatabase } from "../src/db/schema";
-import { authMiddleware } from "@subbrain/core/lib/auth";
 import { AppError } from "../src/lib/errors";
 import { RAGPipeline } from "../src/rag";
 import { memoryRoute } from "../src/routes/memory";
-import { AuthService } from "@subbrain/core/services/auth";
 import { MemoryService } from "../src/services/memory";
 
 const TEST_DB = "data/test-mem12-archive.db";

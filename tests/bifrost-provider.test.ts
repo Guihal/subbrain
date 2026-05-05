@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { BifrostProvider } from "../src/providers/bifrost";
 import { ProviderError } from "../src/providers/nvidia";
 
@@ -7,6 +7,14 @@ describe("BifrostProvider", () => {
   const apiKey = "sk-bifrost-test-key-very-long-12345";
   let fetchCalls: { url: string; init: RequestInit }[];
   let _originalFetch: typeof globalThis.fetch;
+
+  beforeAll(() => {
+    _originalFetch = globalThis.fetch;
+  });
+
+  afterAll(() => {
+    globalThis.fetch = _originalFetch;
+  });
 
   function mockFetch(status: number, body: unknown) {
     return async (_url: string | URL | Request, init?: RequestInit) => {

@@ -6,8 +6,8 @@
  * (`pipeline/agent-loop/code-tools`) не держал raw SQL — guardrail #6.
  */
 import type { Database } from "bun:sqlite";
-import { CodeToolsTable } from "../db/tables/code-tools";
 import type { CodeTool } from "@subbrain/core/types/code-tool";
+import { CodeToolsTable } from "../db/tables/code-tools";
 
 export class CodeToolsRepository {
   private readonly table: CodeToolsTable;

@@ -1,3 +1,4 @@
+import { AuthService } from "@subbrain/core/services/auth";
 import { MemoryDB } from "../db";
 import { logger } from "../lib/logger";
 import { Metrics } from "../lib/metrics";
@@ -12,7 +13,6 @@ import { FREE_AGENT_TASK } from "../scheduler/free-agent";
 import { FreelanceScout, type FreelanceScoutConfig } from "../scheduler/freelance";
 import { TelegramPoller } from "../scheduler/telegram-poller";
 import { AgentService } from "../services/agent.service";
-import { AuthService } from "@subbrain/core/services/auth";
 import { ChatService } from "../services/chat";
 import { MemoryService } from "../services/memory";
 import { TelegramBot, Userbot } from "../telegram";
