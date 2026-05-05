@@ -24,7 +24,7 @@
 |---|---|---|---|---|---|
 | P0-1 | AGENTS sync | `done` | `cp3` | — | CRITIC-PASSED |
 | P0-2 | README sync | `done` | `cp3` | — | CRITIC-PASSED |
-| P0-3 | Docs stale-spot fix | `blocked` | — | permission denied mass delete | CRITIC-PASSED |
+| P0-3 | Docs stale-spot fix | `done` | `cp3` | — | CRITIC-PASSED. Already completed in commit fa80e2e (doc deletions archived). Stale blocker cleared. |
 | P1-1 | Bifrost gateway init | `done` | `cp3` | — | CRITIC-PASSED |
 | P1-2 | Bifrost provider config | `done` | `cp3` | — | CRITIC-PASSED |
 | P1-3 | Bifrost health + fallback | `done` | `cp3` | — | CRITIC-PASSED |
