@@ -183,10 +183,10 @@
 
 | Packet | Worker | Status | Started |
 |---|---|---|---|
-| A2-8 | — | pending dispatch | — |
+| A2-8 | abbac4be590c25e79 | dispatched | 2026-05-05 20:45 |
 
 ---
 
 ## Last Updated
 
-2026-05-05 — A2-4 done (commits 0e9677d + d07cf0e + 2be6c85 biome). cp0/cp1/cp2/cp3 all green. A2-8 unblocked. 8e-1 worker stalled (no active process), needs redispatch.
+2026-05-05 — A2-8 dispatched (worker abbac4be590c25e79). A2-4 + 8e-1 done. cp0/cp1/cp2/cp3 all green.
