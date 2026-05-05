@@ -152,17 +152,6 @@ export interface AgentMemRow {
   updated_at: number;
 }
 
-// P3-5 (mig 18): editable named text fragments scoped per role.
-export interface BlockRow {
-  id: string;
-  owner_role: string;
-  label: string;
-  body: string;
-  created_at: number;
-  updated_at: number;
-  version: number;
-}
-
 export interface FtsResult {
   id: string;
   title: string;
