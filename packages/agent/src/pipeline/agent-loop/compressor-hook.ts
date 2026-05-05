@@ -4,8 +4,8 @@
  */
 
 import type { MemoryDB } from "@subbrain/core/db";
-import type { Message } from "@subbrain/providers/types";
 import type { ModelRouter } from "@subbrain/core/lib/model-router";
+import type { Message } from "@subbrain/providers/types";
 import { compressContext, shouldCompress } from "../context-compressor";
 
 export async function maybeCompress(

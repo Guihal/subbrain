@@ -1,7 +1,7 @@
+import type { ModelRouter } from "@subbrain/core/lib/model-router";
 import { sseResponse } from "@subbrain/core/lib/sse";
 import type { ChatRepository } from "@subbrain/core/repositories";
 import type { Message } from "@subbrain/providers/types";
-import type { ModelRouter } from "@subbrain/core/lib/model-router";
 import type { AgentPipeline } from "../../pipeline";
 import type { ChatMeta } from "./meta";
 import { wrapStreamForChat } from "./sse-wrap";

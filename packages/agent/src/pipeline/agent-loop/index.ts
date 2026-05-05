@@ -4,9 +4,9 @@
  */
 import type { MemoryDB } from "@subbrain/core/db";
 import type { Metrics } from "@subbrain/core/lib/metrics";
+import type { ModelRouter } from "@subbrain/core/lib/model-router";
 import { CodeToolsRepository } from "@subbrain/core/repositories/code-tools.repo";
 import type { Tool } from "@subbrain/providers/types";
-import type { ModelRouter } from "@subbrain/core/lib/model-router";
 import type { ToolExecutor, ToolRegistry } from "../../mcp";
 import type { RAGPipeline } from "../../rag";
 import type { ArbitrationRoom } from "../arbitration";

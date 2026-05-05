@@ -4,13 +4,13 @@
  */
 import type { MemoryDB, TaskScope } from "@subbrain/core/db";
 import type { ModelRouter } from "@subbrain/core/lib/model-router";
+import type { HooksDispatcher } from "../../hooks";
 import { getPersonaBio } from "../../lib/personas";
 import type { RAGPipeline, RAGResult } from "../../rag";
 import { runPre } from "../agent-pipeline/phases/pre";
 import { renderActiveTasks, renderTgStatus } from "./prompt-blocks/tasks";
 import type { AgentMode, ScheduleContext } from "./types";
 import { getCurrentDate, MAX_CONTEXT_TOKENS, MAX_DYNAMIC_TOOLS, MAX_STEPS } from "./types";
-import type { HooksDispatcher } from "../../hooks";
 
 function deriveTaskScope(s?: ScheduleContext): TaskScope {
   if (s?.source === "autonomous") return "autonomous";

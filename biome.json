@@ -23,7 +23,8 @@
       "!**/data",
       "!**/*.db",
       "!**/*.sqlite",
-      "!**/coverage"
+      "!**/coverage",
+      "!packages/agent/src/baml_client"
     ]
   },
   "formatter": {
@@ -188,7 +189,7 @@
       }
     },
     {
-      "includes": ["src/db/schema.ts", "src/db/tables/**"],
+      "includes": ["packages/core/src/db/schema.ts", "packages/core/src/db/tables/**"],
       "linter": {
         "rules": {
           "style": {
@@ -198,7 +199,7 @@
       }
     },
     {
-      "includes": ["src/repositories/memory/index.ts"],
+      "includes": ["packages/core/src/repositories/memory/index.ts"],
       "linter": {
         "rules": {
           "suspicious": {

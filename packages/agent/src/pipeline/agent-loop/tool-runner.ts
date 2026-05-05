@@ -9,17 +9,17 @@
  */
 
 import type { logger } from "@subbrain/core/lib/logger";
-import { getTracer } from "@subbrain/core/lib/telemetry";
-import type { ToolCall } from "@subbrain/providers/types";
 import type { ModelRouter } from "@subbrain/core/lib/model-router";
+import { getTracer } from "@subbrain/core/lib/telemetry";
+import { type ToolResult as PluginToolResult, toLegacy } from "@subbrain/plugin";
+import type { ToolCall } from "@subbrain/providers/types";
+import type { HooksDispatcher } from "../../hooks";
 import type { ToolExecutor, ToolRegistry } from "../../mcp";
 import type { AgentLoopSession, AgentMode } from "../../mcp/registry/tool-registry";
 import type { ArbitrationRoom } from "../arbitration";
 import type { CodeToolRegistry } from "./code-tools";
 import { executeSandboxed } from "./code-tools/sandbox";
 import type { DynamicToolDef, DynamicToolRegistry } from "./dynamic-tools";
-import { HooksDispatcher } from "../../hooks";
-import { toLegacy, type ToolResult as PluginToolResult } from "@subbrain/plugin";
 
 const CRITIC_TIMEOUT_MS = Number(process.env.CRITIC_TIMEOUT_MS ?? 300_000);
 const CONSULT_TIMEOUT_MS = Number(process.env.CONSULT_TIMEOUT_MS ?? 600_000);
@@ -97,7 +97,9 @@ function parseOk(result: string): { ok: boolean; code?: string } {
       return { ok: false, code };
     }
     if (p.success === false) return { ok: false };
-  } catch { /* non-JSON = success */ }
+  } catch {
+    /* non-JSON = success */
+  }
   return { ok: true };
 }
 
@@ -110,11 +112,22 @@ function stringToToolResult(result: string): PluginToolResult {
     };
     if (p.success === true) return { kind: "success", data: p.data };
     if (p.error && typeof p.error === "object") {
-      if (p.error.code === "timeout") return { kind: "timeout", error: { code: p.error.code, message: p.error.message, timeout_ms: p.error.timeout_ms ?? 0 } };
+      if (p.error.code === "timeout")
+        return {
+          kind: "timeout",
+          error: {
+            code: p.error.code,
+            message: p.error.message,
+            timeout_ms: p.error.timeout_ms ?? 0,
+          },
+        };
       return { kind: "failure", error: { code: p.error.code, message: p.error.message } };
     }
-    if (p.error && typeof p.error === "string") return { kind: "failure", error: { code: "unknown", message: p.error } };
-  } catch { /* non-JSON = raw success (e.g. done) */ }
+    if (p.error && typeof p.error === "string")
+      return { kind: "failure", error: { code: "unknown", message: p.error } };
+  } catch {
+    /* non-JSON = raw success (e.g. done) */
+  }
   return { kind: "success", data: result };
 }
 
@@ -135,13 +148,22 @@ export async function executeAgentTool(
     return JSON.stringify({ error: "Invalid JSON arguments" });
   }
 
-  log.info("agent-loop", `Tool: ${name}(${JSON.stringify(args).slice(0, 200)})`, { meta: { tool: name } });
+  log.info("agent-loop", `Tool: ${name}(${JSON.stringify(args).slice(0, 200)})`, {
+    meta: { tool: name },
+  });
 
   const ctx = {
-    executor: deps.tools, router: deps.router, room: deps.room,
-    dynamicTools: deps.dynamicTools, persistDynamicTools: deps.persistDynamicTools,
-    codeTools: deps.codeTools, log, registry: deps.registry,
-    session: deps.session, agentId: deps.agentId, agentMode: deps.agentMode,
+    executor: deps.tools,
+    router: deps.router,
+    room: deps.room,
+    dynamicTools: deps.dynamicTools,
+    persistDynamicTools: deps.persistDynamicTools,
+    codeTools: deps.codeTools,
+    log,
+    registry: deps.registry,
+    session: deps.session,
+    agentId: deps.agentId,
+    agentMode: deps.agentMode,
   };
 
   try {
@@ -172,23 +194,39 @@ export async function executeAgentTool(
         return res;
       };
       if (deps.registry.has(name)) {
-        const r = await deps.registry.callAsAgent(name, args, {
-          executor: deps.tools, router: deps.router, room: deps.room,
-          dynamicTools: deps.dynamicTools, persistDynamicTools: deps.persistDynamicTools,
-          codeTools: deps.codeTools, log, registry: deps.registry,
-          session: deps.session, agentId: deps.agentId, agentMode: deps.agentMode,
-        }, signal);
-        if (name === "done" && r.success && typeof r.data === "string") return await runAfter(r.data);
+        const r = await deps.registry.callAsAgent(
+          name,
+          args,
+          {
+            executor: deps.tools,
+            router: deps.router,
+            room: deps.room,
+            dynamicTools: deps.dynamicTools,
+            persistDynamicTools: deps.persistDynamicTools,
+            codeTools: deps.codeTools,
+            log,
+            registry: deps.registry,
+            session: deps.session,
+            agentId: deps.agentId,
+            agentMode: deps.agentMode,
+          },
+          signal,
+        );
+        if (name === "done" && r.success && typeof r.data === "string")
+          return await runAfter(r.data);
         return await runAfter(JSON.stringify(r));
       }
       const dynTool = deps.dynamicTools.get(name);
-      if (dynTool) return await runAfter(await executeDynamicTool(dynTool, args, deps.router, log, signal));
+      if (dynTool)
+        return await runAfter(await executeDynamicTool(dynTool, args, deps.router, log, signal));
       if (name.startsWith("code_") && deps.codeTools) {
         const toolName = name.slice(5);
         const codeTool = deps.codeTools.getByName(toolName);
         if (codeTool) {
           if (!codeTool.enabled)
-            return await runAfter(JSON.stringify({ error: `Code tool "${toolName}" is disabled (too many errors)` }));
+            return await runAfter(
+              JSON.stringify({ error: `Code tool "${toolName}" is disabled (too many errors)` }),
+            );
           const input = (args.input as string) || "";
           log.info("agent-loop", `Executing code tool: ${toolName}`);
           const res = await executeSandboxed(codeTool.code, input);

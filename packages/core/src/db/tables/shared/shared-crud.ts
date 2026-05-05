@@ -21,7 +21,20 @@ export function insertShared(
   const observedAt = opts?.observed_at ?? null;
   db.query(
     "INSERT INTO shared_memory (id, category, content, tags, source, confidence, status, kind, expires_at, valid_from, valid_to, observed_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-  ).run(id, category, content, tags, source ?? null, conf, status, kind, expiresAt, validFrom, validTo, observedAt);
+  ).run(
+    id,
+    category,
+    content,
+    tags,
+    source ?? null,
+    conf,
+    status,
+    kind,
+    expiresAt,
+    validFrom,
+    validTo,
+    observedAt,
+  );
 }
 
 export function getAllShared(db: Database): SharedRow[] {

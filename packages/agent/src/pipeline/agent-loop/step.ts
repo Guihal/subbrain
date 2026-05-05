@@ -9,13 +9,13 @@
 import type { MemoryDB } from "@subbrain/core/db";
 import type { logger } from "@subbrain/core/lib/logger";
 import type { Priority } from "@subbrain/core/lib/model-map";
+import type { ModelRouter } from "@subbrain/core/lib/model-router";
 import { getTracer } from "@subbrain/core/lib/telemetry";
 import type { Message, Tool, ToolCall } from "@subbrain/providers/types";
-import type { ModelRouter } from "@subbrain/core/lib/model-router";
 import { maybeCompress } from "./compressor-hook";
 import { runToolCall } from "./tool-dispatch";
 import type { ToolRunnerDeps } from "./tool-runner";
-import { estimateTokens, MAX_CONTEXT_TOKENS, type AgentLoopRequest } from "./types";
+import { type AgentLoopRequest, estimateTokens, MAX_CONTEXT_TOKENS } from "./types";
 
 export interface StepDeps {
   router: ModelRouter;

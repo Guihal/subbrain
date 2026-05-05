@@ -2,11 +2,7 @@ import type { MemoryDB } from "@subbrain/core/db";
 import { applyForgettingCurve } from "@subbrain/core/lib/memory-decay";
 import type { ModelRouter } from "@subbrain/core/lib/model-router";
 import type { RAGResult, RAGSearchOptions } from "../types";
-import {
-  applyEdgeWalkBoost,
-  bumpAccessAsync,
-  SALIENCE_BOOST_FACTOR,
-} from "./boosts";
+import { applyEdgeWalkBoost, bumpAccessAsync, SALIENCE_BOOST_FACTOR } from "./boosts";
 import { EmbedCache, embedBatch, embedContent } from "./embed";
 import { ftsSearch } from "./fts";
 import { rerank } from "./rerank";

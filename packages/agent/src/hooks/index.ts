@@ -1,2 +1,2 @@
+export type { Hooks, Plugin, ToolDefinition, ToolResult } from "@subbrain/plugin";
 export { HooksDispatcher } from "./dispatcher";
-export type { Hooks, Plugin, ToolResult, ToolDefinition } from "@subbrain/plugin";

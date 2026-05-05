@@ -44,7 +44,7 @@ const RULES: Rule[] = [
   // Credit card — 13-19 digits with optional spaces/dashes
   {
     type: "card",
-    regex: /\b(?:\d{4}[\s\-]?){3,4}\d{1,4}\b|\b\d{13,19}\b/g,
+    regex: /\b(?:\d{4}[\s-]?){3,4}\d{1,4}\b|\b\d{13,19}\b/g,
   },
   // Russian passport — 4 digits space 6 digits
   {
@@ -59,13 +59,13 @@ const RULES: Rule[] = [
   // IPv4 — dotted quad
   {
     type: "ipv4",
-    regex: /\b(?:25[0-5]|2[0-4]\d|1\d{1,2}|[1-9]?\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d{1,2}|[1-9]?\d)){3}\b/g,
+    regex:
+      /\b(?:25[0-5]|2[0-4]\d|1\d{1,2}|[1-9]?\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d{1,2}|[1-9]?\d)){3}\b/g,
   },
   // Phone — +7, 8-xxx, international; require at least 10 digits total
   {
     type: "phone",
-    regex:
-      /\+?\d(?:[\d\s\-()]{8,}\d|\d{9,})/g,
+    regex: /\+?\d(?:[\d\s\-()]{8,}\d|\d{9,})/g,
   },
   // Street address heuristic — starts with a number, contains street keywords
   {
@@ -118,8 +118,13 @@ export function scrubPII(text: string): ScrubResult {
       if (rule.type === "phone") {
         const insideOther = matches.some(
           (x) =>
-            (x.type === "iban" || x.type === "card" || x.type === "passport_ru" || x.type === "inn_ru" || x.type === "ipv4") &&
-            start >= x.start && end <= x.end,
+            (x.type === "iban" ||
+              x.type === "card" ||
+              x.type === "passport_ru" ||
+              x.type === "inn_ru" ||
+              x.type === "ipv4") &&
+            start >= x.start &&
+            end <= x.end,
         );
         if (insideOther) continue;
       }
@@ -137,9 +142,7 @@ export function scrubPII(text: string): ScrubResult {
 
   const deduped: typeof matches = [];
   for (const m of matches) {
-    const overlaps = deduped.some(
-      (d) => m.start < d.end && m.end > d.start,
-    );
+    const overlaps = deduped.some((d) => m.start < d.end && m.end > d.start);
     if (!overlaps) {
       deduped.push(m);
     }

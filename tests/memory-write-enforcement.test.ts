@@ -200,7 +200,7 @@ describe("default expires_at by category", () => {
     expect(r.success).toBe(true);
     const row = memory.getShared("ttl2");
     expect(row?.expires_at).not.toBeNull();
-    expect(row!.expires_at).toBeGreaterThan(NOW_SEC() + 179 * 86400);
+    expect(row?.expires_at).toBeGreaterThan(NOW_SEC() + 179 * 86400);
     delete process.env.MEMORY_VALIDATORS_ENFORCE;
   });
 

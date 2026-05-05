@@ -12,11 +12,11 @@ export class Mutex {
           next(release);
         }
       };
-      if (!this.held) {
+      if (this.held) {
+        this.queue.push(resolve);
+      } else {
         this.held = true;
         resolve(release);
-      } else {
-        this.queue.push(resolve);
       }
     });
   }
@@ -29,7 +29,12 @@ export class Mutex {
       const next = this.queue.shift();
       if (next) {
         this.held = true;
-        next(this.tryAcquire() ?? (() => { this.held = false; }));
+        next(
+          this.tryAcquire() ??
+            (() => {
+              this.held = false;
+            }),
+        );
       }
     };
   }

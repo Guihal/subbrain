@@ -7,14 +7,14 @@
  * Returns enriched system prompt + stats for metrics/logging.
  */
 import type { MemoryDB } from "@subbrain/core/db";
-import { getTracer } from "@subbrain/core/lib/telemetry";
 import type { ModelRouter } from "@subbrain/core/lib/model-router";
+import { getTracer } from "@subbrain/core/lib/telemetry";
+import type { HooksDispatcher } from "../../../hooks";
 import type { RAGPipeline, RAGResult } from "../../../rag";
 import { buildSystemPrompt } from "../helpers";
 import { buildExecutiveSummary } from "../pre/exec-summary";
 import { buildSeedContext, loadFocusSeed } from "../pre/focus-inject";
 import type { PreProcessingOutput } from "../types";
-import type { HooksDispatcher } from "../../../hooks";
 
 export interface PreStats {
   ragCount: number;

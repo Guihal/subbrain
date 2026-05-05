@@ -17,15 +17,11 @@ export interface Hooks {
       toolName: string;
       args: unknown;
       ctx: unknown;
-    }) => Promise<ToolResult | void>,
+    }) => Promise<ToolResult | undefined>,
   ): void;
 
   onToolAfter(
-    handler: (args: {
-      toolName: string;
-      args: unknown;
-      result: ToolResult;
-    }) => Promise<void>,
+    handler: (args: { toolName: string; args: unknown; result: ToolResult }) => Promise<void>,
   ): void;
 
   onChatParams(
@@ -35,15 +31,22 @@ export interface Hooks {
       tools: unknown[];
       temperature?: number;
       max_tokens?: number;
-    }) => Promise<void | { model: string; messages: unknown[]; tools: unknown[]; temperature?: number; max_tokens?: number }>,
+    }) => Promise<
+      | undefined
+      | {
+          model: string;
+          messages: unknown[];
+          tools: unknown[];
+          temperature?: number;
+          max_tokens?: number;
+        }
+    >,
   ): void;
 
-  onChatSystemTransform(
-    handler: (args: { system: string; ctx: unknown }) => Promise<string>,
-  ): void;
+  onChatSystemTransform(handler: (args: { system: string; ctx: unknown }) => Promise<string>): void;
 
   onPermissionAsk(
-    handler: (args: { toolName: string; args: unknown }) => Promise<boolean | void>,
+    handler: (args: { toolName: string; args: unknown }) => Promise<boolean | undefined>,
   ): void;
 }
 

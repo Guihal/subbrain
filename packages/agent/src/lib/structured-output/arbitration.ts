@@ -5,7 +5,7 @@ export type Result<T> = { ok: true; value: T } | { ok: false; error: string };
 
 export function parseArbitrationSynthesis(raw: string): Result<BamlArbitrationSynthesis> {
   const fence = raw.match(/```json\s*([\s\S]*?)\s*```/);
-  const jsonText = fence ? fence[1]!.trim() : raw.trim();
+  const jsonText = fence ? fence[1]?.trim() : raw.trim();
 
   let parsed: unknown;
   try {

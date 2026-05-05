@@ -9,11 +9,11 @@
 import { logger } from "@subbrain/core/lib/logger";
 import { normalizeMessages } from "@subbrain/core/lib/messages";
 import { MODEL_MAP, resolveModel } from "@subbrain/core/lib/model-map";
+import type { ModelRouter } from "@subbrain/core/lib/model-router";
 import { maskSecrets } from "@subbrain/core/lib/redact";
 import type { ChatRepository, MemoryRepository } from "@subbrain/core/repositories";
 import { ProviderError } from "@subbrain/providers";
 import type { Message } from "@subbrain/providers/types";
-import type { ModelRouter } from "@subbrain/core/lib/model-router";
 import type { AgentPipeline } from "../../pipeline";
 import { compressContext, shouldCompress } from "../../pipeline/context-compressor";
 import type { MemoryService } from "../memory";

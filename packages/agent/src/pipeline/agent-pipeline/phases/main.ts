@@ -4,12 +4,12 @@
 
 import type { RequestLogger } from "@subbrain/core/lib/logger";
 import type { Metrics } from "@subbrain/core/lib/metrics";
+import type { ModelRouter } from "@subbrain/core/lib/model-router";
 import { getTracer } from "@subbrain/core/lib/telemetry";
 import type { ChatResponse } from "@subbrain/providers/types";
-import type { ModelRouter } from "@subbrain/core/lib/model-router";
+import type { HooksDispatcher } from "../../../hooks";
 import { injectSystemPrompt } from "../helpers";
 import type { PipelineRequest } from "../types";
-import type { HooksDispatcher } from "../../../hooks";
 
 export interface MainResult {
   response: ChatResponse;

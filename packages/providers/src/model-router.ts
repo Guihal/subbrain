@@ -5,12 +5,12 @@ import {
   resolveModel,
 } from "@subbrain/core/lib/model-map";
 import type { BifrostProvider } from "./bifrost";
-import type { ProviderError } from "./nvidia";
-import type { ChatParams, ChatResponse, LLMProvider } from "./types";
 import { type Backend, PROVIDER_RPM } from "./model-router/constants";
 import { runChatDispatch } from "./model-router/dispatch";
 import { createFallbackStream } from "./model-router/stream";
+import type { ProviderError } from "./nvidia";
 import { RateLimiter } from "./rate-limiter";
+import type { ChatParams, ChatResponse, LLMProvider } from "./types";
 
 /** Per-provider reserved slot count; drops into direct-mode below this. */
 const RESERVED_SLOTS = 8;

@@ -68,7 +68,11 @@ export interface AgentLoopRequest {
   /** Abort signal propagated to the upstream chat call. */
   signal?: AbortSignal;
   /** Callback invoked with token usage after each step's model response. */
-  onUsage?: (usage: { prompt_tokens: number; completion_tokens: number; total_tokens: number }) => void;
+  onUsage?: (usage: {
+    prompt_tokens: number;
+    completion_tokens: number;
+    total_tokens: number;
+  }) => void;
 }
 
 export interface AgentLoopStep {

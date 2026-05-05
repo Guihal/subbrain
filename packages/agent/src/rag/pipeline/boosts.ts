@@ -36,10 +36,7 @@ export function applySalienceBoost(results: RAGResult[]): RAGResult[] {
   return boosted;
 }
 
-export function applyEdgeWalkBoost(
-  results: RAGResult[],
-  memory: MemoryDB,
-): RAGResult[] {
+export function applyEdgeWalkBoost(results: RAGResult[], memory: MemoryDB): RAGResult[] {
   if (results.length === 0) return results;
   const reachable = new Set<string>();
   for (const r of results) {

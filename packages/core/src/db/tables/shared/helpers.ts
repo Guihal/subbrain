@@ -40,7 +40,9 @@ export function buildActiveFilter(
   // P3-3: bi-temporal active filter — exact SQL:
   // AND (valid_from IS NULL OR valid_from <= unixepoch()) AND (valid_to IS NULL OR valid_to > unixepoch())
   if (opts?.activeOnly) {
-    parts.push(`AND (${alias}.valid_from IS NULL OR ${alias}.valid_from <= unixepoch()) AND (${alias}.valid_to IS NULL OR ${alias}.valid_to > unixepoch())`);
+    parts.push(
+      `AND (${alias}.valid_from IS NULL OR ${alias}.valid_from <= unixepoch()) AND (${alias}.valid_to IS NULL OR ${alias}.valid_to > unixepoch())`,
+    );
   }
   return parts.length === 0 ? "" : ` ${parts.join(" ")}`;
 }

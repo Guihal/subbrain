@@ -5,8 +5,8 @@
 
 import type { TaskCategory } from "./weights";
 
-export type { TaskCategory };
 export type { ParticipantInput, ParticipantOutput, RoomParticipant } from "./participants";
+export type { TaskCategory };
 
 export interface RoomConfig {
   /** Which specialist roles to invoke */

@@ -42,7 +42,11 @@ export class LocalParticipant implements RoomParticipant {
   ) {}
 
   async ask(input: ParticipantInput): Promise<ParticipantOutput> {
-    const systemPrompt = buildSpecialistSystemPrompt(this.id, input.category, input.executiveSummary);
+    const systemPrompt = buildSpecialistSystemPrompt(
+      this.id,
+      input.category,
+      input.executiveSummary,
+    );
     const start = Date.now();
     const controller = new AbortController();
     if (input.signal) {

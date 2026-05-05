@@ -4,8 +4,9 @@
 import type { MemoryDB } from "@subbrain/core/db";
 import type { RequestLogger } from "@subbrain/core/lib/logger";
 import type { Metrics } from "@subbrain/core/lib/metrics";
-import { getTracer } from "@subbrain/core/lib/telemetry";
 import type { ModelRouter } from "@subbrain/core/lib/model-router";
+import { getTracer } from "@subbrain/core/lib/telemetry";
+import type { HooksDispatcher } from "../../../hooks";
 import type { ToolExecutor } from "../../../mcp";
 import type { ToolRegistry } from "../../../mcp/registry";
 import type { RAGPipeline } from "../../../rag";
@@ -13,7 +14,6 @@ import { injectSystemPrompt } from "../helpers";
 import type { PipelineRequest } from "../types";
 import { runPostFromStream } from "./post";
 import { runPre } from "./pre";
-import type { HooksDispatcher } from "../../../hooks";
 
 const SSE_KEEPALIVE_MS = 8_000;
 
@@ -123,7 +123,10 @@ export function buildPipelineStream(args: {
           tool_choice: req.tool_choice,
         };
 
-        if (args.hooks) { const transformed = await args.hooks.runChatParams(params); if (transformed) Object.assign(params, transformed); }
+        if (args.hooks) {
+          const transformed = await args.hooks.runChatParams(params);
+          if (transformed) Object.assign(params, transformed);
+        }
         log.info("main", `Streaming via ${req.model}`, { model: req.model });
         const modelStream = await deps.router.chatStream(req.model, params);
 
