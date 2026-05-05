@@ -185,9 +185,9 @@
 
 | Packet | Worker | Status | Started |
 |---|---|---|---|
-| A2-3 | aff87e3a89b0420c1 | **DONE** | commit 237d2a0 |
-| P3-3 | a4f1ad165aa3fd294 | **DONE** | commit e8727a7 |
-| P3-4 | a270dc9d06a8ef641 | **DONE** | commit 283b66c |
+| A2-5 | af0cd2b62c46b06b2 | **RUNNING** | in_progress |
+| P2-1 | a2ec0635510d230bc | **RUNNING** | in_progress |
+| A2-8 | a56d3f85ae9decdc1 | **RUNNING** | in_progress |
 
 ---
 
