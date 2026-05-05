@@ -25,8 +25,8 @@
 | P0-1 | AGENTS sync | `done` | `cp3` | — | CRITIC-PASSED |
 | P0-2 | README sync | `done` | `cp3` | — | CRITIC-PASSED |
 | P0-3 | Docs stale-spot fix | `blocked` | — | permission denied mass delete | CRITIC-PASSED |
-| P1-1 | Bifrost gateway init | `not_started` | — | `<TBD-Bifrost-IMAGE>` | CRITIC-PASSED |
-| P1-2 | Bifrost provider config | `not_started` | — | `<TBD-Bifrost-URL>` | CRITIC-PASSED |
+| P1-1 | Bifrost gateway init | `done` | `cp3` | — | CRITIC-PASSED |
+| P1-2 | Bifrost provider config | `not_started` | — | — | CRITIC-PASSED |
 | P1-3 | Bifrost health + fallback | `not_started` | — | — | CRITIC-PASSED |
 | P1-4 | Bifrost rate-limiter reuse | `not_started` | — | — | CRITIC-PASSED |
 | P1-5 | Bifrost SSE proxy | `not_started` | — | — | CRITIC-PASSED |
