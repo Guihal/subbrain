@@ -15,9 +15,9 @@
  * atomicity via `this.transaction()`.
  */
 import type { Database } from "bun:sqlite";
+import type { MemoryStatus } from "../../db/index";
 import { MemoryTable } from "../../db/tables/memory";
 import { SharedTable } from "../../db/tables/shared";
-import type { MemoryStatus } from "../../db/types";
 import { bumpAccess, decaySalience } from "./access";
 import { type MemHelpers, makeMemHelpers } from "./mem-helpers";
 import { makeSharedHelpers, type SharedHelpers } from "./shared-helpers";

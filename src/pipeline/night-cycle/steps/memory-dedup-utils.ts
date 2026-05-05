@@ -2,8 +2,8 @@
  * MEM-6: helpers for memory-dedup.ts. Split out to keep the orchestrator
  * under the 250-LOC cap. Pure / small DB ops only — no external IO.
  */
-import type { ContextRow, MemoryDB, SharedRow } from "../../../db";
-import { logger } from "../../../lib/logger";
+import type { ContextRow, MemoryDB, SharedRow } from "@subbrain/core/db";
+import { logger } from "@subbrain/core/lib/logger";
 import type { RAGPipeline } from "../../../rag";
 
 const log = logger.child("night.memory-dedup");

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { unlinkSync } from "node:fs";
-import { MemoryDB } from "../src/db";
+import { MemoryDB } from "@subbrain/core/db";
 import { compressContext, SOFT_LIMIT, shouldCompress } from "../src/pipeline/context-compressor";
 import type { ChatResponse, Message } from "../src/providers/types";
 

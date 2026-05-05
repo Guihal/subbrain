@@ -11,7 +11,7 @@
 import type { Database } from "bun:sqlite";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, unlinkSync } from "node:fs";
-import { migrate, openDatabase } from "../src/db/schema";
+import { migrate, openDatabase } from "@subbrain/core/db/schema";
 
 const TEST_DB = "data/test-schema-migrations.db";
 

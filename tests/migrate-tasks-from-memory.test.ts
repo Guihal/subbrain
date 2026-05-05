@@ -7,9 +7,9 @@
 import { afterAll, beforeEach, describe, expect, test } from "bun:test";
 import { randomUUID } from "node:crypto";
 import { existsSync, readFileSync, rmSync, unlinkSync } from "node:fs";
+import { MemoryDB } from "@subbrain/core/db";
 import { type JsonlEntry, runMigration } from "../scripts/migrate-tasks-from-memory";
 import { runRollback } from "../scripts/rollback-migration";
-import { MemoryDB } from "../src/db";
 import {
   collectStrayTasks,
   LAST_RUN_FOCUS_KEY,

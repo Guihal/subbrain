@@ -7,7 +7,7 @@
  * classify.ts (heuristic classifier).
  */
 
-import type { Metrics } from "../../lib/metrics";
+import type { Metrics } from "@subbrain/core/lib/metrics";
 import type { ModelRouter } from "../../lib/model-router";
 import { classifyMessage } from "./classify";
 import { dispatchSpecialists } from "./dispatch";

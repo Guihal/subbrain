@@ -21,7 +21,7 @@
  * the class API (read/write/delete/search/contextSummary/setMemoryService)
  * stable and delegates each method to a pure function in a sibling file.
  */
-import type { MemoryDB } from "../../../db";
+import type { MemoryDB } from "@subbrain/core/db";
 import type { RAGPipeline } from "../../../rag";
 import type { MemoryService } from "../../../services/memory";
 import type { ToolResult } from "../../types";

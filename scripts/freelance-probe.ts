@@ -6,7 +6,7 @@
  *   bun run scripts/freelance-probe.ts --save   # also save tests/fixtures/freelance/<source>-real.txt
  */
 import { writeFileSync } from "node:fs";
-import type { FreelanceSource } from "../src/db";
+import type { FreelanceSource } from "@subbrain/core/db";
 import { PlaywrightClient } from "../src/mcp";
 import { pageSnapshot } from "../src/mcp/snapshot";
 import { parseFor } from "../src/scheduler/freelance/parsers";

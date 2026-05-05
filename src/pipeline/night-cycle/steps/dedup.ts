@@ -1,4 +1,4 @@
-import type { MemoryDB } from "../../../db";
+import type { MemoryDB } from "@subbrain/core/db";
 import type { ModelRouter } from "../../../lib/model-router";
 import type { RAGPipeline } from "../../../rag";
 import type { CompressedEntry } from "../types";

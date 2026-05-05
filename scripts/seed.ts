@@ -6,7 +6,7 @@
  */
 
 import { randomUUID } from "node:crypto";
-import { MemoryDB } from "../src/db";
+import { MemoryDB } from "@subbrain/core/db";
 import { ModelRouter } from "../src/lib/model-router";
 import { createProviders } from "../src/providers";
 import { RAGPipeline } from "../src/rag";

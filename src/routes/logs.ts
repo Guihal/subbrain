@@ -1,6 +1,6 @@
+import type { MemoryDB } from "@subbrain/core/db";
+import { maskSecrets } from "@subbrain/core/lib/redact";
 import { Elysia, t } from "elysia";
-import type { MemoryDB } from "../db";
-import { maskSecrets } from "../lib/redact";
 
 /**
  * Logs viewing endpoint for debugging and monitoring.

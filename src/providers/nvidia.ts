@@ -1,5 +1,5 @@
-import { HttpError, redactSecrets } from "../lib/errors";
-import { fetchJson, fetchStream } from "../lib/http-client";
+import { HttpError, redactSecrets } from "@subbrain/core/lib/errors";
+import { fetchJson, fetchStream } from "@subbrain/core/lib/http-client";
 import { createProxyStream } from "./stream-utils";
 import type {
   ChatParams,

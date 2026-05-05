@@ -6,7 +6,7 @@
  * so fixtures / tests / future providers do not explode here.
  */
 
-import type { logger } from "../../lib/logger";
+import type { logger } from "@subbrain/core/lib/logger";
 import type { ToolCall } from "../../providers/types";
 import { executeAgentTool, type ToolRunnerDeps } from "./tool-runner";
 

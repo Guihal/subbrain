@@ -1,4 +1,4 @@
-import type { MemoryDB } from "../../db";
+import type { MemoryDB } from "@subbrain/core/db";
 import type { ModelRouter } from "../../lib/model-router";
 import type { CodeToolRegistry } from "../../pipeline/agent-loop/code-tools";
 import type { ArbitrationRoom } from "../../pipeline/arbitration";

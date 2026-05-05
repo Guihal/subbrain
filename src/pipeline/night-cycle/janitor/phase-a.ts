@@ -5,8 +5,8 @@
  *
  * Calls MemoryDB facade methods (Data layer) — no raw SQL in pipeline.
  */
-import type { MemoryDB } from "../../../db";
-import { logger } from "../../../lib/logger";
+import type { MemoryDB } from "@subbrain/core/db";
+import { logger } from "@subbrain/core/lib/logger";
 
 const log = logger.child("night.janitor");
 

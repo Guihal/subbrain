@@ -1,3 +1,4 @@
+import { initTelemetry } from "@subbrain/core/lib/telemetry";
 import { createApp } from "./app/bootstrap";
 import { initDeps } from "./app/deps";
 import {
@@ -8,7 +9,6 @@ import {
   installTelegramWebhook,
 } from "./app/schedulers";
 import { registerShutdown } from "./app/shutdown";
-import { initTelemetry } from "./lib/telemetry";
 import { installFreeAgentScheduler } from "./scheduler/free-agent";
 
 initTelemetry();

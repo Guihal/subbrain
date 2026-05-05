@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { unlinkSync } from "node:fs";
-import { MemoryDB } from "../src/db";
+import { MemoryDB } from "@subbrain/core/db";
 import type { ToolContext } from "../src/mcp/registry/tool-registry";
 import { sendReport } from "../src/mcp/tools/telegram-report";
 import type { ToolResult } from "../src/mcp/types";

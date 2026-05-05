@@ -1,5 +1,5 @@
+import { MODEL_MAP } from "@subbrain/core/lib/model-map";
 import { Elysia } from "elysia";
-import { MODEL_MAP } from "../lib/model-map";
 import type { ModelRouter } from "../lib/model-router";
 
 const ROLE_LABELS: Record<string, string> = {

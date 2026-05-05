@@ -4,7 +4,7 @@
  * back to rag.embedContent for missing ids (e.g. unit tests inserting raw
  * rows without indexEntry). Pure-math `cosine()` consumes the resulting Map.
  */
-import type { MemoryDB } from "../../../db";
+import type { MemoryDB } from "@subbrain/core/db";
 import type { RAGPipeline } from "../../../rag";
 
 export type LayerName = "shared" | "context";

@@ -20,8 +20,8 @@
  * idempotency relies on the skip-guard hitting the freshly inserted shared
  * row. Errors swallowed + counted, never thrown.
  */
-import type { MemoryDB, SharedRow } from "../../../db";
-import { logger } from "../../../lib/logger";
+import type { MemoryDB, SharedRow } from "@subbrain/core/db";
+import { logger } from "@subbrain/core/lib/logger";
 import type { MemoryService } from "../../../services/memory";
 
 const log = logger.child("night.cross-layer");

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { maskSecrets } from "../src/lib/redact";
+import { maskSecrets } from "@subbrain/core/lib/redact";
 
 describe("maskSecrets", () => {
   test("JSON api_key", () => {

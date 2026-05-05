@@ -14,9 +14,9 @@
  * apply).
  */
 import { existsSync, readFileSync } from "node:fs";
-import type { MemoryDB } from "../src/db";
-import { MemoryDB as MemoryDBImpl } from "../src/db";
-import { logger } from "../src/lib/logger";
+import type { MemoryDB } from "@subbrain/core/db";
+import { MemoryDB as MemoryDBImpl } from "@subbrain/core/db";
+import { logger } from "@subbrain/core/lib/logger";
 import type { JsonlEntry } from "./migrate-tasks-from-memory";
 
 const log = logger.child("migrate.rollback");

@@ -3,7 +3,7 @@
  * Uses AbortSignal.any to compose external signal with per-call timeout.
  */
 
-import type { Metrics } from "../../lib/metrics";
+import type { Metrics } from "@subbrain/core/lib/metrics";
 import type { ModelRouter } from "../../lib/model-router";
 import { buildSynthesisSystemPrompt } from "./prompts";
 import { type AgentResponse, getSynthesisTimeout } from "./types";

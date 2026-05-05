@@ -7,8 +7,8 @@
  *
  * All phases isolated + independently unit-testable.
  */
-import type { MemoryDB } from "../../../db";
-import { logger } from "../../../lib/logger";
+import type { MemoryDB } from "@subbrain/core/db";
+import { logger } from "@subbrain/core/lib/logger";
 import type { RAGPipeline } from "../../../rag";
 import type { Notifier } from "../../../telegram/bot/notify";
 import { runPhaseA } from "./phase-a";

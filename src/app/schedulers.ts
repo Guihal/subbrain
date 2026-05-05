@@ -1,4 +1,4 @@
-import { logger } from "../lib/logger";
+import { logger } from "@subbrain/core/lib/logger";
 import type { AppDeps } from "./deps";
 import type { NightCycleController } from "./night-cycle-controller";
 

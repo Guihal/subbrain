@@ -9,7 +9,7 @@
  * Operation is atomic via db.transaction().
  */
 import { randomUUID } from "node:crypto";
-import type { ArchiveRow, MemoryDB } from "../../db";
+import type { ArchiveRow, MemoryDB } from "@subbrain/core/db";
 
 export interface RestoreResult {
   archiveId: string;

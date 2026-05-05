@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
-import type { MemoryDB, TaskScope, TaskStatus } from "../../db";
-import { InvalidTransitionError } from "../../db";
-import { logger } from "../../lib/logger";
+import type { MemoryDB, TaskScope, TaskStatus } from "@subbrain/core/db";
+import { InvalidTransitionError } from "@subbrain/core/db";
+import { logger } from "@subbrain/core/lib/logger";
 import type { ToolResult } from "../types";
 
 const log = logger.child("tasks.tools");

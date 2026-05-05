@@ -20,11 +20,11 @@
 
 import { afterAll, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
+import { MemoryDB } from "@subbrain/core/db";
+import { Metrics } from "@subbrain/core/lib/metrics";
 import { AuthService } from "@subbrain/core/services/auth";
 import { createApp } from "../src/app/bootstrap";
 import type { AppConfig, AppDeps } from "../src/app/deps";
-import { MemoryDB } from "../src/db";
-import { Metrics } from "../src/lib/metrics";
 import type { TelegramBot } from "../src/telegram";
 
 const TEST_DB = "data/test-auth-coverage.db";

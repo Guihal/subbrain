@@ -6,11 +6,11 @@
  * events (stream) without duplicating the orchestration code.
  */
 
-import type { MemoryDB } from "../../db";
-import type { logger } from "../../lib/logger";
-import type { Priority } from "../../lib/model-map";
+import type { MemoryDB } from "@subbrain/core/db";
+import type { logger } from "@subbrain/core/lib/logger";
+import type { Priority } from "@subbrain/core/lib/model-map";
+import { getTracer } from "@subbrain/core/lib/telemetry";
 import type { ModelRouter } from "../../lib/model-router";
-import { getTracer } from "../../lib/telemetry";
 import type { Message, Tool, ToolCall } from "../../providers/types";
 import { maybeCompress } from "./compressor-hook";
 import { runToolCall } from "./tool-dispatch";

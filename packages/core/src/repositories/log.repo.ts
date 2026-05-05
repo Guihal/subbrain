@@ -3,6 +3,7 @@
  * since M-04 (mig 11), `LogTable` for FTS5-backed episodic search.
  */
 import type { Database } from "bun:sqlite";
+import type { FtsResult, LogRow, LogStatsRow } from "../db/index";
 import {
   LogTable,
   type LogVecHydrateRow,
@@ -10,7 +11,6 @@ import {
   type UnembeddedLogRow,
 } from "../db/tables/log";
 import { LogsTable } from "../db/tables/logs";
-import type { FtsResult, LogRow, LogStatsRow } from "../db/types";
 
 export class LogRepository {
   private readonly logs: LogsTable;

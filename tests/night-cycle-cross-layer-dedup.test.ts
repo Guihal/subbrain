@@ -1,7 +1,7 @@
 /** M-09 night-cycle cross-layer dedup + archive→shared promote. See plan §Тесты. */
 import { afterAll, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, unlinkSync } from "node:fs";
-import { MemoryDB } from "../src/db";
+import { MemoryDB } from "@subbrain/core/db";
 import { runCrossLayerDedup } from "../src/pipeline/night-cycle/steps/cross-layer-dedup";
 import { RAGPipeline } from "../src/rag";
 import { MemoryService } from "../src/services/memory";

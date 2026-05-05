@@ -1,8 +1,8 @@
 /** Shared-layer write. PR-A: validate + dedup (strict/supersede) + MEMORY_VALIDATORS_ENFORCE. */
 
-import type { MemoryDB, MemoryKind } from "../../../db";
-import { logger } from "../../../lib/logger";
-import { incrementCounter } from "../../../lib/metrics";
+import type { MemoryDB, MemoryKind } from "@subbrain/core/db";
+import { logger } from "@subbrain/core/lib/logger";
+import { incrementCounter } from "@subbrain/core/lib/metrics";
 import {
   categoryToKind,
   defaultExpiresAt,

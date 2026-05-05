@@ -1,5 +1,5 @@
-import type { MemoryDB } from "../../db";
-import { sanitizeFtsQuery } from "../../lib/fts-utils";
+import type { MemoryDB } from "@subbrain/core/db";
+import { sanitizeFtsQuery } from "@subbrain/core/lib/fts-utils";
 import type { RAGResult } from "../types";
 
 /**

@@ -1,4 +1,4 @@
-import type { FreelanceSource } from "../../../db/types";
+import type { FreelanceSource } from "@subbrain/core/db/types";
 import type { FeedItem } from "../types";
 import { parseFl } from "./fl";
 import { parseFreelance } from "./freelance";

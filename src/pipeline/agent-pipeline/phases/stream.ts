@@ -1,11 +1,11 @@
 /**
  * Streaming pipeline path: pre → SSE proxy → captured tail used for post-processing.
  */
-import type { MemoryDB } from "../../../db";
-import type { RequestLogger } from "../../../lib/logger";
-import type { Metrics } from "../../../lib/metrics";
+import type { MemoryDB } from "@subbrain/core/db";
+import type { RequestLogger } from "@subbrain/core/lib/logger";
+import type { Metrics } from "@subbrain/core/lib/metrics";
+import { getTracer } from "@subbrain/core/lib/telemetry";
 import type { ModelRouter } from "../../../lib/model-router";
-import { getTracer } from "../../../lib/telemetry";
 import type { ToolExecutor } from "../../../mcp";
 import type { ToolRegistry } from "../../../mcp/registry";
 import type { RAGPipeline } from "../../../rag";

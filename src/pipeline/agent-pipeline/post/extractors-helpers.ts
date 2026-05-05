@@ -4,7 +4,7 @@
  * Split out to keep extractors.ts under the 250-LOC file cap (per
  * subbrain-guardrails §1). Pure helpers + supersede validation/apply.
  */
-import type { ContextRow, MemoryDB, MemoryStatus, SharedRow } from "../../../db";
+import type { ContextRow, MemoryDB, MemoryStatus, SharedRow } from "@subbrain/core/db";
 import type { RAGPipeline } from "../../../rag";
 
 export const EMBED_TIMEOUT_MS = 5000;

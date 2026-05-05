@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { MODEL_MAP } from "../src/lib/model-map";
+import { MODEL_MAP } from "@subbrain/core/lib/model-map";
 import { collectRequiredProviders, createProviders } from "../src/providers";
 
 /**

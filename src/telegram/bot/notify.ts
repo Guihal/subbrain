@@ -1,5 +1,5 @@
+import { logger } from "@subbrain/core/lib/logger";
 import type { Bot } from "grammy";
-import { logger } from "../../lib/logger";
 
 const log = logger.child("telegram");
 

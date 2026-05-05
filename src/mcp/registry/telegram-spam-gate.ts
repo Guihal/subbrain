@@ -10,7 +10,7 @@
  * `docs/tasks/code-tools-poisoning-fix.md`.
  */
 
-import { logger } from "../../lib/logger";
+import { logger } from "@subbrain/core/lib/logger";
 import type { ToolExecutor } from "../executor";
 import type { AgentMode } from "./tool-registry";
 

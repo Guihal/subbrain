@@ -1,5 +1,5 @@
-import type { MemoryDB } from "../../db";
-import { applyForgettingCurve } from "../../lib/memory-decay";
+import type { MemoryDB } from "@subbrain/core/db";
+import { applyForgettingCurve } from "@subbrain/core/lib/memory-decay";
 import type { ModelRouter } from "../../lib/model-router";
 import type { RAGResult, RAGSearchOptions } from "../types";
 import {

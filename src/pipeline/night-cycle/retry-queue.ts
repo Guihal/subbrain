@@ -7,7 +7,7 @@
  * with an error log; the raw logs stay in `layer4_log` so a human can
  * review / manually re-run.
  */
-import { logger } from "../../lib/logger";
+import { logger } from "@subbrain/core/lib/logger";
 
 const log = logger.child("night.retry");
 

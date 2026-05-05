@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
+import { AppError, NotFoundError, UpstreamExhaustedError } from "@subbrain/core/lib/errors";
 import { Elysia } from "elysia";
-import { AppError, NotFoundError, UpstreamExhaustedError } from "../src/lib/errors";
 
 // Miniature copy of the central onError from src/app/bootstrap.ts. Keeping it
 // here (rather than extracting a shared helper) keeps the test readable and

@@ -13,8 +13,8 @@
  * agent-internal). Edge weight is hard-coded `1.0` to match the M-05
  * `linkRelated` extractor hook.
  */
-import type { EdgeKind, MemoryDB } from "../../db";
-import { logger } from "../../lib/logger";
+import type { EdgeKind, MemoryDB } from "@subbrain/core/db";
+import { logger } from "@subbrain/core/lib/logger";
 import type { ModelRouter } from "../../lib/model-router";
 import { type ReflectResult, runReflect } from "../../pipeline/night-cycle/steps";
 import type { RAGPipeline } from "../../rag";

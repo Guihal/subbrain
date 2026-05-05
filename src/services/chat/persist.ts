@@ -1,7 +1,7 @@
-import { logger } from "../../lib/logger";
+import { logger } from "@subbrain/core/lib/logger";
+import type { ChatRepository, MemoryRepository } from "@subbrain/core/repositories";
 import type { CompressorMemory } from "../../pipeline/context-compressor";
 import type { Message } from "../../providers/types";
-import type { ChatRepository, MemoryRepository } from "../../repositories";
 import type { MemoryService } from "../memory";
 import type { ChatMeta } from "./meta";
 
@@ -63,8 +63,8 @@ export function compressorMemory(
         source?: string,
         opts?: {
           confidence?: number | null;
-          status?: import("../../db").MemoryStatus;
-          kind?: import("../../db").MemoryKind;
+          status?: import("@subbrain/core/db").MemoryStatus;
+          kind?: import("@subbrain/core/db").MemoryKind;
         },
       ) =>
         svc.insertShared({

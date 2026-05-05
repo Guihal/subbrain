@@ -1,5 +1,5 @@
+import type { MemoryDB } from "@subbrain/core/db";
 import type { Context } from "grammy";
-import type { MemoryDB } from "../../db";
 import type { Message } from "../../providers/types";
 
 export function escapeMarkdown(text: string): string {

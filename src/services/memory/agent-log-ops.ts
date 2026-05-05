@@ -1,5 +1,5 @@
-import type { AgentMemRow, LogRow } from "../../db";
-import type { LogRepository, MemoryRepository } from "../../repositories";
+import type { AgentMemRow, LogRow } from "@subbrain/core/db";
+import type { LogRepository, MemoryRepository } from "@subbrain/core/repositories";
 import type { ListOpts, PaginatedResult, UpdateAgentPatch } from "./types";
 
 // ─── Agent memory ──────────────────────────────────────────

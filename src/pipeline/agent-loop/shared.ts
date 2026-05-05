@@ -4,9 +4,9 @@
  * orchestrators do not drift.
  */
 import { randomUUID } from "node:crypto";
-import type { MemoryDB } from "../../db";
-import { logger } from "../../lib/logger";
-import type { Priority } from "../../lib/model-map";
+import type { MemoryDB } from "@subbrain/core/db";
+import { logger } from "@subbrain/core/lib/logger";
+import type { Priority } from "@subbrain/core/lib/model-map";
 import type { ModelRouter } from "../../lib/model-router";
 import type { ToolExecutor, ToolRegistry } from "../../mcp";
 import type { Message, Tool } from "../../providers/types";

@@ -12,8 +12,8 @@
  * Idempotency, floor, and proxy-to-last_accessed_at semantics are all
  * documented on the repository method.
  */
-import type { MemoryDB } from "../../../db";
-import { logger } from "../../../lib/logger";
+import type { MemoryDB } from "@subbrain/core/db";
+import { logger } from "@subbrain/core/lib/logger";
 
 const log = logger.child("night.decay-salience");
 

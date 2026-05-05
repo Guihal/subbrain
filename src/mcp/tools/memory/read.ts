@@ -1,4 +1,4 @@
-import type { MemoryDB } from "../../../db";
+import type { MemoryDB } from "@subbrain/core/db";
 import type { ToolResult } from "../../types";
 
 export function readMemory(memory: MemoryDB, id: string, layer?: string): ToolResult {

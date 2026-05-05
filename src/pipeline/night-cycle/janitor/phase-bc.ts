@@ -10,8 +10,8 @@
  * Used by POST /v1/memory/restore to move rows back.
  */
 import { randomUUID } from "node:crypto";
-import type { MemoryDB } from "../../../db";
-import { logger } from "../../../lib/logger";
+import type { MemoryDB } from "@subbrain/core/db";
+import { logger } from "@subbrain/core/lib/logger";
 import type { RAGPipeline } from "../../../rag";
 import {
   MAX_CONTEXT_CONTENT,

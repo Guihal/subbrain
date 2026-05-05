@@ -1,6 +1,6 @@
+import type { MemoryDB } from "@subbrain/core/db";
+import { logger } from "@subbrain/core/lib/logger";
 import { Bot, webhookCallback } from "grammy";
-import type { MemoryDB } from "../../db";
-import { logger } from "../../lib/logger";
 import type { ModelRouter } from "../../lib/model-router";
 import type { AgentPipeline } from "../../pipeline";
 import { registerCommands } from "./commands";

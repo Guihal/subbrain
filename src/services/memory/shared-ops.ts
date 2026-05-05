@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
-import type { SharedRow } from "../../db";
+import type { SharedRow } from "@subbrain/core/db";
+import type { MemoryRepository } from "@subbrain/core/repositories";
 import type { RAGPipeline } from "../../rag";
-import type { MemoryRepository } from "../../repositories";
 import { embedWithTimeout } from "./embed";
 import type { InsertSharedInput, ListOpts, PaginatedResult, UpdateSharedPatch } from "./types";
 

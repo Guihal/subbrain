@@ -4,7 +4,7 @@
  */
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, unlinkSync } from "node:fs";
-import { MemoryDB } from "../src/db";
+import { MemoryDB } from "@subbrain/core/db";
 import { runPhaseA } from "../src/pipeline/night-cycle/janitor/phase-a";
 import { runPhaseB, runPhaseC } from "../src/pipeline/night-cycle/janitor/phase-bc";
 import { runPhaseD } from "../src/pipeline/night-cycle/janitor/phase-d";

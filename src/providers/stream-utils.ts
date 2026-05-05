@@ -2,7 +2,7 @@
  * Shared streaming utilities for LLM providers.
  * Used by NvidiaProvider, MiniMaxProvider, OpenAICompatProvider.
  */
-import { logger } from "../lib/logger";
+import { logger } from "@subbrain/core/lib/logger";
 
 /**
  * Creates a ReadableStream that proxies a fetch SSE response.

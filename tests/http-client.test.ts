@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { HttpAbortError, HttpError } from "../src/lib/errors";
-import { fetchJson, fetchStream } from "../src/lib/http-client";
+import { HttpAbortError, HttpError } from "@subbrain/core/lib/errors";
+import { fetchJson, fetchStream } from "@subbrain/core/lib/http-client";
 
 let server: ReturnType<typeof Bun.serve>;
 let baseUrl = "";

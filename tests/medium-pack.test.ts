@@ -1,9 +1,9 @@
 import { Database } from "bun:sqlite";
 import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import { existsSync, unlinkSync } from "node:fs";
-import { MemoryDB } from "../src/db";
-import { Logger } from "../src/lib/logger";
-import { EMBED_MODEL, RERANK_MODEL } from "../src/lib/model-map";
+import { MemoryDB } from "@subbrain/core/db";
+import { Logger } from "@subbrain/core/lib/logger";
+import { EMBED_MODEL, RERANK_MODEL } from "@subbrain/core/lib/model-map";
 import { executeSandboxed } from "../src/pipeline/agent-loop/code-tools/sandbox";
 import { logsRoute } from "../src/routes/logs";
 

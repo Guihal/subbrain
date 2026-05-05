@@ -1,4 +1,4 @@
-import type { MemoryDB } from "../db";
+import type { MemoryDB } from "../db/index";
 import { pruneSlidingWindows } from "./metrics/percentile";
 import { buildSnapshot } from "./metrics/snapshot";
 import type { MetricsSnapshot, MetricsState, RequestMetric, StatsProvider } from "./metrics/types";

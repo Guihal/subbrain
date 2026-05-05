@@ -4,9 +4,9 @@
  *
  * M-07: categoryToKind lives here (shared_memory kind mapping).
  */
-import type { MemoryKind } from "../../../../db";
+import type { MemoryKind } from "@subbrain/core/db";
 
-export type { MemoryKind } from "../../../../db";
+export type { MemoryKind } from "@subbrain/core/db";
 export * from "./dedup-modes";
 export * from "./whitelist";
 

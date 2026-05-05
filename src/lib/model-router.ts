@@ -1,7 +1,12 @@
+import {
+  getFallback,
+  type Priority,
+  type ProviderName,
+  resolveModel,
+} from "@subbrain/core/lib/model-map";
 import type { BifrostProvider } from "../providers/bifrost";
 import type { ProviderError } from "../providers/nvidia";
 import type { ChatParams, ChatResponse, LLMProvider } from "../providers/types";
-import { getFallback, type Priority, type ProviderName, resolveModel } from "./model-map";
 import { type Backend, PROVIDER_RPM } from "./model-router/constants";
 import { runChatDispatch } from "./model-router/dispatch";
 import { createFallbackStream } from "./model-router/stream";

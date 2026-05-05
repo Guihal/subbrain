@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { unlinkSync } from "node:fs";
-import { MemoryDB } from "../src/db";
+import { MemoryDB } from "@subbrain/core/db";
 import { buildRegistry, ToolExecutor } from "../src/mcp";
 import { runHippocampus } from "../src/pipeline/agent-pipeline/post/hippocampus";
 import type { ChatResponse } from "../src/providers/types";

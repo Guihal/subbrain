@@ -2,10 +2,10 @@
  * Main phase: non-streaming model call with metrics + post-processing fire-and-forget.
  */
 
-import type { RequestLogger } from "../../../lib/logger";
-import type { Metrics } from "../../../lib/metrics";
+import type { RequestLogger } from "@subbrain/core/lib/logger";
+import type { Metrics } from "@subbrain/core/lib/metrics";
+import { getTracer } from "@subbrain/core/lib/telemetry";
 import type { ModelRouter } from "../../../lib/model-router";
-import { getTracer } from "../../../lib/telemetry";
 import type { ChatResponse } from "../../../providers/types";
 import { injectSystemPrompt } from "../helpers";
 import type { PipelineRequest } from "../types";

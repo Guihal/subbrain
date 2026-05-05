@@ -1,4 +1,4 @@
-import type { MemoryDB } from "../../db";
+import type { MemoryDB } from "@subbrain/core/db";
 import { linkRelated, parseTagsCsv } from "../../pipeline/agent-pipeline/post/link-related";
 import type { RAGPipeline } from "../../rag";
 import type { MemoryServiceLinkDeps } from "./types";

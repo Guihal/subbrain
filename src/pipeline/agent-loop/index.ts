@@ -2,13 +2,13 @@
  * AgentLoop facade. Orchestration in `run.ts`/`stream.ts`, per-step logic in
  * `step.ts`, tool dispatch in `tool-dispatch.ts`, persistence in `persist.ts`.
  */
-import type { MemoryDB } from "../../db";
-import type { Metrics } from "../../lib/metrics";
+import type { MemoryDB } from "@subbrain/core/db";
+import type { Metrics } from "@subbrain/core/lib/metrics";
+import { CodeToolsRepository } from "@subbrain/core/repositories/code-tools.repo";
 import type { ModelRouter } from "../../lib/model-router";
 import type { ToolExecutor, ToolRegistry } from "../../mcp";
 import type { Tool } from "../../providers/types";
 import type { RAGPipeline } from "../../rag";
-import { CodeToolsRepository } from "../../repositories/code-tools.repo";
 import type { ArbitrationRoom } from "../arbitration";
 import { CodeToolRegistry } from "./code-tools";
 import { DynamicToolRegistry } from "./dynamic-tools";

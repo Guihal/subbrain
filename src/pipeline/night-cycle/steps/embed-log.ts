@@ -29,8 +29,8 @@
  * `LOG_EMBED_BATCH`. All env knobs read at call-time so tests can toggle
  * them per case without spawning a subprocess.
  */
-import type { MemoryDB } from "../../../db";
-import { logger } from "../../../lib/logger";
+import type { MemoryDB } from "@subbrain/core/db";
+import { logger } from "@subbrain/core/lib/logger";
 import type { RAGPipeline } from "../../../rag";
 
 const log = logger.child("night.embed-log");

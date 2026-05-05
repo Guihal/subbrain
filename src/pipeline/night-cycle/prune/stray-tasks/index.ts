@@ -13,7 +13,7 @@
  * the next successful cycle will re-scan the same window (idempotent on
  * migrate via `upsertTaskBySource` with `source="stray:<table>:<id>"`).
  */
-import type { MemoryDB } from "../../../../db";
+import type { MemoryDB } from "@subbrain/core/db";
 import type { Classifier } from "../tasks-classify";
 import { classifyAndUpsert } from "./classify";
 import { LAST_RUN_FOCUS_KEY, MAX_WINDOW_SECONDS } from "./constants";

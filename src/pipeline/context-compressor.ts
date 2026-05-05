@@ -13,7 +13,7 @@
  *     holding references don't desync.
  */
 import { randomUUID } from "node:crypto";
-import { logger } from "../lib/logger";
+import { logger } from "@subbrain/core/lib/logger";
 import type { ModelRouter } from "../lib/model-router";
 import type { Message } from "../providers/types";
 import { estimateTokens } from "./agent-loop/types";
@@ -45,8 +45,8 @@ export interface CompressorMemory {
     source?: string,
     opts?: {
       confidence?: number | null;
-      status?: import("../db").MemoryStatus;
-      kind?: import("../db").MemoryKind;
+      status?: import("@subbrain/core/db").MemoryStatus;
+      kind?: import("@subbrain/core/db").MemoryKind;
     },
     // biome-ignore lint/suspicious/noConfusingVoidType: void means sync fire-and-forget
   ) => void | Promise<unknown>;

@@ -10,11 +10,11 @@
 
 import { describe, expect, test } from "bun:test";
 import { unlinkSync } from "node:fs";
+import { MemoryDB } from "@subbrain/core/db";
+import { Metrics } from "@subbrain/core/lib/metrics";
 import { AuthService } from "@subbrain/core/services/auth";
 import { createApp } from "../src/app/bootstrap";
 import type { AppDeps } from "../src/app/deps";
-import { MemoryDB } from "../src/db";
-import { Metrics } from "../src/lib/metrics";
 
 const TEST_DB = "data/test-bootstrap.db";
 try {

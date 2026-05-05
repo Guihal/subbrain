@@ -14,8 +14,8 @@
  * when playwright.close() and memory.close() run.
  */
 
+import { logger } from "@subbrain/core/lib/logger";
 import type { AppDeps } from "../app/deps";
-import { logger } from "../lib/logger";
 
 const log = logger.child("free-agent");
 

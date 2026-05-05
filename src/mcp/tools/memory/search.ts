@@ -1,4 +1,4 @@
-import type { FtsResult, MemoryDB } from "../../../db";
+import type { FtsResult, MemoryDB } from "@subbrain/core/db";
 import type { ToolResult } from "../../types";
 
 export function searchMemory(

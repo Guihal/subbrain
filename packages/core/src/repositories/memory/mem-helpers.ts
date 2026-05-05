@@ -1,5 +1,5 @@
+import type { MemoryStatus } from "../../db/index";
 import type { InsertContextOpts, MemoryTable } from "../../db/tables/memory";
-import type { MemoryStatus } from "../../db/types";
 
 /**
  * Thin facades around `MemoryTable` (focus / context / archive / FTS / recent

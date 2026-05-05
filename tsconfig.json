@@ -26,6 +26,6 @@
     "isolatedModules": true,
     "verbatimModuleSyntax": false
   },
-  "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "web"]
+  "include": ["src/**/*.ts", "packages/*/src/**/*.ts", "tests/**/*.ts", "scripts/**/*.ts"],
+  "exclude": ["node_modules", "web", "tests", "scripts"]
 }

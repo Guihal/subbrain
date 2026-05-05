@@ -1,7 +1,7 @@
+import type { MemoryDB } from "@subbrain/core/db";
+import { logger } from "@subbrain/core/lib/logger";
 import { TelegramClient } from "telegram";
 import { StringSession } from "telegram/sessions";
-import type { MemoryDB } from "../../db";
-import { logger } from "../../lib/logger";
 import { ensureConnected as connect } from "./connection";
 import { attachMonitor } from "./monitor";
 import { listChats, readChat } from "./read";

@@ -1,4 +1,4 @@
-import { MODEL_MAP, type ProviderName } from "../lib/model-map";
+import { MODEL_MAP, type ProviderName } from "@subbrain/core/lib/model-map";
 import { BifrostProvider } from "./bifrost";
 import { MiniMaxProvider } from "./minimax";
 import { NvidiaProvider } from "./nvidia";

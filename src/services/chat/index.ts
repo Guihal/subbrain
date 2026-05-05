@@ -6,16 +6,16 @@
  * router → SSE wrap. Route is just TypeBox + headers + `handle()`.
  */
 
-import { logger } from "../../lib/logger";
-import { normalizeMessages } from "../../lib/messages";
-import { MODEL_MAP, resolveModel } from "../../lib/model-map";
+import { logger } from "@subbrain/core/lib/logger";
+import { normalizeMessages } from "@subbrain/core/lib/messages";
+import { MODEL_MAP, resolveModel } from "@subbrain/core/lib/model-map";
+import { maskSecrets } from "@subbrain/core/lib/redact";
+import type { ChatRepository, MemoryRepository } from "@subbrain/core/repositories";
 import type { ModelRouter } from "../../lib/model-router";
-import { maskSecrets } from "../../lib/redact";
 import type { AgentPipeline } from "../../pipeline";
 import { compressContext, shouldCompress } from "../../pipeline/context-compressor";
 import { ProviderError } from "../../providers";
 import type { Message } from "../../providers/types";
-import type { ChatRepository, MemoryRepository } from "../../repositories";
 import type { MemoryService } from "../memory";
 import type { ChatCompletionRequest, ChatMeta } from "./meta";
 import { compressorMemory, maybeHydrate, persistUser } from "./persist";

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import type { MemoryDB } from "../src/db";
-import { logger } from "../src/lib/logger";
+import type { MemoryDB } from "@subbrain/core/db";
+import { logger } from "@subbrain/core/lib/logger";
 import type { ModelRouter } from "../src/lib/model-router";
 import type { ToolRegistry } from "../src/mcp";
 import { executeStep } from "../src/pipeline/agent-loop/step";

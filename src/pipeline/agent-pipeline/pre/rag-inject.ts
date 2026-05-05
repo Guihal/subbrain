@@ -1,7 +1,7 @@
 /**
  * Hippocampus tool definitions + dispatcher: memory_search (FTS) and rag_search (hybrid+rerank).
  */
-import type { MemoryDB } from "../../../db";
+import type { MemoryDB } from "@subbrain/core/db";
 import type { Tool } from "../../../providers/types";
 import type { RAGPipeline, RAGResult } from "../../../rag";
 

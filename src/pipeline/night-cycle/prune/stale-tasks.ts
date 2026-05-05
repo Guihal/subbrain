@@ -13,8 +13,8 @@
  * almost always abandoned. Override via NIGHT_CYCLE_STALE_OPEN_DAYS /
  * NIGHT_CYCLE_STALE_INPROGRESS_DAYS.
  */
-import type { MemoryDB } from "../../../db";
-import { logger } from "../../../lib/logger";
+import type { MemoryDB } from "@subbrain/core/db";
+import { logger } from "@subbrain/core/lib/logger";
 
 const log = logger.child("night.prune");
 

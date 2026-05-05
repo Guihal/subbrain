@@ -12,7 +12,7 @@
  *
  * Pure: no logger, no side effects, no async. Safe to call on every build.
  */
-import type { MemoryDB, TaskRow, TaskScope } from "../../../db";
+import type { MemoryDB, TaskRow, TaskScope } from "@subbrain/core/db";
 
 /**
  * Which task scopes an agent in `viewer` scope should see in its prompt.

@@ -1,4 +1,4 @@
-import { logger } from "../../../lib/logger";
+import { logger } from "@subbrain/core/lib/logger";
 
 /**
  * Virtual role used for all night-cycle LLM calls. Default is `memory`

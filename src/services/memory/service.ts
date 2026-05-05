@@ -8,14 +8,14 @@ import type {
   AgentMemRow,
   ArchiveRow,
   ContextRow,
+  EdgeKind,
   LogRow,
   MemoryDB,
   MemoryStatus,
   SharedRow,
-} from "../../db";
-import type { EdgeKind } from "../../db/types";
+} from "@subbrain/core/db";
+import type { LogRepository, MemoryRepository } from "@subbrain/core/repositories";
 import type { RAGPipeline } from "../../rag";
-import type { LogRepository, MemoryRepository } from "../../repositories";
 import * as al from "./agent-log-ops";
 import * as arch from "./archive-ops";
 import * as ctx from "./context-ops";

@@ -7,9 +7,9 @@
  */
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { existsSync, unlinkSync } from "node:fs";
+import { MemoryDB } from "@subbrain/core/db";
+import { AppError } from "@subbrain/core/lib/errors";
 import { Elysia } from "elysia";
-import { MemoryDB } from "../src/db";
-import { AppError } from "../src/lib/errors";
 import { memoryRoute } from "../src/routes/memory";
 
 const TEST_DB = "data/test-memory-pending-route.db";

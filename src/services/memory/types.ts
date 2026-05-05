@@ -1,5 +1,5 @@
-import type { EdgeKind, MemoryKind, MemoryStatus } from "../../db";
-import type { RequestLogger } from "../../lib/logger";
+import type { EdgeKind, MemoryKind, MemoryStatus } from "@subbrain/core/db";
+import type { RequestLogger } from "@subbrain/core/lib/logger";
 import type { ModelRouter } from "../../lib/model-router";
 
 export type EdgeLayer = "context" | "shared" | "archive";

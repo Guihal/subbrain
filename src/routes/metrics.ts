@@ -2,8 +2,9 @@
  * Aggregated metrics endpoint — returns rolled-up cost/latency
  * from metrics_log snapshots for a given time range.
  */
+
+import type { MetricsRepository } from "@subbrain/core/repositories/metrics.repo";
 import { Elysia, t } from "elysia";
-import type { MetricsRepository } from "../repositories/metrics.repo";
 
 interface MetricsSnapshot {
   uptime_s: number;

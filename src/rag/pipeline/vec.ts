@@ -1,4 +1,4 @@
-import type { MemoryDB } from "../../db";
+import type { MemoryDB } from "@subbrain/core/db";
 import type { RAGResult } from "../types";
 
 interface RowFields {

@@ -8,7 +8,7 @@
  */
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, unlinkSync } from "node:fs";
-import { MemoryDB } from "../src/db";
+import { MemoryDB } from "@subbrain/core/db";
 import { type AgentToolContext, buildRegistry, ToolExecutor, type ToolRegistry } from "../src/mcp";
 import type { TaskMutationBudget } from "../src/mcp/registry";
 

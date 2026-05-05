@@ -2,8 +2,8 @@
  * FreelanceRepository — PR 27 (LAYER-5). Wraps `FreelanceLeadsTable`.
  */
 import type { Database } from "bun:sqlite";
+import type { FreelanceLeadRow, FreelanceSource, FreelanceStatus } from "../db/index";
 import { FreelanceLeadsTable } from "../db/tables/freelance-leads";
-import type { FreelanceLeadRow, FreelanceSource, FreelanceStatus } from "../db/types";
 
 export class FreelanceRepository {
   private readonly freelance: FreelanceLeadsTable;

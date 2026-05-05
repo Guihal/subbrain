@@ -1,5 +1,5 @@
-import type { ArchiveRow } from "../../db";
-import type { MemoryRepository } from "../../repositories";
+import type { ArchiveRow } from "@subbrain/core/db";
+import type { MemoryRepository } from "@subbrain/core/repositories";
 import type { ListOpts, PaginatedResult, UpdateArchivePatch } from "./types";
 
 export function listArchive(repo: MemoryRepository, opts: ListOpts): PaginatedResult<ArchiveRow> {

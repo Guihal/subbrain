@@ -8,7 +8,7 @@
  *     botNotify throws (i.e. when wired to notifyOrThrow).
  */
 import { describe, expect, test } from "bun:test";
-import type { MemoryDB } from "../src/db";
+import type { MemoryDB } from "@subbrain/core/db";
 import type { ModelRouter } from "../src/lib/model-router";
 import { ToolExecutor } from "../src/mcp/executor";
 import type { AgentPipeline } from "../src/pipeline";

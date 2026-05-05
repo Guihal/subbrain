@@ -7,7 +7,7 @@
  */
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, unlinkSync } from "node:fs";
-import { MemoryDB } from "../src/db";
+import { MemoryDB } from "@subbrain/core/db";
 import type { ModelRouter } from "../src/lib/model-router";
 import { ToolExecutor } from "../src/mcp/executor";
 import { buildRegistry } from "../src/mcp/registry";

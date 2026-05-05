@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { MemoryDB } from "../../db";
+import type { MemoryDB } from "@subbrain/core/db";
 import type { TelegramBot } from "../../telegram/bot";
 import type { EvaluatedLead, FeedItem } from "./types";
 

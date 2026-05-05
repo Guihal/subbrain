@@ -1,8 +1,8 @@
 /** Post-processing phase: appendLog (Layer 4) + gated agentic extraction. */
-import type { MemoryDB } from "../../../db";
-import { logger, type RequestLogger } from "../../../lib/logger";
+import type { MemoryDB } from "@subbrain/core/db";
+import { logger, type RequestLogger } from "@subbrain/core/lib/logger";
+import { getTracer } from "@subbrain/core/lib/telemetry";
 import type { ModelRouter } from "../../../lib/model-router";
-import { getTracer } from "../../../lib/telemetry";
 import type { ToolExecutor } from "../../../mcp";
 import type { ToolRegistry } from "../../../mcp/registry";
 import { parseSSEChunk } from "../../../providers/sse-parser";

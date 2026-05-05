@@ -5,7 +5,7 @@
  */
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { existsSync, unlinkSync } from "node:fs";
-import { MemoryDB } from "../src/db";
+import { MemoryDB } from "@subbrain/core/db";
 import { runMemoryDedup } from "../src/pipeline/night-cycle/steps/memory-dedup";
 import { RAGPipeline } from "../src/rag";
 

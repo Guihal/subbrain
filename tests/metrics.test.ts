@@ -3,9 +3,9 @@
  */
 
 import { unlinkSync } from "node:fs";
-import { MemoryDB } from "../src/db";
-import type { StatsProvider } from "../src/lib/metrics";
-import { Metrics } from "../src/lib/metrics";
+import { MemoryDB } from "@subbrain/core/db";
+import type { StatsProvider } from "@subbrain/core/lib/metrics";
+import { Metrics } from "@subbrain/core/lib/metrics";
 
 const TEST_DB = "data/test-metrics.db";
 try {

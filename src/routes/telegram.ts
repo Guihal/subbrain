@@ -1,5 +1,5 @@
+import { logger } from "@subbrain/core/lib/logger";
 import { Elysia } from "elysia";
-import { logger } from "../lib/logger";
 import type { TelegramBot } from "../telegram";
 
 /**

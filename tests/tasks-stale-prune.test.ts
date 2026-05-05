@@ -4,7 +4,7 @@
 import { afterAll, beforeEach, describe, expect, test } from "bun:test";
 import { randomUUID } from "node:crypto";
 import { existsSync, unlinkSync } from "node:fs";
-import { MemoryDB } from "../src/db";
+import { MemoryDB } from "@subbrain/core/db";
 import { pruneStaleTasks } from "../src/pipeline/night-cycle/prune/stale-tasks";
 
 const DB_PATH = "data/test-stale-prune.db";

@@ -2,8 +2,8 @@
 // with identity reranker so reordering observed = forgetting curve only.
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, unlinkSync } from "node:fs";
-import { MemoryDB } from "../src/db";
-import { applyForgettingCurve, computeRecallScore } from "../src/lib/memory-decay";
+import { MemoryDB } from "@subbrain/core/db";
+import { applyForgettingCurve, computeRecallScore } from "@subbrain/core/lib/memory-decay";
 import { RAGPipeline } from "../src/rag";
 import type { RAGResult } from "../src/rag/types";
 

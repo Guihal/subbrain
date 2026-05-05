@@ -4,8 +4,8 @@
  * Tools: memory_search, memory_write, task_add, done.
  * Per-exchange task mutation budget = 3.
  */
-import type { MemoryDB } from "../../../db";
-import type { RequestLogger } from "../../../lib/logger";
+import type { MemoryDB } from "@subbrain/core/db";
+import type { RequestLogger } from "@subbrain/core/lib/logger";
 import type { ModelRouter } from "../../../lib/model-router";
 import type { ToolExecutor } from "../../../mcp";
 import type { TaskMutationBudget, ToolRegistry } from "../../../mcp/registry";

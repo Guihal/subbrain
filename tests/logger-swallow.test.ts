@@ -13,8 +13,8 @@
  * a second distinct role.
  */
 import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
-import type { MemoryDB } from "../src/db";
-import { _warnedRejectedRoles, Logger } from "../src/lib/logger";
+import type { MemoryDB } from "@subbrain/core/db";
+import { _warnedRejectedRoles, Logger } from "@subbrain/core/lib/logger";
 
 function makeThrowingMemory(err: Error): MemoryDB {
   const stub = {

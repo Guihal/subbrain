@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
-import type { ContextRow } from "../../db";
+import type { ContextRow } from "@subbrain/core/db";
+import type { MemoryRepository } from "@subbrain/core/repositories";
 import type { RAGPipeline } from "../../rag";
-import type { MemoryRepository } from "../../repositories";
 import { embedWithTimeout } from "./embed";
 import type { InsertContextInput, ListOpts, PaginatedResult, UpdateContextPatch } from "./types";
 

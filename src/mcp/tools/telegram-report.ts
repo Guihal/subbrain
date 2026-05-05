@@ -4,7 +4,7 @@
  * Перед отправкой отчёта в Telegram клеит сверху контекст, собранный
  * buildReportContext. Kill-switch: REPORT_RAG=false → шлём сырой текст.
  */
-import type { MemoryDB } from "../../db";
+import type { MemoryDB } from "@subbrain/core/db";
 import type { RAGPipeline } from "../../rag";
 import { buildReportContext, truncateReportContext } from "../../rag";
 import type { PublicToolContext } from "../registry/tool-registry";

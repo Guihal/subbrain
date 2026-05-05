@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { paginate } from "../src/lib/api-envelope";
+import { paginate } from "@subbrain/core/lib/api-envelope";
 
 describe("paginate", () => {
   test("default page=1 page_size=20", async () => {

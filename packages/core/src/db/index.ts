@@ -3,7 +3,7 @@ import { ChatRepository } from "../repositories/chat.repo";
 import { EdgeRepository } from "../repositories/edges.repo";
 import { FreelanceRepository } from "../repositories/freelance.repo";
 import { LogRepository } from "../repositories/log.repo";
-import { MemoryRepository } from "../repositories/memory";
+import { MemoryRepository } from "../repositories/memory/index";
 import { TelegramRepository } from "../repositories/telegram.repo";
 import { migrate, openDatabase } from "./schema";
 import { SchedulerStateTable } from "./tables/scheduler-state";
@@ -30,6 +30,7 @@ export type {
   FreelanceStatus,
   FtsResult,
   LogRow,
+  LogStatsRow,
   MemoryKind,
   MemoryStatus,
   SchedulerStateRow,

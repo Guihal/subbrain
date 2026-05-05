@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { unlinkSync } from "node:fs";
-import { MemoryDB } from "../src/db";
+import { MemoryDB } from "@subbrain/core/db";
 import { runPre } from "../src/pipeline/agent-pipeline/phases/pre";
 import type { ChatResponse } from "../src/providers/types";
 import { RAGPipeline } from "../src/rag";

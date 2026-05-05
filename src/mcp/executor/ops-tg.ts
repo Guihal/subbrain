@@ -75,7 +75,7 @@ export function tgFtsSearch(
     if ((from && Number.isNaN(fromTs)) || (to && Number.isNaN(toTs))) {
       return { success: false, error: "Invalid from/to ISO date" };
     }
-    const opts: import("../../db").TgSearchOpts = { query };
+    const opts: import("@subbrain/core/db").TgSearchOpts = { query };
     if (chatId) opts.chatId = chatId;
     if (fromTs !== undefined) opts.from = fromTs;
     if (toTs !== undefined) opts.to = toTs;

@@ -1,4 +1,4 @@
-import type { LogRow } from "../../db";
+import type { LogRow } from "@subbrain/core/db";
 
 // ─── Types ───────────────────────────────────────────────
 

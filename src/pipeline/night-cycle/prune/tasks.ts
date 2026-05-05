@@ -14,8 +14,8 @@
  * failure just skips that week and retries on the next cycle.
  */
 import { randomUUID } from "node:crypto";
-import type { MemoryDB } from "../../../db";
-import { logger } from "../../../lib/logger";
+import type { MemoryDB } from "@subbrain/core/db";
+import { logger } from "@subbrain/core/lib/logger";
 
 const log = logger.child("night.prune");
 const DONE_AGE_SECONDS = 7 * 86400;

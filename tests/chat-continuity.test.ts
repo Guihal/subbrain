@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { unlinkSync } from "node:fs";
+import { MemoryDB } from "@subbrain/core/db";
 import { Elysia } from "elysia";
-import { MemoryDB } from "../src/db";
 import type { ChatResponse } from "../src/providers/types";
 import { chatRoute } from "../src/routes/chat";
 

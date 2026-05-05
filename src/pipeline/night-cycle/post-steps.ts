@@ -3,8 +3,8 @@
  * stray-task migration. Each step is wrapped in a try/catch that pushes
  * errors into `result.errors` so one failed step never aborts the cycle.
  */
-import type { MemoryDB } from "../../db";
-import { logger } from "../../lib/logger";
+import type { MemoryDB } from "@subbrain/core/db";
+import { logger } from "@subbrain/core/lib/logger";
 import type { ModelRouter } from "../../lib/model-router";
 import type { RAGPipeline } from "../../rag";
 import type { MemoryService } from "../../services/memory";

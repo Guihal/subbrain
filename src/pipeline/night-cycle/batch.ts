@@ -3,8 +3,8 @@
  * separate from `retry-queue.ts` (pure helpers) to avoid a cycle with
  * `process-session.ts`.
  */
-import type { LogRow, MemoryDB } from "../../db";
-import { logger } from "../../lib/logger";
+import type { LogRow, MemoryDB } from "@subbrain/core/db";
+import { logger } from "@subbrain/core/lib/logger";
 import type { ModelRouter } from "../../lib/model-router";
 import type { RAGPipeline } from "../../rag";
 import { processSession } from "./process-session";

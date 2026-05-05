@@ -5,12 +5,12 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { randomUUID } from "node:crypto";
 import { existsSync, unlinkSync } from "node:fs";
-import { MemoryDB } from "../src/db";
+import { MemoryDB } from "@subbrain/core/db";
 import {
   canTransition,
   InvalidTransitionError,
   TERMINAL_STATUSES,
-} from "../src/db/tables/task-transitions";
+} from "@subbrain/core/db/tables/task-transitions";
 
 const DB_PATH = "data/test-tasks.db";
 

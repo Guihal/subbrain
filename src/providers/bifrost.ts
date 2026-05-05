@@ -1,5 +1,5 @@
-import { HttpError } from "../lib/errors";
-import { fetchJson, fetchStream } from "../lib/http-client";
+import { HttpError } from "@subbrain/core/lib/errors";
+import { fetchJson, fetchStream } from "@subbrain/core/lib/http-client";
 import { ProviderError } from "./nvidia";
 import { createProxyStream } from "./stream-utils";
 import type {

@@ -12,7 +12,7 @@
  */
 
 import { unlinkSync } from "node:fs";
-import { MemoryDB } from "../src/db";
+import { MemoryDB } from "@subbrain/core/db";
 import { ToolExecutor } from "../src/mcp/executor";
 import { RAGPipeline } from "../src/rag";
 

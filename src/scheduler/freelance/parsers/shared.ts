@@ -1,4 +1,4 @@
-import type { FreelanceSource } from "../../../db/types";
+import type { FreelanceSource } from "@subbrain/core/db/types";
 import type { FeedItem } from "../types";
 
 const BUDGET_RE = /(\d[\d\s]{2,})\s*(?:руб|₽|RUB)/i;

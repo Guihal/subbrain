@@ -8,9 +8,9 @@
  *  3. Иначе fallback: code-тулы (исполняемые в sandbox через `code_*`-префикс)
  */
 
-import type { logger } from "../../lib/logger";
+import type { logger } from "@subbrain/core/lib/logger";
+import { getTracer } from "@subbrain/core/lib/telemetry";
 import type { ModelRouter } from "../../lib/model-router";
-import { getTracer } from "../../lib/telemetry";
 import type { ToolExecutor, ToolRegistry } from "../../mcp";
 import type { AgentLoopSession, AgentMode } from "../../mcp/registry/tool-registry";
 import type { ToolCall } from "../../providers/types";

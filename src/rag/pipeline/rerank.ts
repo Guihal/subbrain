@@ -1,4 +1,4 @@
-import { RERANK_MODEL } from "../../lib/model-map";
+import { RERANK_MODEL } from "@subbrain/core/lib/model-map";
 import type { ModelRouter } from "../../lib/model-router";
 import type { RAGResult } from "../types";
 

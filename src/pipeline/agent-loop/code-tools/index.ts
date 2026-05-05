@@ -6,7 +6,7 @@
  * `src/db/tables/code-tools.ts` (guardrail #6 / PR B-2).
  */
 import { randomUUID } from "node:crypto";
-import type { CodeToolsRepository } from "../../../repositories/code-tools.repo";
+import type { CodeToolsRepository } from "@subbrain/core/repositories/code-tools.repo";
 import type { AgentMode } from "../types";
 import { isHiddenInMode } from "./scheduled-blacklist";
 import type { CodeTool } from "./types";

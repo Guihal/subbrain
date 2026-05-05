@@ -3,9 +3,9 @@
  * Returned as a synthetic ChatResponse so the rest of the pipeline is uniform.
  */
 
-import type { RequestLogger } from "../../../lib/logger";
-import type { Metrics } from "../../../lib/metrics";
-import { getTracer } from "../../../lib/telemetry";
+import type { RequestLogger } from "@subbrain/core/lib/logger";
+import type { Metrics } from "@subbrain/core/lib/metrics";
+import { getTracer } from "@subbrain/core/lib/telemetry";
 import type { ChatResponse } from "../../../providers/types";
 import type { ArbitrationRoom } from "../../arbitration";
 

@@ -13,9 +13,9 @@
  */
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { existsSync, unlinkSync } from "node:fs";
+import { MemoryDB } from "@subbrain/core/db";
+import { logger } from "@subbrain/core/lib/logger";
 import { Elysia } from "elysia";
-import { MemoryDB } from "../src/db";
-import { logger } from "../src/lib/logger";
 import { writeShared } from "../src/pipeline/agent-pipeline/post/extractors";
 import { categoryToKind, type MemoryKind } from "../src/pipeline/agent-pipeline/post/validators";
 import { RAGPipeline } from "../src/rag";

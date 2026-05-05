@@ -9,7 +9,7 @@
  * ground truth for semantic similarity). Cosine computed in JS from raw
  * Float32Array vectors (sqlite-vec returns L2 on un-normalised vectors).
  */
-import type { MemoryDB } from "../../db";
+import type { MemoryDB } from "@subbrain/core/db";
 import { MEMORY_DEDUP_MODE_BY_CATEGORY } from "../../pipeline/agent-pipeline/post/validators";
 import type { RAGPipeline } from "../../rag";
 

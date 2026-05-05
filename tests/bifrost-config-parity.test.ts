@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { MODEL_MAP } from "../src/lib/model-map";
+import { MODEL_MAP } from "@subbrain/core/lib/model-map";
 
 describe("Bifrost config parity", () => {
   test("all ProviderName values have a matching Bifrost provider entry", async () => {

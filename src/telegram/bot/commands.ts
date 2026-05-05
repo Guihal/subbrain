@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
+import { MODEL_MAP } from "@subbrain/core/lib/model-map";
 import type { Bot } from "grammy";
-import { MODEL_MAP } from "../../lib/model-map";
 import type { BotState } from "./state";
 import { escapeMarkdown } from "./utils";
 

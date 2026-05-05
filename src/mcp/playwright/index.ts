@@ -1,7 +1,8 @@
 /// <reference lib="dom" />
 /** Direct Playwright browser wrapper. See docs/02-audit.md BROWSER-1. */
+
+import { logger } from "@subbrain/core/lib/logger";
 import type { Browser, BrowserContext, Page } from "playwright";
-import { logger } from "../../lib/logger";
 import * as a from "./actions";
 import { launchBrowser, newScopeContext, trackClient, untrackClient } from "./lifecycle";
 

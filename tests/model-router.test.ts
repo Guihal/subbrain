@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { UpstreamExhaustedError } from "../src/lib/errors";
+import { UpstreamExhaustedError } from "@subbrain/core/lib/errors";
 import { ModelRouter } from "../src/lib/model-router";
 import { ProviderError } from "../src/providers/nvidia";
 import type { LLMProvider } from "../src/providers/types";

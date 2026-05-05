@@ -1,6 +1,7 @@
 /// <reference lib="dom" />
+
+import { logger } from "@subbrain/core/lib/logger";
 import { type Browser, type BrowserContext, chromium, type Page } from "playwright";
-import { logger } from "../../lib/logger";
 
 const log = logger.child("playwright");
 

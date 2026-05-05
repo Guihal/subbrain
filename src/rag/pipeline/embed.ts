@@ -1,4 +1,4 @@
-import { EMBED_MODEL } from "../../lib/model-map";
+import { EMBED_MODEL } from "@subbrain/core/lib/model-map";
 import type { ModelRouter } from "../../lib/model-router";
 import { EMBED_CACHE_MAX, EMBED_CACHE_TTL } from "../types";
 

@@ -1,5 +1,5 @@
+import { logger } from "@subbrain/core/lib/logger";
 import type { TelegramClient } from "telegram";
-import { logger } from "../../lib/logger";
 
 const log = logger.child("userbot");
 

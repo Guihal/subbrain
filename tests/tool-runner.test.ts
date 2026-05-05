@@ -4,7 +4,7 @@
  */
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { existsSync, unlinkSync } from "node:fs";
-import { MemoryDB } from "../src/db";
+import { MemoryDB } from "@subbrain/core/db";
 import { ToolExecutor } from "../src/mcp/executor";
 import { buildRegistry, type ToolRegistry } from "../src/mcp/registry";
 

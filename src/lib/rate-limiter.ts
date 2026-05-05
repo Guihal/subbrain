@@ -1,4 +1,4 @@
-import type { Priority } from "./model-map";
+import type { Priority } from "@subbrain/core/lib/model-map";
 
 const DEFAULT_MAX_RPM = 40;
 const WINDOW_MS = 60_000;

@@ -1,7 +1,7 @@
 /** M-11 sleep-time focus block rewriter — see plan §Тесты. */
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, unlinkSync } from "node:fs";
-import { MemoryDB } from "../src/db";
+import { MemoryDB } from "@subbrain/core/db";
 import { runFocusRewrite } from "../src/pipeline/night-cycle/steps/focus-rewrite";
 
 const TEST_DB = "data/test-mem11-focus-rewrite.db";

@@ -1,5 +1,5 @@
+import type { MemoryDB } from "@subbrain/core/db";
 import { Elysia, t } from "elysia";
-import type { MemoryDB } from "../db";
 
 export function chatsRoute(memory: MemoryDB) {
   return new Elysia({ prefix: "/v1/chats" })

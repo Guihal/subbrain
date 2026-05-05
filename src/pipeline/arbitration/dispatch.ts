@@ -4,7 +4,7 @@
  * propagated to all in-flight calls.
  */
 
-import type { Metrics } from "../../lib/metrics";
+import type { Metrics } from "@subbrain/core/lib/metrics";
 import type { ModelRouter } from "../../lib/model-router";
 import { buildSpecialistSystemPrompt } from "./prompts";
 import type { AgentResponse, RoomConfig } from "./types";

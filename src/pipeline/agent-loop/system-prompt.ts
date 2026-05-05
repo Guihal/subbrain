@@ -2,7 +2,7 @@
  * System prompt builder for the autonomous agent.
  * Includes hippocampus (flash) executive summary for memory context.
  */
-import type { MemoryDB, TaskScope } from "../../db";
+import type { MemoryDB, TaskScope } from "@subbrain/core/db";
 import type { ModelRouter } from "../../lib/model-router";
 import { getPersonaBio } from "../../lib/personas";
 import type { RAGPipeline, RAGResult } from "../../rag";

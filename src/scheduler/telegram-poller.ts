@@ -6,8 +6,8 @@
  * Poller never calls pipeline models directly except for the small `flash`
  * summary in remind().
  */
-import type { MemoryDB } from "../db";
-import { logger } from "../lib/logger";
+import type { MemoryDB } from "@subbrain/core/db";
+import { logger } from "@subbrain/core/lib/logger";
 import type { ModelRouter } from "../lib/model-router";
 import {
   applyCommand,

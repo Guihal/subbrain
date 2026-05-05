@@ -18,6 +18,7 @@ interface Rule {
 
 const consoleAllowlist = new Set([
   "src/lib/logger.ts",
+  "packages/core/src/lib/logger.ts",
   "src/app/deps.ts",
   "src/providers/index.ts",
 ]);

@@ -14,7 +14,7 @@
  */
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { existsSync, unlinkSync } from "node:fs";
-import { MemoryDB } from "../src/db";
+import { MemoryDB } from "@subbrain/core/db";
 import { decaySalience } from "../src/pipeline/night-cycle/steps/decay-salience";
 import { RAGPipeline } from "../src/rag";
 

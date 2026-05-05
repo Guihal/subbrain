@@ -6,9 +6,9 @@
  *
  * Returns enriched system prompt + stats for metrics/logging.
  */
-import type { MemoryDB } from "../../../db";
+import type { MemoryDB } from "@subbrain/core/db";
+import { getTracer } from "@subbrain/core/lib/telemetry";
 import type { ModelRouter } from "../../../lib/model-router";
-import { getTracer } from "../../../lib/telemetry";
 import type { RAGPipeline, RAGResult } from "../../../rag";
 import { buildSystemPrompt } from "../helpers";
 import { buildExecutiveSummary } from "../pre/exec-summary";

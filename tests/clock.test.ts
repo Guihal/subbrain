@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { getMoscowDate, getMoscowNow } from "../src/lib/clock";
+import { getMoscowDate, getMoscowNow } from "@subbrain/core/lib/clock";
 
 describe("clock", () => {
   test("formats UTC 11:30 as MSK 14:30", () => {

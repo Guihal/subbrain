@@ -9,7 +9,7 @@
  */
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, unlinkSync } from "node:fs";
-import { MemoryDB } from "../src/db";
+import { MemoryDB } from "@subbrain/core/db";
 import { writeContextCase } from "../src/mcp/tools/memory/write-context";
 import { type SharedWriteDeps, writeShared } from "../src/mcp/tools/memory/write-shared";
 import { defaultExpiresAt } from "../src/pipeline/agent-pipeline/post/validators";

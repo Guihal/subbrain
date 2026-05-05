@@ -1,4 +1,4 @@
-import type { MemoryDB } from "../../../db";
+import type { MemoryDB } from "@subbrain/core/db";
 import type { ToolResult } from "../../types";
 
 export function contextSummary(memory: MemoryDB, sessionId: string): ToolResult {

@@ -2,11 +2,11 @@
  * Freelance scout admin routes.
  * Mounted after authMiddleware. See docs/tasks/03-freelance-search-mode.md.
  */
+
+import type { FreelanceStatus, MemoryDB } from "@subbrain/core/db";
+import { paginate } from "@subbrain/core/lib/api-envelope";
+import { NotFoundError } from "@subbrain/core/lib/errors";
 import { Elysia, t } from "elysia";
-import type { MemoryDB } from "../db";
-import type { FreelanceStatus } from "../db/types";
-import { paginate } from "../lib/api-envelope";
-import { NotFoundError } from "../lib/errors";
 import type { FreelanceScout } from "../scheduler/freelance";
 
 const STATUS_VALUES = t.Union([t.Literal("new"), t.Literal("taken"), t.Literal("rejected")]);

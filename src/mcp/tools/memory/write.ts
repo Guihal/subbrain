@@ -4,7 +4,7 @@
  * lives in `./write-shared.ts` (M-FINAL2 / MEM-2 / M-07.1).
  */
 import { randomUUID } from "node:crypto";
-import type { MemoryDB } from "../../../db";
+import type { MemoryDB } from "@subbrain/core/db";
 import type { RAGPipeline } from "../../../rag";
 import type { MemoryService } from "../../../services/memory";
 import type { ToolResult } from "../../types";

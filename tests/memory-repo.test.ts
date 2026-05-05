@@ -13,8 +13,8 @@
 import type { Database } from "bun:sqlite";
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, unlinkSync } from "node:fs";
-import { migrate, openDatabase } from "../src/db/schema";
-import { MemoryRepository } from "../src/repositories/memory";
+import { migrate, openDatabase } from "@subbrain/core/db/schema";
+import { MemoryRepository } from "@subbrain/core/repositories/memory";
 
 const TEST_DB = "data/test-memory-repo.db";
 

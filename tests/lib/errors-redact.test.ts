@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { HttpError, redactSecrets } from "../../src/lib/errors";
+import { HttpError, redactSecrets } from "@subbrain/core/lib/errors";
 
 describe("redactSecrets", () => {
   test("strips Bearer + ghu_ + sk- + nvapi-", () => {

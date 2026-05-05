@@ -2,7 +2,7 @@
  * Loads Layer 1 (focus) + shared memory and builds the seed context block
  * fed into the hippocampus before its agentic search.
  */
-import type { MemoryDB, SharedRow } from "../../../db";
+import type { MemoryDB, SharedRow } from "@subbrain/core/db";
 
 export interface FocusSeed {
   focusEntries: Record<string, string>;

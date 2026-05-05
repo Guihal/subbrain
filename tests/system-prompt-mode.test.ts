@@ -5,7 +5,7 @@
  */
 import { afterAll, describe, expect, test } from "bun:test";
 import { unlinkSync } from "node:fs";
-import { MemoryDB } from "../src/db";
+import { MemoryDB } from "@subbrain/core/db";
 import { buildAgentSystemPrompt } from "../src/pipeline/agent-loop/system-prompt";
 import type { RAGPipeline } from "../src/rag";
 

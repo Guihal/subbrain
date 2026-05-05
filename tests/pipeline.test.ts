@@ -12,7 +12,7 @@
  */
 
 import { unlinkSync } from "node:fs";
-import { MemoryDB } from "../src/db";
+import { MemoryDB } from "@subbrain/core/db";
 import { AgentPipeline } from "../src/pipeline";
 import type { ChatResponse, Message } from "../src/providers/types";
 import { RAGPipeline } from "../src/rag";

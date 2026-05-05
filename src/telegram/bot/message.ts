@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
+import { logger } from "@subbrain/core/lib/logger";
 import type { Bot } from "grammy";
-import { logger } from "../../lib/logger";
 import type { BotState } from "./state";
 import { buildMessages, sendLongMessage } from "./utils";
 

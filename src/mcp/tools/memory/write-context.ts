@@ -5,9 +5,9 @@
  * Returns sync ToolResult|null when rag is absent (backward compat).
  */
 
-import type { MemoryDB } from "../../../db";
-import { logger } from "../../../lib/logger";
-import { incrementCounter } from "../../../lib/metrics";
+import type { MemoryDB } from "@subbrain/core/db";
+import { logger } from "@subbrain/core/lib/logger";
+import { incrementCounter } from "@subbrain/core/lib/metrics";
 import {
   defaultExpiresAt,
   validateCategoryAndContent,

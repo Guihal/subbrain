@@ -2,8 +2,8 @@
  * Embedding and RAG search operations extracted from ToolExecutor.
  */
 
-import type { MemoryDB } from "../../db";
-import { EMBED_CODE_MODEL, EMBED_MODEL, RERANK_MODEL } from "../../lib/model-map";
+import type { MemoryDB } from "@subbrain/core/db";
+import { EMBED_CODE_MODEL, EMBED_MODEL, RERANK_MODEL } from "@subbrain/core/lib/model-map";
 import type { ModelRouter } from "../../lib/model-router";
 import type { RAGPipeline } from "../../rag";
 import type { ToolResult } from "../types";

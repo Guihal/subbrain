@@ -1,7 +1,7 @@
 /**
  * Types & constants for the Agent Loop.
  */
-import type { Priority } from "../../lib/model-map";
+import type { Priority } from "@subbrain/core/lib/model-map";
 
 export type ScheduleSource = "autonomous" | "free-agent";
 export interface ScheduleContext {
@@ -83,7 +83,7 @@ export interface AgentLoopResult {
 
 // ─── Helpers ─────────────────────────────────────────────
 
-import { getMoscowNow } from "../../lib/clock";
+import { getMoscowNow } from "@subbrain/core/lib/clock";
 
 export function getCurrentDate(): string {
   return getMoscowNow();

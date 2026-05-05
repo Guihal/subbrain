@@ -1,8 +1,8 @@
 /** AgentPipeline — orchestrates pre → main → post (or arbitration room). */
 import { randomUUID } from "node:crypto";
-import type { MemoryDB } from "../../db";
-import { logger } from "../../lib/logger";
-import type { Metrics } from "../../lib/metrics";
+import type { MemoryDB } from "@subbrain/core/db";
+import { logger } from "@subbrain/core/lib/logger";
+import type { Metrics } from "@subbrain/core/lib/metrics";
 import type { ModelRouter } from "../../lib/model-router";
 import type { ToolExecutor } from "../../mcp";
 import type { ToolRegistry } from "../../mcp/registry";

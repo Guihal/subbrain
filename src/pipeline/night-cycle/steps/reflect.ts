@@ -1,5 +1,5 @@
 /** M-06: night-cycle reflect (CoALA episodic → semantic). See docs/completed/05-rag-pipeline.md. */
-import type { MemoryDB } from "../../../db";
+import type { MemoryDB } from "@subbrain/core/db";
 import type { ModelRouter } from "../../../lib/model-router";
 import type { RAGPipeline } from "../../../rag";
 import type { MemoryService } from "../../../services/memory";

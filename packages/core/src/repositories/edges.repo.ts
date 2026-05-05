@@ -9,8 +9,8 @@
  * tickets (M-06 reflect promotion, M-09 cross-layer dedup).
  */
 import type { Database } from "bun:sqlite";
+import type { EdgeKind, EdgeRow } from "../db/index";
 import { EdgesTable } from "../db/tables/edges";
-import type { EdgeKind, EdgeRow } from "../db/types";
 
 export class EdgeRepository {
   private readonly edges: EdgesTable;

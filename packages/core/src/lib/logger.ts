@@ -1,4 +1,4 @@
-import type { MemoryDB } from "../db";
+import type { MemoryDB } from "../db/index";
 import { maskSecrets } from "./redact";
 
 // ─── Types ───────────────────────────────────────────────

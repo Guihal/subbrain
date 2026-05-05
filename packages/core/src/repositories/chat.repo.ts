@@ -6,8 +6,8 @@
  * see (routes still reach via `MemoryDB` facade).
  */
 import type { Database } from "bun:sqlite";
+import type { ChatMessageRow, ChatRow, TgExcludedChatRow } from "../db/index";
 import { ChatsTable } from "../db/tables/chats";
-import type { ChatMessageRow, ChatRow, TgExcludedChatRow } from "../db/types";
 
 export class ChatRepository {
   private readonly chats: ChatsTable;

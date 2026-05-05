@@ -1,5 +1,5 @@
 /** MEM-6: pre-insert dedup for hippocampus. Two-pass: FTS5 → embed → vec. */
-import type { MemoryDB } from "../../../db";
+import type { MemoryDB } from "@subbrain/core/db";
 import type { RAGPipeline } from "../../../rag";
 
 const FTS_SEARCH_LIMIT = 5;

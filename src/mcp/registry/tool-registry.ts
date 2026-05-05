@@ -9,8 +9,9 @@
  * ToolDef<Schema, Scope> infers handler's ctx type from declared scope; registry
  * exposes callAsPublic/callAsAgent — callAsPublic rejects agent-only tools at runtime.
  */
+
+import type { logger } from "@subbrain/core/lib/logger";
 import { type Static, type TSchema, t } from "elysia";
-import type { logger } from "../../lib/logger";
 import type { ModelRouter } from "../../lib/model-router";
 import type { CodeToolRegistry } from "../../pipeline/agent-loop/code-tools";
 import type { DynamicToolRegistry } from "../../pipeline/agent-loop/dynamic-tools";

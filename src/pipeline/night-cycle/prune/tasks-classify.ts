@@ -11,8 +11,8 @@
  * inject a fake without pulling the full ModelRouter/Priority types.
  */
 
-import type { TaskScope } from "../../../db";
-import type { Priority } from "../../../lib/model-map";
+import type { TaskScope } from "@subbrain/core/db";
+import type { Priority } from "@subbrain/core/lib/model-map";
 import type { ChatParams, ChatResponse } from "../../../providers/types";
 import { parseJson } from "../types";
 

@@ -1,5 +1,5 @@
+import type { MemoryKind, MemoryStatus } from "../../db/index";
 import type { InsertSharedOpts, SharedTable } from "../../db/tables/shared";
-import type { MemoryKind, MemoryStatus } from "../../db/types";
 
 /**
  * Thin facades around `SharedTable` — shared CRUD, agent memory, FTS5, vec

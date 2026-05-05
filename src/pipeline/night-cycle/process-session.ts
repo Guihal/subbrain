@@ -7,8 +7,8 @@
  * `null`; the caller enqueues the session_id for the next cycle.
  */
 import { randomUUID } from "node:crypto";
-import type { LogRow, MemoryDB } from "../../db";
-import { logger } from "../../lib/logger";
+import type { LogRow, MemoryDB } from "@subbrain/core/db";
+import { logger } from "@subbrain/core/lib/logger";
 import type { ModelRouter } from "../../lib/model-router";
 import type { RAGPipeline } from "../../rag";
 import { compress, dedup, scrubPII, translate, verify } from "./steps";

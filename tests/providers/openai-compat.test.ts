@@ -1,5 +1,5 @@
 import { afterAll, afterEach, beforeAll, describe, expect, test } from "bun:test";
-import type { ModelRoute } from "../../src/lib/model-map";
+import type { ModelRoute } from "@subbrain/core/lib/model-map";
 import { ProviderError } from "../../src/providers/nvidia";
 import { OpenAICompatProvider } from "../../src/providers/openai-compat";
 import type { Message } from "../../src/providers/types";
@@ -154,13 +154,13 @@ describe("model-map: detect + apply", () => {
 
   test("detect: gpt-5.4-mini → openai-compat when ENABLED=true", async () => {
     process.env.OPENAI_COMPAT_ENABLED = "true";
-    const { resolveModel } = await import("../../src/lib/model-map");
+    const { resolveModel } = await import("@subbrain/core/lib/model-map");
     expect(resolveModel("gpt-5.4-mini").provider).toBe("openai-compat");
   });
 
   test("detect: gpt-4o falls through to nvidia (not openai-compat) when ENABLED=true", async () => {
     process.env.OPENAI_COMPAT_ENABLED = "true";
-    const { resolveModel } = await import("../../src/lib/model-map");
+    const { resolveModel } = await import("@subbrain/core/lib/model-map");
     // gpt-4o doesn't match openai-compat allowlist (gpt-5*/o3*/o4*/codex-*).
     // Per 2026-05-03 default provider is nvidia (NIM only) — gpt-4o would 404
     // at NIM by design; OpenRouter теперь только при explicit `openrouter/`
@@ -169,9 +169,7 @@ describe("model-map: detect + apply", () => {
   });
 
   test("apply: idempotent on/off + WeakMap snapshot restore", async () => {
-    const { applyOpenAICompatOverrides } = await import(
-      "../../src/lib/model-map/openai-compat-overrides"
-    );
+    const { applyOpenAICompatOverrides } = await import("@subbrain/core/lib/model-map");
     const envOn = { OPENAI_COMPAT_ENABLED: "true" } as NodeJS.ProcessEnv;
     const envOff = { OPENAI_COMPAT_ENABLED: "false" } as NodeJS.ProcessEnv;
     const localMap: Record<string, ModelRoute> = {
@@ -209,7 +207,7 @@ describe("model-map: detect + apply", () => {
 
   test("real MODEL_MAP not polluted across tests (default OFF)", async () => {
     delete process.env.OPENAI_COMPAT_ENABLED;
-    const { MODEL_MAP, applyOpenAICompatOverrides } = await import("../../src/lib/model-map");
+    const { MODEL_MAP, applyOpenAICompatOverrides } = await import("@subbrain/core/lib/model-map");
     applyOpenAICompatOverrides();
     // Per-role NIM swap 2026-05-03: teamlead→K2 Thinking, coder→Qwen3-Coder
     // (both nvidia). Pre-swap defaults were both minimax. Test asserts
@@ -228,7 +226,7 @@ describe("bootstrap integration (real createProviders)", () => {
     }
     Object.assign(process.env, savedEnv);
     delete process.env.OPENAI_COMPAT_ENABLED;
-    const { applyOpenAICompatOverrides } = await import("../../src/lib/model-map");
+    const { applyOpenAICompatOverrides } = await import("@subbrain/core/lib/model-map");
     applyOpenAICompatOverrides();
   });
 
@@ -239,7 +237,7 @@ describe("bootstrap integration (real createProviders)", () => {
     process.env.NVIDIA_BASE_URL =
       process.env.NVIDIA_BASE_URL || "https://integrate.api.nvidia.com/v1";
     process.env.NVIDIA_API_KEY = process.env.NVIDIA_API_KEY || "nvapi-test";
-    const { applyOpenAICompatOverrides } = await import("../../src/lib/model-map");
+    const { applyOpenAICompatOverrides } = await import("@subbrain/core/lib/model-map");
     applyOpenAICompatOverrides();
     const { createProviders } = await import("../../src/providers");
     const providers = await createProviders();

@@ -4,7 +4,7 @@
  */
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { existsSync, unlinkSync } from "node:fs";
-import { MemoryDB } from "../src/db";
+import { MemoryDB } from "@subbrain/core/db";
 import { LogTools } from "../src/mcp/tools/log-tools";
 import { MemoryTools } from "../src/mcp/tools/memory";
 import { WebTools } from "../src/mcp/tools/web-tools";

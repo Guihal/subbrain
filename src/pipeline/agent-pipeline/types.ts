@@ -2,7 +2,7 @@
  * Types and interfaces for the agent pipeline.
  */
 
-import type { SharedRow } from "../../db";
+import type { SharedRow } from "@subbrain/core/db";
 import type { ChatResponse, Message } from "../../providers/types";
 import type { RAGResult } from "../../rag";
 

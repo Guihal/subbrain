@@ -5,7 +5,7 @@
  *
  * Pure data layer — no LLM calls, no writes.
  */
-import type { MemoryDB } from "../../../../db";
+import type { MemoryDB } from "@subbrain/core/db";
 import {
   type CandidateRow,
   hasBlacklistTag,

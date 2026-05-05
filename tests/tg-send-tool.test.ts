@@ -7,7 +7,7 @@
  * delivery as success. Success path stays `{ success: true }`.
  */
 import { describe, expect, test } from "bun:test";
-import type { MemoryDB } from "../src/db";
+import type { MemoryDB } from "@subbrain/core/db";
 import type { ModelRouter } from "../src/lib/model-router";
 import { ToolExecutor } from "../src/mcp/executor";
 import { buildRegistry } from "../src/mcp/registry";

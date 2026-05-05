@@ -10,8 +10,8 @@
  * every agent (autonomous, free-agent, interactive) and must see them all.
  * Per-agent reports would need to thread an explicit agentId here.
  */
-import type { LogRow, MemoryDB, SharedRow } from "../db";
-import { logger } from "../lib/logger";
+import type { LogRow, MemoryDB, SharedRow } from "@subbrain/core/db";
+import { logger } from "@subbrain/core/lib/logger";
 import type { RAGPipeline } from "./pipeline";
 
 const log = logger.child("report-context");

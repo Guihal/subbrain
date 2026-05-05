@@ -1,4 +1,4 @@
-import type { FreelanceSource } from "../../db/types";
+import type { FreelanceSource } from "@subbrain/core/db";
 
 /** Raw item extracted from an exchange feed snapshot, before LLM scoring. */
 export interface FeedItem {

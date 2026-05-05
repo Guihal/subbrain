@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
-import { Logger } from "../src/lib/logger";
+import { Logger } from "@subbrain/core/lib/logger";
 
 describe("logger.child", () => {
   let consoleSpy: ReturnType<typeof spyOn>;

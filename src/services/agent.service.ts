@@ -22,10 +22,10 @@
  * AgentService back-door.
  */
 
-import type { Priority } from "../lib/model-map";
+import type { Priority } from "@subbrain/core/lib/model-map";
+import type { ChatRepository } from "@subbrain/core/repositories";
 import type { AgentLoop, AgentLoopResult, AgentMode } from "../pipeline/agent-loop";
 import type { ScheduleContext } from "../pipeline/agent-loop/types";
-import type { ChatRepository } from "../repositories";
 
 export interface AgentRunOpts {
   task: string;

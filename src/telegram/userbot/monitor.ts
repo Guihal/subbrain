@@ -1,6 +1,6 @@
+import type { MemoryDB } from "@subbrain/core/db";
+import { logger } from "@subbrain/core/lib/logger";
 import type { TelegramClient } from "telegram";
-import type { MemoryDB } from "../../db";
-import { logger } from "../../lib/logger";
 
 const log = logger.child("userbot");
 

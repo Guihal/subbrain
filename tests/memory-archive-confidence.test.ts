@@ -16,13 +16,13 @@
 import { Database } from "bun:sqlite";
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { existsSync, unlinkSync } from "node:fs";
+import { MemoryDB } from "@subbrain/core/db";
+import { migrate, openDatabase } from "@subbrain/core/db/schema";
 import { authMiddleware } from "@subbrain/core/lib/auth";
+import { AppError } from "@subbrain/core/lib/errors";
 import { AuthService } from "@subbrain/core/services/auth";
 import { Elysia } from "elysia";
 import * as sqliteVec from "sqlite-vec";
-import { MemoryDB } from "../src/db";
-import { migrate, openDatabase } from "../src/db/schema";
-import { AppError } from "../src/lib/errors";
 import { RAGPipeline } from "../src/rag";
 import { memoryRoute } from "../src/routes/memory";
 import { MemoryService } from "../src/services/memory";

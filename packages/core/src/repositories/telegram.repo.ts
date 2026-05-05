@@ -6,8 +6,8 @@
  * table).
  */
 import type { Database } from "bun:sqlite";
+import type { TgMessageRow, TgSearchHit } from "../db/index";
 import { type TgMessageInsert, TgMessagesTable, type TgSearchOpts } from "../db/tables/tg-messages";
-import type { TgMessageRow, TgSearchHit } from "../db/types";
 
 export class TelegramRepository {
   private readonly tg: TgMessagesTable;

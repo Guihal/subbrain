@@ -5,7 +5,7 @@
  * Routes consume this instead of `MemoryDB` directly so the route file holds
  * no SQL and stays under the 150-line cap (SoC: routes = view layer).
  */
-import type { MemoryDB, TaskRow, TaskScope, TaskStatus } from "../db";
+import type { MemoryDB, TaskRow, TaskScope, TaskStatus } from "../db/index";
 
 export class TaskRepository {
   constructor(private readonly memory: MemoryDB) {}

@@ -13,8 +13,8 @@
  *
  * Helpers (clustering + utils) live in memory-dedup-utils.ts.
  */
-import type { ContextRow, MemoryDB, SharedRow } from "../../../db";
-import { logger } from "../../../lib/logger";
+import type { ContextRow, MemoryDB, SharedRow } from "@subbrain/core/db";
+import { logger } from "@subbrain/core/lib/logger";
 import type { RAGPipeline } from "../../../rag";
 
 import {

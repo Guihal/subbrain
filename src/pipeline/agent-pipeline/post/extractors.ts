@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
-import type { MemoryDB } from "../../../db";
-import type { RequestLogger } from "../../../lib/logger";
+import type { MemoryDB } from "@subbrain/core/db";
+import type { RequestLogger } from "@subbrain/core/lib/logger";
 import type { ModelRouter } from "../../../lib/model-router";
 import type { RAGPipeline } from "../../../rag";
 import { bumpConfidence, findDuplicate, mergeContent, mergeTags } from "./dedupe";

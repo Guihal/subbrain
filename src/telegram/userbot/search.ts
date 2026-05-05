@@ -1,5 +1,5 @@
+import type { MemoryDB } from "@subbrain/core/db";
 import { Api, type TelegramClient } from "telegram";
-import type { MemoryDB } from "../../db";
 import { TG_OP_TIMEOUT_MS, withTimeout } from "./connection";
 import type { TgMessage } from "./types";
 

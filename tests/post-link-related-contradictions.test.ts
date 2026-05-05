@@ -13,7 +13,7 @@
  */
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, unlinkSync } from "node:fs";
-import { MemoryDB } from "../src/db";
+import { MemoryDB } from "@subbrain/core/db";
 import { writeContext, writeShared } from "../src/pipeline/agent-pipeline/post/extractors";
 import { RAGPipeline } from "../src/rag";
 

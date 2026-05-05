@@ -21,8 +21,8 @@
  * never abort the loop — orchestrator wraps the whole step in `runStep`
  * which already handles step-level throws via `result.errors`.
  */
-import type { MemoryDB } from "../../../db";
-import type { ScopedLogger } from "../../../lib/logger";
+import type { MemoryDB } from "@subbrain/core/db";
+import type { ScopedLogger } from "@subbrain/core/lib/logger";
 import type { ModelRouter } from "../../../lib/model-router";
 import { PROTECTED_FOCUS_KEYS } from "../prune/focus";
 import type { FocusRewriteResult } from "../types";

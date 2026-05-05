@@ -1,7 +1,7 @@
 /**
  * Telegram chat tool handlers for the MCP executor.
  */
-import type { MemoryDB } from "../db";
+import type { MemoryDB } from "@subbrain/core/db";
 import type { Userbot } from "../telegram/userbot";
 import type { ToolResult } from "./types";
 

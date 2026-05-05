@@ -11,7 +11,7 @@
  */
 import { beforeAll, describe, expect, test } from "bun:test";
 import { unlinkSync } from "node:fs";
-import { MemoryDB } from "../src/db";
+import { MemoryDB } from "@subbrain/core/db";
 import { MemoryTools } from "../src/mcp/tools/memory";
 import { writeShared } from "../src/pipeline/agent-pipeline/post/extractors";
 import { type CompressorMemory, compressContext } from "../src/pipeline/context-compressor";

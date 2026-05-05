@@ -5,8 +5,8 @@
  * (skipped tail will be re-scanned next cycle).
  */
 import { randomUUID } from "node:crypto";
-import type { MemoryDB } from "../../../../db";
-import { logger } from "../../../../lib/logger";
+import type { MemoryDB } from "@subbrain/core/db";
+import { logger } from "@subbrain/core/lib/logger";
 import { type CandidateRow, type Classifier, classifyCandidate } from "../tasks-classify";
 import { MAX_DURATION_MS, MAX_PER_CYCLE } from "./constants";
 

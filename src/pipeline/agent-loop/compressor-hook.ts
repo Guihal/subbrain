@@ -3,7 +3,7 @@
  * Returns `true` when compression fired so callers can emit SSE events.
  */
 
-import type { MemoryDB } from "../../db";
+import type { MemoryDB } from "@subbrain/core/db";
 import type { ModelRouter } from "../../lib/model-router";
 import type { Message } from "../../providers/types";
 import { compressContext, shouldCompress } from "../context-compressor";

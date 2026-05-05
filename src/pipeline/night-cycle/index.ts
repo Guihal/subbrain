@@ -7,8 +7,8 @@
  *   - anti-patterns-step.ts — extract + embed + archive.
  *   - post-steps.ts         — contradictions + prune* + stray collection.
  */
-import type { MemoryDB } from "../../db";
-import { logger } from "../../lib/logger";
+import type { MemoryDB } from "@subbrain/core/db";
+import { logger } from "@subbrain/core/lib/logger";
 import type { ModelRouter } from "../../lib/model-router";
 import type { RAGPipeline } from "../../rag";
 import type { MemoryService } from "../../services/memory";

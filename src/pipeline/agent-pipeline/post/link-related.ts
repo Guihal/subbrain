@@ -1,6 +1,6 @@
 /** M-05/M-05.1/M-05.2: post-insert edge hook. See docs/completed/05-rag-pipeline.md. */
-import type { MemoryDB } from "../../../db";
-import type { RequestLogger } from "../../../lib/logger";
+import type { MemoryDB } from "@subbrain/core/db";
+import type { RequestLogger } from "@subbrain/core/lib/logger";
 import type { ModelRouter } from "../../../lib/model-router";
 import type { RAGPipeline } from "../../../rag";
 

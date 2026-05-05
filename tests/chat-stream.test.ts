@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { MemoryDB } from "../src/db";
+import type { MemoryDB } from "@subbrain/core/db";
 import { wrapStreamForChat } from "../src/routes/chat";
 
 function sseChunk(content: string): Uint8Array {

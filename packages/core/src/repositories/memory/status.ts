@@ -1,7 +1,7 @@
 import type { Database } from "bun:sqlite";
+import type { ContextRow, MemoryStatus, SharedRow } from "../../db/index";
 import type { MemoryTable } from "../../db/tables/memory";
 import type { SharedTable } from "../../db/tables/shared";
-import type { ContextRow, MemoryStatus, SharedRow } from "../../db/types";
 
 export type PendingLayer = "shared" | "context";
 

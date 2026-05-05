@@ -1,6 +1,5 @@
-import type { MemoryDB } from "../../db";
-import type { FreelanceSource } from "../../db/types";
-import { logger } from "../../lib/logger";
+import type { FreelanceSource, MemoryDB } from "@subbrain/core/db";
+import { logger } from "@subbrain/core/lib/logger";
 import type { ModelRouter } from "../../lib/model-router";
 import type { PlaywrightClient } from "../../mcp/playwright";
 import { pageSnapshot } from "../../mcp/snapshot";

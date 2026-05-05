@@ -1,5 +1,5 @@
+import type { FreelanceSource } from "@subbrain/core/db";
 import type { Page } from "playwright";
-import type { FreelanceSource } from "../../db/types";
 import { parseFor } from "./parsers";
 import type { FeedItem } from "./types";
 

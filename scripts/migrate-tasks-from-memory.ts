@@ -20,9 +20,9 @@ import { randomUUID } from "node:crypto";
  * and the source row is already gone.
  */
 import { appendFileSync, mkdirSync } from "node:fs";
-import { MemoryDB } from "../src/db";
-import { getMoscowDate } from "../src/lib/clock";
-import { logger } from "../src/lib/logger";
+import { MemoryDB } from "@subbrain/core/db";
+import { getMoscowDate } from "@subbrain/core/lib/clock";
+import { logger } from "@subbrain/core/lib/logger";
 import { ModelRouter } from "../src/lib/model-router";
 import {
   type CandidateRow,

@@ -1,4 +1,4 @@
-import type { LogRow } from "../../../db";
+import type { LogRow } from "@subbrain/core/db";
 import type { ModelRouter } from "../../../lib/model-router";
 import { buildConversationText, stripThinkTags } from "../types";
 import { nightLog as log, NIGHT_MODEL } from "./shared";
