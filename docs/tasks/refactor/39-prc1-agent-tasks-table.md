@@ -7,7 +7,7 @@
 
 ## Контекст schema-state (важно для миграции)
 
-`packages/core/src/db/schema.ts` уже содержит миграции до `PRAGMA user_version = 16` (последняя — telegram chats schema). PR-A не добавлял миграций (только tighten validators), так что после merge PR-B следующий свободный номер — **17**. Pre-check ниже обязан подтвердить это перед стартом.
+`packages/core/src/db/schema.ts` уже содержит миграции до `PRAGMA user_version = 17` (последняя — P3-2 bi-temporal nullable columns). Следующий свободный номер — **18**. Pre-check ниже обязан подтвердить это перед стартом.
 
 ## Цель
 
@@ -19,10 +19,10 @@
 
 ```bash
 cd /usr/projects/subbrain
-# 1. Текущая версия schema = 16 (жёстко). Если уже >16 — кто-то занял номер.
-bun -e 'import {MemoryDB} from "./src/db"; const db=new MemoryDB(":memory:"); console.log(db.db.query("PRAGMA user_version").get())'
-# expect: { user_version: 16 }
-# Если 17 → STOP, FAIL: migration-conflict (кто-то уже создал миграцию 17).
+# 1. Текущая версия schema = 17 (жёстко). Если уже >17 — кто-то занял номер.
+bun -e 'import {MemoryDB} from "./packages/core/src/db"; const db=new MemoryDB(":memory:"); console.log(db.db.query("PRAGMA user_version").get())'
+# expect: { user_version: 17 }
+# Если 18 → STOP, FAIL: migration-conflict (кто-то уже создал миграцию 18).
 
 # 2. PR-B merged
 git log -1 --format='%s' main | grep -qE 'merge\(PR-B\)' && echo "PR-B ok" || echo "PR-B MISSING"
@@ -36,17 +36,17 @@ git log -1 --format='%s' main | grep -qE 'merge\(PR-B\)' && echo "PR-B ok" || ec
 Эта задача — **только schema + data layer + repo facade + tests**. НИКАКОЙ интеграции с pool / scheduler / runners. Любая попытка «заодно подключить» = scope creep = FAIL.
 
 **Allowed actions** (только эти):
-- Создать новые файлы: `packages/core/src/db/tables/agent-tasks.ts`, `packages/core/src/repositories/agent-tasks.repo.ts`, `packages/core/src/db/tables/agent-tasks/types.ts`, `tests/agent-tasks-repo.test.ts`, `tests/migration-17.test.ts`.
-- Edit `packages/core/src/db/schema.ts` — добавить `migration_17_agent_tasks` в migrations array (после migration_16), **не трогать** существующие migration функции.
+- Создать новые файлы: `packages/core/src/db/tables/agent-tasks.ts`, `packages/core/src/repositories/agent-tasks.repo.ts`, `packages/core/src/db/tables/agent-tasks/types.ts`, `tests/agent-tasks-repo.test.ts`, `tests/migration-18.test.ts`.
+- Edit `packages/core/src/db/schema.ts` — добавить `migration_18_agent_tasks` в migrations array (после migration_17), **не трогать** существующие migration функции.
 - Edit `packages/core/src/db/index.ts` — добавить `agentTasksRepo` поле + конструктор wire-up. **НЕ менять** другие repo / public API.
 - `bunx tsc --noEmit`, `bun test`, `bun run scripts/check-file-size.ts`.
-- `git add` ТОЛЬКО перечисленных файлов. `git commit -m "feat(db): add agent_tasks table + repo (PR-C1)"`.
+- `git add` ТОЛЬКО перечисленных файлов. `git commit -m "feat(db): add agent_tasks table + repo (migration 18)"`.
 
 **Hard NO-GO:**
 - НЕ редактировать `packages/agent/src/scheduler/free-agent.ts`, `packages/agent/src/pipeline/**`, `packages/agent/src/mcp/**`, `packages/agent/src/services/**` — это PR-C2/C3.
 - НЕ создавать `done_with_artifact` MCP tool, runner-engine, pool — это PR-C2.
 - НЕ переименовывать существующие таблицы / migrations / индексы.
-- НЕ менять `PRAGMA user_version` если уже ≥17 (конфликт миграций — STOP, см. §Pre-check).
+- НЕ менять `PRAGMA user_version` если уже ≥18 (конфликт миграций — STOP, см. §Pre-check).
 - НЕ запускать миграцию на prod (`docker compose exec ... migrate`) — deploy не часть задачи.
 - НЕ `git push`, НЕ `gh pr create`, НЕ `--no-verify`.
 - НЕ использовать `as any`, raw `fetch`, `Promise.all` (см. `subbrain-guardrails`).
@@ -59,15 +59,15 @@ packages/core/src/db/tables/agent-tasks.ts
 packages/core/src/db/tables/agent-tasks/types.ts
 packages/core/src/repositories/agent-tasks.repo.ts
 tests/agent-tasks-repo.test.ts
-tests/migration-17.test.ts
+tests/migration-18.test.ts
 ```
 Любой extra файл = STOP, FAIL.
 
-**Output contract:** `OK <sha7> feat(db): add agent_tasks table + repo (PR-C1)` или одна строка `FAIL: <reason>`.
+**Output contract:** `OK <sha7> feat(db): add agent_tasks table + repo (migration 18)` или одна строка `FAIL: <reason>`.
 
 ## Файлы
 
-- [packages/core/src/db/schema.ts](../../../packages/core/src/db/schema.ts) — migration entry: `migration_17_agent_tasks` (idempotent, после `migration_16`).
+- [packages/core/src/db/schema.ts](../../../packages/core/src/db/schema.ts) — migration entry: `migration_18_agent_tasks` (idempotent, после `migration_16`).
 - Новый [packages/core/src/db/tables/agent-tasks.ts](../../../packages/core/src/db/tables/agent-tasks.ts) (≤150 lines) — raw SQL + row→entity mapping. Только этот модуль ходит в SQL по `agent_tasks` и `idx_agent_tasks_pending`.
 - Новый [packages/core/src/repositories/agent-tasks.repo.ts](../../../packages/core/src/repositories/agent-tasks.repo.ts) (≤150 lines) — `AgentTasksRepository` фасад: `claim`, `listPending`, `getRunningOlderThan`, `complete`, `noop`, `fail`, `enqueue`, `markZombiesFailed`, `getDistribution24h`.
 - Новый [packages/core/src/db/tables/agent-tasks/types.ts](../../../packages/core/src/db/tables/agent-tasks/types.ts) (≤80 lines) — `AgentTaskRecord`, `AgentTaskStatus`, `AgentTaskType`, `EnqueueInput`.
@@ -75,7 +75,7 @@ tests/migration-17.test.ts
 
 ## Изменение
 
-### 1. Migration 17 (в `db/schema.ts`)
+### 1. Migration 18 (в `db/schema.ts`)
 
 ```sql
 CREATE TABLE agent_tasks (
@@ -104,10 +104,10 @@ CREATE INDEX idx_agent_tasks_distribution
   ON agent_tasks(type, status, finished_at)
   WHERE status IN ('done','noop','failed');
 
-PRAGMA user_version = 17;
+PRAGMA user_version = 18;
 ```
 
-В `db.transaction()`. Per-statement `.run()`. Idempotency guard: `if (currentVersion < 17) { ... }` (см. как сделаны migration_10..16 в `schema.ts`). Все existing tests должны pass без изменений (новая таблица не пересекается).
+В `db.transaction()`. Per-statement `.run()`. Idempotency guard: `if (currentVersion < 18) { ... }` (см. как сделаны migration_10..17 в `schema.ts`). Все existing tests должны pass без изменений (новая таблица не пересекается).
 
 ### 2. `db/tables/agent-tasks/types.ts`
 
@@ -214,13 +214,13 @@ this.agentTasksRepo = new AgentTasksRepository(new AgentTasksTable(this.db));
 - `getDistributionSince(now-86400)` → corretly grouped {type,status,count}.
 - `countByPromptSnippet("foo")` — LIKE %foo%, only за last 24h.
 
-Migration test: `tests/migration-17.test.ts` → fresh `:memory:` db → migrate → `PRAGMA user_version = 17`, `agent_tasks` table exists, 3 indexes (`idx_agent_tasks_pending`, `_running`, `_distribution`) exist.
+Migration test: `tests/migration-18.test.ts` → fresh `:memory:` db → migrate → `PRAGMA user_version = 18`, `agent_tasks` table exists, 3 indexes (`idx_agent_tasks_pending`, `_running`, `_distribution`) exist.
 
 ## Premortem
 
 | # | Симптом | Mitigation | Recovery |
 |---|---------|-----------|----------|
-| 1 | `PRAGMA user_version` уже ≥17 на чистом `:memory:` db (кто-то параллельно добавил migration 17) | §Pre-check блокирует старт. Если уже ≥17 — STOP, никаких edits в `schema.ts`. | `FAIL: migration-conflict: user_version=N already, expected 16 before this PR`. НЕ перезаписывать чужую миграцию. |
+| 1 | `PRAGMA user_version` уже ≥18 на чистом `:memory:` db (кто-то параллельно добавил migration 18) | §Pre-check блокирует старт. Если уже ≥18 — STOP, никаких edits в `schema.ts`. | `FAIL: migration-conflict: user_version=N already, expected 17 before this PR`. НЕ перезаписывать чужую миграцию. |
 | 2 | `claimNext` race: 2 параллельных process-инстанса claim'ят один и тот же row | SQLite serializable isolation + `UPDATE ... WHERE id = (SELECT ... LIMIT 1) RETURNING *` атомарны в рамках одного writer'а. Но `bun:sqlite` default — WAL, multiple readers. **Test обязан** запустить 2 concurrent claim'а через `Promise.allSettled` и проверить разные id. | Если test нестабильный → mutex в repo (PR-C2 ответственность). Здесь test FAIL = repo bug, fixить. |
 | 3 | CHECK constraint на `type` блокирует unknown тип в будущем | Намеренно — whitelist через миграцию. Документировать что добавление типа = новая migration. | N/A (это feature, не bug). |
 | 4 | `idx_agent_tasks_pending` partial index DESC ordering на `priority` — SQLite < 3.36 не поддерживает DESC в partial index | Bun ships SQLite 3.45+. Проверить `sqlite3 --version` ≥3.36 на CI / локально. | Если индекс не создаётся — убрать DESC, ORDER BY клиент-сайд (медленно но работает). |
@@ -237,7 +237,7 @@ cd /usr/projects/subbrain
 bunx tsc --noEmit                                                              # expect: empty stdout, exit 0
 bun run scripts/check-file-size.ts                                             # expect: pass message, exit 0
 bun test tests/agent-tasks-repo.test.ts 2>&1 | tail -3                         # expect: "X pass / 0 fail"
-bun test tests/migration-17.test.ts 2>&1 | tail -3                             # expect: "X pass / 0 fail"
+bun test tests/migration-18.test.ts 2>&1 | tail -3                             # expect: "X pass / 0 fail"
 bun test 2>&1 | tail -3                                                        # expect: "X pass / 0-2 fail" (no NEW regressions)
 
 # File caps
@@ -250,7 +250,7 @@ grep -rnE 'agent_tasks|agentTasksRepo' packages/agent/src/services/ packages/age
 grep -rnE 'agent_tasks|agentTasksRepo' packages/server/src/routes/ 2>/dev/null                                  # expect: 0 matches
 
 # Migration applied
-bun -e 'import {MemoryDB} from "./src/db"; const db=new MemoryDB(":memory:"); console.log(db.db.query("PRAGMA user_version").get())'  # expect: { user_version: 17 }
+bun -e 'import {MemoryDB} from "./packages/core/src/db"; const db=new MemoryDB(":memory:"); console.log(db.db.query("PRAGMA user_version").get())'  # expect: { user_version: 17 }
 
 # Schema present
 bun -e 'import {MemoryDB} from "./src/db"; const db=new MemoryDB(":memory:"); console.log(db.db.query("SELECT sql FROM sqlite_master WHERE name=\"agent_tasks\"").get())'  # expect: CREATE TABLE ... CHECK(...) ...
@@ -302,7 +302,7 @@ FAIL: <category>: <≤80-char specific reason>
 Categories: `migration-conflict` | `tsc-error` | `test-fail` | `file-cap` | `diff-boundary` | `claim-race` | `boundary-leak` | `unknown`.
 
 Примеры:
-- `FAIL: migration-conflict: PRAGMA user_version=17 already (someone else added migration_17)`
+- `FAIL: migration-conflict: PRAGMA user_version=18 already (someone else added migration_18)`
 - `FAIL: claim-race: 2 concurrent claimNext returned same id=42`
 - `FAIL: boundary-leak: packages/agent/src/services/foo.ts:18 imports agentTasksRepo (forbidden until PR-C2)`
 - `FAIL: file-cap: agent-tasks.ts is 167 lines, max 150`
