@@ -126,7 +126,7 @@
 | 8c-6 | Backup docs | `not_started` | — | **DB** — operator auth | CRITIC-PASSED |
 | 8e-1 | PII scrub lib | `done` | `cp3` | — | CRITIC-PASSED. Commit 2ea5db2. 15/15 pii tests pass. cp0-cp1-cp2 green. |
 | 8e-2 | PII table layer | `not_started` | — | — | CRITIC-PASSED |
-| 8e-3 | PII tg_chats schema (mig 20+) | `not_started` | — | — | CRITIC-PASSED. Tier lifted 2026-05-06. |
+| 8e-3 | PII tg_chats schema (mig 22) | `done` | `cp3` | — | CRITIC-PASSED. Commit d289380. 7/7 tests pass. Migration 22: tg_chat_policies table + TgChatPolicyRepository. cp0-cp1-cp2 green. |
 | 8e-4 | PII backfill + progress | `not_started` | — | — | CRITIC-PASSED |
 | 8e-5 | PII policy tools | `not_started` | — | — | CRITIC-PASSED |
 | 8e-6 | PII search guard | `not_started` | — | — | CRITIC-PASSED |
@@ -207,6 +207,6 @@
 
 ## Last Updated
 
-2026-05-06 ~09:20 UTC — A2-7 plugin migration DONE (87c662f). 1155 pass / 1 fail (pre-existing). cp0-cp1-cp2 green. Cap=0/4 active. Next: A2-9 INTERNAL_PLUGINS wire, P6-3 A2A transcripts schema, 8a-1 approval schema, 8e-3 PII tg_chats schema.
+2026-05-06 ~10:35 UTC — 8e-3 DONE (d289380). 8a-1 + A2-9 interrupted by user. P6-3 not started. cp0-cp1 green. Cap=0/4 active. Next: redispatch 8a-1 (working tree present), A2-9 (working tree present), P6-3 (new).
 
 **P3-7 discovery:** implementation already complete (cap-guard.ts, process-tool.ts, prompt.ts, hippocampus.ts all have PR-D logic). All acceptance grep checks pass. Only missing: `tests/hippocampus-cap.test.ts` + `tests/hippocampus-extraction.test.ts`. Worker v3 scope = test files only.
