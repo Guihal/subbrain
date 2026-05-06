@@ -88,7 +88,7 @@
 | P3-9 | Memory archive + TTL | `done` | `cp3` | — | CRITIC-PASSED. Commit 585aa83 (M-12). Migration 15: archive.confidence TEXT→REAL. |
 | P6-1 | A2A room init | `done` | `cp3` | — | CRITIC-PASSED. Commit 615920b. 26 LOC, no scope creep. |
 | P6-2 | A2A dispatch hook | `done` | `cp3` | — | CRITIC-PASSED. Commit 9699845. Worker a22d163d. |
-| P6-3 | A2A transcripts schema | `not_started` | — | — | CRITIC-PASSED. Tier lifted 2026-05-06. Blocker P6-2 resolved. |
+| P6-3 | A2A transcripts schema | `done` | `cp3` | — | CRITIC-PASSED. Commit 7db539f. 316 lines, 6 files. cp0/tsc/tests green. |
 | P6-4 | A2A transport wiring | `not_started` | — | `<A2A_TRANSPORT>`, blocks on P6-3 | CRITIC-PASSED |
 | P6-5 | A2A synthesis loop | `not_started` | — | blocks on P6-3, P6-4 | CRITIC-PASSED |
 | P6-6 | A2A cleanup + docs | `not_started` | — | blocks on P6-5 | CRITIC-PASSED |
@@ -103,7 +103,7 @@
 | A2-8 | Migrate STATEFUL_CLIENT_CODE_TOOLS + freelance-scout shell | `done` | `cp3` | — | CRITIC-PASSED. Commit 4489b43. Critic ok:true round 1. |
 | A2-9 | Plugin docs | `not_started` | — | — | CRITIC-PASSED. A2-7 plugin migration DONE (87c662f). A2-6 DONE (296448d). A2-8 DONE (4489b43). Ready for dispatch. |
 
-**Wave 2 merge gate:** Wave 1 merged + ALL Wave 2 `done` → unblocks Wave 3. P6-3 is last remaining Wave 2 packet.
+**Wave 2 merge gate:** Wave 1 merged + ALL Wave 2 `done` → unblocks Wave 3. A2-9 is last remaining Wave 2 packet.
 
 ---
 
@@ -111,7 +111,7 @@
 
 | Phase | Packet | Status | Last CP | Blocker | Notes |
 |---|---|---|---|---|---|
-| 8a-1 | Approval schema (mig 20+) | `not_started` | — | — | CRITIC-PASSED. Tier lifted 2026-05-06. |
+| 8a-1 | Approval schema (mig 20+) | `done` | `cp3` | — | CRITIC-PASSED. Commit fd13506. 340 lines, 6 files. cp0/tsc/tests green. |
 | 8a-2 | Approval spam gate | `not_started` | — | **SECURITY** | CRITIC-PASSED |
 | 8a-3 | Approval request flow | `not_started` | — | — | CRITIC-PASSED |
 | 8a-4 | Approval operator chat | `not_started` | — | — | CRITIC-PASSED |
@@ -207,6 +207,6 @@
 
 ## Last Updated
 
-2026-05-06 ~10:35 UTC — 8e-3 DONE (d289380). 8a-1 + A2-9 interrupted by user. P6-3 not started. cp0-cp1 green. Cap=0/4 active. Next: redispatch 8a-1 (working tree present), A2-9 (working tree present), P6-3 (new).
+2026-05-06 ~11:00 UTC — STEP 0 clean. P6-3 DONE (commit 7db539f, already in HEAD). 8a-1 DONE (commit fd13506, already in HEAD). kimi-nav.md stale status corrected. cp0 green, tsc green, biome 19 errors (pre-existing in scripts/ + tests/). Cap=0/4 active. Next: dispatch A2-9 (last Wave 2 packet).
 
 **P3-7 discovery:** implementation already complete (cap-guard.ts, process-tool.ts, prompt.ts, hippocampus.ts all have PR-D logic). All acceptance grep checks pass. Only missing: `tests/hippocampus-cap.test.ts` + `tests/hippocampus-extraction.test.ts`. Worker v3 scope = test files only.
