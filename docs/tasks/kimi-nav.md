@@ -196,11 +196,13 @@
 | P2-6 | agent-P26-1 | **KILLED** | 2026-05-06 ~02:30 UTC → ~04:20 UTC, >1hr no commits, stuck on permission denied reading `.env.example` via Bash. |
 | P3-7 | agent-P37-3 | **DONE** | 2026-05-06 ~04:25 UTC — commit cc8b794, 12/12 tests pass, tsc clean, cp0 green |
 | P2-6 | agent-P26-2 | **DONE** | 2026-05-06 ~04:25 UTC — commit e9c6f13, 11/11 tests pass, tsc clean, cp0 green |
+| P2-7 | agent-P27-1 | **RUNNING** | 2026-05-06 ~04:40 UTC — parallel concurrency behind feature flag |
+| P3-8 | agent-P38-1 | **RUNNING** | 2026-05-06 ~04:40 UTC — PR-E persona pass |
 
 ---
 
 ## Last Updated
 
-2026-05-06 ~04:35 UTC — P3-7 v3 DONE (cc8b794). P2-6 v2 DONE (e9c6f13). 1137 pass / 0 fail. Cap=0/3 active. P2-7, P3-8, P6-3 unblocked.
+2026-05-06 ~04:40 UTC — P2-7 v1 + P3-8 v1 dispatched. Cap=2/3 active. P6-3 deferred (schema choice TBD).
 
 **P3-7 discovery:** implementation already complete (cap-guard.ts, process-tool.ts, prompt.ts, hippocampus.ts all have PR-D logic). All acceptance grep checks pass. Only missing: `tests/hippocampus-cap.test.ts` + `tests/hippocampus-extraction.test.ts`. Worker v3 scope = test files only.
