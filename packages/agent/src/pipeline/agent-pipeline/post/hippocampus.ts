@@ -69,7 +69,7 @@ export async function runHippocampus(args: {
   let searchCalls = 0;
   let steps = 0;
   let nudgesUsed = 0;
-  const guard = createWriteGuard();
+  const guard = createWriteGuard(); // MAX_WRITES_PER_EXCHANGE = 3 enforced in cap-guard.ts; limit_exceeded returned after cap.
 
   while (steps < MAX_HIPPO_STEPS) {
     const response = await router.chat(
