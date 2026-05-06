@@ -72,7 +72,7 @@
 | P2-2 | Agent tasks admin REST endpoints | `done` | `cp3` | — | CRITIC-PASSED. Route file 63 lines. 6/6 tests pass. tsc clean. |
 | P2-3 | Agent pool runner | `done` | `cp3` | — | CRITIC-PASSED. Commit bc9a2fd. Re-entrancy guard fixed (removed MIN_INTERVAL_MS clamp). 9/9 tests pass. |
 | P2-4 | Terminate + artifact tool | `done` | `cp3` | — | CRITIC-PASSED. Commit d8f849e. 12/12 tests pass. |
-| P2-5 | Pool dispatch integration | `not_started` | — | — | CRITIC-PASSED |
+| P2-5 | Pool dispatch integration | `done` | `cp3` | — | CRITIC-PASSED. Files committed in A2-5b f1537e2 (accidental bundle). Commit b0feff2 for tsc clean fix. cp0 green, tsc clean, 3/3 tests pass. |
 | P2-5a | AgentLoopRequest expansion | `done` | `cp3` | — | CRITIC-PASSED. Commit 051fb30. |
 | P2-6 | Memory service integration | `not_started` | — | blocks on P2-5 | CRITIC-PASSED |
 | P2-7 | Pool safety (rate-limit) | `not_started` | — | blocks on P2-7a, P2-6 | CRITIC-PASSED |
@@ -188,7 +188,7 @@
 |---|---|---|---|
 | FIX-test | agent-FIX-2 | **DONE** | 2026-05-06 02:14 UTC, commit f43cd81, cp0 green, test 12/12 pass |
 | P2-5 | agent-P25-3 | **KILLED** | 2026-05-06 02:27 UTC → 02:43 UTC, no commits, >15 min, cp0 green, tsc fixed |
-| P2-5 | agent-P25-4 | **RUNNING** | 2026-05-06 02:43 UTC — v4, finish tests + commit |
+| P2-5 | agent-P25-4 | **DONE** | 2026-05-06 03:26 UTC — commit b0feff2 (tsc fix). Files in A2-5b f1537e2. cp0 green, tsc clean, 3/3 tests pass |
 | A2-5b | agent-A25b-3 | **KILLED** | 2026-05-06 02:27 UTC → 02:43 UTC, no commits, >15 min, tsc fixed, tests still failing |
 | A2-5b | agent-A25b-4 | **DONE** | 2026-05-06 03:04 UTC — commit f1537e2, 28 files, 1114 pass / 0 fail, cp0-cp2 green |
 | P3-7 | agent-P37-1 | **KILLED** | 2026-05-06 02:29 UTC → 02:38 UTC, hippocampus.ts grew to 232 lines (file-cap violation), cap-guard.ts tsc errors |
@@ -198,4 +198,4 @@
 
 ## Last Updated
 
-2026-05-06 ~03:12 UTC — A2-5b v4 DONE (commit f1537e2, 28 files, 1114 pass / 0 fail). P2-5 v4 still RUNNING (fixed tsc unused-import, verifying tests). P3-7 v2 still RUNNING (fixing acceptance grep checks). cp0 green, tsc clean. Cap=2/3 active.
+2026-05-06 ~03:28 UTC — P2-5 v4 DONE (commit b0feff2). A2-5b v4 DONE (commit f1537e2). P3-7 v2 still RUNNING (1 fail in 43 files, investigating). cp0 green, tsc clean. Cap=1/3 active.
