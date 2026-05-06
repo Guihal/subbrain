@@ -11,7 +11,7 @@
  * Background: ~/vault/RLM/Daily/2026-04-28.md — 27.04.2026 free-agent
  * fake-digest incident. See F-3b in docs/tasks/code-tools-poisoning-fix.md.
  */
-import type { Plugin, ToolResult } from "@subbrain/plugin";
+import type { Plugin } from "@subbrain/plugin";
 import type { AgentMode } from "../../src/pipeline/agent-loop/types";
 
 export const STATEFUL_CLIENT_CODE_TOOLS: ReadonlySet<string> = new Set([
@@ -43,6 +43,7 @@ export const scheduledBlacklistPlugin: Plugin = {
           },
         };
       }
+      return undefined;
     });
   },
 };

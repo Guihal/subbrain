@@ -46,6 +46,7 @@
     "./rag": "./src/rag/index.ts",
     "./plugins-internal/scheduled-blacklist": "./plugins-internal/scheduled-blacklist/index.ts",
     "./plugins-internal/freelance-scout": "./plugins-internal/freelance-scout/index.ts",
+    "./plugins-internal/code-tool-guards": "./plugins-internal/code-tool-guards/index.ts",
     "./lib/personas": "./src/lib/personas.ts",
     "./baml_client": "./src/baml_client/index.ts",
     "./lib/structured-output": "./src/lib/structured-output/index.ts"
