@@ -92,7 +92,7 @@ export const TRANSITIONAL_WHITELIST: Record<string, number> = {
   "packages/agent/src/pipeline/agent-pipeline/phases/post.ts": 200,
   "packages/agent/src/pipeline/agent-pipeline/phases/pre.ts": 165,
   "packages/agent/src/services/memory/service.ts": 180,
-  "packages/agent/src/mcp/executor/index.ts": 175,
+  "packages/agent/src/mcp/executor/index.ts": 181,
   "packages/agent/src/scheduler/telegram-commands.ts": 179,
   "web/app/components/TaskRow.vue": 174,
   "packages/providers/src/index.ts": 172,

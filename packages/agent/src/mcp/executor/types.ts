@@ -7,6 +7,7 @@ import type { MemoryService } from "../../services/memory";
 import type { Userbot } from "../../telegram/userbot";
 import type { EmbedTools, LogTools, MemoryTools, TasksTools, WebTools } from "../tools/index";
 import type { MemoryCurationTools } from "../tools/memory-curation-tools";
+import type { ApprovalRow } from "@subbrain/core/db";
 
 export type ExecutorState = {
   memory: MemoryDB;
@@ -14,6 +15,7 @@ export type ExecutorState = {
   rag: RAGPipeline | null;
   userbot: Userbot | null;
   botNotify: ((text: string) => Promise<void>) | null;
+  approvalNotifier: ((row: ApprovalRow) => void) | null;
   codeTools: CodeToolRegistry | null;
   room: ArbitrationRoom | null;
   memoryService: MemoryService | null;

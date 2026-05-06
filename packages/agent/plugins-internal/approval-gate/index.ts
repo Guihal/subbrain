@@ -102,19 +102,25 @@ export const approvalGatePlugin: Plugin = {
       }
 
       // No fresh approved row: insert pending and deny.
+      const argsPreview = JSON.stringify(args).slice(0, 1000);
       try {
-        table.insert({
+        const row = table.insert({
           tool_name: toolName,
           args_hash: argsHash,
           status: "pending",
           requested_at: nowSec,
           resolved_at: null,
           operator_chat_id: operatorChatId,
-          request_message: `Auto-requested approval for ${toolName}`,
+          request_message: `Auto-requested approval for ${toolName}\nArgs: ${argsPreview}`,
         });
         log.info(`Inserted pending approval for ${toolName}`, {
-          meta: { args_hash: argsHash },
+          meta: { args_hash: argsHash, id: row },
         });
+        const notifier = executor?.approvalNotifier;
+        if (notifier) {
+          const inserted = table.getById(row);
+          if (inserted) notifier(inserted);
+        }
       } catch (e) {
         // UNIQUE partial index may race; if another pending row exists, treat as pending.
         const existing = table.getByToolAndHash(toolName, argsHash);

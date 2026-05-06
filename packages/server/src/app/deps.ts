@@ -360,6 +360,7 @@ function initTelegramBot(opts: {
   bot.init().catch((err) => logger.error("telegram", `Bot init failed: ${err.message}`));
   // Use notifyOrThrow so tgSendMessage sees real delivery errors (TG-1).
   opts.tools.setBotNotify((text) => bot.notifyOrThrow(text));
+  opts.tools.setApprovalNotifier((row) => bot.sendApprovalPrompt(row));
   bot.setReportSender(async (text) => {
     await opts.tools.sendReportEnriched(text);
   });
