@@ -117,7 +117,7 @@
 | 8a-4 | Approval operator chat | `done` | `cp3` | — | CRITIC-PASSED. Commit 2146804. 6/6 tests pass. cp0/tsc green. |
 | 8a-5 | Approval expiry sweeper | `done` | `cp3` | — | CRITIC-PASSED. 6/6 tests pass. cp0/tsc green. |
 | 8a-6 | Approval audit log via metrics_log | `done` | `cp3` | — | CRITIC-PASSED. Commit 937c5ca. 6/6 tests pass. cp0-cp1-cp2-cp3 green. |
-| 8a-7 | Approval docs | `not_started` | — | — | CRITIC-PASSED |
+| 8a-7 | Approval flow tests | `not_started` | — | — | CRITIC-PASSED |
 | 8c-1 | Backup schedule | `not_started` | — | **DB** — operator auth | CRITIC-PASSED |
 | 8c-2 | Backup VACUUM INTO | `not_started` | — | **DB** — operator auth | CRITIC-PASSED |
 | 8c-3 | Backup retention | `not_started` | — | **DB** — operator auth | CRITIC-PASSED |
