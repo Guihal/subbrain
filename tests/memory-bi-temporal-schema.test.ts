@@ -5,7 +5,7 @@ describe("P3-2 Migration 17 bi-temporal schema", () => {
   test("migration 17 applies cleanly to :memory:", () => {
     const db = new MemoryDB(":memory:");
     const v = db.db.query("PRAGMA user_version").get() as { user_version: number };
-    expect(v.user_version).toBe(19);
+    expect(v.user_version).toBe(22);
   });
 
   test("shared_memory has valid_from, valid_to, observed_at", () => {

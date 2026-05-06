@@ -33,7 +33,7 @@ describe("migration 19 — agent_tasks", () => {
 
   test("user_version is 19 after migrate()", () => {
     const { user_version } = db.query<{ user_version: number }, []>("PRAGMA user_version").get()!;
-    expect(user_version).toBe(19);
+    expect(user_version).toBe(22);
   });
 
   test("agent_tasks table exists with correct columns", () => {
@@ -62,6 +62,6 @@ describe("migration 19 — agent_tasks", () => {
   test("idempotent — running migrate() twice does not throw", () => {
     expect(() => migrate(db)).not.toThrow();
     const { user_version } = db.query<{ user_version: number }, []>("PRAGMA user_version").get()!;
-    expect(user_version).toBe(19);
+    expect(user_version).toBe(22);
   });
 });
