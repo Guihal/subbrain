@@ -128,7 +128,7 @@
 | 8e-2 | PII ingest hook | `done` | `cp3` | — | CRITIC-PASSED. Commit 371b5af. 6/6 tests pass. cp0/tsc green. |
 | 8e-3 | PII tg_chats schema (mig 22) | `done` | `cp3` | — | CRITIC-PASSED. Commit d289380. 7/7 tests pass. Migration 22: tg_chat_policies table + TgChatPolicyRepository. cp0-cp1-cp2 green. |
 | 8e-4 | PII backfill + progress | `done` | `cp3` | — | CRITIC-PASSED. Commit d304ee0. 4/4 tests pass. cp0/tsc green. |
-| 8e-5 | PII policy tools | `dispatched` | — | — | Worker active. Agent ad0cd23766c3041e2. |
+| 8e-5 | PII policy tools | `done` | `cp3` | — | CRITIC-PASSED. Commit 02d5b12. 13/13 tests pass. cp0-cp1-cp2-cp3 green. |
 | 8e-6 | PII search guard | `not_started` | — | — | CRITIC-PASSED |
 | 8e-7 | PII docs | `not_started` | — | — | CRITIC-PASSED |
 
@@ -214,6 +214,8 @@
 2026-05-06 ~10:10 UTC — 8e-4 DONE (commit d304ee0). 4/4 tests pass. cp0/tsc green. 8a-3 worker still active.
 
 2026-05-06 ~10:15 UTC — 8a-3 DONE (commit f0fa5d1). 14/14 tests pass. cp0/tsc green. Cap 0/3. Next: 8a-4, 8e-5.
+
+2026-05-06 ~10:00 UTC — 8e-5 DONE (commit 02d5b12). 13/13 tests pass. cp0-cp1-cp2-cp3 green. Next: 8e-6, 8a-4.
 
 2026-05-06 ~10:25 UTC — 8a-4 dispatched (agent aabfd4f210f6708a0), 8e-5 dispatched (agent ad0cd23766c3041e2). Cap 2/3. Stash detected: 2 stashes (orchestrator-self-edit-revert on a2-4-attempt3, wip on main). Left for user.
 
