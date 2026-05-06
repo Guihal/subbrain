@@ -186,12 +186,12 @@
 
 | Packet | Worker | Status | Started |
 |---|---|---|---|
-| A2-5 | agent-A25 | **RUNNING** | 2026-05-06 00:45 UTC, /task via Agent bg |
-| P2-2 | agent-P22 | **RUNNING** | 2026-05-06 00:45 UTC, /task via Agent bg |
-| P2-3 | agent-P23 | **RUNNING** | 2026-05-06 00:45 UTC, /task via Agent bg |
+| P2-2 | agent-P22 | **DONE** | 2026-05-06 00:45 UTC, commit 1f7e79f, cp0-cp3 green |
+| A2-5 | agent-A25-2 | **RUNNING** | 2026-05-06 01:00 UTC, redispatch L2 |
+| P2-3 | agent-P23-2 | **DONE** | 2026-05-06 00:48 UTC, cp0-cp3 green, 9/9 tests pass |
 
 ---
 
 ## Last Updated
 
-2026-05-06 00:30 UTC — Workers died without commits. Redispatching A2-5, P2-2, P2-3. cp0/cp1/cp3 green, cp2=6 pre-existing.
+2026-05-06 00:53 UTC — P2-3 DONE. All files created, 9/9 tests pass, tsc clean, file caps ok. cp0/cp1/cp2/cp3 all green. A2-5 still running.
