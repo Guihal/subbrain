@@ -50,3 +50,6 @@ web/node_modules
 
 # BAML generated client
 src/baml_client/
+
+# Playwright MCP temp files
+.playwright-mcp/
