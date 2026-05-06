@@ -21,6 +21,7 @@ import { buildAgentSystemPrompt } from "./system-prompt";
 import type { ToolRunnerDeps } from "./tool-runner";
 import type { AgentLoopSession, AgentMode } from "./types";
 import { AGENT_MODEL, type AgentLoopRequest, MAX_STEPS } from "./types";
+import type { HooksDispatcher } from "../../hooks";
 
 export interface AgentLoopDeps {
   memory: MemoryDB;
@@ -31,6 +32,7 @@ export interface AgentLoopDeps {
   dynamicTools: DynamicToolRegistry;
   codeTools: CodeToolRegistry;
   room: ArbitrationRoom | null;
+  hooks?: HooksDispatcher;
   persistDynamicTools: () => void;
   /**
    * Mode-aware tool list for the model. SCHED-1: scheduled mode drops
@@ -54,6 +56,7 @@ export function toolRunnerDeps(
     dynamicTools: deps.dynamicTools,
     persistDynamicTools: deps.persistDynamicTools,
     codeTools: deps.codeTools,
+    hooks: deps.hooks,
     session,
     agentId,
     agentMode,

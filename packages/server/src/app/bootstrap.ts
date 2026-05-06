@@ -21,7 +21,7 @@ import { tasksRoute } from "../routes/tasks";
 import { telegramAdminRoute, telegramPublicRoute } from "../routes/telegram";
 import type { AppDeps } from "./deps";
 import { NightCycleController } from "./night-cycle-controller";
-
+// setupInternalPlugins: plugins registered in initDeps() via HooksDispatcher
 /** M-1: tolerate Elysia's heterogeneous error shapes at one boundary. */
 interface ErrorLike {
   message?: string;

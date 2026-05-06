@@ -16,7 +16,8 @@ import { applyOpenAICompatOverrides } from "@subbrain/core/lib/model-map";
 import { ModelRouter } from "@subbrain/core/lib/model-router";
 import { AuthService } from "@subbrain/core/services/auth";
 import { createBifrostProvider, createProviders } from "@subbrain/providers";
-
+import { HooksDispatcher } from "@subbrain/agent/hooks";
+import { INTERNAL_PLUGINS } from "@subbrain/agent/plugins-internal";
 export interface AppConfig {
   port: number;
   authToken: string;
@@ -54,7 +55,6 @@ export interface AppConfig {
     task: string;
   };
 }
-
 export interface AppDeps {
   config: AppConfig;
   authService: AuthService;
@@ -76,8 +76,8 @@ export interface AppDeps {
   userbot: Userbot | null;
   telegramPoller: TelegramPoller | null;
   freelanceScout: FreelanceScout | null;
+  hooksDispatcher: HooksDispatcher;
 }
-
 export function loadConfig(): AppConfig {
   const authToken = process.env.PROXY_AUTH_TOKEN;
   if (!authToken) {
@@ -156,7 +156,6 @@ export function loadConfig(): AppConfig {
     },
   };
 }
-
 export async function initDeps(config: AppConfig = loadConfig()): Promise<AppDeps> {
   const authService = new AuthService(config.authToken);
   // Re-point teamlead/coder to gpt-5.4-mini via cliproxy when OPENAI_COMPAT_ENABLED.
@@ -190,7 +189,6 @@ export async function initDeps(config: AppConfig = loadConfig()): Promise<AppDep
   tools.setMemoryService(memoryService);
   const playwright = new PlaywrightClient();
   tools.setPlaywright(playwright);
-
   const metrics = new Metrics({
     get currentLoad() {
       return router.stats.currentLoad;
@@ -221,6 +219,10 @@ export async function initDeps(config: AppConfig = loadConfig()): Promise<AppDep
   const agentLoop = new AgentLoop(memory, router, rag, tools, registry);
   agentLoop.setMetrics(metrics);
   agentLoop.setRoom(room);
+  const hooksDispatcher = new HooksDispatcher();
+  for (const plugin of INTERNAL_PLUGINS) hooksDispatcher.register(plugin);
+  pipeline.setHooks(hooksDispatcher);
+  agentLoop.setHooks(hooksDispatcher);
   const agentService = new AgentService(agentLoop, memory.chatRepo);
 
   const userbot = initUserbot(memory, tools);
@@ -268,9 +270,9 @@ export async function initDeps(config: AppConfig = loadConfig()): Promise<AppDep
     userbot,
     telegramPoller,
     freelanceScout,
+    hooksDispatcher,
   };
 }
-
 function initTelegramPoller(opts: {
   config: AppConfig;
   memory: MemoryDB;
@@ -315,7 +317,6 @@ function initTelegramPoller(opts: {
     },
   });
 }
-
 function initUserbot(memory: MemoryDB, tools: ToolExecutor): Userbot | null {
   const apiId = Number(process.env.TG_API_ID);
   const apiHash = process.env.TG_API_HASH || "";
@@ -334,7 +335,6 @@ function initUserbot(memory: MemoryDB, tools: ToolExecutor): Userbot | null {
     .catch((err) => logger.error("userbot", `Userbot connect failed: ${err.message}`));
   return userbot;
 }
-
 function initTelegramBot(opts: {
   memory: MemoryDB;
   pipeline: AgentPipeline;

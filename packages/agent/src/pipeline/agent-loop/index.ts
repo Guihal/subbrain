@@ -10,6 +10,7 @@ import type { ModelRouter } from "@subbrain/core/lib/model-router";
 import type { ToolExecutor, ToolRegistry } from "../../mcp";
 import type { RAGPipeline } from "../../rag";
 import type { ArbitrationRoom } from "../arbitration";
+import type { HooksDispatcher } from "../../hooks";
 import { CodeToolRegistry } from "./code-tools";
 import { DynamicToolRegistry } from "./dynamic-tools";
 import { loadPersistedDynamicTools, persistDynamicTools } from "./persist";
@@ -30,6 +31,7 @@ export type {
 
 export class AgentLoop {
   private room: ArbitrationRoom | null = null;
+  private hooks: HooksDispatcher | null = null;
   private dynamicTools = new DynamicToolRegistry();
   private codeTools: CodeToolRegistry;
 
@@ -49,6 +51,9 @@ export class AgentLoop {
   }
   setRoom(room: ArbitrationRoom): void {
     this.room = room;
+  }
+  setHooks(hooks: HooksDispatcher): void {
+    this.hooks = hooks;
   }
 
   run(req: AgentLoopRequest): Promise<AgentLoopResult> {
@@ -79,6 +84,7 @@ export class AgentLoop {
       dynamicTools: this.dynamicTools,
       codeTools: this.codeTools,
       room: this.room,
+      hooks: this.hooks ?? undefined,
       persistDynamicTools: () => persistDynamicTools(this.memory, this.dynamicTools),
       getAllTools: (mode) => this.getAllTools(mode),
     };
