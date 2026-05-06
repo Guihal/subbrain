@@ -186,9 +186,9 @@
 
 | Packet | Worker | Status | Started |
 |---|---|---|---|
-| FIX-test | agent-FIX | **STOPPED** | 2026-05-06 01:35 UTC → 02:05 UTC, no commit, redispatching |
-| P2-5 | agent-P25 | **STOPPED** | 2026-05-06 01:35 UTC → 02:05 UTC, no commit, hit free-agent.ts cap, redispatching |
-| A2-5b | agent-A25b | **STOPPED** | 2026-05-06 01:35 UTC → 02:05 UTC, no commit, analysis paralysis, redispatching |
+| FIX-test | agent-FIX-2 | **RUNNING** | 2026-05-06 02:08 UTC — exact mockLog+mockDeps fix |
+| P2-5 | agent-P25-2 | **RUNNING** | 2026-05-06 02:08 UTC — legacy bridge extracted to free-agent/bridge.ts |
+| A2-5b | agent-A25b-2 | **RUNNING** | 2026-05-06 02:08 UTC — 5-file batch only, no analysis |
 
 ---
 
