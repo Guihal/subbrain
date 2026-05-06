@@ -968,6 +968,31 @@ export function migrate(db: Database): void {
       for (const sql of mig19Stmts) db.query(sql).run();
     })();
   }
+  // Migration 20 (P6-3): arbitration_transcripts table.
+  // Stores per-turn A2A conversation transcripts for audit / replay.
+  if (version < 20) {
+    const mig20Stmts = [
+      `CREATE TABLE IF NOT EXISTS arbitration_transcripts (
+        id            TEXT PRIMARY KEY,
+        room_id       TEXT NOT NULL,
+        participant_id TEXT NOT NULL,
+        role          TEXT NOT NULL,
+        turn_index    INTEGER NOT NULL,
+        content       TEXT NOT NULL,
+        tool_calls    TEXT,
+        created_at    INTEGER NOT NULL
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_arbtrans_room  ON arbitration_transcripts(room_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_arbtrans_part  ON arbitration_transcripts(participant_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_arbtrans_turn  ON arbitration_transcripts(turn_index)`,
+      `CREATE INDEX IF NOT EXISTS idx_arbtrans_created ON arbitration_transcripts(created_at)`,
+      `PRAGMA user_version = 20`,
+    ];
+    db.transaction(() => {
+      for (const sql of mig20Stmts) db.query(sql).run();
+    })();
+  }
+
   // Migration 21 (8a-1): approvals table.
   // Synchronous gate for destructive ops — Telegram inline-button prompt to operator.
   if (version < 21) {

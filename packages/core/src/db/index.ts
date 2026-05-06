@@ -47,6 +47,7 @@ export type {
   VecResult,
 } from "./types";
 export type { ApprovalRow, ApprovalStatus } from "./tables/approvals";
+export type { ArbitrationTranscriptRow } from "./tables/arbitration-transcripts";
 
 /**
  * MemoryDB — PR 27 (LAYER-5). Kept as a thin facade: all memory/chat/log/

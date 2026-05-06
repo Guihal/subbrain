@@ -5,6 +5,7 @@
  */
 
 export { ApprovalRepository } from "./approval.repo";
+export { ArbitrationTranscriptRepository } from "./arbitration-transcript.repo";
 export { ChatRepository } from "./chat.repo";
 export { EdgeRepository } from "./edges.repo";
 export { FreelanceRepository } from "./freelance.repo";
