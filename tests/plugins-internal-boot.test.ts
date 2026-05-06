@@ -3,13 +3,14 @@ import { HooksDispatcher } from "@subbrain/agent/hooks";
 import { INTERNAL_PLUGINS } from "@subbrain/agent/plugins-internal";
 
 describe("INTERNAL_PLUGINS boot registration", () => {
-  test("all four plugins are present in registry", () => {
-    expect(INTERNAL_PLUGINS).toHaveLength(4);
+  test("all five plugins are present in registry", () => {
+    expect(INTERNAL_PLUGINS).toHaveLength(5);
     const names = INTERNAL_PLUGINS.map((p) => p.name);
     expect(names).toContain("@subbrain/plugin-code-tool-guards");
     expect(names).toContain("@subbrain/plugin-tg-gates");
     expect(names).toContain("@subbrain/plugin-scheduled-blacklist");
     expect(names).toContain("@subbrain/plugin-freelance-scout");
+    expect(names).toContain("@subbrain/plugin-approval-gate");
   });
 
   test("registration order is correct", () => {
@@ -19,6 +20,7 @@ describe("INTERNAL_PLUGINS boot registration", () => {
       "@subbrain/plugin-tg-gates",
       "@subbrain/plugin-scheduled-blacklist",
       "@subbrain/plugin-freelance-scout",
+      "@subbrain/plugin-approval-gate",
     ]);
   });
 
@@ -38,7 +40,7 @@ describe("INTERNAL_PLUGINS boot registration", () => {
     // deduplicate — that is the caller's responsibility. We verify that
     // initDeps() registers exactly once by checking the array length.
     // (If dedup is added later, this test still passes.)
-    expect(dispatcher["plugins"]).toHaveLength(4);
+    expect(dispatcher["plugins"]).toHaveLength(5);
   });
 
   test("plugin setup registers at least one hook each", () => {
@@ -48,6 +50,6 @@ describe("INTERNAL_PLUGINS boot registration", () => {
     }
     // Each plugin should have registered hooks (verified via internal map)
     const hooksMap = dispatcher["hooksMap"] as Map<unknown, unknown>;
-    expect(hooksMap.size).toBe(4);
+    expect(hooksMap.size).toBe(5);
   });
 });
