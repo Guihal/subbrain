@@ -12,7 +12,7 @@ import {
   type WriteResult,
 } from "./extractors-helpers";
 import { linkRelated, parseTagsCsv } from "./link-related";
-import { categoryToKind, validateCategoryAndContent, validateExpiresAt } from "./validators";
+import { categoryToKind, validateCategoryAndContent, validateExpiresAt } from "./validators/index";
 
 export type { WriteResult } from "./extractors-helpers";
 
