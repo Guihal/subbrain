@@ -99,11 +99,11 @@
 | A2-5a | ToolResult types + shim | `done` | `cp3` | — | CRITIC-PASSED. Commit eb7aa59. Restored old ToolResult interface as primary; added ToolResultV2 + toLegacy alongside. |
 | A2-5b | ToolResult caller migration | `done` | `cp3` | — | CRITIC-PASSED. Commit f1537e2. 28 files, 11 src + 17 tests. Full suite 1114 pass / 0 fail. cp0-cp2 green. |
 | A2-6 | Code-tool guards | `done` | `cp3` | — | CRITIC-PASSED. Commit 0fcc408 (F-2+F-3b+F-4). 833/0 tests pass. |
-| A2-7 | TG spam gates | `done` | `cp3` | — | CRITIC-PASSED. Bundled in A2-6 commit 0fcc408 (F-4 tg_send_message hard-gate + F-3b scheduled blacklist). |
+| A2-7 | TG spam gates | `done` | `cp3` | — | CRITIC-PASSED. Commit 87c662f. Plugin migration DONE (tg-gates internal plugin). |
 | A2-8 | Migrate STATEFUL_CLIENT_CODE_TOOLS + freelance-scout shell | `done` | `cp3` | — | CRITIC-PASSED. Commit 4489b43. Critic ok:true round 1. |
-| A2-9 | Plugin docs | `not_started` | — | blocks on A2-7 plugin migration | CRITIC-PASSED. A2-6 plugin migration DONE (296448d). A2-8 DONE (4489b43). A2-7 inline code exists but NOT migrated to plugin yet. |
+| A2-9 | Plugin docs | `not_started` | — | — | CRITIC-PASSED. A2-7 plugin migration DONE (87c662f). A2-6 DONE (296448d). A2-8 DONE (4489b43). Ready for dispatch. |
 
-**Wave 2 merge gate:** Wave 1 merged + ALL Wave 2 `done` → unblocks Wave 3.
+**Wave 2 merge gate:** Wave 1 merged + ALL Wave 2 `done` → unblocks Wave 3. P6-3 is last remaining Wave 2 packet.
 
 ---
 
@@ -207,6 +207,6 @@
 
 ## Last Updated
 
-2026-05-06 ~08:30 UTC — C3 DONE (27d366c), C4 DONE (a866309), A2-6 plugin migration DONE (296448d). 1156 pass / 0 fail. cp0-cp3 green. Cap=0/3 active. Next: A2-7 plugin migration (unblocks A2-9), P6-3 A2A schema, 8a-1 approval schema.
+2026-05-06 ~09:20 UTC — A2-7 plugin migration DONE (87c662f). 1155 pass / 1 fail (pre-existing). cp0-cp1-cp2 green. Cap=0/4 active. Next: A2-9 INTERNAL_PLUGINS wire, P6-3 A2A transcripts schema, 8a-1 approval schema, 8e-3 PII tg_chats schema.
 
 **P3-7 discovery:** implementation already complete (cap-guard.ts, process-tool.ts, prompt.ts, hippocampus.ts all have PR-D logic). All acceptance grep checks pass. Only missing: `tests/hippocampus-cap.test.ts` + `tests/hippocampus-extraction.test.ts`. Worker v3 scope = test files only.
