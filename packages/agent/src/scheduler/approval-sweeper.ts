@@ -1,0 +1,51 @@
+import type { Database } from "bun:sqlite";
+import { logger } from "@subbrain/core/lib/logger";
+
+const APPROVAL_SWEEP_MS = Number(process.env.APPROVAL_SWEEP_MS ?? "60000");
+
+export function expirePendingApprovals(db: Database, ttlSec: number): number {
+  const tx = db.transaction(() => {
+    const result = db
+      .query(
+        `UPDATE approvals
+         SET status = 'expired', resolved_at = unixepoch()
+         WHERE status = 'pending' AND (requested_at + ?) < unixepoch()`,
+      )
+      .run(ttlSec);
+    return result.changes;
+  });
+  return tx();
+}
+
+export class ApprovalSweeper {
+  private timer: ReturnType<typeof setInterval> | null = null;
+  private readonly db: Database;
+  private readonly ttlSec: number;
+
+  constructor(deps: { db: Database; ttlSec?: number }) {
+    this.db = deps.db;
+    this.ttlSec = deps.ttlSec ?? Number(process.env.APPROVAL_TTL_SEC ?? "900");
+  }
+
+  start(): void {
+    if (this.timer) return;
+    this.timer = setInterval(() => this.tick(), APPROVAL_SWEEP_MS);
+    this.tick();
+  }
+
+  stop(): void {
+    if (this.timer) {
+      clearInterval(this.timer);
+      this.timer = null;
+    }
+  }
+
+  private tick(): void {
+    const count = expirePendingApprovals(this.db, this.ttlSec);
+    if (count > 0) {
+      logger.info("approval-sweeper", "expired N pending approvals", {
+        meta: { count },
+      });
+    }
+  }
+}
