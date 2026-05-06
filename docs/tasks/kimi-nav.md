@@ -224,3 +224,5 @@
 **P3-7 discovery:** implementation already complete (cap-guard.ts, process-tool.ts, prompt.ts, hippocampus.ts all have PR-D logic). All acceptance grep checks pass. Only missing: `tests/hippocampus-cap.test.ts` + `tests/hippocampus-extraction.test.ts`. Worker v3 scope = test files only.
 
 2026-05-06 ~10:30 UTC — 8a-5 DONE, 8a-6 DONE (commit 937c5ca), 8e-6 DONE, 8e-7 DONE (commit b7e1a30). Full suite 1256 pass / 0 fail. cp0/tsc green. Wave 3 effectively complete. 8a-7 deferred (user rejected dispatch twice). 8c-* deferred (DB operator auth / SECURITY). Entering POST-DONE phase.
+
+2026-05-06 ~12:35 UTC — POST-DONE complete. Phase A (HTTP smoke): 6/6 OK. Phase B (UI smoke): 4/4 OK (note: /chats is 404 — chat list lives at /, not /chats; pre-existing path mismatch). Infra fix: installed missing `@nuxt/ui` + `tailwindcss` workspace deps via `bun update`. Phase C (refactor sweep): 27 pre-existing `any` casts, 11 raw `fetch(` — legacy, not Wave 3 regressions. ALL_WAVES_DONE @ 2026-05-06 12:35 UTC. Entering WATCHDOG MODE.
