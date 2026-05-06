@@ -117,13 +117,13 @@
 | 8a-4 | Approval operator chat | `done` | `cp3` | — | CRITIC-PASSED. Commit 2146804. 6/6 tests pass. cp0/tsc green. |
 | 8a-5 | Approval expiry sweeper | `done` | `cp3` | — | CRITIC-PASSED. 6/6 tests pass. cp0/tsc green. |
 | 8a-6 | Approval audit log via metrics_log | `done` | `cp3` | — | CRITIC-PASSED. Commit 937c5ca. 6/6 tests pass. cp0-cp1-cp2-cp3 green. |
-| 8a-7 | Approval flow tests | `deferred-for-human` | — | user rejected dispatch twice | CRITIC-PASSED. Integration tests for approve/deny/expiry/operator-unavailable/interactive-gated. Deferred pending user direction. |
-| 8c-1 | Backup schedule | `not_started` | — | **DB** — operator auth | CRITIC-PASSED |
-| 8c-2 | Backup VACUUM INTO | `not_started` | — | **DB** — operator auth | CRITIC-PASSED |
-| 8c-3 | Backup retention | `not_started` | — | **DB** — operator auth | CRITIC-PASSED |
-| 8c-4 | Backup restore script | `not_started` | — | **SECURITY** — confirm flag | CRITIC-PASSED |
-| 8c-5 | Backup monitoring | `not_started` | — | **DB** — operator auth | CRITIC-PASSED |
-| 8c-6 | Backup docs | `not_started` | — | **DB** — operator auth | CRITIC-PASSED |
+| 8a-7 | Approval flow tests | `not_started` | — | — | CRITIC-PASSED. Integration tests for approve/deny/expiry/operator-unavailable/interactive-gated. spec_path: docs/tasks/agent-teams/08a-approval-flow.md § 8a-7. User cleared dispatch 2026-05-06. |
+| 8c-1 | Backup VACUUM INTO primitive | `not_started` | — | — | STRONG-MODEL ONLY (`/task --depth=complex`). spec: docs/tasks/agent-teams/08c-sqlite-backup.md § 8c-1. Requires rollback path + dry-run + integration test per STRONG-MODEL PACKET rules. |
+| 8c-2 | Backup scheduler | `not_started` | 8c-1 | dependency on 8c-1 | STRONG-MODEL ONLY. spec § 8c-2. |
+| 8c-3 | Backup retention pruner | `not_started` | 8c-1 | dependency on 8c-1 | STRONG-MODEL ONLY. spec § 8c-3. |
+| 8c-4 | Backup restore CLI | `not_started` | 8c-1 | dependency on 8c-1 | STRONG-MODEL ONLY. **SECURITY** — operator-confirmed (--confirm flag mandatory, schema-version gate). spec § 8c-4. |
+| 8c-5 | Backup status route | `not_started` | 8c-1 | dependency on 8c-1 | STRONG-MODEL ONLY. spec § 8c-5. authMiddleware required. |
+| 8c-6 | Backup tests | `not_started` | 8c-1,2,3,4,5 | dependency on all 8c | STRONG-MODEL ONLY. spec § 8c-6. Round-trip + retention + schema gate + FTS5/sqlite-vec. |
 | 8e-1 | PII scrub lib | `done` | `cp3` | — | CRITIC-PASSED. Commit 2ea5db2. 15/15 pii tests pass. cp0-cp1-cp2 green. |
 | 8e-2 | PII ingest hook | `done` | `cp3` | — | CRITIC-PASSED. Commit 371b5af. 6/6 tests pass. cp0/tsc green. |
 | 8e-3 | PII tg_chats schema (mig 22) | `done` | `cp3` | — | CRITIC-PASSED. Commit d289380. 7/7 tests pass. Migration 22: tg_chat_policies table + TgChatPolicyRepository. cp0-cp1-cp2 green. |
@@ -132,7 +132,15 @@
 | 8e-6 | PII search guard | `done` | `cp3` | — | CRITIC-PASSED. Commit c1bef52. 4/4 tests pass. cp0/tsc green. |
 | 8e-7 | PII e2e test fix | `done` | `cp3` | — | 8/8 tests pass. Commit b7e1a30. Test-only: fixtures + policy expectations aligned with actual insertTgMessage behavior. |
 
-**Wave 3 merge gate:** ✅ Wave 3 complete. 8a-7 deferred (user rejected dispatch). 8c-* deferred (DB operator auth / SECURITY).
+**Wave 3 merge gate:** ✅ Wave 3 complete. 8a-7 reactivated (user cleared dispatch 2026-05-06). 8c-* reactivated as STRONG-MODEL packets.
+
+---
+
+## Wave 4 — Biome cleanup
+
+| Phase | Packet | Status | Last CP | Blocker | Notes |
+|---|---|---|---|---|---|
+| 4-1 | Biome errors autofix + dead-code | `not_started` | — | — | Single worker, full scope. **Pre-check:** `bunx biome check . --max-diagnostics=200` → 39 errors (7 format, 7 organizeImports, 4 noUnusedVariables, 2 noUnusedImports, 1 noAssignInExpressions, 1 noUnusedFunctionParameters, ~17 misc). Run `bunx biome check . --write` for autofix-able rules (format + organizeImports), then manual remove dead code (unused vars/imports/params) per file. Out of scope: 681 warnings (legacy noExplicitAny/noNonNullAssertion/useAwait — separate Wave 5 if user wants). expected_scope: impl. file_cap_hard: respect existing line-counts (no new files needed). Constraint: zero new errors after fix; cp0/cp1/cp2/cp3 all green; bun test 1256/0 must hold. |
 
 ---
 
@@ -234,3 +242,9 @@
 2026-05-06 ~13:08 UTC — WATCHDOG tick. cp0 green, tsc clean, 1256/0 tests. Git clean. No active workers. No external commits. Idle — next tick in 10m.
 
 2026-05-06 ~13:16 UTC — WATCHDOG tick. cp0 green, tsc clean, 1256/0 tests. Git clean. No active workers. No external commits. Idle — next tick in 10m.
+
+2026-05-06 ~13:25 UTC — User unblocked Wave 3 deferred packets + opened Wave 4 (biome cleanup):
+- 8a-7 reactivated (was `deferred-for-human` — user explicitly cleared dispatch).
+- 8c-1..8c-6 reactivated as STRONG-MODEL packets (each requires `/task --depth=complex` per spec docs/tasks/agent-teams/08c-sqlite-backup.md). 8c-2/3/4/5 wait on 8c-1; 8c-6 waits on all.
+- Wave 4 added: single packet 4-1 "Biome errors autofix + dead-code" — pre-check `bunx biome check . --max-diagnostics=200` shows 39 errors (7 format, 7 organizeImports, 4 noUnusedVariables, 2 noUnusedImports, ~19 misc). Worker runs `biome check --write` for autofix + manual dead-code removal. Out of scope: 681 warnings (legacy debt, separate wave).
+- Next tick: STEP 9 should see 8a-7, 8c-1, 4-1 as unblocked → dispatch up to cap=4 in parallel. 8c-2..8c-6 stay blocked until 8c-1 done.
