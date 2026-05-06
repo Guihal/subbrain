@@ -7,6 +7,8 @@ export function createAgentTaskPool(repo: AgentTasksRepository): AgentTaskPool {
 
   return {
     claim: (): AgentTaskRecord | null => repo.claimNext(now()),
+    peekNextPending: (): AgentTaskRecord | null => repo.peekNextPending(now()),
+    claimById: (id: number): AgentTaskRecord | null => repo.claim(id, now()),
     complete: (id: number, artifact: AgentTaskArtifact): void =>
       repo.complete(id, artifact, now()),
     noop: (id: number, reason: string): void => repo.noop(id, reason, now()),

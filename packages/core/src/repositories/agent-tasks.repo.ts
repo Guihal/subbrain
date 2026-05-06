@@ -7,16 +7,64 @@ import type {
 } from "../db/tables/agent-tasks/types";
 import { AgentTasksTable } from "../db/tables/agent-tasks";
 
+function mapRow(row: Record<string, unknown>): AgentTaskRecord {
+  let artifact: AgentTaskArtifact | null = null;
+  if (row.artifact) {
+    try {
+      artifact = JSON.parse(row.artifact as string) as AgentTaskArtifact;
+    } catch {
+      artifact = null;
+    }
+  }
+  return {
+    id: row.id as number,
+    type: row.type as import("../db/tables/agent-tasks/types").AgentTaskType,
+    prompt: row.prompt as string,
+    status: row.status as import("../db/tables/agent-tasks/types").AgentTaskStatus,
+    priority: row.priority as number,
+    scheduledAt: row.scheduled_at != null ? (row.scheduled_at as number) : null,
+    startedAt: row.started_at != null ? (row.started_at as number) : null,
+    finishedAt: row.finished_at != null ? (row.finished_at as number) : null,
+    artifact,
+    reason: row.reason != null ? (row.reason as string) : null,
+    createdBy: row.created_by as string,
+    createdAt: row.created_at as number,
+  };
+}
+
 export class AgentTasksRepository {
   private readonly table: AgentTasksTable;
+  private readonly db: Database;
 
   constructor(db: Database) {
     this.table = new AgentTasksTable(db);
+    this.db = db;
   }
 
   enqueue = (input: EnqueueInput): number => this.table.insertPending(input);
 
   claimNext = (now: number): AgentTaskRecord | null => this.table.claimNext(now);
+
+  peekNextPending = (now: number): AgentTaskRecord | null => {
+    const row = this.db
+      .query(
+        `SELECT * FROM agent_tasks WHERE status = 'pending'
+         AND (scheduled_at IS NULL OR scheduled_at <= ?)
+         ORDER BY priority DESC, scheduled_at, id LIMIT 1`,
+      )
+      .get(now) as Record<string, unknown> | null;
+    return row ? mapRow(row) : null;
+  };
+
+  claim = (id: number, now: number): AgentTaskRecord | null => {
+    const row = this.db
+      .query(
+        `UPDATE agent_tasks SET status = 'running', started_at = ?
+         WHERE id = ? AND status = 'pending' RETURNING *`,
+      )
+      .get(now, id) as Record<string, unknown> | null;
+    return row ? mapRow(row) : null;
+  };
 
   listPending = (limit: number): AgentTaskRecord[] => this.table.listPending(limit);
 
