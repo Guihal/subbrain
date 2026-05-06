@@ -75,7 +75,7 @@
 | P2-5 | Pool dispatch integration | `done` | `cp3` | — | CRITIC-PASSED. Files committed in A2-5b f1537e2 (accidental bundle). Commit b0feff2 for tsc clean fix. cp0 green, tsc clean, 3/3 tests pass. |
 | P2-5a | AgentLoopRequest expansion | `done` | `cp3` | — | CRITIC-PASSED. Commit 051fb30. |
 | P2-6 | Per-type rate limits + digest aggregation | `done` | `cp3` | — | CRITIC-PASSED. Commit e9c6f13. Files: rate-limits.ts, digest.ts, index.ts, types.ts, .env.example. 11/11 tests pass. cp0 green, tsc clean. |
-| P2-7 | Pool safety (rate-limit) | `not_started` | — | — | CRITIC-PASSED. Unblocked: P2-7a and P2-6 both done. |
+| P2-7 | Pool safety (rate-limit) | `done` | `cp3` | — | CRITIC-PASSED. Commit c0efada. 27/27 agent-pool tests pass. cp0/tsc green. Parallel concurrency behind AGENT_POOL_MAX_CONCURRENT env flag. |
 | P2-7a | Mutex primitive | `done` | `cp3` | — | CRITIC-PASSED. Commit 06ef49b. Worker ac668624. |
 | P3-1 | Memory bi-temporal verify | `done` | `cp3` | — | CRITIC-PASSED. Commit ed96d90. Extra doc cleanup bundled. |
 | P3-2 | Bi-temporal nullable cols (mig 17) | `done` | `cp3` | — | CRITIC-PASSED. Worker ab9473b0. Commit 8e25ac4. |
@@ -196,13 +196,14 @@
 | P2-6 | agent-P26-1 | **KILLED** | 2026-05-06 ~02:30 UTC → ~04:20 UTC, >1hr no commits, stuck on permission denied reading `.env.example` via Bash. |
 | P3-7 | agent-P37-3 | **DONE** | 2026-05-06 ~04:25 UTC — commit cc8b794, 12/12 tests pass, tsc clean, cp0 green |
 | P2-6 | agent-P26-2 | **DONE** | 2026-05-06 ~04:25 UTC — commit e9c6f13, 11/11 tests pass, tsc clean, cp0 green |
-| P2-7 | agent-P27-1 | **RUNNING** | 2026-05-06 ~04:40 UTC — parallel concurrency behind feature flag |
-| P3-8 | agent-P38-1 | **RUNNING** | 2026-05-06 ~04:40 UTC — PR-E persona pass |
+| P2-7 | agent-P27-1 | **DONE** | 2026-05-06 ~04:40 UTC → 07:50 UTC — commit c0efada, cp0/tsc/tests green. Worker scope-creeped into .env.example + .agentignore but core deliverable correct. |
+| P3-8 | agent-P38-1 | **KILLED** | 2026-05-06 ~04:40 UTC → ~07:49 UTC — scope creep into P2-7 files (pool/index.ts, agent-tasks.repo.ts), >40 min no commit on own prompt files. |
+| P3-8 | agent-P38-2 | **RUNNING** | 2026-05-06 ~07:52 UTC — commit existing prompt changes only |
 
 ---
 
 ## Last Updated
 
-2026-05-06 ~04:40 UTC — P2-7 v1 + P3-8 v1 dispatched. Cap=2/3 active. P6-3 deferred (schema choice TBD).
+2026-05-06 ~07:52 UTC — P2-7 DONE (c0efada). P3-8 v1 killed (scope creep), v2 dispatched. Cap=1/3 active. P6-3 deferred (schema choice TBD). P3-9 unblocked after P3-8.
 
 **P3-7 discovery:** implementation already complete (cap-guard.ts, process-tool.ts, prompt.ts, hippocampus.ts all have PR-D logic). All acceptance grep checks pass. Only missing: `tests/hippocampus-cap.test.ts` + `tests/hippocampus-extraction.test.ts`. Worker v3 scope = test files only.
