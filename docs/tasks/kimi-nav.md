@@ -84,7 +84,7 @@
 | P3-5 | Memory blocks table (mig 18) | `done` | `cp3` | — | CRITIC-PASSED. Commit 7db48ff. Clean redo after revert of mixed commit cf57bba. |
 | P3-6 | Sleep role + NIGHT_CYCLE_MODEL resolver | `done` | `cp3` | — | CRITIC-PASSED. Commit d8f849e. 5/5 tests pass. |
 | P3-7 | Predicate parens fix | `done` | `cp3` | — | CRITIC-PASSED. Commit cc8b794. 12/12 tests pass. Implementation was already in HEAD (cap-guard.ts, process-tool.ts, hippocampus.ts, prompt.ts from prior PRs). Worker v3 wrote tests only. |
-| P3-8 | rag/pipeline.ts → index.ts | `not_started` | — | — | CRITIC-PASSED. Unblocked: P3-7 done. |
+| P3-8 | rag/pipeline.ts → index.ts | `done` | `cp3` | — | CRITIC-PASSED. Commit fbb7522. Prompt-only: arbitrator verification + hippocamp character. cp0/tsc/tests green. |
 | P3-9 | Memory archive + TTL | `not_started` | — | blocks on P3-8 | CRITIC-PASSED |
 | P6-1 | A2A room init | `done` | `cp3` | — | CRITIC-PASSED. Commit 615920b. 26 LOC, no scope creep. |
 | P6-2 | A2A dispatch hook | `done` | `cp3` | — | CRITIC-PASSED. Commit 9699845. Worker a22d163d. |
@@ -198,12 +198,12 @@
 | P2-6 | agent-P26-2 | **DONE** | 2026-05-06 ~04:25 UTC — commit e9c6f13, 11/11 tests pass, tsc clean, cp0 green |
 | P2-7 | agent-P27-1 | **DONE** | 2026-05-06 ~04:40 UTC → 07:50 UTC — commit c0efada, cp0/tsc/tests green. Worker scope-creeped into .env.example + .agentignore but core deliverable correct. |
 | P3-8 | agent-P38-1 | **KILLED** | 2026-05-06 ~04:40 UTC → ~07:49 UTC — scope creep into P2-7 files (pool/index.ts, agent-tasks.repo.ts), >40 min no commit on own prompt files. |
-| P3-8 | agent-P38-2 | **RUNNING** | 2026-05-06 ~07:52 UTC — commit existing prompt changes only |
+| P3-8 | agent-P38-2 | **DONE** | 2026-05-06 ~07:52 UTC — commit fbb7522, cp0/tsc/tests green |
 
 ---
 
 ## Last Updated
 
-2026-05-06 ~07:52 UTC — P2-7 DONE (c0efada). P3-8 v1 killed (scope creep), v2 dispatched. Cap=1/3 active. P6-3 deferred (schema choice TBD). P3-9 unblocked after P3-8.
+2026-05-06 ~08:01 UTC — P2-7 DONE (c0efada), P3-8 DONE (fbb7522). Cap=0/3 active. P3-9 unblocked. Next: A2-6 security, A2-7 security, P3-9 archive+TTL, P6-3 A2A schema.
 
 **P3-7 discovery:** implementation already complete (cap-guard.ts, process-tool.ts, prompt.ts, hippocampus.ts all have PR-D logic). All acceptance grep checks pass. Only missing: `tests/hippocampus-cap.test.ts` + `tests/hippocampus-extraction.test.ts`. Worker v3 scope = test files only.
