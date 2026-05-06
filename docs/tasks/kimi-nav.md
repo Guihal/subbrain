@@ -228,3 +228,5 @@
 2026-05-06 ~12:35 UTC — POST-DONE complete. Phase A (HTTP smoke): 6/6 OK. Phase B (UI smoke): 4/4 OK (note: /chats is 404 — chat list lives at /, not /chats; pre-existing path mismatch). Infra fix: installed missing `@nuxt/ui` + `tailwindcss` workspace deps via `bun update`. Phase C (refactor sweep): 27 pre-existing `any` casts, 11 raw `fetch(` — legacy, not Wave 3 regressions. ALL_WAVES_DONE @ 2026-05-06 12:35 UTC. Entering WATCHDOG MODE.
 
 2026-05-06 ~13:00 UTC — WATCHDOG tick. cp0 green, tsc clean, 1256/0 tests. Git clean, no active workers. No external commits. Commit e386279 (deps fix). Idle — next tick in 10m.
+
+2026-05-06 ~13:10 UTC — WATCHDOG tick. cp0 green, tsc clean, 1256/0 tests. Git clean (commit 7066e39 — removed old Playwright artifacts). No active workers. No external commits. API server still on :4000 (PID 615046, possibly user-owned — left alone). Idle — next tick in 10m.
