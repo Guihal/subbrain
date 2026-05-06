@@ -73,28 +73,28 @@ describe("ToolExecutor.tgSendMessage", () => {
   const memoryStub = {} as MemoryDB;
   const routerStub = {} as ModelRouter;
 
-  test("returns { success:false, error } when botNotify throws", async () => {
+  test("returns error when botNotify throws", async () => {
     const exec = new ToolExecutor(memoryStub, routerStub);
     exec.setBotNotify(async () => {
       throw new Error("telegram 500");
     });
     const r = await exec.tgSendMessage("hi");
-    expect(r.success).toBe(false);
-    expect(r.error).toBe("telegram 500");
+    expect(r.kind).toBe("error");
+    expect(r.error.message).toBe("telegram 500");
   });
 
-  test("returns { success:true } when botNotify resolves", async () => {
+  test("returns success when botNotify resolves", async () => {
     const exec = new ToolExecutor(memoryStub, routerStub);
     exec.setBotNotify(async () => {});
     const r = await exec.tgSendMessage("hi");
-    expect(r.success).toBe(true);
+    expect(r.kind).toBe("success");
     expect(r.data).toBe("Message sent to owner");
   });
 
   test("returns not-configured error when botNotify unset", async () => {
     const exec = new ToolExecutor(memoryStub, routerStub);
     const r = await exec.tgSendMessage("hi");
-    expect(r.success).toBe(false);
-    expect(r.error).toContain("not configured");
+    expect(r.kind).toBe("error");
+    expect(r.error.message).toContain("not configured");
   });
 });

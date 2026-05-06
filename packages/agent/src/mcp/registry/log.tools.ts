@@ -2,6 +2,7 @@
  * Raw log (Layer 4) + history compression.
  */
 import { type ToolRegistry, t } from "./tool-registry";
+import { toLegacy } from "../types";
 
 export function registerLogTools(registry: ToolRegistry): void {
   registry.register({
@@ -22,13 +23,15 @@ export function registerLogTools(registry: ToolRegistry): void {
       token_count: t.Optional(t.Number()),
     }),
     handler: (args, ctx) =>
-      ctx.executor.logTools.append(
-        args.request_id,
-        args.session_id,
-        args.agent_id,
-        args.role,
-        args.content,
-        args.token_count,
+      toLegacy(
+        ctx.executor.logTools.append(
+          args.request_id,
+          args.session_id,
+          args.agent_id,
+          args.role,
+          args.content,
+          args.token_count,
+        ),
       ),
   });
 
@@ -42,7 +45,7 @@ export function registerLogTools(registry: ToolRegistry): void {
       limit: t.Optional(t.Number()),
     }),
     handler: (args, ctx) =>
-      ctx.executor.logTools.read(args.session_id, args.request_id, args.limit),
+      toLegacy(ctx.executor.logTools.read(args.session_id, args.request_id, args.limit)),
   });
 
   registry.register({
@@ -62,6 +65,7 @@ export function registerLogTools(registry: ToolRegistry): void {
         }),
       ),
     }),
-    handler: (args, ctx) => ctx.executor.logTools.compressHistory(args.messages),
+    handler: async (args, ctx) =>
+      toLegacy(await ctx.executor.logTools.compressHistory(args.messages)),
   });
 }

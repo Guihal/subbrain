@@ -51,7 +51,13 @@ describe("AgentTasksRepository", () => {
 
   test("claimNext skips scheduledAt > now", () => {
     const now = Math.floor(Date.now() / 1000);
-    db.agentTasksRepo.enqueue({ type: "free", prompt: "future", priority: 10, scheduledAt: now + 3600, createdBy: "test" });
+    db.agentTasksRepo.enqueue({
+      type: "free",
+      prompt: "future",
+      priority: 10,
+      scheduledAt: now + 3600,
+      createdBy: "test",
+    });
     db.agentTasksRepo.enqueue({ type: "free", prompt: "now", priority: 1, createdBy: "test" });
     const claimed = db.agentTasksRepo.claimNext(now);
     expect(claimed).not.toBeNull();

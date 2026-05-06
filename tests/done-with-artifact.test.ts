@@ -1,11 +1,11 @@
 /**
  * Tests for done_with_artifact MCP tool (P2-4).
  */
-import { describe, expect, test, beforeEach } from "bun:test";
+import { beforeEach, describe, expect, test } from "bun:test";
 import {
   doneWithArtifact,
-  resetTermination,
   isTerminated,
+  resetTermination,
 } from "@subbrain/agent/mcp/tools/pool/done-with-artifact";
 
 describe("done_with_artifact validation", () => {
@@ -102,7 +102,12 @@ describe("done_with_artifact tool-dispatch integration", () => {
     const { runToolCall } = await import("@subbrain/agent/pipeline/agent-loop/tool-dispatch");
     const mockLog = { info: () => {}, warn: () => {}, error: () => {}, debug: () => {} };
     const mockDeps = {
-      executor: { execute: async () => ({ success: true, data: { terminate: true, status: "complete", artifact: "x" } }) },
+      executor: {
+        execute: async () => ({
+          success: true,
+          data: { terminate: true, status: "complete", artifact: "x" },
+        }),
+      },
       router: { chat: async () => ({ choices: [{ message: { content: "" } }] }) },
       registry: { resolve: () => null },
     };

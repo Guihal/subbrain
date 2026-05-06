@@ -6,7 +6,7 @@ import type { MemoryDB } from "@subbrain/core/db";
 import { EMBED_CODE_MODEL, EMBED_MODEL, RERANK_MODEL } from "@subbrain/core/lib/model-map";
 import type { ModelRouter } from "@subbrain/core/lib/model-router";
 import type { RAGPipeline } from "../../rag";
-import type { ToolResult } from "../types";
+import type { ToolResultV2 } from "../types";
 
 export class EmbedTools {
   constructor(
@@ -29,7 +29,7 @@ export class EmbedTools {
      * (no filter); set string = filter `(agent_id = ? OR agent_id IS NULL)`.
      */
     agentId: string | null = null,
-  ): Promise<ToolResult> {
+  ): Promise<ToolResultV2> {
     const rag = this.getRag();
     const ctxOpts = agentId ? { agentId } : undefined;
     if (!rag) {
@@ -43,7 +43,7 @@ export class EmbedTools {
         results.archive = this.memory.searchArchive(query, n);
       if (target === "all" || target === "shared")
         results.shared = this.memory.searchShared(query, n);
-      return { success: true, data: results };
+      return { kind: "success", data: results };
     }
 
     const results = await rag.search({
@@ -54,10 +54,10 @@ export class EmbedTools {
       agentId: agentId ?? undefined,
     });
 
-    return { success: true, data: results };
+    return { kind: "success", data: results };
   }
 
-  async embedText(text: string, type: "text" | "code" = "text"): Promise<ToolResult> {
+  async embedText(text: string, type: "text" | "code" = "text"): Promise<ToolResultV2> {
     const modelId = type === "code" ? EMBED_CODE_MODEL : EMBED_MODEL;
 
     const result = await this.router.scheduleRaw("normal", () =>
@@ -69,7 +69,7 @@ export class EmbedTools {
     );
 
     return {
-      success: true,
+      kind: "success",
       data: {
         embedding: result.data[0].embedding,
         model: modelId,
@@ -78,7 +78,7 @@ export class EmbedTools {
     };
   }
 
-  async embedSearch(query: string, topK?: number, layer?: string): Promise<ToolResult> {
+  async embedSearch(query: string, topK?: number, layer?: string): Promise<ToolResultV2> {
     const embedResult = await this.router.scheduleRaw("normal", () =>
       this.router.raw.embed({
         model: EMBED_MODEL,
@@ -90,10 +90,10 @@ export class EmbedTools {
     const embedding = new Float32Array(embedResult.data[0].embedding);
     const results = this.memory.searchEmbeddings(embedding, topK || 10, layer);
 
-    return { success: true, data: results };
+    return { kind: "success", data: results };
   }
 
-  async rerank(query: string, passages: string[], topN?: number): Promise<ToolResult> {
+  async rerank(query: string, passages: string[], topN?: number): Promise<ToolResultV2> {
     const result = await this.router.scheduleRaw("normal", () =>
       this.router.raw.rerank({
         model: RERANK_MODEL,
@@ -103,6 +103,6 @@ export class EmbedTools {
       }),
     );
 
-    return { success: true, data: result.results };
+    return { kind: "success", data: result.results };
   }
 }

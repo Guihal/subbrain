@@ -2,6 +2,7 @@
  * Embedding / rerank тулы. Делегируют в ToolExecutor.embedTools (NVIDIA).
  */
 import { type ToolRegistry, t } from "./tool-registry";
+import { toLegacy } from "../types";
 
 export function registerEmbedTools(registry: ToolRegistry): void {
   registry.register({
@@ -16,7 +17,8 @@ export function registerEmbedTools(registry: ToolRegistry): void {
         }),
       ),
     }),
-    handler: (args, ctx) => ctx.executor.embedTools.embedText(args.text, args.model || "text"),
+    handler: async (args, ctx) =>
+      toLegacy(await ctx.executor.embedTools.embedText(args.text, args.model || "text")),
   });
 
   registry.register({
@@ -28,7 +30,8 @@ export function registerEmbedTools(registry: ToolRegistry): void {
       top_k: t.Optional(t.Number()),
       layer: t.Optional(t.String()),
     }),
-    handler: (args, ctx) => ctx.executor.embedTools.embedSearch(args.query, args.top_k, args.layer),
+    handler: async (args, ctx) =>
+      toLegacy(await ctx.executor.embedTools.embedSearch(args.query, args.top_k, args.layer)),
   });
 
   registry.register({
@@ -40,6 +43,7 @@ export function registerEmbedTools(registry: ToolRegistry): void {
       passages: t.Array(t.String()),
       top_n: t.Optional(t.Number()),
     }),
-    handler: (args, ctx) => ctx.executor.embedTools.rerank(args.query, args.passages, args.top_n),
+    handler: async (args, ctx) =>
+      toLegacy(await ctx.executor.embedTools.rerank(args.query, args.passages, args.top_n)),
   });
 }

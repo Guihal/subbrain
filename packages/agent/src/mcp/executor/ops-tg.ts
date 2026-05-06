@@ -1,5 +1,5 @@
 import * as tg from "../telegram-tools";
-import type { ToolResult } from "../types";
+import type { ToolResultV2 } from "../types";
 import type { ExecutorState } from "./types";
 
 /**
@@ -9,19 +9,19 @@ import type { ExecutorState } from "./types";
  * can surface real delivery failures — `notify` (fire-and-forget) would
  * resolve `void` even on HTTP 500, masking the error.
  */
-export async function tgSendMessage(s: ExecutorState, text: string): Promise<ToolResult> {
+export async function tgSendMessage(s: ExecutorState, text: string): Promise<ToolResultV2> {
   if (!s.botNotify) {
-    return { success: false, error: "Telegram bot not configured" };
+    return { kind: "error", error: { code: "unknown", message: "Telegram bot not configured" } };
   }
   try {
     await s.botNotify(text);
-    return { success: true, data: "Message sent to owner" };
+    return { kind: "success", data: "Message sent to owner" };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : String(err) };
+    return { kind: "error", error: { code: "unknown", message: err instanceof Error ? err.message : String(err) } };
   }
 }
 
-export async function tgListChats(s: ExecutorState, limit = 100): Promise<ToolResult> {
+export async function tgListChats(s: ExecutorState, limit = 100): Promise<ToolResultV2> {
   return tg.tgListChats(s.userbot, limit);
 }
 
@@ -30,7 +30,7 @@ export async function tgReadChat(
   chatId: string,
   limit = 50,
   offsetId?: number,
-): Promise<ToolResult> {
+): Promise<ToolResultV2> {
   return tg.tgReadChat(s.userbot, chatId, limit, offsetId);
 }
 
@@ -39,7 +39,7 @@ export async function tgSearchMessages(
   query: string,
   limit = 30,
   chatId?: string,
-): Promise<ToolResult> {
+): Promise<ToolResultV2> {
   return tg.tgSearchMessages(s.userbot, query, limit, chatId);
 }
 
@@ -48,15 +48,15 @@ export function tgExcludeChat(
   chatId: string,
   chatTitle: string,
   reason = "private",
-): ToolResult {
+): ToolResultV2 {
   return tg.tgExcludeChat(s.memory, chatId, chatTitle, reason);
 }
 
-export function tgIncludeChat(s: ExecutorState, chatId: string): ToolResult {
+export function tgIncludeChat(s: ExecutorState, chatId: string): ToolResultV2 {
   return tg.tgIncludeChat(s.memory, chatId);
 }
 
-export function tgListExcluded(s: ExecutorState): ToolResult {
+export function tgListExcluded(s: ExecutorState): ToolResultV2 {
   return tg.tgListExcluded(s.memory);
 }
 
@@ -68,12 +68,12 @@ export function tgFtsSearch(
   from?: string,
   to?: string,
   limit?: number,
-): ToolResult {
+): ToolResultV2 {
   try {
     const fromTs = from ? Math.floor(Date.parse(from) / 1000) : undefined;
     const toTs = to ? Math.floor(Date.parse(to) / 1000) : undefined;
     if ((from && Number.isNaN(fromTs)) || (to && Number.isNaN(toTs))) {
-      return { success: false, error: "Invalid from/to ISO date" };
+      return { kind: "error", error: { code: "unknown", message: "Invalid from/to ISO date" } };
     }
     const opts: import("@subbrain/core/db").TgSearchOpts = { query };
     if (chatId) opts.chatId = chatId;
@@ -82,7 +82,7 @@ export function tgFtsSearch(
     if (limit !== undefined) opts.limit = limit;
     const { items, total } = s.memory.searchTgMessages(opts);
     return {
-      success: true,
+      kind: "success",
       data: {
         items: items.map((h) => ({
           ts: h.ts,
@@ -96,6 +96,6 @@ export function tgFtsSearch(
       },
     };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : String(err) };
+    return { kind: "error", error: { code: "unknown", message: err instanceof Error ? err.message : String(err) } };
   }
 }

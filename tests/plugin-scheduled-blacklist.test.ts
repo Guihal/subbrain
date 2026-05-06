@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import {
-  scheduledBlacklistPlugin,
-  STATEFUL_CLIENT_CODE_TOOLS,
   isHiddenInMode,
+  STATEFUL_CLIENT_CODE_TOOLS,
+  scheduledBlacklistPlugin,
 } from "@subbrain/agent/plugins-internal/scheduled-blacklist";
 import { toLegacy } from "@subbrain/plugin";
 
@@ -23,13 +23,17 @@ describe("scheduled-blacklist plugin", () => {
 
   test("plugin rejects stateful tools in scheduled mode", async () => {
     const hooks = { onToolBefore: [] as any[] };
-    scheduledBlacklistPlugin.setup({ hooks: {
-      onToolBefore(h) { hooks.onToolBefore.push(h); },
-      onToolAfter() {},
-      onChatParams() {},
-      onChatSystemTransform() {},
-      onPermissionAsk() {},
-    } });
+    scheduledBlacklistPlugin.setup({
+      hooks: {
+        onToolBefore(h) {
+          hooks.onToolBefore.push(h);
+        },
+        onToolAfter() {},
+        onChatParams() {},
+        onChatSystemTransform() {},
+        onPermissionAsk() {},
+      },
+    });
 
     expect(hooks.onToolBefore.length).toBe(1);
     const handler = hooks.onToolBefore[0];
@@ -46,13 +50,17 @@ describe("scheduled-blacklist plugin", () => {
 
   test("plugin allows stateful tools in interactive mode", async () => {
     const hooks = { onToolBefore: [] as any[] };
-    scheduledBlacklistPlugin.setup({ hooks: {
-      onToolBefore(h) { hooks.onToolBefore.push(h); },
-      onToolAfter() {},
-      onChatParams() {},
-      onChatSystemTransform() {},
-      onPermissionAsk() {},
-    } });
+    scheduledBlacklistPlugin.setup({
+      hooks: {
+        onToolBefore(h) {
+          hooks.onToolBefore.push(h);
+        },
+        onToolAfter() {},
+        onChatParams() {},
+        onChatSystemTransform() {},
+        onPermissionAsk() {},
+      },
+    });
 
     const handler = hooks.onToolBefore[0];
     for (const name of STATEFUL_CLIENT_CODE_TOOLS) {
@@ -63,13 +71,17 @@ describe("scheduled-blacklist plugin", () => {
 
   test("plugin allows non-stateful tools in scheduled mode", async () => {
     const hooks = { onToolBefore: [] as any[] };
-    scheduledBlacklistPlugin.setup({ hooks: {
-      onToolBefore(h) { hooks.onToolBefore.push(h); },
-      onToolAfter() {},
-      onChatParams() {},
-      onChatSystemTransform() {},
-      onPermissionAsk() {},
-    } });
+    scheduledBlacklistPlugin.setup({
+      hooks: {
+        onToolBefore(h) {
+          hooks.onToolBefore.push(h);
+        },
+        onToolAfter() {},
+        onChatParams() {},
+        onChatSystemTransform() {},
+        onPermissionAsk() {},
+      },
+    });
 
     const handler = hooks.onToolBefore[0];
     const result = await handler({ toolName: "memory_search", ctx: { agentMode: "scheduled" } });
@@ -78,13 +90,17 @@ describe("scheduled-blacklist plugin", () => {
 
   test("plugin allows when agentMode is missing (backward-compat)", async () => {
     const hooks = { onToolBefore: [] as any[] };
-    scheduledBlacklistPlugin.setup({ hooks: {
-      onToolBefore(h) { hooks.onToolBefore.push(h); },
-      onToolAfter() {},
-      onChatParams() {},
-      onChatSystemTransform() {},
-      onPermissionAsk() {},
-    } });
+    scheduledBlacklistPlugin.setup({
+      hooks: {
+        onToolBefore(h) {
+          hooks.onToolBefore.push(h);
+        },
+        onToolAfter() {},
+        onChatParams() {},
+        onChatSystemTransform() {},
+        onPermissionAsk() {},
+      },
+    });
 
     const handler = hooks.onToolBefore[0];
     const result = await handler({ toolName: "overdue_reminder", ctx: {} });

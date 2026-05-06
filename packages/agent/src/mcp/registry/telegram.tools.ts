@@ -4,6 +4,7 @@
 
 import { checkSpamGate } from "./telegram-spam-gate";
 import { type ToolRegistry, t } from "./tool-registry";
+import { toLegacy } from "../types";
 
 export function registerTelegramTools(registry: ToolRegistry): void {
   registry.register({
@@ -13,7 +14,7 @@ export function registerTelegramTools(registry: ToolRegistry): void {
     input: t.Object({
       limit: t.Optional(t.Number({ description: "Max number of chats (default: 100)" })),
     }),
-    handler: (args, ctx) => ctx.executor.tgListChats(args.limit),
+    handler: async (args, ctx) => toLegacy(await ctx.executor.tgListChats(args.limit)),
   });
 
   registry.register({
@@ -26,7 +27,8 @@ export function registerTelegramTools(registry: ToolRegistry): void {
       limit: t.Optional(t.Number({ description: "Max messages (default: 50)" })),
       offset_id: t.Optional(t.Number({ description: "Message ID to paginate from" })),
     }),
-    handler: (args, ctx) => ctx.executor.tgReadChat(args.chat_id, args.limit, args.offset_id),
+    handler: async (args, ctx) =>
+      toLegacy(await ctx.executor.tgReadChat(args.chat_id, args.limit, args.offset_id)),
   });
 
   registry.register({
@@ -38,7 +40,8 @@ export function registerTelegramTools(registry: ToolRegistry): void {
       limit: t.Optional(t.Number({ description: "Max results (default: 30)" })),
       chat_id: t.Optional(t.String({ description: "Optional chat ID to search within" })),
     }),
-    handler: (args, ctx) => ctx.executor.tgSearchMessages(args.query, args.limit, args.chat_id),
+    handler: async (args, ctx) =>
+      toLegacy(await ctx.executor.tgSearchMessages(args.query, args.limit, args.chat_id)),
   });
 
   registry.register({
@@ -51,7 +54,8 @@ export function registerTelegramTools(registry: ToolRegistry): void {
       chat_title: t.String(),
       reason: t.Optional(t.String({ description: "Reason (default: private)" })),
     }),
-    handler: (args, ctx) => ctx.executor.tgExcludeChat(args.chat_id, args.chat_title, args.reason),
+    handler: (args, ctx) =>
+      toLegacy(ctx.executor.tgExcludeChat(args.chat_id, args.chat_title, args.reason)),
   });
 
   registry.register({
@@ -61,7 +65,7 @@ export function registerTelegramTools(registry: ToolRegistry): void {
     input: t.Object({
       chat_id: t.String(),
     }),
-    handler: (args, ctx) => ctx.executor.tgIncludeChat(args.chat_id),
+    handler: (args, ctx) => toLegacy(ctx.executor.tgIncludeChat(args.chat_id)),
   });
 
   registry.register({
@@ -69,7 +73,7 @@ export function registerTelegramTools(registry: ToolRegistry): void {
     description: "List all excluded Telegram chats.",
     scope: "public",
     input: t.Object({}),
-    handler: (_args, ctx) => ctx.executor.tgListExcluded(),
+    handler: (_args, ctx) => toLegacy(ctx.executor.tgListExcluded()),
   });
 
   registry.register({
@@ -87,7 +91,9 @@ export function registerTelegramTools(registry: ToolRegistry): void {
       limit: t.Optional(t.Number({ description: "Max results (default 20, max 200)" })),
     }),
     handler: (args, ctx) =>
-      ctx.executor.tgFtsSearch(args.query, args.chat_id, args.from, args.to, args.limit),
+      toLegacy(
+        ctx.executor.tgFtsSearch(args.query, args.chat_id, args.from, args.to, args.limit),
+      ),
   });
 
   registry.register({
@@ -107,12 +113,12 @@ export function registerTelegramTools(registry: ToolRegistry): void {
     handler: async (args, ctx) => {
       // F-4: scheduled-only hard-gate on layer1_focus.no_repetitive_tg_spam.
       const block = checkSpamGate(ctx.executor, ctx.agentMode);
-      if (block) return block;
+      if (block) return toLegacy(block);
       const r = await ctx.executor.tgSendMessage(args.text);
-      if (r.success) return r;
+      if (r.kind === "success") return toLegacy(r);
       return {
         success: false,
-        error: `tg_delivery_failed: ${r.error ?? "unknown error"}`,
+        error: `tg_delivery_failed: ${r.error?.message ?? "unknown error"}`,
       };
     },
   });

@@ -3,7 +3,7 @@
  */
 import type { MemoryDB } from "@subbrain/core/db";
 import type { ModelRouter } from "@subbrain/core/lib/model-router";
-import type { ToolResult } from "../types";
+import type { ToolResultV2 } from "../types";
 
 export class LogTools {
   constructor(
@@ -18,25 +18,25 @@ export class LogTools {
     role: string,
     content: string,
     tokenCount?: number,
-  ): ToolResult {
+  ): ToolResultV2 {
     const id = this.memory.appendLog(requestId, sessionId, agentId, role, content, tokenCount);
-    return { success: true, data: { id } };
+    return { kind: "success", data: { id } };
   }
 
-  read(sessionId?: string, requestId?: string, limit?: number): ToolResult {
+  read(sessionId?: string, requestId?: string, limit?: number): ToolResultV2 {
     if (requestId) {
-      return { success: true, data: this.memory.getLogsByRequest(requestId) };
+      return { kind: "success", data: this.memory.getLogsByRequest(requestId) };
     }
     if (sessionId) {
       return {
-        success: true,
+        kind: "success",
         data: this.memory.getLogsBySession(sessionId, limit || 100),
       };
     }
-    return { success: false, error: "session_id or request_id required" };
+    return { kind: "error", error: { code: "unknown", message: "session_id or request_id required" } };
   }
 
-  async compressHistory(messages: { role: string; content: string }[]): Promise<ToolResult> {
+  async compressHistory(messages: { role: string; content: string }[]): Promise<ToolResultV2> {
     const result = await this.router.chat(
       "flash",
       {
@@ -57,6 +57,6 @@ export class LogTools {
     );
 
     const summary = result.choices[0]?.message?.content || "Failed to compress";
-    return { success: true, data: { summary } };
+    return { kind: "success", data: { summary } };
   }
 }

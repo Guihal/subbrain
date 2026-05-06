@@ -19,8 +19,8 @@ const FOCUS_BLOCK_KEY = "no_repetitive_tg_spam";
 const FOCUS_TTL_SEC = 7 * 86400;
 
 export interface SpamGateBlock {
-  success: false;
-  error: string;
+  kind: "error";
+  error: { code: string; message: string };
 }
 
 export function checkSpamGate(
@@ -39,7 +39,7 @@ export function checkSpamGate(
     { meta: { key: FOCUS_BLOCK_KEY, updated_at: block.updated_at, age_h: ageH } },
   );
   return {
-    success: false,
-    error: `focus_blocked: layer1_focus.${FOCUS_BLOCK_KEY} active (set ${ageH}h ago); reset via deleteFocus or wait ${FOCUS_TTL_SEC / 86400}d`,
+    kind: "error",
+    error: { code: "focus_blocked", message: `layer1_focus.${FOCUS_BLOCK_KEY} active (set ${ageH}h ago); reset via deleteFocus or wait ${FOCUS_TTL_SEC / 86400}d` },
   };
 }

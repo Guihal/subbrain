@@ -1,6 +1,6 @@
-import { describe, expect, test, beforeEach, afterEach } from "bun:test";
-import { MODEL_MAP, resolveModel, getFallback } from "@subbrain/core/lib/model-map";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { resolveNightModel } from "@subbrain/agent/pipeline/night-cycle/model";
+import { getFallback, MODEL_MAP, resolveModel } from "@subbrain/core/lib/model-map";
 
 describe("sleep virtual role", () => {
   test("exists in MODEL_MAP", () => {

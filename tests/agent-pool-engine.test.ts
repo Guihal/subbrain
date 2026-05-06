@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, unlinkSync } from "node:fs";
-import { MemoryDB } from "@subbrain/core/db";
-import { createAgentTaskPool } from "@subbrain/agent/scheduler/agent-pool/pool";
 import { installAgentPoolScheduler, runTick } from "@subbrain/agent/scheduler/agent-pool";
+import { createAgentTaskPool } from "@subbrain/agent/scheduler/agent-pool/pool";
 import type { PoolDeps, RunnerResult } from "@subbrain/agent/scheduler/agent-pool/types";
+import { MemoryDB } from "@subbrain/core/db";
 
 const TEST_DB = "data/test-agent-pool.db";
 
@@ -57,7 +57,10 @@ describe("agent-pool engine", () => {
 
   test("tick claims task and persists complete", async () => {
     db.agentTasksRepo.enqueue({ type: "free", prompt: "do it", createdBy: "test" });
-    const deps = makeDeps(async () => ({ status: "complete", artifact: { type: "text", content: "ok" } }));
+    const deps = makeDeps(async () => ({
+      status: "complete",
+      artifact: { type: "text", content: "ok" },
+    }));
     await runTick(deps);
     const row = db.agentTasksRepo.listPending(10);
     expect(row.length).toBe(0);
@@ -76,7 +79,9 @@ describe("agent-pool engine", () => {
 
   test("tick persists failed on runFn throw", async () => {
     db.agentTasksRepo.enqueue({ type: "free", prompt: "do it", createdBy: "test" });
-    const deps = makeDeps(async () => { throw new Error("boom"); });
+    const deps = makeDeps(async () => {
+      throw new Error("boom");
+    });
     await runTick(deps);
     const all = db.agentTasksRepo.getDistribution24h(Math.floor(Date.now() / 1000) + 1);
     expect(all[0].status).toBe("failed");
@@ -92,7 +97,10 @@ describe("agent-pool engine", () => {
 
   test("tick skips when router overloaded", async () => {
     db.agentTasksRepo.enqueue({ type: "free", prompt: "do it", createdBy: "test" });
-    const deps = makeDeps(async () => ({ status: "complete", artifact: { type: "text", content: "ok" } }), true);
+    const deps = makeDeps(
+      async () => ({ status: "complete", artifact: { type: "text", content: "ok" } }),
+      true,
+    );
     await runTick(deps);
     const row = db.agentTasksRepo.listPending(10);
     expect(row.length).toBe(1);
@@ -100,7 +108,10 @@ describe("agent-pool engine", () => {
   });
 
   test("tick returns early when no pending tasks", async () => {
-    const deps = makeDeps(async () => ({ status: "complete", artifact: { type: "text", content: "ok" } }));
+    const deps = makeDeps(async () => ({
+      status: "complete",
+      artifact: { type: "text", content: "ok" },
+    }));
     await runTick(deps);
     expect(logs.some((l) => l.message === "no pending tasks")).toBe(true);
   });
@@ -111,7 +122,10 @@ describe("agent-pool engine", () => {
     db.agentTasksRepo.claimNext(now);
     // Manually age the started_at so tick sees it as zombie
     db.db.query("UPDATE agent_tasks SET started_at = ? WHERE id = ?").run(now - 2000, id);
-    const deps = makeDeps(async () => ({ status: "complete", artifact: { type: "text", content: "ok" } }));
+    const deps = makeDeps(async () => ({
+      status: "complete",
+      artifact: { type: "text", content: "ok" },
+    }));
     await runTick(deps);
     const row = db.agentTasksRepo.getById(id);
     expect(row!.status).toBe("failed");

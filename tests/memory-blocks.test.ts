@@ -65,9 +65,7 @@ describe("P3-5 memory_blocks (mig 18)", () => {
 
   test("UNIQUE(owner_role, label) blocks duplicate label for same role", () => {
     memory.insertBlock("b3", "critic", "rubric", "Check for bugs.");
-    expect(() =>
-      memory.insertBlock("b4", "critic", "rubric", "Different body."),
-    ).toThrow();
+    expect(() => memory.insertBlock("b4", "critic", "rubric", "Different body.")).toThrow();
   });
 
   test("same label allowed for different roles", () => {
@@ -108,7 +106,6 @@ describe("P3-5 memory_blocks (mig 18)", () => {
   });
 
   test("listBlocks respects limit + offset", () => {
-    const base = memory.countBlocks();
     memory.insertBlock("b10", "coder", "l3", "three");
     memory.insertBlock("b11", "coder", "l4", "four");
     const limited = memory.listBlocks(1);

@@ -1,9 +1,9 @@
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import {
+  fromLegacy,
   type ToolResult,
   type ToolResultV2,
   toLegacy,
-  fromLegacy,
 } from "../packages/agent/src/mcp/types";
 
 describe("toLegacy", () => {

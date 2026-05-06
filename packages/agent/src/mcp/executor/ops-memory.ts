@@ -1,3 +1,4 @@
+import { toLegacy } from "../types";
 import type { ToolResult } from "../types";
 import type { ExecutorState } from "./types";
 
@@ -56,7 +57,7 @@ export async function ragSearch(
   skipRerank?: boolean,
   agentId: string | null = null,
 ): Promise<ToolResult> {
-  return s.embedTools.ragSearch(query, layers, topN, skipRerank, agentId);
+  return toLegacy(await s.embedTools.ragSearch(query, layers, topN, skipRerank, agentId));
 }
 
 export function contextSummary(s: ExecutorState, sessionId: string): ToolResult {

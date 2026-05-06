@@ -1,3 +1,4 @@
+import { toLegacy } from "../types";
 import type { ToolResult } from "../types";
 import type { ExecutorState } from "./types";
 
@@ -12,7 +13,7 @@ export function logAppend(
   content: string,
   tokenCount?: number,
 ): ToolResult {
-  return s.logTools.append(requestId, sessionId, agentId, role, content, tokenCount);
+  return toLegacy(s.logTools.append(requestId, sessionId, agentId, role, content, tokenCount));
 }
 
 export function logRead(
@@ -21,14 +22,14 @@ export function logRead(
   requestId?: string,
   limit?: number,
 ): ToolResult {
-  return s.logTools.read(sessionId, requestId, limit);
+  return toLegacy(s.logTools.read(sessionId, requestId, limit));
 }
 
 export async function compressHistory(
   s: ExecutorState,
   messages: { role: string; content: string }[],
 ): Promise<ToolResult> {
-  return s.logTools.compressHistory(messages);
+  return toLegacy(await s.logTools.compressHistory(messages));
 }
 
 // ─── Embeddings ──────────────────────────────────────────
@@ -38,7 +39,7 @@ export async function embedText(
   text: string,
   type: "text" | "code" = "text",
 ): Promise<ToolResult> {
-  return s.embedTools.embedText(text, type);
+  return toLegacy(await s.embedTools.embedText(text, type));
 }
 
 export async function embedSearch(
@@ -47,7 +48,7 @@ export async function embedSearch(
   topK?: number,
   layer?: string,
 ): Promise<ToolResult> {
-  return s.embedTools.embedSearch(query, topK, layer);
+  return toLegacy(await s.embedTools.embedSearch(query, topK, layer));
 }
 
 export async function rerank(
@@ -56,5 +57,5 @@ export async function rerank(
   passages: string[],
   topN?: number,
 ): Promise<ToolResult> {
-  return s.embedTools.rerank(query, passages, topN);
+  return toLegacy(await s.embedTools.rerank(query, passages, topN));
 }

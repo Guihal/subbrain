@@ -39,41 +39,41 @@ const mockMemory = {
 describe("Telegram tools — null userbot", () => {
   test("tgListChats returns error when userbot is null", async () => {
     const r = await tgListChats(null);
-    expect(r.success).toBe(false);
-    expect(r.error).toContain("not connected");
+    expect(r.kind).toBe("error");
+    expect(r.error.message).toContain("not connected");
   });
 
   test("tgReadChat returns error when userbot is null", async () => {
     const r = await tgReadChat(null, "chat-1");
-    expect(r.success).toBe(false);
-    expect(r.error).toContain("not connected");
+    expect(r.kind).toBe("error");
+    expect(r.error.message).toContain("not connected");
   });
 
   test("tgSearchMessages returns error when userbot is null", async () => {
     const r = await tgSearchMessages(null, "query");
-    expect(r.success).toBe(false);
-    expect(r.error).toContain("not connected");
+    expect(r.kind).toBe("error");
+    expect(r.error.message).toContain("not connected");
   });
 });
 
 describe("Telegram tools — disconnected userbot", () => {
   test("tgListChats returns error when disconnected", async () => {
     const r = await tgListChats(disconnectedUserbot);
-    expect(r.success).toBe(false);
-    expect(r.error).toContain("not connected");
+    expect(r.kind).toBe("error");
+    expect(r.error.message).toContain("not connected");
   });
 });
 
 describe("Telegram tools — connected userbot", () => {
   test("tgListChats returns chat list", async () => {
     const r = await tgListChats(mockUserbot, 5);
-    expect(r.success).toBe(true);
+    expect(r.kind).toBe("success");
     expect((r.data as unknown[]).length).toBe(5);
   });
 
   test("tgReadChat returns messages", async () => {
     const r = await tgReadChat(mockUserbot, "chat-42", 10);
-    expect(r.success).toBe(true);
+    expect(r.kind).toBe("success");
     const data = r.data as { chatId: string }[];
     expect(data.length).toBe(10);
     expect(data[0].chatId).toBe("chat-42");
@@ -81,7 +81,7 @@ describe("Telegram tools — connected userbot", () => {
 
   test("tgSearchMessages returns results", async () => {
     const r = await tgSearchMessages(mockUserbot, "bun runtime");
-    expect(r.success).toBe(true);
+    expect(r.kind).toBe("success");
     const data = r.data as { text: string }[];
     expect(data[0].text).toContain("bun runtime");
   });
@@ -90,19 +90,19 @@ describe("Telegram tools — connected userbot", () => {
 describe("Telegram tools — memory exclusion", () => {
   test("tgExcludeChat succeeds", () => {
     const r = tgExcludeChat(mockMemory, "chat-1", "Private Chat", "private");
-    expect(r.success).toBe(true);
+    expect(r.kind).toBe("success");
     expect((r.data as { excluded: string }).excluded).toBe("chat-1");
   });
 
   test("tgIncludeChat succeeds", () => {
     const r = tgIncludeChat(mockMemory, "chat-1");
-    expect(r.success).toBe(true);
+    expect(r.kind).toBe("success");
     expect((r.data as { included: string }).included).toBe("chat-1");
   });
 
   test("tgListExcluded returns list", () => {
     const r = tgListExcluded(mockMemory);
-    expect(r.success).toBe(true);
+    expect(r.kind).toBe("success");
     const data = r.data as { chat_id: string }[];
     expect(data.length).toBe(1);
     expect(data[0].chat_id).toBe("chat-1");
@@ -110,7 +110,7 @@ describe("Telegram tools — memory exclusion", () => {
 
   test("tgExcludeChat with default reason", () => {
     const r = tgExcludeChat(mockMemory, "chat-2", "Work Chat");
-    expect(r.success).toBe(true);
+    expect(r.kind).toBe("success");
     expect((r.data as { reason: string }).reason).toBe("private");
   });
 });
@@ -123,8 +123,8 @@ describe("Telegram tools — error handling", () => {
       },
     } as any;
     const r = tgExcludeChat(brokenMemory, "c", "t");
-    expect(r.success).toBe(false);
-    expect(r.error).toBe("DB write failed");
+    expect(r.kind).toBe("error");
+    expect(r.error.message).toBe("DB write failed");
   });
 
   test("tgListExcluded catches non-Error throws", () => {
@@ -134,8 +134,8 @@ describe("Telegram tools — error handling", () => {
       },
     } as any;
     const r = tgListExcluded(brokenMemory);
-    expect(r.success).toBe(false);
-    expect(r.error).toBe("string error");
+    expect(r.kind).toBe("error");
+    expect(r.error.message).toBe("string error");
   });
 });
 

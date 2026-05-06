@@ -55,8 +55,8 @@ describe("tg_send_message focus-block (F-4)", () => {
       { executor, agentId: "free-agent", agentMode: "scheduled" },
     );
     expect(r.success).toBe(false);
-    expect(r.error).toContain("focus_blocked");
-    expect(r.error).toContain("no_repetitive_tg_spam");
+    expect(r.error.code).toBe("focus_blocked");
+    expect(r.error.message).toContain("no_repetitive_tg_spam");
   });
 
   test("scheduled + expired (>7d) directive → success (TTL elapsed)", async () => {
@@ -112,6 +112,6 @@ describe("tg_send_message focus-block (F-4)", () => {
     );
     // Math.max(0, ...) keeps the diff at 0 — block remains active.
     expect(r.success).toBe(false);
-    expect(r.error).toContain("focus_blocked");
+    expect(r.error.code).toBe("focus_blocked");
   });
 });

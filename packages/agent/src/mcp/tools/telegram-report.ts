@@ -8,6 +8,7 @@ import type { MemoryDB } from "@subbrain/core/db";
 import type { RAGPipeline } from "../../rag";
 import { buildReportContext, truncateReportContext } from "../../rag";
 import type { PublicToolContext } from "../registry/tool-registry";
+import { toLegacy } from "../types";
 import type { ToolResult } from "../types";
 
 /** Максимум байт под весь результат (TG ≈ 4096 chars, ~3500 байт с запасом). */
@@ -44,7 +45,7 @@ export async function sendReport(
   opts: SendReportOptions = {},
 ): Promise<ToolResult> {
   if (!reportRagEnabled()) {
-    return ctx.executor.tgSendMessage(text);
+    return toLegacy(await ctx.executor.tgSendMessage(text));
   }
 
   const topic = opts.topic ?? extractTopic(text);
@@ -66,11 +67,11 @@ export async function sendReport(
     context = "";
   }
 
-  if (!context.trim()) return ctx.executor.tgSendMessage(text);
+  if (!context.trim()) return toLegacy(await ctx.executor.tgSendMessage(text));
 
   const trimmedContext = truncateReportContext(context, CONTEXT_MAX_BYTES);
   const joined = trimmedContext ? `${trimmedContext}\n\n---\n\n${text}` : text;
   const final = truncateReportContext(joined, REPORT_MAX_BYTES) || text;
 
-  return ctx.executor.tgSendMessage(final);
+  return toLegacy(await ctx.executor.tgSendMessage(final));
 }

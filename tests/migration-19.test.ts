@@ -40,7 +40,9 @@ describe("migration 19 — agent_tasks", () => {
     const row = db
       .query<{ sql: string }, []>("SELECT sql FROM sqlite_master WHERE name = 'agent_tasks'")
       .get()!;
-    expect(row.sql).toContain("CHECK(type IN ('free','clear','check-tg','research','find-new-task'))");
+    expect(row.sql).toContain(
+      "CHECK(type IN ('free','clear','check-tg','research','find-new-task'))",
+    );
     expect(row.sql).toContain("CHECK(status IN ('pending','running','done','noop','failed'))");
     expect(row.sql).toContain("created_by");
   });

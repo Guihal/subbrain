@@ -3,7 +3,7 @@
  */
 import type { MemoryDB } from "@subbrain/core/db";
 import type { Userbot } from "../telegram/userbot";
-import type { ToolResult } from "./types";
+import type { ToolResultV2 } from "./types";
 
 function requireUserbot(userbot: Userbot | null): Userbot {
   if (!userbot?.isConnected()) {
@@ -12,15 +12,15 @@ function requireUserbot(userbot: Userbot | null): Userbot {
   return userbot;
 }
 
-export async function tgListChats(userbot: Userbot | null, limit = 100): Promise<ToolResult> {
+export async function tgListChats(userbot: Userbot | null, limit = 100): Promise<ToolResultV2> {
   try {
     const ub = requireUserbot(userbot);
     const chats = await ub.listChats(limit);
-    return { success: true, data: chats };
+    return { kind: "success", data: chats };
   } catch (err) {
     return {
-      success: false,
-      error: err instanceof Error ? err.message : String(err),
+      kind: "error",
+      error: { code: "unknown", message: err instanceof Error ? err.message : String(err) },
     };
   }
 }
@@ -30,15 +30,15 @@ export async function tgReadChat(
   chatId: string,
   limit = 50,
   offsetId?: number,
-): Promise<ToolResult> {
+): Promise<ToolResultV2> {
   try {
     const ub = requireUserbot(userbot);
     const messages = await ub.readChat(chatId, limit, offsetId);
-    return { success: true, data: messages };
+    return { kind: "success", data: messages };
   } catch (err) {
     return {
-      success: false,
-      error: err instanceof Error ? err.message : String(err),
+      kind: "error",
+      error: { code: "unknown", message: err instanceof Error ? err.message : String(err) },
     };
   }
 }
@@ -48,15 +48,15 @@ export async function tgSearchMessages(
   query: string,
   limit = 30,
   chatId?: string,
-): Promise<ToolResult> {
+): Promise<ToolResultV2> {
   try {
     const ub = requireUserbot(userbot);
     const messages = await ub.searchMessages(query, limit, chatId);
-    return { success: true, data: messages };
+    return { kind: "success", data: messages };
   } catch (err) {
     return {
-      success: false,
-      error: err instanceof Error ? err.message : String(err),
+      kind: "error",
+      error: { code: "unknown", message: err instanceof Error ? err.message : String(err) },
     };
   }
 }
@@ -66,38 +66,38 @@ export function tgExcludeChat(
   chatId: string,
   chatTitle: string,
   reason = "private",
-): ToolResult {
+): ToolResultV2 {
   try {
     memory.excludeTgChat(chatId, chatTitle, reason);
-    return { success: true, data: { excluded: chatId, chatTitle, reason } };
+    return { kind: "success", data: { excluded: chatId, chatTitle, reason } };
   } catch (err) {
     return {
-      success: false,
-      error: err instanceof Error ? err.message : String(err),
+      kind: "error",
+      error: { code: "unknown", message: err instanceof Error ? err.message : String(err) },
     };
   }
 }
 
-export function tgIncludeChat(memory: MemoryDB, chatId: string): ToolResult {
+export function tgIncludeChat(memory: MemoryDB, chatId: string): ToolResultV2 {
   try {
     memory.includeTgChat(chatId);
-    return { success: true, data: { included: chatId } };
+    return { kind: "success", data: { included: chatId } };
   } catch (err) {
     return {
-      success: false,
-      error: err instanceof Error ? err.message : String(err),
+      kind: "error",
+      error: { code: "unknown", message: err instanceof Error ? err.message : String(err) },
     };
   }
 }
 
-export function tgListExcluded(memory: MemoryDB): ToolResult {
+export function tgListExcluded(memory: MemoryDB): ToolResultV2 {
   try {
     const excluded = memory.getExcludedTgChats();
-    return { success: true, data: excluded };
+    return { kind: "success", data: excluded };
   } catch (err) {
     return {
-      success: false,
-      error: err instanceof Error ? err.message : String(err),
+      kind: "error",
+      error: { code: "unknown", message: err instanceof Error ? err.message : String(err) },
     };
   }
 }

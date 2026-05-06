@@ -6,6 +6,16 @@ import type { MetricsSnapshot, MetricsState, RequestMetric, StatsProvider } from
 export { getCounters, incrementCounter, resetCounters } from "./metrics/counters";
 export type { MetricsSnapshot, RequestMetric, StatsProvider } from "./metrics/types";
 
+/** Record hippocampus write telemetry per exchange. */
+export function recordHippoWrites(exchangeId: string, writesCount: number, skippedDupCount: number): void {
+  const { incrementCounter: inc } = require("./metrics/counters");
+  inc("hippocampus_writes_per_exchange", {
+    exchange_id: exchangeId,
+    writes_count: String(writesCount),
+    skipped_dup_count: String(skippedDupCount),
+  });
+}
+
 export class Metrics {
   private state: MetricsState = {
     counters: {
