@@ -101,7 +101,7 @@
 | A2-6 | Code-tool guards | `done` | `cp3` | — | CRITIC-PASSED. Commit 0fcc408 (F-2+F-3b+F-4). 833/0 tests pass. |
 | A2-7 | TG spam gates | `done` | `cp3` | — | CRITIC-PASSED. Bundled in A2-6 commit 0fcc408 (F-4 tg_send_message hard-gate + F-3b scheduled blacklist). |
 | A2-8 | Migrate STATEFUL_CLIENT_CODE_TOOLS + freelance-scout shell | `done` | `cp3` | — | CRITIC-PASSED. Commit 4489b43. Critic ok:true round 1. |
-| A2-9 | Plugin docs | `not_started` | — | — | CRITIC-PASSED. Blockers A2-6, A2-7, A2-8 all resolved. |
+| A2-9 | Plugin docs | `not_started` | — | blocks on A2-7 plugin migration | CRITIC-PASSED. A2-6 plugin migration DONE (296448d). A2-8 DONE (4489b43). A2-7 inline code exists but NOT migrated to plugin yet. |
 
 **Wave 2 merge gate:** Wave 1 merged + ALL Wave 2 `done` → unblocks Wave 3.
 
@@ -177,8 +177,8 @@
 |---|---|---|---|---|---|
 | C1 | BAML runtime wire (hippocampus + arbitration) | `not_started` | — | P4 revisit | Replace `parseMemoryWriteArgs` local parser in `packages/agent/src/pipeline/agent-pipeline/post/hippocampus.ts:199` with actual `b.ExtractMemoryWrite()` BAML runtime call. Same for arbitration path. Acceptance: grep proves BAML function called in production path, not just imported. |
 | C2 | Split `packages/server/src/app/deps.ts` (367→4 files) | `not_started` | — | A1 revisit | True split: `loadConfig.ts`, `prompts/autonomous-task.ts` (75-line literal), `init-services.ts`, `init-telegram.ts`. No `// TODO: split` leftovers. File-cap 150 per file. |
-| C3 | Drop dead barrels + shim | `not_started` | — | A1 revisit | Remove `packages/agent/src/index.ts` (11 re-exports, zero consumers). Remove `packages/agent/src/pipeline/agent-pipeline/post/validators.ts` (6-line back-compat shim for non-existent consumers). Verify with `grep -r` across repo. |
-| C4 | Type transport boundary (TypeBox guards) | `not_started` | — | security | Replace `as unknown as` / `as any` at `packages/server/src/mcp-transport/mcp-protocol.ts:108` and `packages/server/src/routes/telegram.ts:29` with proper TypeBox validation. Acceptance: zero `as unknown` / `as any` in those two files. |
+| C3 | Drop dead barrels + shim | `done` | — | A1 revisit | Commit 27d366c. Extractors.ts import fixed to `./validators/index`; `validators.ts` shim + `packages/agent/src/index.ts` barrel deleted. cp0/tsc green, 30 tests pass. |
+| C4 | Type transport boundary (TypeBox guards) | `done` | — | security | Commit a866309. mcp-protocol.ts: `body as any` → TypeBox `t.Object({jsonrpc, id, method, params})`. telegram.ts: `body as any` → `body as Update` from grammy. Zero `as any`/`as unknown` in both files. cp0/tsc green, 22 tests pass. |
 
 ---
 
@@ -199,11 +199,14 @@
 | P2-7 | agent-P27-1 | **DONE** | 2026-05-06 ~04:40 UTC → 07:50 UTC — commit c0efada, cp0/tsc/tests green. Worker scope-creeped into .env.example + .agentignore but core deliverable correct. |
 | P3-8 | agent-P38-1 | **KILLED** | 2026-05-06 ~04:40 UTC → ~07:49 UTC — scope creep into P2-7 files (pool/index.ts, agent-tasks.repo.ts), >40 min no commit on own prompt files. |
 | P3-8 | agent-P38-2 | **DONE** | 2026-05-06 ~07:52 UTC — commit fbb7522, cp0/tsc/tests green |
+| C3 | agent-C3-1 | **DONE** | 2026-05-06 ~08:28 UTC — commit 27d366c, cp0/tsc/tests green |
+| C4 | agent-C4-1 | **DONE** | 2026-05-06 ~08:28 UTC — commit a866309, cp0/tsc/tests green |
+| A2-6 | agent-A26-1 | **DONE** | 2026-05-06 ~08:28 UTC — commit 296448d, cp0/tsc/tests green, 1156 pass/0 fail |
 
 ---
 
 ## Last Updated
 
-2026-05-06 ~08:15 UTC — Nav board sync: P2-4/5, P3-2/3/5/6/9, A2-3/6/7, P6-1/2, P2-7a, A2-5a/5b all marked done (verified on HEAD). Wave 2 merge gate: only P6-3 remains. Cap=0/3 active. Next dispatch: C3 dead barrels, C4 TypeBox guards, A2-9 plugin docs.
+2026-05-06 ~08:30 UTC — C3 DONE (27d366c), C4 DONE (a866309), A2-6 plugin migration DONE (296448d). 1156 pass / 0 fail. cp0-cp3 green. Cap=0/3 active. Next: A2-7 plugin migration (unblocks A2-9), P6-3 A2A schema, 8a-1 approval schema.
 
 **P3-7 discovery:** implementation already complete (cap-guard.ts, process-tool.ts, prompt.ts, hippocampus.ts all have PR-D logic). All acceptance grep checks pass. Only missing: `tests/hippocampus-cap.test.ts` + `tests/hippocampus-extraction.test.ts`. Worker v3 scope = test files only.
