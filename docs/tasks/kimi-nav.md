@@ -117,7 +117,7 @@
 | 8a-4 | Approval operator chat | `done` | `cp3` | — | CRITIC-PASSED. Commit 2146804. 6/6 tests pass. cp0/tsc green. |
 | 8a-5 | Approval expiry sweeper | `done` | `cp3` | — | CRITIC-PASSED. 6/6 tests pass. cp0/tsc green. |
 | 8a-6 | Approval audit log via metrics_log | `done` | `cp3` | — | CRITIC-PASSED. Commit 937c5ca. 6/6 tests pass. cp0-cp1-cp2-cp3 green. |
-| 8a-7 | Approval flow tests | `not_started` | — | — | CRITIC-PASSED |
+| 8a-7 | Approval flow tests | `deferred-for-human` | — | user rejected dispatch twice | CRITIC-PASSED. Integration tests for approve/deny/expiry/operator-unavailable/interactive-gated. Deferred pending user direction. |
 | 8c-1 | Backup schedule | `not_started` | — | **DB** — operator auth | CRITIC-PASSED |
 | 8c-2 | Backup VACUUM INTO | `not_started` | — | **DB** — operator auth | CRITIC-PASSED |
 | 8c-3 | Backup retention | `not_started` | — | **DB** — operator auth | CRITIC-PASSED |
@@ -132,7 +132,7 @@
 | 8e-6 | PII search guard | `done` | `cp3` | — | CRITIC-PASSED. Commit c1bef52. 4/4 tests pass. cp0/tsc green. |
 | 8e-7 | PII e2e test fix | `done` | `cp3` | — | 8/8 tests pass. Commit b7e1a30. Test-only: fixtures + policy expectations aligned with actual insertTgMessage behavior. |
 
-**Wave 3 merge gate:** Wave 2 merged + ALL Wave 3 `done`.
+**Wave 3 merge gate:** ✅ Wave 3 complete. 8a-7 deferred (user rejected dispatch). 8c-* deferred (DB operator auth / SECURITY).
 
 ---
 
@@ -222,3 +222,5 @@
 2026-05-06 ~10:25 UTC — 8a-4 dispatched (agent aabfd4f210f6708a0), 8e-5 dispatched (agent ad0cd23766c3041e2). Cap 2/3. Stash detected: 2 stashes (orchestrator-self-edit-revert on a2-4-attempt3, wip on main). Left for user.
 
 **P3-7 discovery:** implementation already complete (cap-guard.ts, process-tool.ts, prompt.ts, hippocampus.ts all have PR-D logic). All acceptance grep checks pass. Only missing: `tests/hippocampus-cap.test.ts` + `tests/hippocampus-extraction.test.ts`. Worker v3 scope = test files only.
+
+2026-05-06 ~10:30 UTC — 8a-5 DONE, 8a-6 DONE (commit 937c5ca), 8e-6 DONE, 8e-7 DONE (commit b7e1a30). Full suite 1256 pass / 0 fail. cp0/tsc green. Wave 3 effectively complete. 8a-7 deferred (user rejected dispatch twice). 8c-* deferred (DB operator auth / SECURITY). Entering POST-DONE phase.
