@@ -53,7 +53,10 @@ export class TelegramBot {
 
     registerCommands(this.bot, this.state);
     registerMessageHandler(this.bot, this.state);
-    registerApprovalCallbacks(this.bot, { approvalRepo: config.memory.approvalRepo });
+    registerApprovalCallbacks(this.bot, {
+      approvalRepo: config.memory.approvalRepo,
+      db: config.memory.db,
+    });
   }
 
   sendApprovalPrompt(row: import("@subbrain/core/db").ApprovalRow): void {

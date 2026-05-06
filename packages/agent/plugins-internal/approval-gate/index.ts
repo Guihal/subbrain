@@ -17,6 +17,7 @@
 import type { Plugin, ToolResult } from "@subbrain/plugin";
 import { logger } from "@subbrain/core/lib/logger";
 import { ApprovalsTable } from "@subbrain/core/db/tables/approvals";
+import { logApprovalDecision } from "@subbrain/core/lib/approval-audit";
 import type { AgentMode } from "@subbrain/agent/pipeline/agent-loop/types";
 import type { ToolExecutor } from "@subbrain/agent/mcp/executor";
 import {
@@ -115,6 +116,13 @@ export const approvalGatePlugin: Plugin = {
         });
         log.info(`Inserted pending approval for ${toolName}`, {
           meta: { args_hash: argsHash, id: row },
+        });
+        logApprovalDecision(db, {
+          approvalId: row,
+          toolName,
+          status: "pending",
+          requestedAt: nowSec,
+          resolvedAt: null,
         });
         const notifier = executor?.approvalNotifier;
         if (notifier) {

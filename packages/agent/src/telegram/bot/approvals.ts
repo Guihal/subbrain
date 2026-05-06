@@ -7,12 +7,14 @@
 import type { ApprovalRepository } from "@subbrain/core/db";
 import type { ApprovalRow } from "@subbrain/core/db";
 import { logger } from "@subbrain/core/lib/logger";
+import { logApprovalDecision } from "@subbrain/core/lib/approval-audit";
 import type { Bot } from "grammy";
 
 const log = logger.child("telegram");
 
 export interface ApprovalHandlerDeps {
   approvalRepo: ApprovalRepository;
+  db?: import("bun:sqlite").Database;
 }
 
 export function sendApprovalPrompt(bot: Bot, chatId: number, row: ApprovalRow): void {
@@ -58,6 +60,15 @@ export function registerApprovalCallbacks(bot: Bot, deps: ApprovalHandlerDeps): 
     }
 
     log.info(`${action}d approval ${id} for ${row.tool_name}`);
+    if (deps.db) {
+      logApprovalDecision(deps.db, {
+        approvalId: id,
+        toolName: row.tool_name,
+        status,
+        requestedAt: row.requested_at,
+        resolvedAt: nowSec,
+      });
+    }
     await ctx.answerCallbackQuery({ text: action === "approve" ? "Approved" : "Denied" });
     await ctx.editMessageText(buildResolvedText(row, action === "approve"), {
       parse_mode: "MarkdownV2",
