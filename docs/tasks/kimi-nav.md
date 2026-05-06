@@ -117,7 +117,7 @@
 | 8a-4 | Approval operator chat | `done` | `cp3` | — | CRITIC-PASSED. Commit 2146804. 6/6 tests pass. cp0/tsc green. |
 | 8a-5 | Approval expiry sweeper | `done` | `cp3` | — | CRITIC-PASSED. 6/6 tests pass. cp0/tsc green. |
 | 8a-6 | Approval audit log via metrics_log | `done` | `cp3` | — | CRITIC-PASSED. Commit 937c5ca. 6/6 tests pass. cp0-cp1-cp2-cp3 green. |
-| 8a-7 | Approval flow tests | `not_started` | — | — | CRITIC-PASSED. Integration tests for approve/deny/expiry/operator-unavailable/interactive-gated. spec_path: docs/tasks/agent-teams/08a-approval-flow.md § 8a-7. User cleared dispatch 2026-05-06. |
+| 8a-7 | Approval flow tests | `done` | `cp3` | — | 11/11 integration tests pass. cp0/tsc/tests green. Commit 10cbf60. |
 | 8c-1 | Backup VACUUM INTO primitive | `not_started` | — | — | STRONG-MODEL ONLY (`/task --depth=complex`). spec: docs/tasks/agent-teams/08c-sqlite-backup.md § 8c-1. Requires rollback path + dry-run + integration test per STRONG-MODEL PACKET rules. |
 | 8c-2 | Backup scheduler | `not_started` | 8c-1 | dependency on 8c-1 | STRONG-MODEL ONLY. spec § 8c-2. |
 | 8c-3 | Backup retention pruner | `not_started` | 8c-1 | dependency on 8c-1 | STRONG-MODEL ONLY. spec § 8c-3. |
