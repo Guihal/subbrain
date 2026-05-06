@@ -113,7 +113,7 @@
 |---|---|---|---|---|---|
 | 8a-1 | Approval schema (mig 20+) | `done` | `cp3` | — | CRITIC-PASSED. Commit fd13506. 340 lines, 6 files. cp0/tsc/tests green. |
 | 8a-2 | Approval registry + operator resolver | `done` | `cp3` | — | CRITIC-PASSED. Commit a44c0f8. 15/15 tests pass. cp0/tsc green. |
-| 8a-3 | Approval request flow | `dispatched` | — | — | Worker active. Files in working tree. |
+| 8a-3 | Approval request flow | `done` | `cp3` | — | CRITIC-PASSED. Commit f0fa5d1. 14/14 tests pass (9 approval-gate + 5 boot). cp0/tsc green. File: 142 lines.
 | 8a-4 | Approval operator chat | `not_started` | — | — | CRITIC-PASSED |
 | 8a-5 | Approval audit log | `not_started` | — | — | CRITIC-PASSED |
 | 8a-6 | Approval rate limits | `not_started` | — | — | CRITIC-PASSED |
@@ -212,5 +212,7 @@
 2026-05-06 ~09:25 UTC — 8a-2 DONE (commit a44c0f8), 8e-2 DONE (commit 371b5af). Full suite 1206 pass / 1 fail (pre-existing dispatcher isolation). cp0/tsc green. Cap 0/3. Next: 8a-3, 8e-4.
 
 2026-05-06 ~10:10 UTC — 8e-4 DONE (commit d304ee0). 4/4 tests pass. cp0/tsc green. 8a-3 worker still active.
+
+2026-05-06 ~10:15 UTC — 8a-3 DONE (commit f0fa5d1). 14/14 tests pass. cp0/tsc green. Cap 0/3. Next: 8a-4, 8e-5.
 
 **P3-7 discovery:** implementation already complete (cap-guard.ts, process-tool.ts, prompt.ts, hippocampus.ts all have PR-D logic). All acceptance grep checks pass. Only missing: `tests/hippocampus-cap.test.ts` + `tests/hippocampus-extraction.test.ts`. Worker v3 scope = test files only.
