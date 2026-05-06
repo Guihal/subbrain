@@ -70,8 +70,7 @@
 |---|---|---|---|---|---|
 | P2-1 | Agent tasks schema (mig 19) | `done` | `cp3` | — | CRITIC-PASSED. Commit 3e1d246. Critic ok:true round 1. |
 | P2-2 | Agent tasks admin REST endpoints | `done` | `cp3` | — | CRITIC-PASSED. Route file 63 lines. 6/6 tests pass. tsc clean. |
-| P2-3 | Agent pool runner | `not_started` | — | blocks on P2-1 | CRITIC-PASSED |
-| P2-3 | Agent pool runner | `not_started` | — | blocks on P2-1 | CRITIC-PASSED |
+| P2-3 | Agent pool runner | `done` | `cp3` | — | CRITIC-PASSED. Commit bc9a2fd. Re-entrancy guard fixed (removed MIN_INTERVAL_MS clamp). 9/9 tests pass. |
 | P2-4 | Terminate + artifact tool | `not_started` | — | blocks on P2-3 | CRITIC-PASSED |
 | P2-5 | Pool dispatch integration | `not_started` | — | blocks on P2-5a, P2-4, P2-3 | CRITIC-PASSED |
 | P2-5a | AgentLoopRequest expansion | `done` | `cp3` | — | CRITIC-PASSED. Commit 051fb30. |
