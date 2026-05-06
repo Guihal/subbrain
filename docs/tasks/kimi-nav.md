@@ -129,7 +129,7 @@
 | 8e-3 | PII tg_chats schema (mig 22) | `done` | `cp3` | — | CRITIC-PASSED. Commit d289380. 7/7 tests pass. Migration 22: tg_chat_policies table + TgChatPolicyRepository. cp0-cp1-cp2 green. |
 | 8e-4 | PII backfill + progress | `done` | `cp3` | — | CRITIC-PASSED. Commit d304ee0. 4/4 tests pass. cp0/tsc green. |
 | 8e-5 | PII policy tools | `done` | `cp3` | — | CRITIC-PASSED. Commit 02d5b12. 13/13 tests pass. cp0-cp1-cp2-cp3 green. |
-| 8e-6 | PII search guard | `not_started` | — | — | CRITIC-PASSED |
+| 8e-6 | PII search guard | `done` | `cp3` | — | CRITIC-PASSED. Commit c1bef52. 4/4 tests pass. cp0/tsc green. |
 | 8e-7 | PII docs | `not_started` | — | — | CRITIC-PASSED |
 
 **Wave 3 merge gate:** Wave 2 merged + ALL Wave 3 `done`.
