@@ -31,3 +31,14 @@ export function toLegacy(result: ToolResultV2): ToolResult {
       return { success: false, error: result.error };
   }
 }
+
+export function fromLegacy(result: ToolResult): ToolResultV2 {
+  if (result.success) {
+    return { kind: "success", data: result.data };
+  }
+  const err =
+    typeof result.error === "string"
+      ? { code: "unknown", message: result.error }
+      : result.error ?? { code: "unknown", message: "unknown error" };
+  return { kind: "error", error: err };
+}
