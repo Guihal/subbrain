@@ -968,6 +968,51 @@ export function migrate(db: Database): void {
       for (const sql of mig19Stmts) db.query(sql).run();
     })();
   }
+  // Migration 21 (8a-1): approvals table.
+  // Synchronous gate for destructive ops — Telegram inline-button prompt to operator.
+  if (version < 21) {
+    const mig21Stmts = [
+      `CREATE TABLE IF NOT EXISTS approvals (
+        id               TEXT PRIMARY KEY,
+        tool_name        TEXT NOT NULL,
+        args_hash        TEXT NOT NULL,
+        status           TEXT NOT NULL DEFAULT 'pending'
+                         CHECK(status IN ('pending', 'approved', 'denied', 'expired')),
+        requested_at     INTEGER NOT NULL,
+        resolved_at      INTEGER,
+        operator_chat_id INTEGER,
+        request_message  TEXT NOT NULL
+      )`,
+      `CREATE UNIQUE INDEX IF NOT EXISTS idx_approvals_unique_pending
+         ON approvals(tool_name, args_hash)
+         WHERE status IN ('pending', 'approved')`,
+      `CREATE INDEX IF NOT EXISTS idx_approvals_status ON approvals(status)`,
+      `CREATE INDEX IF NOT EXISTS idx_approvals_requested_at ON approvals(requested_at DESC)`,
+      `PRAGMA user_version = 21`,
+    ];
+    db.transaction(() => {
+      for (const sql of mig21Stmts) db.query(sql).run();
+    })();
+  }
+
+  // Migration 22 (8e-3): per-chat PII policy table.
+  // Separate from tg_excluded_chats — simple lookup, no view/back-compat needed.
+  if (version < 22) {
+    const mig22Stmts = [
+      `CREATE TABLE IF NOT EXISTS tg_chat_policies (
+        chat_id    INTEGER PRIMARY KEY,
+        policy     TEXT NOT NULL DEFAULT 'metadata_only'
+                     CHECK(policy IN ('metadata_only', 'scrubbed', 'full')),
+        updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
+        updated_by TEXT
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_tg_chat_policies_policy ON tg_chat_policies(policy)`,
+      `PRAGMA user_version = 22`,
+    ];
+    db.transaction(() => {
+      for (const sql of mig22Stmts) db.query(sql).run();
+    })();
+  }
 }
 
 export { EMBEDDING_DIM };
