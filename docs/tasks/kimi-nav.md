@@ -112,7 +112,7 @@
 | Phase | Packet | Status | Last CP | Blocker | Notes |
 |---|---|---|---|---|---|
 | 8a-1 | Approval schema (mig 20+) | `done` | `cp3` | — | CRITIC-PASSED. Commit fd13506. 340 lines, 6 files. cp0/tsc/tests green. |
-| 8a-2 | Approval spam gate | `not_started` | — | **SECURITY** | CRITIC-PASSED |
+| 8a-2 | Approval registry + operator resolver | `done` | `cp3` | — | CRITIC-PASSED. Commit a44c0f8. 15/15 tests pass. cp0/tsc green. |
 | 8a-3 | Approval request flow | `not_started` | — | — | CRITIC-PASSED |
 | 8a-4 | Approval operator chat | `not_started` | — | — | CRITIC-PASSED |
 | 8a-5 | Approval audit log | `not_started` | — | — | CRITIC-PASSED |
@@ -125,7 +125,7 @@
 | 8c-5 | Backup monitoring | `not_started` | — | **DB** — operator auth | CRITIC-PASSED |
 | 8c-6 | Backup docs | `not_started` | — | **DB** — operator auth | CRITIC-PASSED |
 | 8e-1 | PII scrub lib | `done` | `cp3` | — | CRITIC-PASSED. Commit 2ea5db2. 15/15 pii tests pass. cp0-cp1-cp2 green. |
-| 8e-2 | PII table layer | `not_started` | — | — | CRITIC-PASSED |
+| 8e-2 | PII ingest hook | `done` | `cp3` | — | CRITIC-PASSED. Commit 371b5af. 6/6 tests pass. cp0/tsc green. |
 | 8e-3 | PII tg_chats schema (mig 22) | `done` | `cp3` | — | CRITIC-PASSED. Commit d289380. 7/7 tests pass. Migration 22: tg_chat_policies table + TgChatPolicyRepository. cp0-cp1-cp2 green. |
 | 8e-4 | PII backfill + progress | `not_started` | — | — | CRITIC-PASSED |
 | 8e-5 | PII policy tools | `not_started` | — | — | CRITIC-PASSED |
@@ -202,11 +202,13 @@
 | C3 | agent-C3-1 | **DONE** | 2026-05-06 ~08:28 UTC — commit 27d366c, cp0/tsc/tests green |
 | C4 | agent-C4-1 | **DONE** | 2026-05-06 ~08:28 UTC — commit a866309, cp0/tsc/tests green |
 | A2-6 | agent-A26-1 | **DONE** | 2026-05-06 ~08:28 UTC — commit 296448d, cp0/tsc/tests green, 1156 pass/0 fail |
+| 8a-2 | agent-8a2-1 | **DONE** | 2026-05-06 ~09:20 UTC — commit a44c0f8, cp0/tsc green, 15/15 tests pass |
+| 8e-2 | agent-8e2-1 | **DONE** | 2026-05-06 ~09:20 UTC — commit 371b5af, cp0/tsc green, 6/6 tests pass |
 
 ---
 
 ## Last Updated
 
-2026-05-06 ~12:20 UTC — Schema test fix DONE (commit fda4952). 22/22 schema tests pass. Active workers: 8a-2 (approval registry), 8e-2 (ingest PII scrub). Cap 2/3. Wave 2: all done. Wave 3: unblocked.
+2026-05-06 ~09:25 UTC — 8a-2 DONE (commit a44c0f8), 8e-2 DONE (commit 371b5af). Full suite 1206 pass / 1 fail (pre-existing dispatcher isolation). cp0/tsc green. Cap 0/3. Next: 8a-3, 8e-4.
 
 **P3-7 discovery:** implementation already complete (cap-guard.ts, process-tool.ts, prompt.ts, hippocampus.ts all have PR-D logic). All acceptance grep checks pass. Only missing: `tests/hippocampus-cap.test.ts` + `tests/hippocampus-extraction.test.ts`. Worker v3 scope = test files only.
