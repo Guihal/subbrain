@@ -100,6 +100,12 @@ describe("done_with_artifact registry integration", () => {
 describe("done_with_artifact tool-dispatch integration", () => {
   test("runToolCall detects isDone for done_with_artifact", async () => {
     const { runToolCall } = await import("@subbrain/agent/pipeline/agent-loop/tool-dispatch");
+    const mockLog = {
+      info: () => {},
+      warn: () => {},
+      error: () => {},
+      debug: () => {},
+    };
     const outcome = await runToolCall(
       {
         id: "call_1",
@@ -110,7 +116,7 @@ describe("done_with_artifact tool-dispatch integration", () => {
         },
       },
       {} as any,
-      {} as any,
+      mockLog as any,
     );
     expect(outcome.isDone).toBe(true);
   });
