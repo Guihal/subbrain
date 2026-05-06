@@ -2,7 +2,6 @@
  * Telegram-тулы. MTProto-userbot для чтения, grammy-бот для отправки.
  */
 
-import { checkSpamGate } from "./telegram-spam-gate";
 import { type ToolRegistry, t } from "./tool-registry";
 import { toLegacy } from "../types";
 
@@ -111,9 +110,6 @@ export function registerTelegramTools(registry: ToolRegistry): void {
     // plain string today; a future migration to `{code, message}` can swap
     // this format without touching callers.
     handler: async (args, ctx) => {
-      // F-4: scheduled-only hard-gate on layer1_focus.no_repetitive_tg_spam.
-      const block = checkSpamGate(ctx.executor, ctx.agentMode);
-      if (block) return toLegacy(block);
       const r = await ctx.executor.tgSendMessage(args.text);
       if (r.kind === "success") return toLegacy(r);
       return {
