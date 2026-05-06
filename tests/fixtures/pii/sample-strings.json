@@ -1,0 +1,7 @@
+[
+  "Just a normal log line with model=coder duration=ms and no PII at all.",
+  "Meeting notes: discussed architecture, decided on Bun plus Elysia stack. Action items: write tests, update docs.",
+  "Error in pipeline stage=ingest retry_count= status=timeout — no user data present.",
+  "Refactor plan: split deps.ts into several files, move prompts to literals, extract init-services.",
+  "Deploy checklist: build image, push to registry, restart container, verify health endpoint."
+]
