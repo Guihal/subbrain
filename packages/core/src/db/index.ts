@@ -1,5 +1,6 @@
 import type { Database } from "bun:sqlite";
 import { AgentTasksRepository } from "../repositories/agent-tasks.repo";
+import { ApprovalRepository } from "../repositories/approval.repo";
 import { ChatRepository } from "../repositories/chat.repo";
 import { EdgeRepository } from "../repositories/edges.repo";
 import { FreelanceRepository } from "../repositories/freelance.repo";
@@ -12,6 +13,7 @@ import { TasksTable, type UpsertResult } from "./tables/tasks";
 import type { TgMessageInsert, TgSearchOpts } from "./tables/tg-messages";
 import type { FreelanceSource, FreelanceStatus, TaskScope, TaskStatus } from "./types";
 
+export { ApprovalRepository } from "../repositories/approval.repo";
 export { EdgeRepository } from "../repositories/edges.repo";
 
 export { EdgesTable } from "./tables/edges";
@@ -44,6 +46,7 @@ export type {
   TgSearchHit,
   VecResult,
 } from "./types";
+export type { ApprovalRow, ApprovalStatus } from "./tables/approvals";
 
 /**
  * MemoryDB — PR 27 (LAYER-5). Kept as a thin facade: all memory/chat/log/
@@ -68,6 +71,7 @@ export class MemoryDB {
   readonly freelanceRepo: FreelanceRepository;
   readonly edgesRepo: EdgeRepository;
   readonly agentTasksRepo: AgentTasksRepository;
+  readonly approvalRepo: ApprovalRepository;
   private _tasks: TasksTable;
   private _scheduler: SchedulerStateTable;
 
@@ -81,6 +85,7 @@ export class MemoryDB {
     this.freelanceRepo = new FreelanceRepository(this.db);
     this.edgesRepo = new EdgeRepository(this.db);
     this.agentTasksRepo = new AgentTasksRepository(this.db);
+    this.approvalRepo = new ApprovalRepository(this.db);
     this._tasks = new TasksTable(this.db);
     this._scheduler = new SchedulerStateTable(this.db);
   }

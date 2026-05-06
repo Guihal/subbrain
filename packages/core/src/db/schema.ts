@@ -985,7 +985,7 @@ export function migrate(db: Database): void {
       )`,
       `CREATE UNIQUE INDEX IF NOT EXISTS idx_approvals_unique_pending
          ON approvals(tool_name, args_hash)
-         WHERE status IN ('pending', 'approved')`,
+         WHERE status = 'pending'`,
       `CREATE INDEX IF NOT EXISTS idx_approvals_status ON approvals(status)`,
       `CREATE INDEX IF NOT EXISTS idx_approvals_requested_at ON approvals(requested_at DESC)`,
       `PRAGMA user_version = 21`,
