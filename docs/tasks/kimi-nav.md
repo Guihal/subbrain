@@ -114,7 +114,7 @@
 | 8a-1 | Approval schema (mig 20+) | `done` | `cp3` | — | CRITIC-PASSED. Commit fd13506. 340 lines, 6 files. cp0/tsc/tests green. |
 | 8a-2 | Approval registry + operator resolver | `done` | `cp3` | — | CRITIC-PASSED. Commit a44c0f8. 15/15 tests pass. cp0/tsc green. |
 | 8a-3 | Approval request flow | `done` | `cp3` | — | CRITIC-PASSED. Commit f0fa5d1. 14/14 tests pass (9 approval-gate + 5 boot). cp0/tsc green. File: 142 lines.
-| 8a-4 | Approval operator chat | `dispatched` | — | — | Worker active. Agent aabfd4f210f6708a0. |
+| 8a-4 | Approval operator chat | `done` | `cp3` | — | CRITIC-PASSED. Commit 2146804. 6/6 tests pass. cp0/tsc green. |
 | 8a-5 | Approval audit log | `not_started` | — | — | CRITIC-PASSED |
 | 8a-6 | Approval rate limits | `not_started` | — | — | CRITIC-PASSED |
 | 8a-7 | Approval docs | `not_started` | — | — | CRITIC-PASSED |
@@ -216,6 +216,8 @@
 2026-05-06 ~10:15 UTC — 8a-3 DONE (commit f0fa5d1). 14/14 tests pass. cp0/tsc green. Cap 0/3. Next: 8a-4, 8e-5.
 
 2026-05-06 ~10:00 UTC — 8e-5 DONE (commit 02d5b12). 13/13 tests pass. cp0-cp1-cp2-cp3 green. Next: 8e-6, 8a-4.
+
+2026-05-06 ~10:05 UTC — 8a-4 DONE (commit 2146804). 6/6 tests pass. cp0-cp1-cp2-cp3 green (1232/0). Next: 8a-5, 8e-6.
 
 2026-05-06 ~10:25 UTC — 8a-4 dispatched (agent aabfd4f210f6708a0), 8e-5 dispatched (agent ad0cd23766c3041e2). Cap 2/3. Stash detected: 2 stashes (orchestrator-self-edit-revert on a2-4-attempt3, wip on main). Left for user.
 
