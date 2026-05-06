@@ -101,9 +101,9 @@
 | A2-6 | Code-tool guards | `done` | `cp3` | — | CRITIC-PASSED. Commit 0fcc408 (F-2+F-3b+F-4). 833/0 tests pass. |
 | A2-7 | TG spam gates | `done` | `cp3` | — | CRITIC-PASSED. Commit 87c662f. Plugin migration DONE (tg-gates internal plugin). |
 | A2-8 | Migrate STATEFUL_CLIENT_CODE_TOOLS + freelance-scout shell | `done` | `cp3` | — | CRITIC-PASSED. Commit 4489b43. Critic ok:true round 1. |
-| A2-9 | Plugin docs | `not_started` | — | — | CRITIC-PASSED. A2-7 plugin migration DONE (87c662f). A2-6 DONE (296448d). A2-8 DONE (4489b43). Ready for dispatch. |
+| A2-9 | INTERNAL_PLUGINS registry + boot-time wire | `cp3_passed` | `cp3` | — | Implementation complete. 21/21 plugin tests pass. tsc clean. cp0 green. 5 pre-existing schema test failures (user_version 22 vs expected 19, from P6-3/8a-1/8e-3 migrations). Changes in working tree pending commit. |
 
-**Wave 2 merge gate:** Wave 1 merged + ALL Wave 2 `done` → unblocks Wave 3. A2-9 is last remaining Wave 2 packet.
+**Wave 2 merge gate:** Wave 1 merged + ALL Wave 2 `done` → unblocks Wave 3. A2-9 implementation complete, pending commit. Wave 3 remains blocked until A2-9 committed.
 
 ---
 
@@ -207,6 +207,6 @@
 
 ## Last Updated
 
-2026-05-06 ~11:00 UTC — STEP 0 clean. P6-3 DONE (commit 7db539f, already in HEAD). 8a-1 DONE (commit fd13506, already in HEAD). kimi-nav.md stale status corrected. cp0 green, tsc green, biome 19 errors (pre-existing in scripts/ + tests/). Cap=0/4 active. Next: dispatch A2-9 (last Wave 2 packet).
+2026-05-06 ~12:00 UTC — A2-9 implementation complete. 21/21 plugin tests pass (plugins-internal-boot + code-tool-guards + tg-spam-gate + scheduled-blacklist). tsc clean. cp0 green. 5 pre-existing schema test failures (user_version expects 19, DB at 22 — from P6-3/8a-1/8e-3 migrations, verified on clean HEAD: 6 fail + 1 error). Code changes in working tree (5 files + 1 new test), pending commit. Wave 3 remains blocked until A2-9 committed.
 
 **P3-7 discovery:** implementation already complete (cap-guard.ts, process-tool.ts, prompt.ts, hippocampus.ts all have PR-D logic). All acceptance grep checks pass. Only missing: `tests/hippocampus-cap.test.ts` + `tests/hippocampus-extraction.test.ts`. Worker v3 scope = test files only.
