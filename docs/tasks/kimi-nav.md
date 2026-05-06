@@ -192,10 +192,15 @@
 | A2-5b | agent-A25b-3 | **KILLED** | 2026-05-06 02:27 UTC → 02:43 UTC, no commits, >15 min, tsc fixed, tests still failing |
 | A2-5b | agent-A25b-4 | **DONE** | 2026-05-06 03:04 UTC — commit f1537e2, 28 files, 1114 pass / 0 fail, cp0-cp2 green |
 | P3-7 | agent-P37-1 | **KILLED** | 2026-05-06 02:29 UTC → 02:38 UTC, hippocampus.ts grew to 232 lines (file-cap violation), cap-guard.ts tsc errors |
-| P3-7 | agent-P37-2 | **RUNNING** | 2026-05-06 02:38 UTC — v2, strict file-cap constraint, shrink hippocampus.ts ≤150 |
+| P3-7 | agent-P37-2 | **KILLED** | 2026-05-06 02:38 UTC → ~04:20 UTC, repo corruption from `git stash pop` (old stash applied on clean tree → 6 files with merge conflicts). Orchestrator recovered: reset UU files to HEAD, unstage + discard bad stash changes, drop stash@{0}. cp0/tsc/tests green on clean HEAD. |
+| P2-6 | agent-P26-1 | **KILLED** | 2026-05-06 ~02:30 UTC → ~04:20 UTC, >1hr no commits, stuck on permission denied reading `.env.example` via Bash. |
+| P3-7 | agent-P37-3 | **RUNNING** | 2026-05-06 ~04:25 UTC — tests only, implementation already in HEAD |
+| P2-6 | agent-P26-2 | **RUNNING** | 2026-05-06 ~04:25 UTC — rate-limits + digest + tests |
 
 ---
 
 ## Last Updated
 
-2026-05-06 ~03:28 UTC — P2-5 v4 DONE (commit b0feff2). A2-5b v4 DONE (commit f1537e2). P3-7 v2 still RUNNING (1 fail in 43 files, investigating). cp0 green, tsc clean. Cap=1/3 active.
+2026-05-06 ~04:25 UTC — P3-7 v3 + P2-6 v2 dispatched. Cap=2/3 active.
+
+**P3-7 discovery:** implementation already complete (cap-guard.ts, process-tool.ts, prompt.ts, hippocampus.ts all have PR-D logic). All acceptance grep checks pass. Only missing: `tests/hippocampus-cap.test.ts` + `tests/hippocampus-extraction.test.ts`. Worker v3 scope = test files only.
