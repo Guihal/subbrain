@@ -97,7 +97,7 @@
 | A2-3 | Plugin sandbox | `done` | `cp3` | — | CRITIC-PASSED. Commit 237d2a0. Hook wiring in tool-runner.ts + tests. |
 | A2-4 | Plugin hooks (pre/post) | `done` | `cp3` | — | CRITIC-PASSED. Commit 58f2342. Worker a3ddfcbb. cp0-cp2-cp3 green, 8/8 tests pass. |
 | A2-5a | ToolResult types + shim | `done` | `cp3` | — | CRITIC-PASSED. Commit eb7aa59. Restored old ToolResult interface as primary; added ToolResultV2 + toLegacy alongside. |
-| A2-5b | ToolResult caller migration | `not_started` | — | — | CRITIC-PASSED. 146 call sites across 26 files. Bulk mechanical migration. |
+| A2-5b | ToolResult caller migration | `done` | `cp3` | — | CRITIC-PASSED. Commit f1537e2. 28 files, 11 src + 17 tests. Full suite 1114 pass / 0 fail (target tests 50/50 pass). cp0-cp2 green. |
 | A2-6 | Code-tool guards | `not_started` | — | **SECURITY** — integration tests mandatory | CRITIC-PASSED |
 | A2-7 | TG spam gates | `not_started` | — | **SECURITY** — integration tests mandatory | CRITIC-PASSED |
 | A2-8 | Migrate STATEFUL_CLIENT_CODE_TOOLS + freelance-scout shell | `done` | `cp3` | — | CRITIC-PASSED. Commit 4489b43. Critic ok:true round 1. |
@@ -190,7 +190,7 @@
 | P2-5 | agent-P25-3 | **KILLED** | 2026-05-06 02:27 UTC → 02:43 UTC, no commits, >15 min, cp0 green, tsc fixed |
 | P2-5 | agent-P25-4 | **RUNNING** | 2026-05-06 02:43 UTC — v4, finish tests + commit |
 | A2-5b | agent-A25b-3 | **KILLED** | 2026-05-06 02:27 UTC → 02:43 UTC, no commits, >15 min, tsc fixed, tests still failing |
-| A2-5b | agent-A25b-4 | **RUNNING** | 2026-05-06 02:43 UTC — v4, fix remaining test fails + commit |
+| A2-5b | agent-A25b-4 | **DONE** | 2026-05-06 03:04 UTC — commit f1537e2, 28 files, 1114 pass / 0 fail, cp0-cp2 green |
 | P3-7 | agent-P37-1 | **KILLED** | 2026-05-06 02:29 UTC → 02:38 UTC, hippocampus.ts grew to 232 lines (file-cap violation), cap-guard.ts tsc errors |
 | P3-7 | agent-P37-2 | **RUNNING** | 2026-05-06 02:38 UTC — v2, strict file-cap constraint, shrink hippocampus.ts ≤150 |
 
@@ -198,4 +198,4 @@
 
 ## Last Updated
 
-2026-05-06 ~02:43 UTC — P2-5 v3 + A2-5b v3 killed (>15 min, no commits). v4 redispatched with "finish tests + commit" focus. P3-7 v2 continues. cp0 green, tsc down to 2 errors (cap-guard.ts only). Cap=3 reached.
+2026-05-06 ~03:12 UTC — A2-5b v4 DONE (commit f1537e2, 28 files, 1114 pass / 0 fail). P2-5 v4 still RUNNING (fixed tsc unused-import, verifying tests). P3-7 v2 still RUNNING (fixing acceptance grep checks). cp0 green, tsc clean. Cap=2/3 active.
