@@ -10,6 +10,7 @@
  */
 
 import { Userbot } from "@subbrain/agent/telegram";
+import { applyAtIngest } from "@subbrain/agent/services/tg-ingest";
 import { MemoryDB } from "@subbrain/core/db";
 import { logger } from "@subbrain/core/lib/logger";
 
@@ -40,14 +41,16 @@ async function main(): Promise<void> {
       const msgs = await userbot.readChat(d.id, perChat);
       const rows = msgs
         .filter((m) => m.text)
-        .map((m) => ({
-          message_id: m.id,
-          chat_id: d.id,
-          chat_name: d.name,
-          from_name: m.sender,
-          ts: Math.floor(new Date(m.date).getTime() / 1000),
-          text: m.text,
-        }));
+        .map((m) =>
+          applyAtIngest({
+            message_id: m.id,
+            chat_id: d.id,
+            chat_name: d.name,
+            from_name: m.sender,
+            ts: Math.floor(new Date(m.date).getTime() / 1000),
+            text: m.text,
+          }),
+        );
       const n = memory.insertTgMessages(rows);
       total += n;
       log.info(`  ${d.name} (${d.id}): +${n}`);

@@ -1,5 +1,6 @@
 import type { Database } from "bun:sqlite";
 import { sanitizeFtsQuery } from "../../lib/fts-utils";
+import { scrubPII } from "../../lib/pii-scrub";
 import type { TgMessageRow, TgSearchHit } from "../types";
 
 export interface TgMessageInsert {
@@ -23,11 +24,12 @@ export class TgMessagesTable {
   constructor(public readonly db: Database) {}
 
   insert(msg: TgMessageInsert): void {
+    const scrubbed = scrubPII(msg.text ?? "").scrubbed;
     this.db
       .query(
         "INSERT OR IGNORE INTO tg_messages (message_id, chat_id, chat_name, from_name, ts, text) VALUES (?, ?, ?, ?, ?, ?)",
       )
-      .run(msg.message_id, msg.chat_id, msg.chat_name ?? "", msg.from_name ?? "", msg.ts, msg.text);
+      .run(msg.message_id, msg.chat_id, msg.chat_name ?? "", msg.from_name ?? "", msg.ts, scrubbed);
   }
 
   insertMany(rows: TgMessageInsert[]): number {
