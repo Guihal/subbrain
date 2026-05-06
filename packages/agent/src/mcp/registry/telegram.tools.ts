@@ -32,7 +32,8 @@ export function registerTelegramTools(registry: ToolRegistry): void {
 
   registry.register({
     name: "tg_search_messages",
-    description: "Search messages across all chats or within a specific chat. FTS by text content.",
+    description:
+      "Search messages across all chats or within a specific chat. FTS by text content. The local message index stores scrubbed text only; PII appears as [REDACTED:<type>].",
     scope: "public",
     input: t.Object({
       query: t.String(),
@@ -78,7 +79,7 @@ export function registerTelegramTools(registry: ToolRegistry): void {
   registry.register({
     name: "telegram_search",
     description:
-      "Full-text search of indexed Telegram messages (FTS5). Filter by chat_id and time range.",
+      "Full-text search of indexed Telegram messages (FTS5). Filter by chat_id and time range. The FTS index is built over scrubbed text; PII tokens appear as [REDACTED:<type>] markers.",
     scope: "public",
     input: t.Object({
       query: t.String(),

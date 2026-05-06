@@ -48,8 +48,22 @@ export class TgMessagesTable {
     return row.c;
   }
 
+  /**
+   * FTS5 search over tg_messages.
+   *
+   * The FTS index is built over scrubbed text: PII tokens are replaced with
+   * `[REDACTED:<type>]` markers at ingest time. Searching for literal PII
+   * (e.g. an email address) will therefore return no hits — this is intentional.
+   * Recall on PII queries is lower by design; the night-cycle scrub step provides
+   * defense-in-depth for legacy rows.
+   *
+   * @throws {Error} "pii_query_blocked" if the raw query contains "REDACTED:"
+   */
   search(opts: TgSearchOpts): { items: TgSearchHit[]; total: number } {
     const limit = Math.max(1, Math.min(200, opts.limit ?? 20));
+    if (/redacted:/i.test(opts.query)) {
+      throw new Error("pii_query_blocked");
+    }
     const sanitized = sanitizeFtsQuery(opts.query);
     if (!sanitized) return { items: [], total: 0 };
 
