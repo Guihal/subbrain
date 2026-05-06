@@ -71,8 +71,8 @@
 | P2-1 | Agent tasks schema (mig 19) | `done` | `cp3` | — | CRITIC-PASSED. Commit 3e1d246. Critic ok:true round 1. |
 | P2-2 | Agent tasks admin REST endpoints | `done` | `cp3` | — | CRITIC-PASSED. Route file 63 lines. 6/6 tests pass. tsc clean. |
 | P2-3 | Agent pool runner | `done` | `cp3` | — | CRITIC-PASSED. Commit bc9a2fd. Re-entrancy guard fixed (removed MIN_INTERVAL_MS clamp). 9/9 tests pass. |
-| P2-4 | Terminate + artifact tool | `dispatched` | — | — | CRITIC-PASSED |
-| P2-5 | Pool dispatch integration | `not_started` | — | blocks on P2-5a, P2-4 | CRITIC-PASSED |
+| P2-4 | Terminate + artifact tool | `done` | `cp3` | — | CRITIC-PASSED. Commit d8f849e. 12/12 tests pass. |
+| P2-5 | Pool dispatch integration | `not_started` | — | — | CRITIC-PASSED |
 | P2-5a | AgentLoopRequest expansion | `done` | `cp3` | — | CRITIC-PASSED. Commit 051fb30. |
 | P2-6 | Memory service integration | `not_started` | — | blocks on P2-5 | CRITIC-PASSED |
 | P2-7 | Pool safety (rate-limit) | `not_started` | — | blocks on P2-7a, P2-6 | CRITIC-PASSED |
@@ -82,13 +82,13 @@
 | P3-3 | Bi-temporal active filter in retrieval | `done` | `cp3` | — | CRITIC-PASSED. Commit e8727a7. |
 | P3-4 | Edge-walk boost in RAG pipeline | `done` | `cp3` | — | CRITIC-PASSED. Commit 283b66c. Worker a270dc9d06a8ef641. /tmp script bypass worked. 1013 tests pass (+10 new). |
 | P3-5 | Memory blocks table (mig 18) | `done` | `cp3` | — | CRITIC-PASSED. Commit 7db48ff. Clean redo after revert of mixed commit cf57bba. |
-| P3-6 | Metrics scope fix | `dispatched` | — | — | CRITIC-PASSED. Unblocked: P3-5 done. |
-| P3-7 | Predicate parens fix | `not_started` | — | blocks on P3-6 | CRITIC-PASSED |
+| P3-6 | Sleep role + NIGHT_CYCLE_MODEL resolver | `done` | `cp3` | — | CRITIC-PASSED. Commit d8f849e. 5/5 tests pass. |
+| P3-7 | Predicate parens fix | `not_started` | — | — | CRITIC-PASSED |
 | P3-8 | rag/pipeline.ts → index.ts | `not_started` | — | blocks on P3-7 | CRITIC-PASSED |
 | P3-9 | Memory archive + TTL | `not_started` | — | blocks on P3-8 | CRITIC-PASSED |
 | P6-1 | A2A room init | `done` | `cp3` | — | CRITIC-PASSED. Commit 615920b. 26 LOC, no scope creep. |
 | P6-2 | A2A dispatch hook | `done` | `cp3` | — | CRITIC-PASSED. Commit 9699845. Worker a22d163d. |
-| P6-3 | A2A transcripts schema | `not_started` | — | blocks on P6-2 | CRITIC-PASSED. Tier lifted 2026-05-06. |
+| P6-3 | A2A transcripts schema | `not_started` | — | — | CRITIC-PASSED. Tier lifted 2026-05-06. |
 | P6-4 | A2A transport wiring | `not_started` | — | `<A2A_TRANSPORT>`, blocks on P6-3 | CRITIC-PASSED |
 | P6-5 | A2A synthesis loop | `not_started` | — | blocks on P6-3, P6-4 | CRITIC-PASSED |
 | P6-6 | A2A cleanup + docs | `not_started` | — | blocks on P6-5 | CRITIC-PASSED |
@@ -96,10 +96,10 @@
 | A2-2 | Plugin loader | `done` | `cp3` | — | CRITIC-PASSED. Commit e90a153. |
 | A2-3 | Plugin sandbox | `done` | `cp3` | — | CRITIC-PASSED. Commit 237d2a0. Hook wiring in tool-runner.ts + tests. |
 | A2-4 | Plugin hooks (pre/post) | `done` | `cp3` | — | CRITIC-PASSED. Commit 58f2342. Worker a3ddfcbb. cp0-cp2-cp3 green, 8/8 tests pass. |
-| A2-5a | ToolResult types + shim | `dispatched` | — | — | CRITIC-PASSED. Strategy switch L2: >146 call sites → split per spec escalation trigger. A2-5a = types + toLegacy + test ONLY. |
-| A2-5b | ToolResult caller migration | `not_started` | — | blocks on A2-5a | CRITIC-PASSED. 146 call sites across 26 files. Bulk mechanical migration. |
-| A2-6 | Code-tool guards | `not_started` | — | **SECURITY** — integration tests mandatory, blocks on A2-3, A2-5a | CRITIC-PASSED |
-| A2-7 | TG spam gates | `not_started` | — | **SECURITY** — integration tests mandatory, blocks on A2-3, A2-5a | CRITIC-PASSED |
+| A2-5a | ToolResult types + shim | `done` | `cp3` | — | CRITIC-PASSED. Commit eb7aa59. Restored old ToolResult interface as primary; added ToolResultV2 + toLegacy alongside. |
+| A2-5b | ToolResult caller migration | `not_started` | — | — | CRITIC-PASSED. 146 call sites across 26 files. Bulk mechanical migration. |
+| A2-6 | Code-tool guards | `not_started` | — | **SECURITY** — integration tests mandatory | CRITIC-PASSED |
+| A2-7 | TG spam gates | `not_started` | — | **SECURITY** — integration tests mandatory | CRITIC-PASSED |
 | A2-8 | Migrate STATEFUL_CLIENT_CODE_TOOLS + freelance-scout shell | `done` | `cp3` | — | CRITIC-PASSED. Commit 4489b43. Critic ok:true round 1. |
 | A2-9 | Plugin docs | `not_started` | — | blocks on A2-6, A2-7, A2-8 | CRITIC-PASSED |
 
@@ -113,8 +113,8 @@
 |---|---|---|---|---|---|
 | 8a-1 | Approval schema (mig 20+) | `not_started` | — | — | CRITIC-PASSED. Tier lifted 2026-05-06. |
 | 8a-2 | Approval spam gate | `not_started` | — | **SECURITY** | CRITIC-PASSED |
-| 8a-3 | Approval request flow | `not_started` | — | blocks on A2-5a | CRITIC-PASSED |
-| 8a-4 | Approval operator chat | `not_started` | — | blocks on A2-5a | CRITIC-PASSED |
+| 8a-3 | Approval request flow | `not_started` | — | — | CRITIC-PASSED |
+| 8a-4 | Approval operator chat | `not_started` | — | — | CRITIC-PASSED |
 | 8a-5 | Approval audit log | `not_started` | — | — | CRITIC-PASSED |
 | 8a-6 | Approval rate limits | `not_started` | — | — | CRITIC-PASSED |
 | 8a-7 | Approval docs | `not_started` | — | — | CRITIC-PASSED |
@@ -186,15 +186,12 @@
 
 | Packet | Worker | Status | Started |
 |---|---|---|---|
-| P2-2 | agent-P22 | **DONE** | 2026-05-06 00:45 UTC, commit 1f7e79f, cp0-cp3 green |
-| P2-3 | agent-P23-2 | **DONE** | 2026-05-06 00:48 UTC, commit bc9a2fd, cp0-cp3 green, 9/9 tests pass |
-| A2-5 | agent-A25-2 | **FAIL** | 2026-05-06 01:00 UTC, L3 strategy switch → split A2-5a+A2-5b |
-| P2-4 | agent-P24 | **RUNNING** | 2026-05-06 01:01 UTC |
-| P3-6 | agent-P36 | **RUNNING** | 2026-05-06 01:01 UTC |
-| A2-5a | agent-A25a | **RUNNING** | 2026-05-06 01:01 UTC |
+| P2-4 | agent-P24 | **DONE** | 2026-05-06 01:01 UTC, commit d8f849e, cp0-cp3 green, 12/12 tests pass |
+| P3-6 | agent-P36 | **DONE** | 2026-05-06 01:01 UTC, commit d8f849e, cp0-cp3 green, 5/5 tests pass |
+| A2-5a | agent-A25a | **DONE** | 2026-05-06 01:01 UTC, commit eb7aa59, cp0-cp3 green |
 
 ---
 
 ## Last Updated
 
-2026-05-06 01:01 UTC — P2-3 DONE (commit bc9a2fd). A2-5 split into A2-5a+A2-5b per escalation trigger (>146 call sites). Dispatched P2-4, P3-6, A2-5a.
+2026-05-06 ~01:30 UTC — P2-4, P3-6, A2-5a all DONE. Blockers cleared on P2-5, P3-7, A2-5b, A2-6, A2-7, P6-3, 8a-3, 8a-4. Ready for next dispatch wave.
