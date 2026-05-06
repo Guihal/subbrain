@@ -187,11 +187,12 @@
 | Packet | Worker | Status | Started |
 |---|---|---|---|
 | FIX-test | agent-FIX-2 | **DONE** | 2026-05-06 02:14 UTC, commit f43cd81, cp0 green, test 12/12 pass |
-| P2-5 | agent-P25-2 | **RUNNING** | 2026-05-06 02:08 UTC — legacy bridge extracted to free-agent/bridge.ts (WIP: legacy-bridge.ts untracked) |
-| A2-5b | agent-A25b-2 | **RUNNING** | 2026-05-06 02:08 UTC — 5-file batch only (WIP: embed-tools, log-tools, ops-tg, telegram-spam-gate, telegram-tools modified) |
+| P2-5 | agent-P25-3 | **RUNNING** | 2026-05-06 02:27 UTC — continue WIP, fix tsc errors, commit |
+| A2-5b | agent-A25b-3 | **RUNNING** | 2026-05-06 02:27 UTC — continue WIP, fix 21 test fails, commit |
+| P3-7 | agent-P37-1 | **RUNNING** | 2026-05-06 02:29 UTC — PR-D hippocampus write-cap |
 
 ---
 
 ## Last Updated
 
-2026-05-06 ~02:05 UTC — Workers aborted after ~30 min, 0 commits. Stashed WIP (17 files, cp0 red + tsc red). Redispatching with tighter specs. Stash: `git stash list` → `stash@{0}: WIP 2026-05-06: FIX-test mockLog + P2-5 pool wire + A2-5b ToolResult migration`.
+2026-05-06 ~02:29 UTC — 3 workers active (P2-5 v3, A2-5b v3, P3-7). Stuck workers acd136b7 (A2-5 RLM infinite loop) + a4966b224 (stale P2-4) killed. Cap=3 reached.
