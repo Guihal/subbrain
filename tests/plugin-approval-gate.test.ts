@@ -1,11 +1,11 @@
 /**
  * 8a-3 integration test: approval-gate plugin.
  */
-import { describe, expect, test, beforeEach, afterEach } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { approvalGatePlugin } from "@subbrain/agent/plugins-internal/approval-gate";
-import { toLegacy } from "@subbrain/plugin";
 import { MemoryDB } from "@subbrain/core/db";
 import { ApprovalsTable } from "@subbrain/core/db/tables/approvals";
+import { toLegacy } from "@subbrain/plugin";
 
 function makeHooks() {
   const before: any[] = [];
@@ -26,9 +26,7 @@ function makeHooks() {
 function makeCtx(memoryDb?: MemoryDB) {
   return {
     agentMode: "interactive" as const,
-    executor: memoryDb
-      ? { memoryDb } as any
-      : undefined,
+    executor: memoryDb ? ({ memoryDb } as any) : undefined,
   };
 }
 
@@ -64,8 +62,8 @@ describe("approval-gate plugin", () => {
     const handler = before[0];
     const prev = process.env.APPROVAL_OPERATOR_CHAT_ID;
     const prev2 = process.env.TG_OWNER_CHAT_ID;
-    delete (process.env as any).APPROVAL_OPERATOR_CHAT_ID;
-    delete (process.env as any).TG_OWNER_CHAT_ID;
+    (process.env as any).APPROVAL_OPERATOR_CHAT_ID = undefined;
+    (process.env as any).TG_OWNER_CHAT_ID = undefined;
 
     try {
       const result = await handler({
@@ -74,8 +72,8 @@ describe("approval-gate plugin", () => {
         ctx: makeCtx(db),
       });
       expect(result).toBeDefined();
-      expect(result!.kind).toBe("denied");
-      expect(result!.error.code).toBe("approval_unavailable");
+      expect(result?.kind).toBe("denied");
+      expect(result?.error.code).toBe("approval_unavailable");
       const legacy = toLegacy(result!);
       expect(legacy.success).toBe(false);
     } finally {
@@ -95,8 +93,8 @@ describe("approval-gate plugin", () => {
       ctx: makeCtx(db),
     });
     expect(result).toBeDefined();
-    expect(result!.kind).toBe("denied");
-    expect(result!.error.code).toBe("awaiting_approval");
+    expect(result?.kind).toBe("denied");
+    expect(result?.error.code).toBe("awaiting_approval");
 
     // Verify pending row inserted
     const table = new ApprovalsTable(db.db);
@@ -156,8 +154,8 @@ describe("approval-gate plugin", () => {
       ctx: makeCtx(db),
     });
     expect(result).toBeDefined();
-    expect(result!.kind).toBe("denied");
-    expect(result!.error.code).toBe("approval_denied");
+    expect(result?.kind).toBe("denied");
+    expect(result?.error.code).toBe("approval_denied");
   });
 
   test("awaiting_approval when pending row exists", async () => {
@@ -184,8 +182,8 @@ describe("approval-gate plugin", () => {
       ctx: makeCtx(db),
     });
     expect(result).toBeDefined();
-    expect(result!.kind).toBe("denied");
-    expect(result!.error.code).toBe("awaiting_approval");
+    expect(result?.kind).toBe("denied");
+    expect(result?.error.code).toBe("awaiting_approval");
   });
 
   test("stale approved row is treated as none → insert pending", async () => {
@@ -212,8 +210,8 @@ describe("approval-gate plugin", () => {
       ctx: makeCtx(db),
     });
     expect(result).toBeDefined();
-    expect(result!.kind).toBe("denied");
-    expect(result!.error.code).toBe("awaiting_approval");
+    expect(result?.kind).toBe("denied");
+    expect(result?.error.code).toBe("awaiting_approval");
   });
 
   test("scheduled mode also gates tg_send_message", async () => {
@@ -227,7 +225,7 @@ describe("approval-gate plugin", () => {
       ctx: { agentMode: "scheduled", executor: { memoryDb: db } as any },
     });
     expect(result).toBeDefined();
-    expect(result!.kind).toBe("denied");
-    expect(result!.error.code).toBe("awaiting_approval");
+    expect(result?.kind).toBe("denied");
+    expect(result?.error.code).toBe("awaiting_approval");
   });
 });

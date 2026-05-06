@@ -82,9 +82,9 @@ describe("code-tool-guards plugin", () => {
       ctx: makeCtx(),
     });
     expect(result).toBeDefined();
-    expect(result!.kind).toBe("rejected");
-    expect(result!.error.code).toBe("sandbox_violation");
-    expect(result!.error.message).toContain("sandbox_violation");
+    expect(result?.kind).toBe("rejected");
+    expect(result?.error.code).toBe("sandbox_violation");
+    expect(result?.error.message).toContain("sandbox_violation");
     const legacy = toLegacy(result!);
     expect(legacy.success).toBe(false);
   });
@@ -99,10 +99,10 @@ describe("code-tool-guards plugin", () => {
       ctx: makeCtx(),
     });
     expect(result).toBeDefined();
-    expect(result!.kind).toBe("rejected");
-    expect(result!.error.code).toBe("hardcoded_facts");
-    expect(result!.error.message).toContain("hardcoded_facts");
-    expect(result!.error.message).toContain("person-name");
+    expect(result?.kind).toBe("rejected");
+    expect(result?.error.code).toBe("hardcoded_facts");
+    expect(result?.error.message).toContain("hardcoded_facts");
+    expect(result?.error.message).toContain("person-name");
     const legacy = toLegacy(result!);
     expect(legacy.success).toBe(false);
   });
@@ -122,10 +122,10 @@ describe("code-tool-guards plugin", () => {
       ctx: makeCtx(),
     });
     expect(result).toBeDefined();
-    expect(result!.kind).toBe("rejected");
-    expect(result!.error.code).toBe("hardcoded_facts");
-    expect(result!.error.message).toContain("person-name");
-    expect(result!.error.message).toContain("overdue-hours-literal");
+    expect(result?.kind).toBe("rejected");
+    expect(result?.error.code).toBe("hardcoded_facts");
+    expect(result?.error.message).toContain("person-name");
+    expect(result?.error.message).toContain("overdue-hours-literal");
   });
 
   test("1 match → warn-and-accept (undefined return)", async () => {

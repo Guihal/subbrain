@@ -15,7 +15,9 @@ function main(): void {
   if (!process.argv.includes("--confirm")) {
     console.error("tg-pii-backfill: destructive backfill of PII scrubbing on tg_messages");
     console.error("Usage: bun run scripts/tg-pii-backfill.ts --confirm");
-    console.error("Warning: original plaintext will be overwritten. Recovery = re-run tg-reindex.ts");
+    console.error(
+      "Warning: original plaintext will be overwritten. Recovery = re-run tg-reindex.ts",
+    );
     process.exit(1);
   }
 

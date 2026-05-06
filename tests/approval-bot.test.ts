@@ -1,10 +1,13 @@
-import { describe, expect, test, beforeEach, afterEach } from "bun:test";
 import { Database } from "bun:sqlite";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import type { Bot } from "grammy";
+import {
+  registerApprovalCallbacks,
+  sendApprovalPrompt,
+} from "../packages/agent/src/telegram/bot/approvals";
 import { migrate } from "../packages/core/src/db/schema";
 import { ApprovalsTable } from "../packages/core/src/db/tables/approvals";
 import { ApprovalRepository } from "../packages/core/src/repositories/approval.repo";
-import { sendApprovalPrompt, registerApprovalCallbacks } from "../packages/agent/src/telegram/bot/approvals";
-import type { Bot } from "grammy";
 
 function createTestDb(): Database {
   const db = new Database(":memory:");
@@ -110,10 +113,10 @@ describe("approval bot surface", () => {
 
     registerApprovalCallbacks(mockBot2, { approvalRepo: repo });
     expect(capturedHandler).not.toBeNull();
-    await capturedHandler!(ctx);
+    await capturedHandler?.(ctx);
 
     const found = repo.getById(id);
-    expect(found!.status).toBe("approved");
+    expect(found?.status).toBe("approved");
     expect(answers).toContain("Approved");
     expect(edits.length).toBe(1);
     expect(edits[0]).toContain("APPROVED");
@@ -150,16 +153,17 @@ describe("approval bot surface", () => {
     } as unknown as Bot;
 
     registerApprovalCallbacks(mockBot2, { approvalRepo: repo });
-    await capturedHandler!(ctx);
+    await capturedHandler?.(ctx);
 
     const found = repo.getById(id);
-    expect(found!.status).toBe("denied");
+    expect(found?.status).toBe("denied");
     expect(answers).toContain("Denied");
     expect(edits[0]).toContain("DENIED");
   });
 
   test("callback handler ignores non-approval callbacks", async () => {
-    let capturedHandler: ((ctx: { callbackQuery: { data: string } }) => Promise<void>) | null = null;
+    let capturedHandler: ((ctx: { callbackQuery: { data: string } }) => Promise<void>) | null =
+      null;
     const mockBot2 = {
       on: (_event: string, handler: unknown) => {
         capturedHandler = handler as (ctx: { callbackQuery: { data: string } }) => Promise<void>;
@@ -170,7 +174,7 @@ describe("approval bot surface", () => {
 
     const ctx = { callbackQuery: { data: "other:data" } };
     // Should not throw
-    await capturedHandler!(ctx);
+    await capturedHandler?.(ctx);
   });
 
   test("double-click protection — second update returns 0 changes", async () => {
@@ -201,7 +205,7 @@ describe("approval bot surface", () => {
     } as unknown as Bot;
 
     registerApprovalCallbacks(mockBot2, { approvalRepo: repo });
-    await capturedHandler!(ctx);
+    await capturedHandler?.(ctx);
 
     // Second click
     const answers2: string[] = [];
@@ -212,7 +216,7 @@ describe("approval bot surface", () => {
       },
       editMessageText: async (_text: string, _opts?: unknown) => {},
     };
-    await capturedHandler!(ctx2);
+    await capturedHandler?.(ctx2);
 
     expect(answers2).toContain("Already resolved or not found");
   });
@@ -235,7 +239,7 @@ describe("approval bot surface", () => {
     } as unknown as Bot;
 
     registerApprovalCallbacks(mockBot2, { approvalRepo: repo });
-    await capturedHandler!(ctx);
+    await capturedHandler?.(ctx);
 
     expect(answers).toContain("Already resolved or not found");
   });

@@ -26,7 +26,11 @@ describe("agent-pool claim race", () => {
 
   test("atomic claim prevents double winner over 50 iterations", async () => {
     for (let i = 0; i < 50; i++) {
-      const id = db.agentTasksRepo.enqueue({ type: "free", prompt: `task-${i}`, createdBy: "test" });
+      const id = db.agentTasksRepo.enqueue({
+        type: "free",
+        prompt: `task-${i}`,
+        createdBy: "test",
+      });
       const now = Math.floor(Date.now() / 1000);
 
       const [c1, c2] = await Promise.all([
@@ -36,11 +40,11 @@ describe("agent-pool claim race", () => {
 
       const winners = [c1, c2].filter(Boolean);
       expect(winners.length).toBe(1);
-      expect(winners[0]!.id).toBe(id);
-      expect(winners[0]!.status).toBe("running");
+      expect(winners[0]?.id).toBe(id);
+      expect(winners[0]?.status).toBe("running");
 
       const row = db.agentTasksRepo.getById(id);
-      expect(row!.status).toBe("running");
+      expect(row?.status).toBe("running");
     }
   });
 
@@ -74,11 +78,11 @@ describe("agent-pool claim race", () => {
 
     const peeked = db.agentTasksRepo.peekNextPending(now);
     expect(peeked).not.toBeNull();
-    expect(peeked!.status).toBe("pending");
+    expect(peeked?.status).toBe("pending");
 
     const again = db.agentTasksRepo.peekNextPending(now);
     expect(again).not.toBeNull();
-    expect(again!.status).toBe("pending");
+    expect(again?.status).toBe("pending");
 
     const pending = db.agentTasksRepo.listPending(10);
     expect(pending.length).toBe(1);

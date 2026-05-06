@@ -40,7 +40,7 @@ describe("INTERNAL_PLUGINS boot registration", () => {
     // deduplicate — that is the caller's responsibility. We verify that
     // initDeps() registers exactly once by checking the array length.
     // (If dedup is added later, this test still passes.)
-    expect(dispatcher["plugins"]).toHaveLength(5);
+    expect(dispatcher.plugins).toHaveLength(5);
   });
 
   test("plugin setup registers at least one hook each", () => {
@@ -49,7 +49,7 @@ describe("INTERNAL_PLUGINS boot registration", () => {
       dispatcher.register(plugin);
     }
     // Each plugin should have registered hooks (verified via internal map)
-    const hooksMap = dispatcher["hooksMap"] as Map<unknown, unknown>;
+    const hooksMap = dispatcher.hooksMap as Map<unknown, unknown>;
     expect(hooksMap.size).toBe(5);
   });
 });

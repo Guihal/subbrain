@@ -4,21 +4,18 @@
  * Covers: approve, deny, expiry, operator-unavailable, interactive-gated.
  * Uses the real approval-gate plugin + HooksDispatcher against an in-memory DB.
  */
+
+import { Database } from "bun:sqlite";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, unlinkSync } from "node:fs";
-import { Database } from "bun:sqlite";
+import { canonicalizeArgs } from "@subbrain/agent/mcp/registry/approval-registry";
+import type { ToolResult } from "@subbrain/plugin";
+import { toLegacy } from "@subbrain/plugin";
+import { approvalGatePlugin } from "../packages/agent/plugins-internal/approval-gate";
+import { HooksDispatcher } from "../packages/agent/src/hooks/dispatcher";
 import { migrate } from "../packages/core/src/db/schema";
 import { ApprovalsTable } from "../packages/core/src/db/tables/approvals";
 import { ApprovalRepository } from "../packages/core/src/repositories/approval.repo";
-import { HooksDispatcher } from "../packages/agent/src/hooks/dispatcher";
-import { approvalGatePlugin } from "../packages/agent/plugins-internal/approval-gate";
-import {
-  requiresApproval,
-  resolveOperatorChat,
-  canonicalizeArgs,
-} from "@subbrain/agent/mcp/registry/approval-registry";
-import { toLegacy } from "@subbrain/plugin";
-import type { ToolResult } from "@subbrain/plugin";
 
 const DB_PATH = "data/test-approval-flow.db";
 
@@ -54,14 +51,14 @@ function runGate(
   args: unknown,
   agentMode: string,
   executor: ReturnType<typeof mockExecutor>,
-): Promise<ToolResult | void> {
+): Promise<ToolResult | undefined> {
   return dispatcher.runToolBefore(toolName, args, {
     executor: executor as unknown as import("@subbrain/agent/mcp/executor").ToolExecutor,
     agentMode,
   });
 }
 
-function legacy(result: ToolResult | void) {
+function legacy(result: ToolResult | undefined) {
   if (!result) return { success: true };
   return toLegacy(result);
 }
@@ -121,14 +118,14 @@ describe("approval flow integration (8a-7)", () => {
     const hash = canonicalizeArgs(args);
     const pending = table.getByToolAndHash("tg_send_message", hash);
     expect(pending).not.toBeNull();
-    expect(pending!.status).toBe("pending");
+    expect(pending?.status).toBe("pending");
 
     // Notifier fired
     expect(exec.notified.length).toBe(1);
     expect(exec.notified[0].tool_name).toBe("tg_send_message");
 
     // Operator approves
-    repo.updateStatus(pending!.id, "approved", Math.floor(Date.now() / 1000));
+    repo.updateStatus(pending?.id, "approved", Math.floor(Date.now() / 1000));
 
     // Second call: passthrough
     const r2 = await runGate(dispatcher, "tg_send_message", args, "scheduled", exec);
@@ -150,7 +147,7 @@ describe("approval flow integration (8a-7)", () => {
     const pending = table.getByToolAndHash("tg_send_report", hash);
     expect(pending).not.toBeNull();
 
-    repo.updateStatus(pending!.id, "approved", Math.floor(Date.now() / 1000));
+    repo.updateStatus(pending?.id, "approved", Math.floor(Date.now() / 1000));
 
     const r2 = await runGate(dispatcher, "tg_send_report", args, "scheduled", exec);
     expect(r2).toBeUndefined();
@@ -211,7 +208,9 @@ describe("approval flow integration (8a-7)", () => {
     // Verify the old row is still expired
     const hash = canonicalizeArgs(args);
     const allRows = db
-      .query("SELECT * FROM approvals WHERE tool_name = ? AND args_hash = ? ORDER BY requested_at DESC")
+      .query(
+        "SELECT * FROM approvals WHERE tool_name = ? AND args_hash = ? ORDER BY requested_at DESC",
+      )
       .all("tg_send_message", hash) as Array<{ status: string }>;
     expect(allRows.length).toBe(2);
     expect(allRows[0].status).toBe("pending"); // new
@@ -251,7 +250,7 @@ describe("approval flow integration (8a-7)", () => {
     const hash = canonicalizeArgs(args);
     const pending = table.getByToolAndHash("tg_send_message", hash);
     expect(pending).not.toBeNull();
-    expect(pending!.status).toBe("pending");
+    expect(pending?.status).toBe("pending");
   });
 
   test("interactive also gated: tg_send_report in interactive mode awaits approval", async () => {
@@ -305,7 +304,9 @@ describe("approval flow integration (8a-7)", () => {
 
     const hash = canonicalizeArgs(args);
     const rows = db
-      .query("SELECT COUNT(*) as c FROM approvals WHERE tool_name = ? AND args_hash = ? AND status = 'pending'")
+      .query(
+        "SELECT COUNT(*) as c FROM approvals WHERE tool_name = ? AND args_hash = ? AND status = 'pending'",
+      )
       .get("tg_send_message", hash) as { c: number };
     expect(rows.c).toBe(1);
   });

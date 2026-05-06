@@ -1,14 +1,14 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, unlinkSync } from "node:fs";
-import { MemoryDB } from "@subbrain/core/db";
-import { AgentLoop } from "@subbrain/agent/pipeline/agent-loop";
-import { ModelRouter } from "@subbrain/core/lib/model-router";
 import { buildRegistry, PlaywrightClient, ToolExecutor } from "@subbrain/agent/mcp";
-import { RAGPipeline } from "@subbrain/agent/rag";
+import { AgentLoop } from "@subbrain/agent/pipeline/agent-loop";
 import { ArbitrationRoom } from "@subbrain/agent/pipeline/arbitration";
+import { RAGPipeline } from "@subbrain/agent/rag";
 import { runFreeTask } from "@subbrain/agent/scheduler/agent-pool/runners/free";
+import { MemoryDB } from "@subbrain/core/db";
 import type { AgentTaskRecord } from "@subbrain/core/db/tables/agent-tasks/types";
-import type { Message, ToolCall, Tool } from "@subbrain/providers/types";
+import { ModelRouter } from "@subbrain/core/lib/model-router";
+import type { Message, ToolCall } from "@subbrain/providers/types";
 
 const TEST_DB = "data/test-agent-pool-runner.db";
 
@@ -29,10 +29,10 @@ describe("agent-pool runner free", () => {
     db = new MemoryDB(TEST_DB);
     // Stub router that immediately returns a done_with_artifact tool call.
     router = new ModelRouter([]);
-    let stepCount = 0;
+    let _stepCount = 0;
     router.chat = async (_model, params, _priority) => {
-      stepCount++;
-      const messages = params.messages as Message[];
+      _stepCount++;
+      const _messages = params.messages as Message[];
       // If token budget abort fired, signal is aborted — but we can't easily
       // detect that here. Instead we rely on the test env cap=100 to trigger
       // abort after first onUsage callback. For the mock, we just return
@@ -108,7 +108,7 @@ describe("agent-pool runner free", () => {
     process.env.AGENT_POOL_MAX_TOKENS_FREE = "50";
     // Override router to simulate slow burn that exceeds budget.
     let callCount = 0;
-    router.chat = async (_model, params, _priority) => {
+    router.chat = async (_model, _params, _priority) => {
       callCount++;
       if (callCount > 1) {
         // After abort, signal should be aborted; but we just throw to simulate.
@@ -145,10 +145,7 @@ describe("agent-pool runner free", () => {
 
   test("system prompt does not contain anti-economy phrases", async () => {
     const fs = await import("node:fs");
-    const src = fs.readFileSync(
-      "packages/agent/src/scheduler/agent-pool/runners/free.ts",
-      "utf-8",
-    );
+    const src = fs.readFileSync("packages/agent/src/scheduler/agent-pool/runners/free.ts", "utf-8");
     const banned = /save tokens|be efficient|постарайся уложиться|не используй tool без нужды/gi;
     expect(src.match(banned)).toBeNull();
   });

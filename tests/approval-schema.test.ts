@@ -1,5 +1,5 @@
-import { describe, expect, test, beforeEach, afterEach } from "bun:test";
 import { Database } from "bun:sqlite";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { migrate } from "../packages/core/src/db/schema";
 import { ApprovalsTable } from "../packages/core/src/db/tables/approvals";
 import { ApprovalRepository } from "../packages/core/src/repositories/approval.repo";
@@ -15,12 +15,12 @@ function createTestDb(): Database {
 
 describe("approvals schema", () => {
   let db: Database;
-  let table: ApprovalsTable;
+  let _table: ApprovalsTable;
   let repo: ApprovalRepository;
 
   beforeEach(() => {
     db = createTestDb();
-    table = new ApprovalsTable(db);
+    _table = new ApprovalsTable(db);
     repo = new ApprovalRepository(db);
   });
 
@@ -30,9 +30,7 @@ describe("approvals schema", () => {
 
   test("migration 21 creates approvals table", () => {
     const row = db
-      .query(
-        "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'approvals'",
-      )
+      .query("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'approvals'")
       .get() as { name: string } | null;
     expect(row?.name).toBe("approvals");
   });
@@ -51,10 +49,10 @@ describe("approvals schema", () => {
     expect(id).toBeString();
     const found = repo.getById(id);
     expect(found).not.toBeNull();
-    expect(found!.tool_name).toBe("tg_send_message");
-    expect(found!.args_hash).toBe("abc123");
-    expect(found!.status).toBe("pending");
-    expect(found!.operator_chat_id).toBe(123456);
+    expect(found?.tool_name).toBe("tg_send_message");
+    expect(found?.args_hash).toBe("abc123");
+    expect(found?.status).toBe("pending");
+    expect(found?.operator_chat_id).toBe(123456);
   });
 
   test("getByToolAndHash returns latest row", () => {
@@ -80,8 +78,8 @@ describe("approvals schema", () => {
 
     const found = repo.getByToolAndHash("tg_send_message", "hashA");
     expect(found).not.toBeNull();
-    expect(found!.status).toBe("approved");
-    expect(found!.request_message).toBe("second");
+    expect(found?.status).toBe("approved");
+    expect(found?.request_message).toBe("second");
   });
 
   test("unique constraint on (tool_name, args_hash) for pending", () => {
@@ -151,8 +149,8 @@ describe("approvals schema", () => {
     expect(changed).toBe(1);
 
     const found = repo.getById(id);
-    expect(found!.status).toBe("approved");
-    expect(found!.resolved_at).toBe(now + 5);
+    expect(found?.status).toBe("approved");
+    expect(found?.resolved_at).toBe(now + 5);
   });
 
   test("updateStatus is idempotent (resolved_at not null guard)", () => {
@@ -172,7 +170,7 @@ describe("approvals schema", () => {
     expect(changed).toBe(0);
 
     const found = repo.getById(id);
-    expect(found!.status).toBe("approved");
+    expect(found?.status).toBe("approved");
   });
 
   test("listPending returns only pending rows", () => {
@@ -207,9 +205,7 @@ describe("approvals schema", () => {
     expect(() => migrate(db)).not.toThrow();
 
     const row = db
-      .query(
-        "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'approvals'",
-      )
+      .query("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'approvals'")
       .get() as { name: string } | null;
     expect(row?.name).toBe("approvals");
   });

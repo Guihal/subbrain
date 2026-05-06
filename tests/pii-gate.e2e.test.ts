@@ -1,11 +1,10 @@
-import { describe, expect, test, beforeEach, afterEach } from "bun:test";
 import { Database } from "bun:sqlite";
-import { MemoryDB } from "@subbrain/core/db";
-import { scrubPII } from "@subbrain/core/lib/pii-scrub";
-import { applyAtIngest } from "@subbrain/agent/services/tg-ingest";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { tgSetChatPolicy } from "@subbrain/agent/mcp/telegram-tools";
 import { scrubPII as nightScrubPII } from "@subbrain/agent/pipeline/night-cycle/steps/scrub";
+import { MemoryDB } from "@subbrain/core/db";
 import type { ModelRouter } from "@subbrain/core/lib/model-router";
+import { scrubPII } from "@subbrain/core/lib/pii-scrub";
 import sampleStrings from "./fixtures/pii/sample-strings.json";
 
 function makeMockRouter(responseText: string): ModelRouter {
@@ -55,7 +54,7 @@ describe("PII gate end-to-end", () => {
 
     const row = db.tgChatPolicyRepo.getByChatId(Number(chatId));
     expect(row).not.toBeNull();
-    expect(row!.policy).toBe("metadata_only");
+    expect(row?.policy).toBe("metadata_only");
   });
 
   // (c) policy-driven ingest stores text matching the policy

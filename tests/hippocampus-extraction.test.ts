@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
-  getExtractorPrompt,
   CONFIDENCE_RULE,
+  getExtractorPrompt,
 } from "@subbrain/agent/pipeline/agent-pipeline/post/prompt";
 
 describe("hippocampus extraction prompt", () => {
@@ -28,13 +28,7 @@ describe("hippocampus extraction prompt", () => {
 
   test("prompt does not contain anti-economy phrases", () => {
     const prompt = getExtractorPrompt(5).toLowerCase();
-    const anti = [
-      "save token",
-      "be efficient",
-      "minimize tokens",
-      "token budget",
-      "keep it short",
-    ];
+    const anti = ["save token", "be efficient", "minimize tokens", "token budget", "keep it short"];
     for (const phrase of anti) {
       expect(prompt).not.toContain(phrase);
     }

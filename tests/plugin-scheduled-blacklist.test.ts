@@ -41,8 +41,8 @@ describe("scheduled-blacklist plugin", () => {
     for (const name of STATEFUL_CLIENT_CODE_TOOLS) {
       const result = await handler({ toolName: name, ctx: { agentMode: "scheduled" } });
       expect(result).toBeDefined();
-      expect(result!.kind).toBe("rejected");
-      expect(result!.error.code).toBe("focus_blocked");
+      expect(result?.kind).toBe("rejected");
+      expect(result?.error.code).toBe("focus_blocked");
       const legacy = toLegacy(result!);
       expect(legacy.success).toBe(false);
     }

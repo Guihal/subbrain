@@ -1,4 +1,4 @@
-import { beforeEach, afterEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { MemoryDB } from "../packages/core/src/db";
 
 describe("TgMessagesTable PII search guard", () => {
@@ -28,7 +28,12 @@ describe("TgMessagesTable PII search guard", () => {
   });
 
   test("scrubbed text is indexed and findable", () => {
-    memory.insertTgMessage({ message_id: 2, chat_id: "c1", ts: 2000, text: "call me at +7 901 555 0101" });
+    memory.insertTgMessage({
+      message_id: 2,
+      chat_id: "c1",
+      ts: 2000,
+      text: "call me at +7 901 555 0101",
+    });
     const recent = memory.recentTgMessages("c1", 1);
     expect(recent[0].text).toContain("[REDACTED:phone]");
     const result = memory.searchTgMessages({ query: "call" });

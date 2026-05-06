@@ -45,8 +45,8 @@ describe("AgentTasksRepository", () => {
     db.agentTasksRepo.enqueue({ type: "clear", prompt: "high", priority: 10, createdBy: "test" });
     const claimed = db.agentTasksRepo.claimNext(Date.now() / 1000);
     expect(claimed).not.toBeNull();
-    expect(claimed!.prompt).toBe("high");
-    expect(claimed!.status).toBe("running");
+    expect(claimed?.prompt).toBe("high");
+    expect(claimed?.status).toBe("running");
   });
 
   test("claimNext skips scheduledAt > now", () => {
@@ -61,7 +61,7 @@ describe("AgentTasksRepository", () => {
     db.agentTasksRepo.enqueue({ type: "free", prompt: "now", priority: 1, createdBy: "test" });
     const claimed = db.agentTasksRepo.claimNext(now);
     expect(claimed).not.toBeNull();
-    expect(claimed!.prompt).toBe("now");
+    expect(claimed?.prompt).toBe("now");
   });
 
   test("two concurrent claimNext return different ids", async () => {
@@ -87,9 +87,9 @@ describe("AgentTasksRepository", () => {
     const now = Math.floor(Date.now() / 1000);
     db.agentTasksRepo.complete(id, { type: "text", content: "result" }, now);
     const row = db.agentTasksRepo.getById(id);
-    expect(row!.status).toBe("done");
-    expect(row!.artifact).toEqual({ type: "text", content: "result" });
-    expect(row!.finishedAt).toBe(now);
+    expect(row?.status).toBe("done");
+    expect(row?.artifact).toEqual({ type: "text", content: "result" });
+    expect(row?.finishedAt).toBe(now);
   });
 
   test("noop updates status and reason", () => {
@@ -97,8 +97,8 @@ describe("AgentTasksRepository", () => {
     const now = Math.floor(Date.now() / 1000);
     db.agentTasksRepo.noop(id, "nothing to do", now);
     const row = db.agentTasksRepo.getById(id);
-    expect(row!.status).toBe("noop");
-    expect(row!.reason).toBe("nothing to do");
+    expect(row?.status).toBe("noop");
+    expect(row?.reason).toBe("nothing to do");
   });
 
   test("fail updates status and reason", () => {
@@ -106,8 +106,8 @@ describe("AgentTasksRepository", () => {
     const now = Math.floor(Date.now() / 1000);
     db.agentTasksRepo.fail(id, "boom", now);
     const row = db.agentTasksRepo.getById(id);
-    expect(row!.status).toBe("failed");
-    expect(row!.reason).toBe("boom");
+    expect(row?.status).toBe("failed");
+    expect(row?.reason).toBe("boom");
   });
 
   test("markZombiesFailed flips old running rows", () => {
@@ -117,8 +117,8 @@ describe("AgentTasksRepository", () => {
     const count = db.agentTasksRepo.markZombiesFailed(now + 1);
     expect(count).toBe(1);
     const row = db.agentTasksRepo.getById(id);
-    expect(row!.status).toBe("failed");
-    expect(row!.reason).toBe("zombie_timeout");
+    expect(row?.status).toBe("failed");
+    expect(row?.reason).toBe("zombie_timeout");
   });
 
   test("getDistribution24h groups by type and status", () => {

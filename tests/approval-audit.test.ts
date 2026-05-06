@@ -1,15 +1,12 @@
-import { describe, expect, test, beforeEach, afterEach } from "bun:test";
 import { Database } from "bun:sqlite";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import type { Bot } from "grammy";
+import { expirePendingApprovals } from "../packages/agent/src/scheduler/approval-sweeper";
+import { registerApprovalCallbacks } from "../packages/agent/src/telegram/bot/approvals";
 import { migrate } from "../packages/core/src/db/schema";
 import { ApprovalsTable } from "../packages/core/src/db/tables/approvals";
-import { ApprovalRepository } from "../packages/core/src/repositories/approval.repo";
 import { logApprovalDecision } from "../packages/core/src/lib/approval-audit";
-import { expirePendingApprovals } from "../packages/agent/src/scheduler/approval-sweeper";
-import {
-  sendApprovalPrompt,
-  registerApprovalCallbacks,
-} from "../packages/agent/src/telegram/bot/approvals";
-import type { Bot } from "grammy";
+import { ApprovalRepository } from "../packages/core/src/repositories/approval.repo";
 
 function createTestDb(): Database {
   const db = new Database(":memory:");
@@ -28,7 +25,7 @@ function getMetricsRows(db: Database): Array<{ id: number; timestamp: number; sn
   }>;
 }
 
-function mockBot(): { bot: Bot; sent: Array<{ chatId: number; text: string; opts: unknown }> } {
+function _mockBot(): { bot: Bot; sent: Array<{ chatId: number; text: string; opts: unknown }> } {
   const sent: Array<{ chatId: number; text: string; opts: unknown }> = [];
   const bot = {
     api: {
@@ -132,7 +129,7 @@ describe("approval audit log", () => {
 
     registerApprovalCallbacks(mockBot2, { approvalRepo: repo, db });
     expect(capturedHandler).not.toBeNull();
-    await capturedHandler!(ctx);
+    await capturedHandler?.(ctx);
 
     const rows = getMetricsRows(db);
     expect(rows.length).toBe(1);
@@ -168,7 +165,7 @@ describe("approval audit log", () => {
     } as unknown as Bot;
 
     registerApprovalCallbacks(mockBot2, { approvalRepo: repo, db });
-    await capturedHandler!(ctx);
+    await capturedHandler?.(ctx);
 
     const rows = getMetricsRows(db);
     expect(rows.length).toBe(1);

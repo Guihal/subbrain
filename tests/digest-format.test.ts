@@ -1,8 +1,16 @@
 import { describe, expect, test } from "bun:test";
-import { composeDailyRollup, composeInstantAlert } from "@subbrain/agent/scheduler/agent-pool/digest";
+import {
+  composeDailyRollup,
+  composeInstantAlert,
+} from "@subbrain/agent/scheduler/agent-pool/digest";
 import type { AgentTaskRecord } from "@subbrain/core/db/tables/agent-tasks/types";
 
-function makeRecord(id: number, type: AgentTaskRecord["type"], status: AgentTaskRecord["status"], reason?: string): AgentTaskRecord {
+function makeRecord(
+  id: number,
+  type: AgentTaskRecord["type"],
+  status: AgentTaskRecord["status"],
+  reason?: string,
+): AgentTaskRecord {
   return {
     id,
     type,
@@ -39,10 +47,7 @@ describe("digest format", () => {
   });
 
   test("composeDailyRollup sorts types alphabetically", () => {
-    const records = [
-      makeRecord(1, "scheduled", "done"),
-      makeRecord(2, "free", "done"),
-    ];
+    const records = [makeRecord(1, "scheduled", "done"), makeRecord(2, "free", "done")];
     const out = composeDailyRollup(records);
     const freeIdx = out.indexOf("`free`");
     const schedIdx = out.indexOf("`scheduled`");

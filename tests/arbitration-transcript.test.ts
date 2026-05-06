@@ -55,12 +55,12 @@ describe("ArbitrationTranscriptRepository — CRUD", () => {
 
     const row = repo.getById(id);
     expect(row).not.toBeNull();
-    expect(row!.room_id).toBe("room-1");
-    expect(row!.participant_id).toBe("agent-a");
-    expect(row!.role).toBe("coder");
-    expect(row!.turn_index).toBe(0);
-    expect(row!.content).toBe("hello");
-    expect(row!.tool_calls).toBeNull();
+    expect(row?.room_id).toBe("room-1");
+    expect(row?.participant_id).toBe("agent-a");
+    expect(row?.role).toBe("coder");
+    expect(row?.turn_index).toBe(0);
+    expect(row?.content).toBe("hello");
+    expect(row?.tool_calls).toBeNull();
   });
 
   test("insert with tool_calls JSON", () => {
@@ -75,7 +75,7 @@ describe("ArbitrationTranscriptRepository — CRUD", () => {
       created_at: 1234567890,
     });
     const row = repo.getById(id);
-    expect(row!.tool_calls).toBe(tc);
+    expect(row?.tool_calls).toBe(tc);
   });
 });
 
@@ -175,7 +175,7 @@ describe("Migration 20 — idempotency", () => {
       )
       .get();
     expect(row).not.toBeNull();
-    expect(row!.name).toBe("arbitration_transcripts");
+    expect(row?.name).toBe("arbitration_transcripts");
   });
 
   test("indexes exist", () => {

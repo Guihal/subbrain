@@ -33,7 +33,9 @@ async function main() {
           timeout: 30_000,
         });
         console.log(`HTTP ${resp?.status() ?? "?"}`);
-        await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => {});
+        await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => {
+          /* ignore timeout */
+        });
         const snap = await pageSnapshot(page);
         const looksBlocked =
           /captcha|cf-challenge|just a moment|access denied|too many requests|проверьте.*робот/i.test(

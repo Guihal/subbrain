@@ -20,8 +20,8 @@ describe("sleep virtual role", () => {
   test("getFallback returns correct target", () => {
     const fb = getFallback("sleep");
     expect(fb).not.toBeNull();
-    expect(fb!.model).toBe("MiniMax-M2.7");
-    expect(fb!.provider).toBe("minimax");
+    expect(fb?.model).toBe("MiniMax-M2.7");
+    expect(fb?.provider).toBe("minimax");
   });
 });
 

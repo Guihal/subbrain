@@ -41,17 +41,17 @@ describe("TgChatPolicyRepository", () => {
     repo.upsert(123456, "scrubbed", "operator");
     const row = repo.getByChatId(123456);
     expect(row).not.toBeNull();
-    expect(row!.chat_id).toBe(123456);
-    expect(row!.policy).toBe("scrubbed");
-    expect(row!.updated_by).toBe("operator");
-    expect(row!.updated_at).toBeGreaterThan(0);
+    expect(row?.chat_id).toBe(123456);
+    expect(row?.policy).toBe("scrubbed");
+    expect(row?.updated_by).toBe("operator");
+    expect(row?.updated_at).toBeGreaterThan(0);
   });
 
   test("default policy is metadata_only", () => {
     repo.upsert(999, "metadata_only");
     const row = repo.getByChatId(999);
     expect(row).not.toBeNull();
-    expect(row!.policy).toBe("metadata_only");
+    expect(row?.policy).toBe("metadata_only");
   });
 
   test("upsert updates existing row", () => {
@@ -59,8 +59,8 @@ describe("TgChatPolicyRepository", () => {
     repo.upsert(111, "full", "operator");
     const row = repo.getByChatId(111);
     expect(row).not.toBeNull();
-    expect(row!.policy).toBe("full");
-    expect(row!.updated_by).toBe("operator");
+    expect(row?.policy).toBe("full");
+    expect(row?.updated_by).toBe("operator");
   });
 
   test("listByPolicy filtering", () => {

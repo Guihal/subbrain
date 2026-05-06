@@ -106,8 +106,11 @@ for (const root of SCAN) {
   for (const file of walk(join(ROOT, root))) {
     const text = readFileSync(file, "utf8");
     IMPORT_RE.lastIndex = 0;
-    let m: RegExpExecArray | null;
-    while ((m = IMPORT_RE.exec(text)) !== null) {
+    for (
+      let m: RegExpExecArray | null = IMPORT_RE.exec(text);
+      m !== null;
+      m = IMPORT_RE.exec(text)
+    ) {
       const isTypeOnly = !!m[1];
       const importPath = m[2];
       if (isTypeOnly) continue;

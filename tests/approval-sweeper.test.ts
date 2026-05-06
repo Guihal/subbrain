@@ -1,8 +1,11 @@
-import { describe, expect, test, beforeEach, afterEach } from "bun:test";
 import { Database } from "bun:sqlite";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import {
+  ApprovalSweeper,
+  expirePendingApprovals,
+} from "../packages/agent/src/scheduler/approval-sweeper";
 import { migrate } from "../packages/core/src/db/schema";
 import { ApprovalsTable } from "../packages/core/src/db/tables/approvals";
-import { expirePendingApprovals, ApprovalSweeper } from "../packages/agent/src/scheduler/approval-sweeper";
 
 function createTestDb(): Database {
   const db = new Database(":memory:");
@@ -62,8 +65,8 @@ describe("expirePendingApprovals", () => {
 
     const row = table.getById(id);
     expect(row).not.toBeNull();
-    expect(row!.status).toBe("expired");
-    expect(row!.resolved_at).not.toBeNull();
+    expect(row?.status).toBe("expired");
+    expect(row?.resolved_at).not.toBeNull();
   });
 
   test("approved/denied rows are not touched", () => {
@@ -147,6 +150,6 @@ describe("ApprovalSweeper", () => {
     // Allow one tick to fire (interval is fast in tests, but tick() runs immediately on start).
     const row = table.getByToolAndHash("tg_send_message", "h4");
     expect(row).not.toBeNull();
-    expect(row!.status).toBe("expired");
+    expect(row?.status).toBe("expired");
   });
 });

@@ -157,10 +157,10 @@ describe("applyEdgeWalkBoost", () => {
     const out = applyEdgeWalkBoost(results, mem);
     const scores = Object.fromEntries(out.map((r) => [r.id, r.score]));
     // a not reachable from any seed (b→c, no b→a)
-    expect(scores["a"]).toBeCloseTo(100 * SALIENCE_DEFAULT, 5);
+    expect(scores.a).toBeCloseTo(100 * SALIENCE_DEFAULT, 5);
     // b reachable from a
-    expect(scores["b"]).toBeCloseTo(108, 5);
+    expect(scores.b).toBeCloseTo(108, 5);
     // c reachable from b
-    expect(scores["c"]).toBeCloseTo(108, 5);
+    expect(scores.c).toBeCloseTo(108, 5);
   });
 });

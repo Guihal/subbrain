@@ -2,7 +2,6 @@
  * tg_set_chat_policy + tg_list_chats policy field tests (8e-5).
  */
 
-import type { Database } from "bun:sqlite";
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, unlinkSync } from "node:fs";
 import { MemoryDB } from "@subbrain/core/db";

@@ -2,8 +2,8 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, unlinkSync } from "node:fs";
 import { installAgentPoolScheduler, runTick } from "@subbrain/agent/scheduler/agent-pool";
 import { createAgentTaskPool } from "@subbrain/agent/scheduler/agent-pool/pool";
-import type { PoolDeps, RunnerResult } from "@subbrain/agent/scheduler/agent-pool/types";
 import { RunnerSlots } from "@subbrain/agent/scheduler/agent-pool/pool/concurrency";
+import type { PoolDeps, RunnerResult } from "@subbrain/agent/scheduler/agent-pool/types";
 import { MemoryDB } from "@subbrain/core/db";
 
 const TEST_DB = "data/test-agent-pool-concurrency.db";
@@ -85,7 +85,9 @@ describe("agent-pool concurrency", () => {
     let runningFree = 0;
     let maxRunningFree = 0;
 
-    const runFn = async (task: import("@subbrain/core/db/tables/agent-tasks/types").AgentTaskRecord): Promise<RunnerResult> => {
+    const runFn = async (
+      task: import("@subbrain/core/db/tables/agent-tasks/types").AgentTaskRecord,
+    ): Promise<RunnerResult> => {
       if (task.type === "free") {
         runningFree++;
         if (runningFree > maxRunningFree) maxRunningFree = runningFree;

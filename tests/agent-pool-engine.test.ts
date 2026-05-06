@@ -128,8 +128,8 @@ describe("agent-pool engine", () => {
     }));
     await runTick(deps);
     const row = db.agentTasksRepo.getById(id);
-    expect(row!.status).toBe("failed");
-    expect(row!.reason).toBe("zombie_timeout");
+    expect(row?.status).toBe("failed");
+    expect(row?.reason).toBe("zombie_timeout");
     expect(logs.some((l) => l.message === "zombies marked failed")).toBe(true);
   });
 
@@ -164,7 +164,7 @@ describe("agent-pool engine", () => {
     const pending = db.agentTasksRepo.listPending(10);
     expect(pending.length).toBe(1);
 
-    resolveRun!();
+    resolveRun?.();
     await new Promise((r) => setTimeout(r, 200));
     // After resolve, second tick should claim the remaining task
     const pending2 = db.agentTasksRepo.listPending(10);

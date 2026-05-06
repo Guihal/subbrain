@@ -47,20 +47,20 @@ describe("P3-5 memory_blocks (mig 18)", () => {
     memory.insertBlock("b1", "coder", "prompt-template", "Hello {{name}}");
     const row = memory.getBlock("b1");
     expect(row).not.toBeNull();
-    expect(row!.id).toBe("b1");
-    expect(row!.owner_role).toBe("coder");
-    expect(row!.label).toBe("prompt-template");
-    expect(row!.body).toBe("Hello {{name}}");
-    expect(row!.version).toBe(1);
-    expect(typeof row!.created_at).toBe("number");
-    expect(typeof row!.updated_at).toBe("number");
+    expect(row?.id).toBe("b1");
+    expect(row?.owner_role).toBe("coder");
+    expect(row?.label).toBe("prompt-template");
+    expect(row?.body).toBe("Hello {{name}}");
+    expect(row?.version).toBe(1);
+    expect(typeof row?.created_at).toBe("number");
+    expect(typeof row?.updated_at).toBe("number");
   });
 
   test("getBlockByLabel finds by composite key", () => {
     memory.insertBlock("b2", "teamlead", "system-preamble", "You are a team lead.");
     const row = memory.getBlockByLabel("teamlead", "system-preamble");
     expect(row).not.toBeNull();
-    expect(row!.id).toBe("b2");
+    expect(row?.id).toBe("b2");
   });
 
   test("UNIQUE(owner_role, label) blocks duplicate label for same role", () => {
@@ -71,8 +71,8 @@ describe("P3-5 memory_blocks (mig 18)", () => {
   test("same label allowed for different roles", () => {
     memory.insertBlock("b5a", "coder", "shared-label", "A");
     memory.insertBlock("b5b", "critic", "shared-label", "B");
-    expect(memory.getBlockByLabel("coder", "shared-label")!.body).toBe("A");
-    expect(memory.getBlockByLabel("critic", "shared-label")!.body).toBe("B");
+    expect(memory.getBlockByLabel("coder", "shared-label")?.body).toBe("A");
+    expect(memory.getBlockByLabel("critic", "shared-label")?.body).toBe("B");
   });
 
   test("updateBlock bumps version and updated_at", () => {

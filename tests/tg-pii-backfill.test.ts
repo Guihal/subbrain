@@ -1,10 +1,13 @@
-import { describe, test, expect, beforeAll, afterAll } from "bun:test";
 import { Database } from "bun:sqlite";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { spawnSync } from "bun";
 
 const SCRIPT = "scripts/tg-pii-backfill.ts";
 
-function runScript(args: string[], env?: Record<string, string>): { stdout: string; stderr: string; exitCode: number } {
+function runScript(
+  args: string[],
+  env?: Record<string, string>,
+): { stdout: string; stderr: string; exitCode: number } {
   const proc = spawnSync(["bun", "run", SCRIPT, ...args], {
     env: { ...process.env, ...env },
     cwd: "/usr/projects/subbrain",
@@ -69,7 +72,9 @@ describe("tg-pii-backfill", () => {
     expect(r1.stdout).toInclude("1 changed");
 
     const db2 = new Database(testDbPath);
-    const row1 = db2.query("SELECT text FROM tg_messages WHERE message_id = 1").get() as { text: string };
+    const row1 = db2.query("SELECT text FROM tg_messages WHERE message_id = 1").get() as {
+      text: string;
+    };
     db2.close();
     expect(row1.text).toInclude("[REDACTED:email]");
     expect(row1.text).toInclude("[REDACTED:phone]");
@@ -80,7 +85,9 @@ describe("tg-pii-backfill", () => {
     expect(r2.stdout).toInclude("0 changed");
 
     const db3 = new Database(testDbPath);
-    const row2 = db3.query("SELECT text FROM tg_messages WHERE message_id = 1").get() as { text: string };
+    const row2 = db3.query("SELECT text FROM tg_messages WHERE message_id = 1").get() as {
+      text: string;
+    };
     db3.close();
     expect(row2.text).toBe(row1.text);
   });

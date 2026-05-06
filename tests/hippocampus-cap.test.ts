@@ -1,8 +1,8 @@
-import { describe, expect, test, beforeEach } from "bun:test";
+import { beforeEach, describe, expect, test } from "bun:test";
 import {
-  createWriteGuard,
-  checkWriteCap,
   bumpWriteCount,
+  checkWriteCap,
+  createWriteGuard,
   emitHippoTelemetry,
   MAX_WRITES_PER_EXCHANGE,
 } from "@subbrain/agent/pipeline/agent-pipeline/post/cap-guard";
@@ -76,7 +76,8 @@ describe("hippocampus write cap", () => {
     g.skippedDupCount = 1;
     emitHippoTelemetry(g, "req-tel", 4, log);
     const counters = getCounters();
-    const key = 'hippocampus_writes_per_exchange{exchange_id="req-tel",writes_count="2",skipped_dup_count="1"}';
+    const key =
+      'hippocampus_writes_per_exchange{exchange_id="req-tel",writes_count="2",skipped_dup_count="1"}';
     expect(counters.get(key)).toBe(1);
   });
 });

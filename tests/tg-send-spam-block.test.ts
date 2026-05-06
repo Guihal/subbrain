@@ -7,12 +7,12 @@
  */
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, unlinkSync } from "node:fs";
-import { tgGatesPlugin } from "@subbrain/agent/plugins-internal/tg-gates";
-import { toLegacy } from "@subbrain/plugin";
 import { ToolExecutor } from "@subbrain/agent/mcp/executor";
 import { buildRegistry } from "@subbrain/agent/mcp/registry";
+import { tgGatesPlugin } from "@subbrain/agent/plugins-internal/tg-gates";
 import { MemoryDB } from "@subbrain/core/db";
 import type { ModelRouter } from "@subbrain/core/lib/model-router";
+import { toLegacy } from "@subbrain/plugin";
 
 const TEST_DB = "data/test-tg-spam-block.db";
 
@@ -26,9 +26,10 @@ function fresh(): { memory: MemoryDB; executor: ToolExecutor } {
 }
 
 /** Run the tg-gates plugin hook directly (unit-style). */
-async function runGate(
-  ctx: { executor: ToolExecutor; agentMode?: "scheduled" | "interactive" },
-): Promise<ReturnType<typeof toLegacy> | undefined> {
+async function runGate(ctx: {
+  executor: ToolExecutor;
+  agentMode?: "scheduled" | "interactive";
+}): Promise<ReturnType<typeof toLegacy> | undefined> {
   const hooks = { onToolBefore: [] as any[] };
   tgGatesPlugin.setup({
     hooks: {
@@ -68,9 +69,9 @@ describe("tg_send_message focus-block (F-4)", () => {
     memory.setFocus("no_repetitive_tg_spam", "user said stop");
     const r = await runGate({ executor, agentMode: "scheduled" });
     expect(r).toBeDefined();
-    expect(r!.success).toBe(false);
-    expect(r!.error.code).toBe("focus_blocked");
-    expect(r!.error.message).toContain("no_repetitive_tg_spam");
+    expect(r?.success).toBe(false);
+    expect(r?.error.code).toBe("focus_blocked");
+    expect(r?.error.message).toContain("no_repetitive_tg_spam");
   });
 
   test("scheduled + expired (>7d) directive → success (TTL elapsed)", async () => {
@@ -106,8 +107,8 @@ describe("tg_send_message focus-block (F-4)", () => {
     const r = await runGate({ executor, agentMode: "scheduled" });
     // Math.max(0, ...) keeps the diff at 0 — block remains active.
     expect(r).toBeDefined();
-    expect(r!.success).toBe(false);
-    expect(r!.error.code).toBe("focus_blocked");
+    expect(r?.success).toBe(false);
+    expect(r?.error.code).toBe("focus_blocked");
   });
 
   test("tg_send_message handler still works end-to-end", async () => {
