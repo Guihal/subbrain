@@ -91,7 +91,7 @@ export function createTaskApi(deps: TaskApiDeps) {
   const done = (id: string) => update(id, { status: "done" });
   const cancel = (id: string) => update(id, { status: "cancelled" });
 
-  async function history(): Promise<ListEnvelope<HistoryItem>> {
+  function history(): Promise<ListEnvelope<HistoryItem>> {
     const p = new URLSearchParams();
     if (filters.value.scope) p.set("scope", filters.value.scope);
     p.set("page", String(filters.value.page));
