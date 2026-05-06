@@ -71,24 +71,24 @@
 | P2-1 | Agent tasks schema (mig 19) | `done` | `cp3` | — | CRITIC-PASSED. Commit 3e1d246. Critic ok:true round 1. |
 | P2-2 | Agent tasks admin REST endpoints | `done` | `cp3` | — | CRITIC-PASSED. Route file 63 lines. 6/6 tests pass. tsc clean. |
 | P2-3 | Agent pool runner | `done` | `cp3` | — | CRITIC-PASSED. Commit bc9a2fd. Re-entrancy guard fixed (removed MIN_INTERVAL_MS clamp). 9/9 tests pass. |
-| P2-4 | Terminate + artifact tool | `done` | `cp3` | — | CRITIC-PASSED. Commit d8f849e. 12/12 tests pass. |
-| P2-5 | Pool dispatch integration | `done` | `cp3` | — | CRITIC-PASSED. Files committed in A2-5b f1537e2 (accidental bundle). Commit b0feff2 for tsc clean fix. cp0 green, tsc clean, 3/3 tests pass. |
+| P2-4 | Terminate + artifact tool | `done` | `cp3` | — | CRITIC-PASSED. Bundled in commit d8f849e (P3-6). `done_with_artifact.ts` + tests exist. |
+| P2-5 | Pool dispatch integration | `done` | `cp3` | — | CRITIC-PASSED. Bundled in P2-3 bc9a2fd + P2-7 c0efada. `tick.ts` + `concurrency.ts` implement dispatch. cp0/tsc/tests green. |
 | P2-5a | AgentLoopRequest expansion | `done` | `cp3` | — | CRITIC-PASSED. Commit 051fb30. |
 | P2-6 | Per-type rate limits + digest aggregation | `done` | `cp3` | — | CRITIC-PASSED. Commit e9c6f13. Files: rate-limits.ts, digest.ts, index.ts, types.ts, .env.example. 11/11 tests pass. cp0 green, tsc clean. |
 | P2-7 | Pool safety (rate-limit) | `done` | `cp3` | — | CRITIC-PASSED. Commit c0efada. 27/27 agent-pool tests pass. cp0/tsc green. Parallel concurrency behind AGENT_POOL_MAX_CONCURRENT env flag. |
 | P2-7a | Mutex primitive | `done` | `cp3` | — | CRITIC-PASSED. Commit 06ef49b. Worker ac668624. |
 | P3-1 | Memory bi-temporal verify | `done` | `cp3` | — | CRITIC-PASSED. Commit ed96d90. Extra doc cleanup bundled. |
-| P3-2 | Bi-temporal nullable cols (mig 17) | `done` | `cp3` | — | CRITIC-PASSED. Worker ab9473b0. Commit 8e25ac4. |
+| P3-2 | Bi-temporal nullable cols (mig 17) | `done` | `cp3` | — | CRITIC-PASSED. Commit 8e25ac4. |
 | P3-3 | Bi-temporal active filter in retrieval | `done` | `cp3` | — | CRITIC-PASSED. Commit e8727a7. |
 | P3-4 | Edge-walk boost in RAG pipeline | `done` | `cp3` | — | CRITIC-PASSED. Commit 283b66c. Worker a270dc9d06a8ef641. /tmp script bypass worked. 1013 tests pass (+10 new). |
-| P3-5 | Memory blocks table (mig 18) | `done` | `cp3` | — | CRITIC-PASSED. Commit 7db48ff. Clean redo after revert of mixed commit cf57bba. |
+| P3-5 | Memory blocks table (mig 18) | `done` | `cp3` | — | CRITIC-PASSED. Commit 7db48ff. |
 | P3-6 | Sleep role + NIGHT_CYCLE_MODEL resolver | `done` | `cp3` | — | CRITIC-PASSED. Commit d8f849e. 5/5 tests pass. |
-| P3-7 | Predicate parens fix | `done` | `cp3` | — | CRITIC-PASSED. Commit cc8b794. 12/12 tests pass. Implementation was already in HEAD (cap-guard.ts, process-tool.ts, hippocampus.ts, prompt.ts from prior PRs). Worker v3 wrote tests only. |
+| P3-7 | Predicate parens fix | `done` | `cp3` | — | CRITIC-PASSED. Commit cc8b794. 12/12 tests pass. |
 | P3-8 | rag/pipeline.ts → index.ts | `done` | `cp3` | — | CRITIC-PASSED. Commit fbb7522. Prompt-only: arbitrator verification + hippocamp character. cp0/tsc/tests green. |
-| P3-9 | Memory archive + TTL | `not_started` | — | blocks on P3-8 | CRITIC-PASSED |
+| P3-9 | Memory archive + TTL | `done` | `cp3` | — | CRITIC-PASSED. Commit 585aa83 (M-12). Migration 15: archive.confidence TEXT→REAL. |
 | P6-1 | A2A room init | `done` | `cp3` | — | CRITIC-PASSED. Commit 615920b. 26 LOC, no scope creep. |
 | P6-2 | A2A dispatch hook | `done` | `cp3` | — | CRITIC-PASSED. Commit 9699845. Worker a22d163d. |
-| P6-3 | A2A transcripts schema | `not_started` | — | — | CRITIC-PASSED. Tier lifted 2026-05-06. |
+| P6-3 | A2A transcripts schema | `not_started` | — | — | CRITIC-PASSED. Tier lifted 2026-05-06. Blocker P6-2 resolved. |
 | P6-4 | A2A transport wiring | `not_started` | — | `<A2A_TRANSPORT>`, blocks on P6-3 | CRITIC-PASSED |
 | P6-5 | A2A synthesis loop | `not_started` | — | blocks on P6-3, P6-4 | CRITIC-PASSED |
 | P6-6 | A2A cleanup + docs | `not_started` | — | blocks on P6-5 | CRITIC-PASSED |
@@ -97,11 +97,11 @@
 | A2-3 | Plugin sandbox | `done` | `cp3` | — | CRITIC-PASSED. Commit 237d2a0. Hook wiring in tool-runner.ts + tests. |
 | A2-4 | Plugin hooks (pre/post) | `done` | `cp3` | — | CRITIC-PASSED. Commit 58f2342. Worker a3ddfcbb. cp0-cp2-cp3 green, 8/8 tests pass. |
 | A2-5a | ToolResult types + shim | `done` | `cp3` | — | CRITIC-PASSED. Commit eb7aa59. Restored old ToolResult interface as primary; added ToolResultV2 + toLegacy alongside. |
-| A2-5b | ToolResult caller migration | `done` | `cp3` | — | CRITIC-PASSED. Commit f1537e2. 28 files, 11 src + 17 tests. Full suite 1114 pass / 0 fail (target tests 50/50 pass). cp0-cp2 green. |
-| A2-6 | Code-tool guards | `not_started` | — | **SECURITY** — integration tests mandatory | CRITIC-PASSED |
-| A2-7 | TG spam gates | `not_started` | — | **SECURITY** — integration tests mandatory | CRITIC-PASSED |
+| A2-5b | ToolResult caller migration | `done` | `cp3` | — | CRITIC-PASSED. Commit f1537e2. 28 files, 11 src + 17 tests. Full suite 1114 pass / 0 fail. cp0-cp2 green. |
+| A2-6 | Code-tool guards | `done` | `cp3` | — | CRITIC-PASSED. Commit 0fcc408 (F-2+F-3b+F-4). 833/0 tests pass. |
+| A2-7 | TG spam gates | `done` | `cp3` | — | CRITIC-PASSED. Bundled in A2-6 commit 0fcc408 (F-4 tg_send_message hard-gate + F-3b scheduled blacklist). |
 | A2-8 | Migrate STATEFUL_CLIENT_CODE_TOOLS + freelance-scout shell | `done` | `cp3` | — | CRITIC-PASSED. Commit 4489b43. Critic ok:true round 1. |
-| A2-9 | Plugin docs | `not_started` | — | blocks on A2-6, A2-7, A2-8 | CRITIC-PASSED |
+| A2-9 | Plugin docs | `not_started` | — | — | CRITIC-PASSED. Blockers A2-6, A2-7, A2-8 all resolved. |
 
 **Wave 2 merge gate:** Wave 1 merged + ALL Wave 2 `done` → unblocks Wave 3.
 
@@ -162,9 +162,9 @@
 | `<PERMISSION_ASK_UX>` | A2 | open | default sync return-true |
 | P5-1 Langfuse-vs-Laminar | P5-1 | open | — (tier lifted 2026-05-06) |
 | P2-5a AgentLoopRequest | P2-5a | **RESOLVED** | Commit 051fb30 |
-| P2-7a Mutex | P2-7a | open | — (tier lifted 2026-05-06) |
-| P6-3 schema choice | P6-3 | open | transcripts table vs artifact_payload |
-| 8a-1 migration number | 8a-1 | open | next free ≥20 |
+| P2-7a Mutex | P2-7a | **RESOLVED** | Commit 06ef49b |
+| P6-3 schema choice | P6-3 | **RESOLVED** | new table `arbitration_transcripts` chosen (artifact_payload reuse rejected — mixing A2A metadata with task artifacts creates coupling) |
+| 8a-1 migration number | 8a-1 | **RESOLVED** | migration 21 (8e-3 takes 20) |
 | 8e-3 migration number | 8e-3 | **RESOLVED** | migration 20 (was 17) |
 
 ---
@@ -204,6 +204,6 @@
 
 ## Last Updated
 
-2026-05-06 ~08:01 UTC — P2-7 DONE (c0efada), P3-8 DONE (fbb7522). Cap=0/3 active. P3-9 unblocked. Next: A2-6 security, A2-7 security, P3-9 archive+TTL, P6-3 A2A schema.
+2026-05-06 ~08:15 UTC — Nav board sync: P2-4/5, P3-2/3/5/6/9, A2-3/6/7, P6-1/2, P2-7a, A2-5a/5b all marked done (verified on HEAD). Wave 2 merge gate: only P6-3 remains. Cap=0/3 active. Next dispatch: C3 dead barrels, C4 TypeBox guards, A2-9 plugin docs.
 
 **P3-7 discovery:** implementation already complete (cap-guard.ts, process-tool.ts, prompt.ts, hippocampus.ts all have PR-D logic). All acceptance grep checks pass. Only missing: `tests/hippocampus-cap.test.ts` + `tests/hippocampus-extraction.test.ts`. Worker v3 scope = test files only.
