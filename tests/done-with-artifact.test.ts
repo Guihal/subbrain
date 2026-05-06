@@ -100,11 +100,11 @@ describe("done_with_artifact registry integration", () => {
 describe("done_with_artifact tool-dispatch integration", () => {
   test("runToolCall detects isDone for done_with_artifact", async () => {
     const { runToolCall } = await import("@subbrain/agent/pipeline/agent-loop/tool-dispatch");
-    const mockLog = {
-      info: () => {},
-      warn: () => {},
-      error: () => {},
-      debug: () => {},
+    const mockLog = { info: () => {}, warn: () => {}, error: () => {}, debug: () => {} };
+    const mockDeps = {
+      executor: { execute: async () => ({ success: true, data: { terminate: true, status: "complete", artifact: "x" } }) },
+      router: { chat: async () => ({ choices: [{ message: { content: "" } }] }) },
+      registry: { resolve: () => null },
     };
     const outcome = await runToolCall(
       {
@@ -115,7 +115,7 @@ describe("done_with_artifact tool-dispatch integration", () => {
           arguments: JSON.stringify({ status: "complete", artifact: "x" }),
         },
       },
-      {} as any,
+      mockDeps as any,
       mockLog as any,
     );
     expect(outcome.isDone).toBe(true);
