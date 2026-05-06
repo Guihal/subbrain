@@ -83,7 +83,7 @@
 | P3-4 | Edge-walk boost in RAG pipeline | `done` | `cp3` | — | CRITIC-PASSED. Commit 283b66c. Worker a270dc9d06a8ef641. /tmp script bypass worked. 1013 tests pass (+10 new). |
 | P3-5 | Memory blocks table (mig 18) | `done` | `cp3` | — | CRITIC-PASSED. Commit 7db48ff. Clean redo after revert of mixed commit cf57bba. |
 | P3-6 | Sleep role + NIGHT_CYCLE_MODEL resolver | `done` | `cp3` | — | CRITIC-PASSED. Commit d8f849e. 5/5 tests pass. |
-| P3-7 | Predicate parens fix | `not_started` | — | — | CRITIC-PASSED |
+| P3-7 | Predicate parens fix | `done` | `cp3` | — | CRITIC-PASSED. Commit cc8b794. 12/12 tests pass. Implementation was already in HEAD (cap-guard.ts, process-tool.ts, hippocampus.ts, prompt.ts from prior PRs). Worker v3 wrote tests only. |
 | P3-8 | rag/pipeline.ts → index.ts | `not_started` | — | blocks on P3-7 | CRITIC-PASSED |
 | P3-9 | Memory archive + TTL | `not_started` | — | blocks on P3-8 | CRITIC-PASSED |
 | P6-1 | A2A room init | `done` | `cp3` | — | CRITIC-PASSED. Commit 615920b. 26 LOC, no scope creep. |
@@ -194,13 +194,13 @@
 | P3-7 | agent-P37-1 | **KILLED** | 2026-05-06 02:29 UTC → 02:38 UTC, hippocampus.ts grew to 232 lines (file-cap violation), cap-guard.ts tsc errors |
 | P3-7 | agent-P37-2 | **KILLED** | 2026-05-06 02:38 UTC → ~04:20 UTC, repo corruption from `git stash pop` (old stash applied on clean tree → 6 files with merge conflicts). Orchestrator recovered: reset UU files to HEAD, unstage + discard bad stash changes, drop stash@{0}. cp0/tsc/tests green on clean HEAD. |
 | P2-6 | agent-P26-1 | **KILLED** | 2026-05-06 ~02:30 UTC → ~04:20 UTC, >1hr no commits, stuck on permission denied reading `.env.example` via Bash. |
-| P3-7 | agent-P37-3 | **RUNNING** | 2026-05-06 ~04:25 UTC — tests only, implementation already in HEAD |
-| P2-6 | agent-P26-2 | **RUNNING** | 2026-05-06 ~04:25 UTC — rate-limits + digest + tests |
+| P3-7 | agent-P37-3 | **DONE** | 2026-05-06 ~04:25 UTC — commit cc8b794, 12/12 tests pass, tsc clean, cp0 green |
+| P2-6 | agent-P26-2 | **RUNNING** | 2026-05-06 ~04:25 UTC — files created (rate-limits.ts, digest.ts, tests), tsc error: missing `rateLimiter` in `PoolDeps`. Hint sent. |
 
 ---
 
 ## Last Updated
 
-2026-05-06 ~04:25 UTC — P3-7 v3 + P2-6 v2 dispatched. Cap=2/3 active.
+2026-05-06 ~04:30 UTC — P3-7 v3 DONE (cc8b794). P2-6 v2 RUNNING, files created, tsc fix in progress. Cap=1/3 active.
 
 **P3-7 discovery:** implementation already complete (cap-guard.ts, process-tool.ts, prompt.ts, hippocampus.ts all have PR-D logic). All acceptance grep checks pass. Only missing: `tests/hippocampus-cap.test.ts` + `tests/hippocampus-extraction.test.ts`. Worker v3 scope = test files only.
