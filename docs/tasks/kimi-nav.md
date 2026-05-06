@@ -207,6 +207,6 @@
 
 ## Last Updated
 
-2026-05-06 ~12:05 UTC — A2-9 DONE (commit d3d24d8). Wave 2 merge gate: ✅ ALL DONE. Wave 3 now unblocked. 5 pre-existing schema test failures (user_version 22 vs 19 from P6-3/8a-1/8e-3 migrations). Next tick: dispatch Wave 3 packets (lowest unblocked first: 8a-2, 8a-3, 8c-1, 8e-2, 8e-4).
+2026-05-06 ~12:20 UTC — Schema test fix DONE (commit fda4952). 22/22 schema tests pass. Active workers: 8a-2 (approval registry), 8e-2 (ingest PII scrub). Cap 2/3. Wave 2: all done. Wave 3: unblocked.
 
 **P3-7 discovery:** implementation already complete (cap-guard.ts, process-tool.ts, prompt.ts, hippocampus.ts all have PR-D logic). All acceptance grep checks pass. Only missing: `tests/hippocampus-cap.test.ts` + `tests/hippocampus-extraction.test.ts`. Worker v3 scope = test files only.
