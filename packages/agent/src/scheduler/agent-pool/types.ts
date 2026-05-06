@@ -1,4 +1,4 @@
-import type { AgentTaskArtifact, AgentTaskRecord } from "@subbrain/core/db/tables/agent-tasks/types";
+import type { AgentTaskArtifact, AgentTaskRecord, AgentTaskType } from "@subbrain/core/db/tables/agent-tasks/types";
 import type { LogEntry } from "@subbrain/core/lib/logger";
 
 export interface RunnerResult {
@@ -14,6 +14,7 @@ export interface PoolDeps {
   router: { isOverloaded: boolean };
   log: { info: (message: string, extra?: Partial<LogEntry>) => void; warn: (message: string, extra?: Partial<LogEntry>) => void; error: (message: string, extra?: Partial<LogEntry>) => void };
   runFn: RunFn;
+  rateLimiter?: { allow: (type: AgentTaskType) => boolean; recordCompletion: (type: AgentTaskType) => void };
 }
 
 export interface AgentTaskPool {
