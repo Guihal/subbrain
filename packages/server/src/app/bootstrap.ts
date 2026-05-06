@@ -11,6 +11,7 @@ import { autonomousRoute } from "../routes/autonomous";
 import { chatRoute } from "../routes/chat";
 import { chatsRoute } from "../routes/chats";
 import { embeddingsRoute } from "../routes/embeddings";
+import { agentTasksRoute } from "../routes/agent-tasks";
 import { freelanceRoute } from "../routes/freelance";
 import { logsRoute } from "../routes/logs";
 import { memoryRoute } from "../routes/memory";
@@ -139,7 +140,8 @@ export function createApp(deps: AppDeps) {
     .use(memoryRoute(memoryService, memory))
     .use(freelanceRoute(memory, deps.freelanceScout))
     .use(metricsRunsRoute(new MetricsRepository(memory.db)))
-    .use(tasksRoute(new TaskRepository(memory)));
+    .use(tasksRoute(new TaskRepository(memory)))
+    .use(agentTasksRoute(memory.agentTasksRepo));
 
   return { app, nightCycleController } as const;
 }

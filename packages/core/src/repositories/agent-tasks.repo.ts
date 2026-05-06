@@ -41,4 +41,11 @@ export class AgentTasksRepository {
     this.table.countByPromptSnippet(snippet, now - 86400);
 
   getById = (id: number): AgentTaskRecord | null => this.table.getById(id);
+
+  list = (opts: {
+    status?: import("../db/tables/agent-tasks/types").AgentTaskStatus;
+    type?: import("../db/tables/agent-tasks/types").AgentTaskType;
+    limit: number;
+    offset: number;
+  }): { items: AgentTaskRecord[]; total: number } => this.table.list(opts);
 }

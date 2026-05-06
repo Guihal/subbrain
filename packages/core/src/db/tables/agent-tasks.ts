@@ -128,4 +128,14 @@ export class AgentTasksTable {
     const row = this.db.query(`SELECT * FROM agent_tasks WHERE id = ?`).get(id) as Record<string, unknown> | null;
     return row ? mapRow(row) : null;
   }
+
+  list(opts: { status?: AgentTaskStatus; type?: AgentTaskType; limit: number; offset: number }): { items: AgentTaskRecord[]; total: number } {
+    const conds: string[] = [], params: (string | number)[] = [];
+    if (opts.status) { conds.push("status = ?"); params.push(opts.status); }
+    if (opts.type) { conds.push("type = ?"); params.push(opts.type); }
+    const where = conds.length ? `WHERE ${conds.join(" AND ")}` : "";
+    const countRow = this.db.query(`SELECT COUNT(*) AS c FROM agent_tasks ${where}`).get(...params) as { c: number } | null;
+    const items = (this.db.query(`SELECT * FROM agent_tasks ${where} ORDER BY priority DESC, created_at DESC LIMIT ? OFFSET ?`).all(...params, opts.limit, opts.offset) as Record<string, unknown>[]).map(mapRow);
+    return { items, total: countRow?.c ?? 0 };
+  }
 }

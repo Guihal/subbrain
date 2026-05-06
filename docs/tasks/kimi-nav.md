@@ -68,8 +68,9 @@
 
 | Phase | Packet | Status | Last CP | Blocker | Notes |
 |---|---|---|---|---|---|
-| P2-1 | Agent tasks schema (mig 19) | `not_started` | — | — | CRITIC-PASSED. Tier lifted 2026-05-06. |
-| P2-2 | Agent tasks repository | `not_started` | — | blocks on P2-1 | CRITIC-PASSED |
+| P2-1 | Agent tasks schema (mig 19) | `done` | `cp3` | — | CRITIC-PASSED. Commit 3e1d246. Critic ok:true round 1. |
+| P2-2 | Agent tasks admin REST endpoints | `done` | `cp3` | — | CRITIC-PASSED. Route file 63 lines. 6/6 tests pass. tsc clean. |
+| P2-3 | Agent pool runner | `not_started` | — | blocks on P2-1 | CRITIC-PASSED |
 | P2-3 | Agent pool runner | `not_started` | — | blocks on P2-1 | CRITIC-PASSED |
 | P2-4 | Terminate + artifact tool | `not_started` | — | blocks on P2-3 | CRITIC-PASSED |
 | P2-5 | Pool dispatch integration | `not_started` | — | blocks on P2-5a, P2-4, P2-3 | CRITIC-PASSED |
@@ -99,7 +100,7 @@
 | A2-5 | ToolResult kind union | `not_started` | — | — | CRITIC-PASSED. Tier lifted 2026-05-06. |
 | A2-6 | Code-tool guards | `not_started` | — | **SECURITY** — integration tests mandatory, blocks on A2-3, A2-5 | CRITIC-PASSED |
 | A2-7 | TG spam gates | `not_started` | — | **SECURITY** — integration tests mandatory, blocks on A2-3, A2-5 | CRITIC-PASSED |
-| A2-8 | Plugin config + reload | `not_started` | — | blocks on A2-3 | CRITIC-PASSED |
+| A2-8 | Migrate STATEFUL_CLIENT_CODE_TOOLS + freelance-scout shell | `done` | `cp3` | — | CRITIC-PASSED. Commit 4489b43. Critic ok:true round 1. |
 | A2-9 | Plugin docs | `not_started` | — | blocks on A2-6, A2-7, A2-8 | CRITIC-PASSED |
 
 **Wave 2 merge gate:** Wave 1 merged + ALL Wave 2 `done` → unblocks Wave 3.
@@ -185,13 +186,12 @@
 
 | Packet | Worker | Status | Started |
 |---|---|---|---|
-| A2-5 | af0cd2b62c46b06b2 | **RUNNING** | in_progress |
-| P2-1 | a2ec0635510d230bc | **RUNNING** | in_progress |
-| A2-8 | a56d3f85ae9decdc1 | **FAIL** | agent misread prerequisite (redispatch acfd3a760ca542c91) |
-| A2-8 | acfd3a760ca542c91 | **OK** | commit 4489b43, awaiting critic |
+| A2-5 | agent-A25 | **RUNNING** | 2026-05-06 00:45 UTC, /task via Agent bg |
+| P2-2 | agent-P22 | **RUNNING** | 2026-05-06 00:45 UTC, /task via Agent bg |
+| P2-3 | agent-P23 | **RUNNING** | 2026-05-06 00:45 UTC, /task via Agent bg |
 
 ---
 
 ## Last Updated
 
-2026-05-06 — P3-5 DONE (commit 7db48ff). A2-4 DONE (commit 58f2342). cp2/cp3 green. cp0: RED — untracked junk `packages/core/src/db/tables/agent-tasks.ts` (172 lines) from prior session. cp1: 1 pre-existing biome error. Active wave: A2-5, P2-1, A2-8. Unblocked waiting: P3-6.
+2026-05-06 00:30 UTC — Workers died without commits. Redispatching A2-5, P2-2, P2-3. cp0/cp1/cp3 green, cp2=6 pre-existing.
