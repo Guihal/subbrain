@@ -8,12 +8,15 @@
 import type { Database } from "bun:sqlite";
 import type { ChatMessageRow, ChatRow, TgExcludedChatRow } from "../db/index";
 import { ChatsTable } from "../db/tables/chats";
+import { TgChatPolicyRepository, type TgChatPolicy } from "./tg-chat-policy.repo";
 
 export class ChatRepository {
   private readonly chats: ChatsTable;
+  private readonly policies: TgChatPolicyRepository;
 
   constructor(db: Database) {
     this.chats = new ChatsTable(db);
+    this.policies = new TgChatPolicyRepository(db);
   }
 
   // ─── Chats ─────────────────────────────────────────────────
@@ -41,4 +44,9 @@ export class ChatRepository {
   excludeTgChat = (chatId: string, chatTitle: string, reason?: string) =>
     this.chats.excludeTgChat(chatId, chatTitle, reason);
   includeTgChat = (chatId: string) => this.chats.includeTgChat(chatId);
+
+  // ─── Telegram Chat Policies (migration 22) ─────────────────
+  setChatPolicy = (chatId: string, policy: TgChatPolicy, updatedBy?: string) =>
+    this.policies.upsert(Number(chatId), policy, updatedBy);
+  listKnownTgChats = () => this.policies.listAll();
 }

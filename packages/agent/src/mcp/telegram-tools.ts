@@ -101,3 +101,20 @@ export function tgListExcluded(memory: MemoryDB): ToolResultV2 {
     };
   }
 }
+
+export function tgSetChatPolicy(
+  memory: MemoryDB,
+  chatId: string,
+  policy: "full" | "scrubbed" | "metadata_only",
+  updatedBy?: string,
+): ToolResultV2 {
+  try {
+    memory.setChatPolicy(chatId, policy, updatedBy);
+    return { kind: "success", data: { chatId, policy } };
+  } catch (err) {
+    return {
+      kind: "error",
+      error: { code: "unknown", message: err instanceof Error ? err.message : String(err) },
+    };
+  }
+}

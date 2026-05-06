@@ -7,6 +7,7 @@ import { FreelanceRepository } from "../repositories/freelance.repo";
 import { LogRepository } from "../repositories/log.repo";
 import { MemoryRepository } from "../repositories/memory/index";
 import { TelegramRepository } from "../repositories/telegram.repo";
+import { TgChatPolicyRepository } from "../repositories/tg-chat-policy.repo";
 import { migrate, openDatabase } from "./schema";
 import { SchedulerStateTable } from "./tables/scheduler-state";
 import { TasksTable, type UpsertResult } from "./tables/tasks";
@@ -73,6 +74,7 @@ export class MemoryDB {
   readonly edgesRepo: EdgeRepository;
   readonly agentTasksRepo: AgentTasksRepository;
   readonly approvalRepo: ApprovalRepository;
+  readonly tgChatPolicyRepo: TgChatPolicyRepository;
   private _tasks: TasksTable;
   private _scheduler: SchedulerStateTable;
 
@@ -87,6 +89,7 @@ export class MemoryDB {
     this.edgesRepo = new EdgeRepository(this.db);
     this.agentTasksRepo = new AgentTasksRepository(this.db);
     this.approvalRepo = new ApprovalRepository(this.db);
+    this.tgChatPolicyRepo = new TgChatPolicyRepository(this.db);
     this._tasks = new TasksTable(this.db);
     this._scheduler = new SchedulerStateTable(this.db);
   }
@@ -324,6 +327,9 @@ export class MemoryDB {
   excludeTgChat = (chatId: string, chatTitle: string, reason?: string) =>
     this.chatRepo.excludeTgChat(chatId, chatTitle, reason);
   includeTgChat = (chatId: string) => this.chatRepo.includeTgChat(chatId);
+  setChatPolicy = (chatId: string, policy: import("../repositories/tg-chat-policy.repo").TgChatPolicy, updatedBy?: string) =>
+    this.chatRepo.setChatPolicy(chatId, policy, updatedBy);
+  listKnownTgChats = () => this.chatRepo.listKnownTgChats();
 
   // ─── Layer 4: Raw Log ─────────────────────────────────────
   appendLog = (

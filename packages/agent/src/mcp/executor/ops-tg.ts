@@ -60,6 +60,15 @@ export function tgListExcluded(s: ExecutorState): ToolResultV2 {
   return tg.tgListExcluded(s.memory);
 }
 
+export function tgSetChatPolicy(
+  s: ExecutorState,
+  chatId: string,
+  policy: "full" | "scrubbed" | "metadata_only",
+  updatedBy?: string,
+): ToolResultV2 {
+  return tg.tgSetChatPolicy(s.memory, chatId, policy, updatedBy);
+}
+
 /** FTS5 search over locally indexed TG messages. */
 export function tgFtsSearch(
   s: ExecutorState,

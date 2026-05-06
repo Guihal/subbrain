@@ -9,6 +9,9 @@ export async function listChats(
   limit = 100,
 ): Promise<TgDialog[]> {
   const excluded = memory.getExcludedTgChatIds();
+  const policies = new Map(
+    memory.listKnownTgChats().map((r) => [String(r.chat_id), r.policy]),
+  );
   const dialogs = await withTimeout(client.getDialogs({ limit }), TG_OP_TIMEOUT_MS, "listChats");
   return dialogs.map((d) => {
     const id = d.id?.toString() || "";
@@ -18,6 +21,7 @@ export async function listChats(
       type: d.isChannel ? "channel" : d.isGroup ? "group" : "private",
       unreadCount: d.unreadCount || 0,
       excluded: excluded.has(id),
+      policy: policies.get(id) ?? "metadata_only",
     };
   });
 }

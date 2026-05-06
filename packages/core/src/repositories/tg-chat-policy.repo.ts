@@ -41,4 +41,10 @@ export class TgChatPolicyRepository {
       .query("SELECT * FROM tg_chat_policies WHERE policy = ? ORDER BY updated_at DESC")
       .all(policy) as TgChatPolicyRow[];
   }
+
+  listAll(): TgChatPolicyRow[] {
+    return this.db
+      .query("SELECT * FROM tg_chat_policies ORDER BY updated_at DESC")
+      .all() as TgChatPolicyRow[];
+  }
 }

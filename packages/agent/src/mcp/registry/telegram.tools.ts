@@ -96,6 +96,24 @@ export function registerTelegramTools(registry: ToolRegistry): void {
   });
 
   registry.register({
+    name: "tg_set_chat_policy",
+    description:
+      "Set per-chat ingest policy. full=store raw text, scrubbed=store scrubbed text, metadata_only=store empty text.",
+    scope: "agent-only",
+    input: t.Object({
+      chat_id: t.String({ description: "Chat ID (from tg_list_chats)" }),
+      policy: t.Union([
+        t.Literal("full"),
+        t.Literal("scrubbed"),
+        t.Literal("metadata_only"),
+      ]),
+      reason: t.Optional(t.String()),
+    }),
+    handler: (args, ctx) =>
+      toLegacy(ctx.executor.tgSetChatPolicy(args.chat_id, args.policy, args.reason)),
+  });
+
+  registry.register({
     name: "tg_send_message",
     description:
       "Send a message to the user via Telegram. Use for summaries, reports, notifications, alerts. Supports Markdown. Max ~4000 chars.",

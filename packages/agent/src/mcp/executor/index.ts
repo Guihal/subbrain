@@ -153,6 +153,8 @@ export class ToolExecutor {
     tg.tgExcludeChat(this.state(), chatId, chatTitle, reason);
   tgIncludeChat = (chatId: string) => tg.tgIncludeChat(this.state(), chatId);
   tgListExcluded = () => tg.tgListExcluded(this.state());
+  tgSetChatPolicy = (chatId: string, policy: "full" | "scrubbed" | "metadata_only", updatedBy?: string) =>
+    tg.tgSetChatPolicy(this.state(), chatId, policy, updatedBy);
   tgFtsSearch = (query: string, chatId?: string, from?: string, to?: string, limit?: number) =>
     tg.tgFtsSearch(this.state(), query, chatId, from, to, limit);
 
