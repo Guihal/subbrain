@@ -186,12 +186,12 @@
 
 | Packet | Worker | Status | Started |
 |---|---|---|---|
-| P2-4 | agent-P24 | **DONE** | 2026-05-06 01:01 UTC, commit d8f849e, cp0-cp3 green, 12/12 tests pass |
-| P3-6 | agent-P36 | **DONE** | 2026-05-06 01:01 UTC, commit d8f849e, cp0-cp3 green, 5/5 tests pass |
-| A2-5a | agent-A25a | **DONE** | 2026-05-06 01:01 UTC, commit eb7aa59, cp0-cp3 green |
+| FIX-test | agent-FIX | **RUNNING** | 2026-05-06 01:35 UTC — fix mockLog in done-with-artifact test |
+| P2-5 | agent-P25 | **RUNNING** | 2026-05-06 01:35 UTC — wire pool to AgentLoop + free runner |
+| A2-5b | agent-A25b | **RUNNING** | 2026-05-06 01:35 UTC — ToolResult caller migration |
 
 ---
 
 ## Last Updated
 
-2026-05-06 ~01:30 UTC — P2-4, P3-6, A2-5a all DONE. Blockers cleared on P2-5, P3-7, A2-5b, A2-6, A2-7, P6-3, 8a-3, 8a-4. Ready for next dispatch wave.
+2026-05-06 ~01:35 UTC — Dispatched FIX-test, P2-5, A2-5b. cp0 green, tsc clean, biome 11 pre-existing errors, cp3: 1 fail (done-with-artifact mockLog).
