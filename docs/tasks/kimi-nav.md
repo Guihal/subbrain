@@ -186,12 +186,12 @@
 
 | Packet | Worker | Status | Started |
 |---|---|---|---|
-| FIX-test | agent-FIX | **RUNNING** | 2026-05-06 01:35 UTC — fix mockLog in done-with-artifact test |
-| P2-5 | agent-P25 | **RUNNING** | 2026-05-06 01:35 UTC — wire pool to AgentLoop + free runner |
-| A2-5b | agent-A25b | **RUNNING** | 2026-05-06 01:35 UTC — ToolResult caller migration |
+| FIX-test | agent-FIX | **STOPPED** | 2026-05-06 01:35 UTC → 02:05 UTC, no commit, redispatching |
+| P2-5 | agent-P25 | **STOPPED** | 2026-05-06 01:35 UTC → 02:05 UTC, no commit, hit free-agent.ts cap, redispatching |
+| A2-5b | agent-A25b | **STOPPED** | 2026-05-06 01:35 UTC → 02:05 UTC, no commit, analysis paralysis, redispatching |
 
 ---
 
 ## Last Updated
 
-2026-05-06 ~01:35 UTC — Dispatched FIX-test, P2-5, A2-5b. cp0 green, tsc clean, biome 11 pre-existing errors, cp3: 1 fail (done-with-artifact mockLog).
+2026-05-06 ~02:05 UTC — Workers aborted after ~30 min, 0 commits. Stashed WIP (17 files, cp0 red + tsc red). Redispatching with tighter specs. Stash: `git stash list` → `stash@{0}: WIP 2026-05-06: FIX-test mockLog + P2-5 pool wire + A2-5b ToolResult migration`.
