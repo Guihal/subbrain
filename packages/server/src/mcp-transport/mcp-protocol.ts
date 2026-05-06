@@ -1,13 +1,7 @@
 /**
- * Proper MCP JSON-RPC 2.0 transport over HTTP/SSE.
- * Compatible with Continue IDE, Claude Desktop, etc.
- *
- * GET  /mcp/sse      — SSE stream, sends `endpoint` event with full URL
- * POST /mcp/messages — JSON-RPC 2.0 requests (auth-bypassed — route is
- *                      placed BEFORE authMiddleware in index.ts)
- *
- * tools/list и tools/call обслуживаются через единый реестр тулов
- * (src/mcp/registry/), общий с REST и агент-лупом.
+ * MCP JSON-RPC 2.0 transport over HTTP/SSE (Continue IDE, Claude Desktop).
+ * GET /mcp/sse → SSE stream with endpoint URL.
+ * POST /mcp/messages → JSON-RPC 2.0 (mounted BEFORE authMiddleware).
  */
 
 import type { ToolExecutor } from "@subbrain/agent/mcp/executor";
@@ -22,9 +16,6 @@ function jsonrpcError(id: unknown, code: number, message: string) {
   return JSON.stringify({ jsonrpc: "2.0", id, error: { code, message } });
 }
 
-/**
- * Shared state per SSE session: maps sessionId → response controller.
- */
 const sessions = new Map<string, ReadableStreamDefaultController<Uint8Array>>();
 
 export function mcpProtocolRoute(
@@ -45,10 +36,7 @@ export function mcpProtocolRoute(
         const sessionId = crypto.randomUUID();
         const encoder = new TextEncoder();
 
-        // Respect X-Forwarded-Proto from reverse proxies (Caddy sets it):
-        // request.url scheme is http inside the container even when the
-        // public URL is https, which makes Claude Code refuse to follow
-        // the messages endpoint due to mixed-content.
+        // Caddy terminates TLS; use X-Forwarded-Proto so the endpoint URL is https.
         const url = new URL(request.url);
         const forwardedProto = headers["x-forwarded-proto"];
         const proto = forwardedProto?.split(",")[0]?.trim() || url.protocol.replace(":", "");
@@ -74,14 +62,7 @@ export function mcpProtocolRoute(
           },
         });
 
-        return new Response(stream, {
-          headers: {
-            "Content-Type": "text/event-stream",
-            "Cache-Control": "no-cache, no-transform",
-            "X-Accel-Buffering": "no",
-            "Content-Encoding": "identity",
-          },
-        });
+        return new Response(stream, { headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache, no-transform", "X-Accel-Buffering": "no", "Content-Encoding": "identity" } });
       })
       // ── JSON-RPC messages endpoint ────────────────────────────
       .post(
@@ -97,16 +78,7 @@ export function mcpProtocolRoute(
           const controller = sessionId ? sessions.get(sessionId) : undefined;
           const encoder = new TextEncoder();
 
-          const sendSSE = (data: string) => {
-            if (controller) {
-              try {
-                controller.enqueue(encoder.encode(`data: ${data}\n\n`));
-              } catch {}
-            }
-          };
-
-          const msg = body as any;
-          const { jsonrpc: _jv, id, method, params } = msg;
+          const { id, method, params } = body;
 
           let response: string;
 
@@ -146,7 +118,9 @@ export function mcpProtocolRoute(
           }
 
           if (controller) {
-            sendSSE(response);
+            try {
+              controller.enqueue(encoder.encode(`data: ${response}\n\n`));
+            } catch {}
             return new Response(null, { status: 202 });
           }
 
@@ -155,7 +129,12 @@ export function mcpProtocolRoute(
           });
         },
         {
-          body: t.Any(),
+          body: t.Object({
+            jsonrpc: t.Literal("2.0"),
+            id: t.Union([t.String(), t.Number()]),
+            method: t.String(),
+            params: t.Optional(t.Any()),
+          }),
         },
       )
   );
