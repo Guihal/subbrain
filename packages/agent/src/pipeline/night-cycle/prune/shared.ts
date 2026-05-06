@@ -1,10 +1,11 @@
 import type { MemoryDB } from "@subbrain/core/db";
 import { logger } from "@subbrain/core/lib/logger";
 import type { ModelRouter } from "@subbrain/core/lib/model-router";
+import { resolveNightModel } from "../model";
 import { parseJson } from "../types";
 
 const log = logger.child("night");
-const NIGHT_MODEL = process.env.NIGHT_CYCLE_MODEL || "memory";
+const NIGHT_MODEL = resolveNightModel();
 const MAX_ACTIONS = 30;
 const MAX_DURATION_MS = 5 * 60 * 1000; // soft timeout; remaining rows next cycle
 const MIN_MERGED = 15;

@@ -78,7 +78,7 @@ export async function runToolCall(
   log: Log,
 ): Promise<ToolCallOutcome> {
   const toolResult = await executeAgentTool(tc, deps, log);
-  if (tc.function.name !== "done") {
+  if (tc.function.name !== "done" && tc.function.name !== "done_with_artifact") {
     return { toolResult, isDone: false };
   }
   let summary: string | undefined;
@@ -87,6 +87,9 @@ export async function runToolCall(
     if (typeof parsed.summary === "string") summary = parsed.summary;
   } catch {
     // fall through to toolResult
+  }
+  if (tc.function.name === "done_with_artifact") {
+    return { toolResult, isDone: true, doneSummary: toolResult };
   }
   return { toolResult, isDone: true, doneSummary: summary || toolResult };
 }
