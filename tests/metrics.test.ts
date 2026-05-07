@@ -2,17 +2,14 @@
  * Metrics / Observability tests.
  */
 
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { unlinkSync } from "node:fs";
 import { MemoryDB } from "@subbrain/core/db";
 import type { StatsProvider } from "@subbrain/core/lib/metrics";
 import { Metrics } from "@subbrain/core/lib/metrics";
 
 const TEST_DB = "data/test-metrics.db";
-try {
-  unlinkSync(TEST_DB);
-} catch {}
 
-// Mock stats provider
 const mockStats: StatsProvider = {
   get currentLoad() {
     return 5;
@@ -25,127 +22,119 @@ const mockStats: StatsProvider = {
   },
 };
 
-const metrics = new Metrics(mockStats);
+describe("Metrics", () => {
+  let metrics: Metrics;
 
-// ─── Test 1: Empty snapshot
-const snap0 = metrics.snapshot();
-console.assert(snap0.rpm.current === 5, "RPM current from provider");
-console.assert(snap0.rpm.available === 35, "RPM available");
-console.assert(snap0.tokens.total_in === 0, "Zero tokens initially");
-console.assert(snap0.requests.ok === 0, "Zero requests initially");
-console.log("✅ Empty snapshot");
+  beforeAll(() => {
+    try {
+      unlinkSync(TEST_DB);
+    } catch {}
+    metrics = new Metrics(mockStats);
+  });
 
-// ─── Test 2: Record metrics
-metrics.record({
-  model: "deepseek-ai/deepseek-v3.2",
-  priority: "critical",
-  stage: "main",
-  latencyMs: 1200,
-  tokensIn: 500,
-  tokensOut: 250,
-  status: "ok",
+  afterAll(() => {
+    try {
+      unlinkSync(TEST_DB);
+    } catch {}
+  });
+
+  test("empty snapshot reflects provider stats and zero counters", () => {
+    const snap0 = metrics.snapshot();
+    expect(snap0.rpm.current).toBe(5);
+    expect(snap0.rpm.available).toBe(35);
+    expect(snap0.tokens.total_in).toBe(0);
+    expect(snap0.requests.ok).toBe(0);
+  });
+
+  test("record + counters + per-model + latency + per-stage + rpm-by-priority", () => {
+    metrics.record({
+      model: "deepseek-ai/deepseek-v3.2",
+      priority: "critical",
+      stage: "main",
+      latencyMs: 1200,
+      tokensIn: 500,
+      tokensOut: 250,
+      status: "ok",
+    });
+    metrics.record({
+      model: "stepfun-ai/step-3.5-flash",
+      priority: "normal",
+      stage: "pre",
+      latencyMs: 300,
+      tokensIn: 200,
+      tokensOut: 100,
+      status: "ok",
+    });
+    metrics.record({
+      model: "deepseek-ai/deepseek-v3.2",
+      priority: "critical",
+      stage: "main",
+      latencyMs: 800,
+      tokensIn: 400,
+      tokensOut: 200,
+      status: "error",
+      errorType: "5xx",
+    });
+
+    const snap = metrics.snapshot();
+    expect(snap.tokens.total_in).toBe(1100);
+    expect(snap.tokens.total_out).toBe(550);
+    expect(snap.requests.ok).toBe(2);
+    expect(snap.requests.error).toBe(1);
+    expect(snap.errors["5xx"]).toBe(1);
+
+    expect(snap.models["deepseek-ai/deepseek-v3.2"]?.requests).toBe(2);
+    expect(snap.models["stepfun-ai/step-3.5-flash"]?.requests).toBe(1);
+    expect(snap.models["deepseek-ai/deepseek-v3.2"]?.avgLatencyMs).toBe(1000);
+
+    expect(snap.latency.count).toBe(3);
+    expect(snap.latency.p50).toBeGreaterThan(0);
+    expect(snap.latency.max).toBe(1200);
+
+    expect(snap.latency_by_stage.main?.count).toBe(2);
+    expect(snap.latency_by_stage.pre?.count).toBe(1);
+
+    expect(snap.rpm.by_priority.critical).toBe(2);
+    expect(snap.rpm.by_priority.normal).toBe(1);
+  });
+
+  test("error type breakdown + flush to SQLite + uptime", () => {
+    metrics.record({
+      model: "test",
+      priority: "normal",
+      stage: "raw",
+      latencyMs: 100,
+      tokensIn: 0,
+      tokensOut: 0,
+      status: "error",
+      errorType: "429",
+    });
+    metrics.record({
+      model: "test",
+      priority: "low",
+      stage: "embed",
+      latencyMs: 5000,
+      tokensIn: 0,
+      tokensOut: 0,
+      status: "error",
+      errorType: "timeout",
+    });
+
+    const snap = metrics.snapshot();
+    expect(snap.errors["429"]).toBe(1);
+    expect(snap.errors["5xx"]).toBe(1);
+    expect(snap.errors.timeout).toBe(1);
+    expect(snap.uptime_s).toBeGreaterThanOrEqual(0);
+
+    const memory = new MemoryDB(TEST_DB);
+    try {
+      metrics.flush(memory);
+      const rows = memory.db.query("SELECT * FROM metrics_log").all() as Array<{ snapshot: string }>;
+      expect(rows.length).toBe(1);
+      const flushed = JSON.parse(rows[0]?.snapshot ?? "{}");
+      expect(flushed.tokens.total_in).toBe(1100);
+    } finally {
+      memory.close();
+    }
+  });
 });
-
-metrics.record({
-  model: "stepfun-ai/step-3.5-flash",
-  priority: "normal",
-  stage: "pre",
-  latencyMs: 300,
-  tokensIn: 200,
-  tokensOut: 100,
-  status: "ok",
-});
-
-metrics.record({
-  model: "deepseek-ai/deepseek-v3.2",
-  priority: "critical",
-  stage: "main",
-  latencyMs: 800,
-  tokensIn: 400,
-  tokensOut: 200,
-  status: "error",
-  errorType: "5xx",
-});
-
-const snap1 = metrics.snapshot();
-console.assert(snap1.tokens.total_in === 1100, `Tokens in: ${snap1.tokens.total_in}`);
-console.assert(snap1.tokens.total_out === 550, `Tokens out: ${snap1.tokens.total_out}`);
-console.assert(snap1.requests.ok === 2, `Requests ok: ${snap1.requests.ok}`);
-console.assert(snap1.requests.error === 1, `Requests error: ${snap1.requests.error}`);
-console.assert(snap1.errors["5xx"] === 1, "One 5xx error");
-console.log("✅ Record + counters");
-
-// ─── Test 3: Per-model stats
-console.assert(snap1.models["deepseek-ai/deepseek-v3.2"]?.requests === 2, "DeepSeek: 2 requests");
-console.assert(snap1.models["stepfun-ai/step-3.5-flash"]?.requests === 1, "Flash: 1 request");
-console.assert(
-  snap1.models["deepseek-ai/deepseek-v3.2"]?.avgLatencyMs === 1000,
-  "DeepSeek avg latency: 1000ms",
-);
-console.log("✅ Per-model stats");
-
-// ─── Test 4: Latency percentiles
-console.assert(snap1.latency.count === 3, "3 latency samples");
-console.assert(snap1.latency.p50 > 0, "p50 > 0");
-console.assert(snap1.latency.max === 1200, `Max latency: ${snap1.latency.max}`);
-console.log("✅ Latency percentiles");
-
-// ─── Test 5: Per-stage latency
-console.assert(snap1.latency_by_stage.main?.count === 2, "main: 2 samples");
-console.assert(snap1.latency_by_stage.pre?.count === 1, "pre: 1 sample");
-console.log("✅ Per-stage latency");
-
-// ─── Test 6: RPM by priority
-console.assert(snap1.rpm.by_priority.critical === 2, "2 critical");
-console.assert(snap1.rpm.by_priority.normal === 1, "1 normal");
-console.log("✅ RPM by priority");
-
-// ─── Test 7: Error type breakdown
-metrics.record({
-  model: "test",
-  priority: "normal",
-  stage: "raw",
-  latencyMs: 100,
-  tokensIn: 0,
-  tokensOut: 0,
-  status: "error",
-  errorType: "429",
-});
-metrics.record({
-  model: "test",
-  priority: "low",
-  stage: "embed",
-  latencyMs: 5000,
-  tokensIn: 0,
-  tokensOut: 0,
-  status: "error",
-  errorType: "timeout",
-});
-
-const snap2 = metrics.snapshot();
-console.assert(snap2.errors["429"] === 1, "One 429");
-console.assert(snap2.errors["5xx"] === 1, "One 5xx");
-console.assert(snap2.errors.timeout === 1, "One timeout");
-console.log("✅ Error type breakdown");
-
-// ─── Test 8: Flush to SQLite
-const memory = new MemoryDB(TEST_DB);
-metrics.flush(memory);
-
-const rows = memory.db.query("SELECT * FROM metrics_log").all() as any[];
-console.assert(rows.length === 1, "One metrics snapshot flushed");
-const flushed = JSON.parse(rows[0].snapshot);
-console.assert(flushed.tokens.total_in === 1100, "Flushed data correct");
-console.log("✅ Flush to SQLite");
-
-// ─── Test 9: Uptime
-console.assert(snap2.uptime_s >= 0, "Uptime non-negative");
-console.log("✅ Uptime tracking");
-
-// Cleanup
-memory.close();
-try {
-  unlinkSync(TEST_DB);
-} catch {}
-
-console.log("\n🎉 All observability tests passed!");
