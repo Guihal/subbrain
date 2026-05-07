@@ -9,10 +9,11 @@
  * Replaces ad-hoc `{ ... } as any` log/deps stubs flagged by the
  * 2026-05-07 test-suite audit.
  */
-import type { MemoryDB } from "@subbrain/core/db";
-import type { LogEntry, RequestLogger } from "@subbrain/core/lib/logger";
+
 import type { SharedWriteDeps } from "@subbrain/agent/mcp/tools/memory/write-shared";
 import type { ToolResult } from "@subbrain/agent/mcp/types";
+import type { MemoryDB } from "@subbrain/core/db";
+import type { LogEntry, RequestLogger } from "@subbrain/core/lib/logger";
 
 type LogFn = (stage: string, message: string, extra?: Partial<LogEntry>) => void;
 

@@ -32,17 +32,24 @@ beforeAll(() => {
         return mkResponse(params.messages[1].content.replace(/John Doe/g, "[NAME]"));
       if (sys.includes("Translate")) return mkResponse(params.messages[1].content);
       if (sys.includes("knowledge compressor"))
-        return mkResponse(JSON.stringify({
-          title: "Bun + Elysia Architecture",
-          content: "## Decision\nChose Bun + Elysia for fast HTTP with SQLite.",
-          tags: "bun,elysia,architecture",
-          skip: false,
-        }));
-      if (sys.includes("fact verifier")) return mkResponse(JSON.stringify({ accurate: true, issues: [] }));
-      if (sys.includes("compare a new knowledge")) return mkResponse(JSON.stringify({ isDuplicate: false, action: "append" }));
+        return mkResponse(
+          JSON.stringify({
+            title: "Bun + Elysia Architecture",
+            content: "## Decision\nChose Bun + Elysia for fast HTTP with SQLite.",
+            tags: "bun,elysia,architecture",
+            skip: false,
+          }),
+        );
+      if (sys.includes("fact verifier"))
+        return mkResponse(JSON.stringify({ accurate: true, issues: [] }));
+      if (sys.includes("compare a new knowledge"))
+        return mkResponse(JSON.stringify({ isDuplicate: false, action: "append" }));
       if (sys.includes("анти-паттерны"))
-        return mkResponse("## Anti-patterns detected\n- FTS5 stop words: forgot to sanitize queries, lost 30min debugging");
-      if (sys.includes("contradiction")) return mkResponse(JSON.stringify({ hasContradiction: false }));
+        return mkResponse(
+          "## Anti-patterns detected\n- FTS5 stop words: forgot to sanitize queries, lost 30min debugging",
+        );
+      if (sys.includes("contradiction"))
+        return mkResponse(JSON.stringify({ hasContradiction: false }));
       return mkResponse("ok");
     },
     scheduleRaw: async (_p: string, fn: () => Promise<any>) => fn(),
@@ -71,10 +78,28 @@ describe("NightCycle pipeline", () => {
 
   test("full pipeline processes seeded session through PII + compress stages", async () => {
     const sid = "session-001";
-    memory.appendLog("req-001", sid, "teamlead", "user", "Why did John Doe choose Bun and Elysia for the server?");
-    memory.appendLog("req-001", sid, "teamlead", "assistant", "Bun was chosen for its fast startup and native SQLite support. Elysia provides a modern HTTP API with excellent TypeScript integration and WebSocket/SSE support.");
+    memory.appendLog(
+      "req-001",
+      sid,
+      "teamlead",
+      "user",
+      "Why did John Doe choose Bun and Elysia for the server?",
+    );
+    memory.appendLog(
+      "req-001",
+      sid,
+      "teamlead",
+      "assistant",
+      "Bun was chosen for its fast startup and native SQLite support. Elysia provides a modern HTTP API with excellent TypeScript integration and WebSocket/SSE support.",
+    );
     memory.appendLog("req-002", sid, "teamlead", "user", "What about the database choice?");
-    memory.appendLog("req-002", sid, "teamlead", "assistant", "SQLite with FTS5 for full-text search and sqlite-vec for vector embeddings. This keeps everything in a single process with no external dependencies.");
+    memory.appendLog(
+      "req-002",
+      sid,
+      "teamlead",
+      "assistant",
+      "SQLite with FTS5 for full-text search and sqlite-vec for vector embeddings. This keeps everything in a single process with no external dependencies.",
+    );
 
     callCount = 0;
     chatCalls = [];
@@ -110,7 +135,13 @@ describe("NightCycle pipeline", () => {
 
   test("new logs appended after progress get processed", async () => {
     memory.appendLog("req-003", "session-002", "coder", "user", "New message after night cycle");
-    memory.appendLog("req-003", "session-002", "coder", "assistant", "This is a detailed response about new architecture decisions including database migration strategies and deployment workflows for the production environment.");
+    memory.appendLog(
+      "req-003",
+      "session-002",
+      "coder",
+      "assistant",
+      "This is a detailed response about new architecture decisions including database migration strategies and deployment workflows for the production environment.",
+    );
 
     callCount = 0;
     const r = await nightCycle.run();
@@ -120,7 +151,9 @@ describe("NightCycle pipeline", () => {
 
   test("archive entry written with title, bun tag, confidence=0.9 (M-12 mig 15)", () => {
     const rows = memory.db
-      .query("SELECT * FROM layer3_archive WHERE agent_id = 'night-cycle' AND tags NOT LIKE '%anti-patterns%' ORDER BY rowid")
+      .query(
+        "SELECT * FROM layer3_archive WHERE agent_id = 'night-cycle' AND tags NOT LIKE '%anti-patterns%' ORDER BY rowid",
+      )
       .all() as any[];
     expect(rows.length).toBeGreaterThanOrEqual(1);
     const first = rows[0];

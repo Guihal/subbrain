@@ -10,8 +10,8 @@
 
 import { describe, expect, test } from "bun:test";
 import { ArbitrationRoom } from "@subbrain/agent/pipeline/arbitration";
-import { makeResponse } from "./helpers/arbitration-mocks";
 import type { Message } from "@subbrain/core/types/providers";
+import { makeResponse } from "./helpers/arbitration-mocks";
 
 describe("ArbitrationRoom.run — single valid response → skip synthesis", () => {
   test("returns coder content directly when others timeout", async () => {

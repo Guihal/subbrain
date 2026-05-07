@@ -9,10 +9,7 @@
 
 import { beforeEach, describe, expect, test } from "bun:test";
 import { ArbitrationRoom } from "@subbrain/agent/pipeline/arbitration";
-import {
-  type Call,
-  happyRouter,
-} from "./helpers/arbitration-mocks";
+import { type Call, happyRouter } from "./helpers/arbitration-mocks";
 
 describe("ArbitrationRoom.run — happy path (3 specialists + synthesis)", () => {
   const calls: Call[] = [];

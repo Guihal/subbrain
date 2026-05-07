@@ -129,7 +129,9 @@ describe("Metrics", () => {
     const memory = new MemoryDB(TEST_DB);
     try {
       metrics.flush(memory);
-      const rows = memory.db.query("SELECT * FROM metrics_log").all() as Array<{ snapshot: string }>;
+      const rows = memory.db.query("SELECT * FROM metrics_log").all() as Array<{
+        snapshot: string;
+      }>;
       expect(rows.length).toBe(1);
       const flushed = JSON.parse(rows[0]?.snapshot ?? "{}");
       expect(flushed.tokens.total_in).toBe(1100);

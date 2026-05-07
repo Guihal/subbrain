@@ -7,8 +7,11 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:tes
 import { existsSync, unlinkSync } from "node:fs";
 import { ToolExecutor } from "@subbrain/agent/mcp/executor";
 import { buildRegistry, type ToolRegistry } from "@subbrain/agent/mcp/registry";
-import { doneWithArtifact, isTerminated, resetTermination }
-  from "@subbrain/agent/mcp/tools/pool/done-with-artifact";
+import {
+  doneWithArtifact,
+  isTerminated,
+  resetTermination,
+} from "@subbrain/agent/mcp/tools/pool/done-with-artifact";
 import { runToolCall } from "@subbrain/agent/pipeline/agent-loop/tool-dispatch";
 import type { ToolRunnerDeps } from "@subbrain/agent/pipeline/agent-loop/tool-runner";
 import { MemoryDB } from "@subbrain/core/db";
@@ -106,9 +109,7 @@ describe("done_with_artifact registry integration", () => {
   });
 
   test("agent listing includes done_with_artifact", () => {
-    expect(registry.listForAgent("interactive").map((t) => t.name)).toContain(
-      "done_with_artifact",
-    );
+    expect(registry.listForAgent("interactive").map((t) => t.name)).toContain("done_with_artifact");
   });
 });
 
@@ -124,11 +125,20 @@ describe("done_with_artifact tool-dispatch integration", () => {
       delete: () => {},
     } as unknown as ToolRunnerDeps["dynamicTools"];
     const deps: ToolRunnerDeps = {
-      registry, tools: executor, router: stubRouter, room: null, dynamicTools,
-      persistDynamicTools: () => {}, codeTools: null, agentId: null, agentMode: "interactive",
+      registry,
+      tools: executor,
+      router: stubRouter,
+      room: null,
+      dynamicTools,
+      persistDynamicTools: () => {},
+      codeTools: null,
+      agentId: null,
+      agentMode: "interactive",
       session: {
-        consultSpecialistsCount: 0, consultSpecialistsMax: 5,
-        consultChaosCount: 0, consultChaosMax: 5,
+        consultSpecialistsCount: 0,
+        consultSpecialistsMax: 5,
+        consultChaosCount: 0,
+        consultChaosMax: 5,
       },
     };
     const outcome = await runToolCall(

@@ -28,7 +28,7 @@ export interface RollbackResult {
   errors: number;
 }
 
-export async function runRollback(memory: MemoryDB, jsonlPath: string): Promise<RollbackResult> {
+export function runRollback(memory: MemoryDB, jsonlPath: string): RollbackResult {
   const result: RollbackResult = {
     total: 0,
     restored: 0,

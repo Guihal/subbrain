@@ -134,6 +134,7 @@ describe("executeStep", () => {
   test("budget note is always popped, even on router throw", async () => {
     const messages: Message[] = [{ role: "user", content: "hi" }];
     const throwingRouter = {
+      // biome-ignore lint/suspicious/useAwait: ModelRouter.chat signature requires async; throw becomes rejected Promise
       chat: async () => {
         throw new Error("boom");
       },

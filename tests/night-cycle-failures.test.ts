@@ -25,7 +25,9 @@ afterEach(() => {
   while (tempDbs.length) {
     const p = tempDbs.pop()!;
     for (const ext of ["", "-shm", "-wal"]) {
-      try { if (existsSync(`${p}${ext}`)) unlinkSync(`${p}${ext}`); } catch {}
+      try {
+        if (existsSync(`${p}${ext}`)) unlinkSync(`${p}${ext}`);
+      } catch {}
     }
   }
 });
@@ -34,9 +36,17 @@ describe("NightCycle failure modes", () => {
   test("LLM upstream throw → counts logs, 0 archive rows, errors collected", async () => {
     const memory = new MemoryDB(mkDb("fail"));
     memory.appendLog("r1", "s1", "a1", "user", "Test message from user about project");
-    memory.appendLog("r1", "s1", "a1", "assistant", "Test response with enough content to trigger processing in the pipeline and not be skipped as trivial");
+    memory.appendLog(
+      "r1",
+      "s1",
+      "a1",
+      "assistant",
+      "Test response with enough content to trigger processing in the pipeline and not be skipped as trivial",
+    );
     const failRouter = {
-      chat: async () => { throw new Error("LLM unavailable"); },
+      chat: async () => {
+        throw new Error("LLM unavailable");
+      },
       scheduleRaw: async (_p: string, fn: () => Promise<any>) => fn(),
       raw: { embed: async () => ({ data: [{ embedding: new Array(2048).fill(0) }] }) },
     } as any;
@@ -52,21 +62,31 @@ describe("NightCycle failure modes", () => {
   test("HIGH-5 — FTS-hostile tags (quote/colon/star) don't throw", async () => {
     const memory = new MemoryDB(mkDb("fts"));
     memory.appendLog("r1", "s1", "a1", "user", "Tell me about tag sanitization in FTS");
-    memory.appendLog("r1", "s1", "a1", "assistant", "FTS5 treats special characters as operators. Any quote, colon or star must be stripped or quoted before MATCH or the query throws.");
+    memory.appendLog(
+      "r1",
+      "s1",
+      "a1",
+      "assistant",
+      "FTS5 treats special characters as operators. Any quote, colon or star must be stripped or quoted before MATCH or the query throws.",
+    );
     const ftsRouter = {
       chat: async (_m: string, params: any) => {
         const sys = params.messages?.[0]?.content || "";
         if (sys.includes("PII scrubber")) return mkResponse(params.messages[1].content);
         if (sys.includes("Translate")) return mkResponse(params.messages[1].content);
         if (sys.includes("knowledge compressor"))
-          return mkResponse(JSON.stringify({
-            title: "Tag sanitization",
-            content: "FTS5 needs sanitized tokens.",
-            tags: 'tag"with:quote*,bun,elysia',
-            skip: false,
-          }));
-        if (sys.includes("fact verifier")) return mkResponse(JSON.stringify({ accurate: true, issues: [] }));
-        if (sys.includes("compare a new")) return mkResponse(JSON.stringify({ isDuplicate: false, action: "append" }));
+          return mkResponse(
+            JSON.stringify({
+              title: "Tag sanitization",
+              content: "FTS5 needs sanitized tokens.",
+              tags: 'tag"with:quote*,bun,elysia',
+              skip: false,
+            }),
+          );
+        if (sys.includes("fact verifier"))
+          return mkResponse(JSON.stringify({ accurate: true, issues: [] }));
+        if (sys.includes("compare a new"))
+          return mkResponse(JSON.stringify({ isDuplicate: false, action: "append" }));
         return mkResponse("NONE");
       },
       scheduleRaw: async (_p: string, fn: () => Promise<any>) => fn(),
@@ -86,7 +106,13 @@ describe("NightCycle failure modes", () => {
   test("HIGH-6 — embed upstream throw → 0 archive rows (atomic transaction)", async () => {
     const memory = new MemoryDB(mkDb("embed-fail"));
     memory.appendLog("r1", "s1", "a1", "user", "Explain transactions with RAG indexing");
-    memory.appendLog("r1", "s1", "a1", "assistant", "Transactions ensure archive insert and vector upsert are atomic. If embed fails, no orphan row is left for RAG to miss later.");
+    memory.appendLog(
+      "r1",
+      "s1",
+      "a1",
+      "assistant",
+      "Transactions ensure archive insert and vector upsert are atomic. If embed fails, no orphan row is left for RAG to miss later.",
+    );
     let embedCalls = 0;
     const embedFailRouter = {
       chat: async (_m: string, params: any) => {
@@ -94,19 +120,26 @@ describe("NightCycle failure modes", () => {
         if (sys.includes("PII scrubber")) return mkResponse(params.messages[1].content);
         if (sys.includes("Translate")) return mkResponse(params.messages[1].content);
         if (sys.includes("knowledge compressor"))
-          return mkResponse(JSON.stringify({
-            title: "Atomic archive",
-            content: "Embed first, then insert + upsert in a db.transaction.",
-            tags: "archive,transaction",
-            skip: false,
-          }));
-        if (sys.includes("fact verifier")) return mkResponse(JSON.stringify({ accurate: true, issues: [] }));
-        if (sys.includes("compare a new")) return mkResponse(JSON.stringify({ isDuplicate: false, action: "append" }));
+          return mkResponse(
+            JSON.stringify({
+              title: "Atomic archive",
+              content: "Embed first, then insert + upsert in a db.transaction.",
+              tags: "archive,transaction",
+              skip: false,
+            }),
+          );
+        if (sys.includes("fact verifier"))
+          return mkResponse(JSON.stringify({ accurate: true, issues: [] }));
+        if (sys.includes("compare a new"))
+          return mkResponse(JSON.stringify({ isDuplicate: false, action: "append" }));
         return mkResponse("NONE");
       },
       scheduleRaw: async (_p: string, fn: () => Promise<any>) => fn(),
       raw: {
-        embed: async () => { embedCalls++; throw new Error("embed-upstream-down"); },
+        embed: async () => {
+          embedCalls++;
+          throw new Error("embed-upstream-down");
+        },
         rerank: async () => ({ results: [] }),
       },
     } as any;

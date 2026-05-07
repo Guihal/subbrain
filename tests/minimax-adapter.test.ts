@@ -95,7 +95,8 @@ describe("splitResponseThinkTags", () => {
 
   test("concatenates with upstream reasoning_content if present", () => {
     const r = fakeResp("<think>b</think>end");
-    r.choices[0]?.message.reasoning_content = "a";
+    const msg = r.choices[0]?.message;
+    if (msg) msg.reasoning_content = "a";
     const out = splitResponseThinkTags(r);
     expect(out.choices[0]?.message.reasoning_content).toBe("ab");
     expect(out.choices[0]?.message.content).toBe("end");

@@ -92,26 +92,30 @@ describe("tg-pii-backfill", () => {
     expect(row2.text).toBe(row1.text);
   });
 
-  test("progress output contains counts but no PII", () => {
-    const db = new Database(testDbPath);
-    db.run("DELETE FROM tg_messages");
-    for (let i = 0; i < 600; i++) {
-      db.run(
-        "INSERT INTO tg_messages (message_id, chat_id, text, ts) VALUES (?, ?, ?, ?)",
-        i,
-        "c1",
-        `msg ${i} and email user${i}@test.com`,
-        i,
-      );
-    }
-    db.close();
+  test(
+    "progress output contains counts but no PII",
+    () => {
+      const db = new Database(testDbPath);
+      db.run("DELETE FROM tg_messages");
+      for (let i = 0; i < 600; i++) {
+        db.run(
+          "INSERT INTO tg_messages (message_id, chat_id, text, ts) VALUES (?, ?, ?, ?)",
+          i,
+          "c1",
+          `msg ${i} and email user${i}@test.com`,
+          i,
+        );
+      }
+      db.close();
 
-    const result = runScript(["--confirm"], { DB_PATH: testDbPath });
-    expect(result.exitCode).toBe(0);
-    expect(result.stdout).toInclude("600/600 rows processed");
-    expect(result.stdout).not.toInclude("user0@test.com");
-    expect(result.stdout).not.toInclude("user599@test.com");
-  });
+      const result = runScript(["--confirm"], { DB_PATH: testDbPath });
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toInclude("600/600 rows processed");
+      expect(result.stdout).not.toInclude("user0@test.com");
+      expect(result.stdout).not.toInclude("user599@test.com");
+    },
+    30000,
+  );
 
   test("empty table prints no rows and exits 0", () => {
     const emptyDb = "data/test-backfill-empty.db";

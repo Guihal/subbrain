@@ -8,10 +8,7 @@
  */
 import { describe, expect, test } from "bun:test";
 import { AppError, NotFoundError, UpstreamExhaustedError } from "@subbrain/core/lib/errors";
-import {
-  type AppErrorContext,
-  handleAppError,
-} from "../packages/server/src/app/error-handler";
+import { type AppErrorContext, handleAppError } from "../packages/server/src/app/error-handler";
 
 function invoke(error: unknown, code = "UNKNOWN", path = "/x") {
   const set = { status: 0 };

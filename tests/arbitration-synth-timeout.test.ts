@@ -16,8 +16,8 @@
 
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { ArbitrationRoom } from "@subbrain/agent/pipeline/arbitration";
-import { makeResponse } from "./helpers/arbitration-mocks";
 import type { Message } from "@subbrain/core/types/providers";
+import { makeResponse } from "./helpers/arbitration-mocks";
 
 describe("ArbitrationRoom.run — synthesis timeout → top-2 fallback", () => {
   let prevTimeout: string | undefined;

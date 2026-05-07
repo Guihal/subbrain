@@ -3,8 +3,9 @@
  * ignores this. Per-test `overrides` give the minimal surface needed; defaults
  * stay no-op so unrelated fields don't drift when the underlying types grow.
  */
-import { ToolRegistry } from "@subbrain/agent/mcp";
+
 import type { ToolExecutor } from "@subbrain/agent/mcp";
+import { ToolRegistry } from "@subbrain/agent/mcp";
 import type { CodeToolRegistry } from "@subbrain/agent/pipeline/agent-loop/code-tools";
 import { DynamicToolRegistry } from "@subbrain/agent/pipeline/agent-loop/dynamic-tools";
 import type { AgentLoopDeps } from "@subbrain/agent/pipeline/agent-loop/shared";
@@ -31,9 +32,7 @@ export function makeStubRouter(opts: MakeRouterOpts = {}): ModelRouter {
     object: "chat.completion",
     created: 0,
     model: "teamlead",
-    choices: [
-      { index: 0, finish_reason: "stop", message: { role: "assistant", content: "ok" } },
-    ],
+    choices: [{ index: 0, finish_reason: "stop", message: { role: "assistant", content: "ok" } }],
     ...opts.response,
   };
   const chat: RouterChatFn = opts.chat ?? (async () => full);

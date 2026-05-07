@@ -136,6 +136,7 @@ describe("agent-pool concurrency", () => {
     db.agentTasksRepo.enqueue({ type: "free", prompt: "b", createdBy: "test" });
 
     let callCount = 0;
+    // biome-ignore lint/suspicious/useAwait: RunnerFn signature requires async; throw becomes rejected Promise
     const runFn = async (): Promise<RunnerResult> => {
       callCount++;
       if (callCount === 1) throw new Error("boom");

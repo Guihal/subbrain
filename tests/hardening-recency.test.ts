@@ -59,7 +59,9 @@ beforeAll(() => {
 
   // Backdate old-entry by ~1 week so recency boost favors new-entry.
   const oneWeekAgo = Math.floor(Date.now() / 1000) - 7 * 24 * 3600 - 100;
-  memory.db.query("UPDATE layer2_context SET updated_at = ? WHERE id = 'old-entry'").run(oneWeekAgo);
+  memory.db
+    .query("UPDATE layer2_context SET updated_at = ? WHERE id = 'old-entry'")
+    .run(oneWeekAgo);
 });
 
 afterAll(() => {

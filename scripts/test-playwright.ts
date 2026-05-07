@@ -8,7 +8,7 @@ try {
   });
   console.log("SUCCESS:", result.slice(0, 500));
   await pw.close();
-} catch (e: any) {
-  console.error("FAILED:", e.message);
+} catch (e) {
+  console.error("FAILED:", (e as Error).message);
 }
 process.exit(0);
