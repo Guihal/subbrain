@@ -164,11 +164,33 @@ Planned checks:
 
 ## 4. Hourly Audit Log
 
+### 2026-05-07 ~04:15 UTC
+- Checked: 87 done packets (0 skipped via _last_audit_pass cache — first run with new format)
+- Findings: 7 commit-message-gap false positives (P0-1, P0-2, A1-6c, A1-6d, P4-0, P5-1, P5-4 — all verified via file existence, NOT phantom), 0 real phantom, 0 spec mismatch, 0 cap violation, 0 drift, 0 soc, 0 doc drift
+- cp0-cp3 on HEAD: green (file-size/deep-imports/forbidden clean, tsc clean, biome 0 errors, tests 1265 pass / 2 fail / 1 error pre-existing)
+- Reverted to fail: none
+- Clean: ✓
+
 ### 2026-05-06 ~16:30 UTC
 - Checked: Full codebase type-safety + file-size + SoC (3 subagents dispatched, 2 completed, 1 rejected)
 - Findings: 10 type-safety violations (new-fix), 0 file-size violations, 0 SoC violations, 6 files at 1-line headroom
 - Reverted to fail: none (all done packets remain valid)
 - Clean: **Partial** — type-safety debt exists but no regressions
+
+---
+
+## Entropy audit log
+
+### 2026-05-07 ~04:20 UTC
+- Hot-spots scanned: 4 (skipped via dedupe: 4 — useMemory.ts, context-compressor.ts, db/schema.ts, db/index.ts audited earlier today)
+- Findings written: 4 (high=0, medium=4, low=0)
+- Top 4 highest-risk:
+  - packages-agent-src-pipeline-night-cycle-post-steps (cyc=32, MI=55.9, lines=262, runPostBatchSteps@17)
+  - packages-agent-src-pipeline-agent-pipeline-post-link-related (cyc=44, MI=34.4, lines=246, linkRelated@14)
+  - packages-agent-src-pipeline-night-cycle-steps-cross-layer-dedup (cyc=38, MI=47.4, lines=245, dedupPair@12)
+  - packages-agent-src-mcp-tools-memory-write-shared (cyc=31, MI=35.1, lines=253, insertAndSupersede@7)
+- Refactor proposals → docs/audit/2026-05-07-*-.md
+- Clean: (M=4, findings exist)
 
 ---
 

@@ -144,6 +144,17 @@
 
 ---
 
+## Wave 5 — Entropy refactor
+
+| Phase | Packet | Status | Last CP | Blocker | Notes |
+|---|---|---|---|---|---|
+| 5-1 | entropy-post-steps | `not_started` | — | — | Risk=medium, cyc=32, MI=55.9. spec_path: docs/audit/2026-05-07-packages-agent-src-pipeline-night-cycle-post-steps.md. file_cap_hard: {"packages/agent/src/pipeline/night-cycle/post-steps.ts": 262}. expected_scope: impl. |
+| 5-2 | entropy-link-related | `not_started` | — | — | Risk=medium, cyc=44, MI=34.4. spec_path: docs/audit/2026-05-07-packages-agent-src-pipeline-agent-pipeline-post-link-related.md. file_cap_hard: {"packages/agent/src/pipeline/agent-pipeline/post/link-related.ts": 246}. expected_scope: impl. |
+| 5-3 | entropy-cross-layer-dedup | `not_started` | — | — | Risk=medium, cyc=38, MI=47.4. spec_path: docs/audit/2026-05-07-packages-agent-src-pipeline-night-cycle-steps-cross-layer-dedup.md. file_cap_hard: {"packages/agent/src/pipeline/night-cycle/steps/cross-layer-dedup.ts": 245}. expected_scope: impl. |
+| 5-4 | entropy-write-shared | `not_started` | — | — | Risk=medium, cyc=31, MI=35.1. spec_path: docs/audit/2026-05-07-packages-agent-src-mcp-tools-memory-write-shared.md. file_cap_hard: {"packages/agent/src/mcp/tools/memory/write-shared.ts": 253}. expected_scope: impl. |
+
+---
+
 ## Deferred (next round)
 
 | Phase | Reason |
