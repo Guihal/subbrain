@@ -1,53 +1,14 @@
 import { describe, expect, test } from "bun:test";
-import type { ToolRegistry } from "@subbrain/agent/mcp";
 import { executeStep } from "@subbrain/agent/pipeline/agent-loop/step";
-import type { ToolRunnerDeps } from "@subbrain/agent/pipeline/agent-loop/tool-runner";
-import type { MemoryDB } from "@subbrain/core/db";
 import { logger } from "@subbrain/core/lib/logger";
 import type { ModelRouter } from "@subbrain/core/lib/model-router";
-import type { ChatResponse, Message, Tool } from "@subbrain/core/types/providers";
-
-function mockRouter(response: Partial<ChatResponse>): ModelRouter {
-  const full: ChatResponse = {
-    id: "r1",
-    object: "chat.completion",
-    created: 0,
-    model: "teamlead",
-    choices: [],
-    ...response,
-  };
-  return { chat: async () => full } as unknown as ModelRouter;
-}
-
-function mockMemory(): MemoryDB {
-  // step.ts only touches memory via maybeCompress, which is a no-op
-  // while messages are small. Pass a stub.
-  return {} as unknown as MemoryDB;
-}
-
-function mockToolDeps(registry: Record<string, (args: any) => unknown>): ToolRunnerDeps {
-  const stubRegistry = {
-    has: (name: string) => name in registry,
-    call: async (name: string, args: unknown) => ({
-      success: true,
-      data: registry[name]?.(args),
-    }),
-    callAsAgent: async (name: string, args: unknown) => ({
-      success: true,
-      data: registry[name]?.(args as any),
-    }),
-  } as unknown as ToolRegistry;
-  return {
-    registry: stubRegistry,
-    tools: {} as any,
-    router: {} as any,
-    room: null,
-    dynamicTools: { get: () => undefined } as any,
-    persistDynamicTools: () => {},
-    codeTools: null,
-    session: {} as any,
-  };
-}
+import type { ChatResponse, Message, Tool, ToolCall } from "@subbrain/core/types/providers";
+import {
+  makeStepDeps,
+  makeStubMemory,
+  makeStubRouter,
+  makeToolRunnerDepsFromMap,
+} from "./lib/agent-loop-fixtures";
 
 const log = logger.forRequest("test-req", "test-sess");
 const baseInput = {
@@ -58,38 +19,39 @@ const baseInput = {
   getAllTools: (): Tool[] => [],
 };
 
+type Choice = ChatResponse["choices"][number];
+type AssistantMsg = Choice["message"];
+
+const choice = (message: AssistantMsg, finish: Choice["finish_reason"] = "stop"): Choice => ({
+  index: 0,
+  finish_reason: finish,
+  message,
+});
+const tcCall = (id: string, name: string, args: string): ToolCall => ({
+  id,
+  type: "function",
+  function: { name, arguments: args },
+});
+const emptyTools = () => makeToolRunnerDepsFromMap({});
+
 describe("executeStep", () => {
   test("tool_calls path: dispatches tool, pushes tool_result, returns kind=tools", async () => {
     const messages: Message[] = [
       { role: "system", content: "sys" },
       { role: "user", content: "hi" },
     ];
-    const router = mockRouter({
-      choices: [
-        {
-          index: 0,
-          finish_reason: "tool_calls",
-          message: {
-            role: "assistant",
-            content: null,
-            tool_calls: [
-              {
-                id: "call_1",
-                type: "function",
-                function: { name: "ping", arguments: "{}" },
-              },
-            ],
-          },
-        },
-      ],
-    });
-    const tools = mockToolDeps({ ping: () => "pong" });
-
-    const onToolCallStart = [] as string[];
-    const onToolCallResult = [] as string[];
+    const asst: AssistantMsg = {
+      role: "assistant",
+      content: null,
+      tool_calls: [tcCall("call_1", "ping", "{}")],
+    };
+    const router = makeStubRouter({ response: { choices: [choice(asst, "tool_calls")] } });
+    const tools = makeToolRunnerDepsFromMap({ ping: () => "pong" });
+    const onToolCallStart: string[] = [];
+    const onToolCallResult: string[] = [];
 
     const result = await executeStep(
-      { router, memory: mockMemory(), tools },
+      makeStepDeps({ router, memory: makeStubMemory(), tools }),
       { ...baseInput, messages },
       log,
       {
@@ -102,8 +64,6 @@ describe("executeStep", () => {
     expect(onToolCallStart).toEqual(["ping"]);
     expect(onToolCallResult.length).toBe(1);
     expect(onToolCallResult[0]).toContain("pong");
-
-    // messages now: system, user, assistant(tool_calls), tool(result)
     expect(messages.length).toBe(4);
     expect(messages[2]?.role).toBe("assistant");
     expect(messages[2]?.tool_calls?.[0]?.id).toBe("call_1");
@@ -113,60 +73,34 @@ describe("executeStep", () => {
 
   test("done tool_call: returns kind=done with summary from arguments", async () => {
     const messages: Message[] = [{ role: "user", content: "go" }];
-    const router = mockRouter({
-      choices: [
-        {
-          index: 0,
-          finish_reason: "tool_calls",
-          message: {
-            role: "assistant",
-            content: null,
-            tool_calls: [
-              {
-                id: "call_done",
-                type: "function",
-                function: {
-                  name: "done",
-                  arguments: JSON.stringify({ summary: "all good" }),
-                },
-              },
-            ],
-          },
-        },
-      ],
+    const asst: AssistantMsg = {
+      role: "assistant",
+      content: null,
+      tool_calls: [tcCall("call_done", "done", JSON.stringify({ summary: "all good" }))],
+    };
+    const router = makeStubRouter({ response: { choices: [choice(asst, "tool_calls")] } });
+    const tools = makeToolRunnerDepsFromMap({
+      done: (a) => (a as { summary: string }).summary,
     });
-    const tools = mockToolDeps({ done: (a: any) => a.summary });
-
     const result = await executeStep(
-      { router, memory: mockMemory(), tools },
+      makeStepDeps({ router, memory: makeStubMemory(), tools }),
       { ...baseInput, messages },
       log,
     );
-
     expect(result).toEqual({ kind: "done", summary: "all good" });
   });
 
   test("plain content: returns kind=assistant and nudges via user message", async () => {
     const messages: Message[] = [{ role: "user", content: "hi" }];
-    const router = mockRouter({
-      choices: [
-        {
-          index: 0,
-          finish_reason: "stop",
-          message: { role: "assistant", content: "hello" },
-        },
-      ],
+    const router = makeStubRouter({
+      response: { choices: [choice({ role: "assistant", content: "hello" })] },
     });
-    const tools = mockToolDeps({});
-
     const result = await executeStep(
-      { router, memory: mockMemory(), tools },
+      makeStepDeps({ router, memory: makeStubMemory(), tools: emptyTools() }),
       { ...baseInput, messages },
       log,
     );
-
     expect(result).toEqual({ kind: "assistant", content: "hello" });
-    // budget note was popped, nudge was pushed
     const last = messages[messages.length - 1];
     expect(last?.role).toBe("user");
     expect(last?.content).toContain("автономном режиме");
@@ -174,56 +108,43 @@ describe("executeStep", () => {
 
   test("empty response: returns kind=empty and pushes empty-nudge", async () => {
     const messages: Message[] = [{ role: "user", content: "hi" }];
-    const router = mockRouter({
-      choices: [
-        {
-          index: 0,
-          finish_reason: "stop",
-          message: { role: "assistant", content: "" },
-        },
-      ],
+    const router = makeStubRouter({
+      response: { choices: [choice({ role: "assistant", content: "" })] },
     });
-    const tools = mockToolDeps({});
-
     const result = await executeStep(
-      { router, memory: mockMemory(), tools },
+      makeStepDeps({ router, memory: makeStubMemory(), tools: emptyTools() }),
       { ...baseInput, messages },
       log,
     );
-
     expect(result).toEqual({ kind: "empty" });
-    const last = messages[messages.length - 1];
-    expect(last?.content).toContain("Пустой ответ");
+    expect(messages[messages.length - 1]?.content).toContain("Пустой ответ");
   });
 
   test("no choices: returns kind=error", async () => {
     const messages: Message[] = [{ role: "user", content: "hi" }];
-    const router = mockRouter({ choices: [] });
-    const tools = mockToolDeps({});
-
+    const router = makeStubRouter({ response: { choices: [] } });
     const result = await executeStep(
-      { router, memory: mockMemory(), tools },
+      makeStepDeps({ router, memory: makeStubMemory(), tools: emptyTools() }),
       { ...baseInput, messages },
       log,
     );
-
     expect(result.kind).toBe("error");
   });
 
   test("budget note is always popped, even on router throw", async () => {
     const messages: Message[] = [{ role: "user", content: "hi" }];
-    const router = {
+    const throwingRouter = {
       chat: async () => {
         throw new Error("boom");
       },
     } as unknown as ModelRouter;
-    const tools = mockToolDeps({});
-
     await expect(
-      executeStep({ router, memory: mockMemory(), tools }, { ...baseInput, messages }, log),
+      executeStep(
+        makeStepDeps({ router: throwingRouter, memory: makeStubMemory(), tools: emptyTools() }),
+        { ...baseInput, messages },
+        log,
+      ),
     ).rejects.toThrow("boom");
-
-    // should have been popped → only the original message remains
     expect(messages.length).toBe(1);
   });
 });
