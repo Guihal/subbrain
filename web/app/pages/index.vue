@@ -1,6 +1,14 @@
 <script setup lang="ts">
-const { messages, currentChatId, streaming, loadChats, loadModels, sendMessage, checkHealth } =
-  useChat();
+const {
+  messages,
+  currentChatId,
+  streaming,
+  loadChats,
+  loadModels,
+  sendMessage,
+  cancelStream,
+  checkHealth,
+} = useChat();
 
 const sidebarOpen = useState("sidebar-open", () => false);
 const messagesContainer = ref<HTMLElement>();
@@ -104,5 +112,10 @@ async function handleSend(text: string) {
     />
   </div>
 
-  <ChatInput :disabled="streaming" @send="handleSend" />
+  <ChatInput
+    :disabled="streaming"
+    :streaming="streaming"
+    @send="handleSend"
+    @cancel="cancelStream"
+  />
 </template>

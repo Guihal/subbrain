@@ -30,8 +30,14 @@ export function useChatState() {
   const currentChatId = useState<string | null>("current-chat", () => null);
   const messages = useState<ChatMessage[]>("messages", () => []);
   const streaming = useState("streaming", () => false);
+  const streamAbort = useState<AbortController | null>("stream-abort", () => null);
 
   const currentChat = computed(() => chats.value.find((c) => c.id === currentChatId.value));
+
+  function cancelStream() {
+    const ctrl = streamAbort.value;
+    if (ctrl && !ctrl.signal.aborted) ctrl.abort();
+  }
 
   function updateLastAssistant(update: Partial<ChatMessage>) {
     const msgs = [...messages.value];
@@ -57,6 +63,8 @@ export function useChatState() {
     currentChat,
     messages,
     streaming,
+    streamAbort,
+    cancelStream,
     updateLastAssistant,
     flushStreamingPaint,
   };
