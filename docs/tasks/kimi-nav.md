@@ -123,7 +123,7 @@
 | 8c-3 | Backup retention pruner | `done` | `cp3` | — | Commit 673054d. `packages/core/src/db/backup/retention.ts` (71 lines). pruneBackups with anchored regex, sorts by date, deletes oldest. ENOENT race handled. cp0/tsc/tests green. |
 | 8c-4 | Backup restore CLI | `done` | `cp3` | — | Commit bc97ad0. `scripts/restore-backup.ts` (147 lines). --confirm or SUBBRAIN_RESTORE_CONFIRM=yes required. integrity_check + user_version validation. Backs up current DB before swap. cp0/tsc/tests green. |
 | 8c-5 | Backup status route | `done` | `cp3` | — | Commit 0b52971. `packages/server/src/routes/backup.ts` (76 lines). GET /v1/backup/status under authMiddleware. Aggregate stats from filesystem. cp0/tsc/tests green. |
-| 8c-6 | Backup tests | `dispatched` | 8c-1,2,3,4,5 | — | Agent ae726fcf. spec § 8c-6. Extend existing tests/backup.test.ts with retention + restore CLI + schema gate tests. All deps now done. |
+| 8c-6 | Backup tests | `done` | `cp3` | — | Commit 834203d + e262201 (biome fix). `tests/backup-integration.test.ts` (170 lines, 6 tests). pruneBackups retention + restore CLI confirm refusal + schema mismatch + success path. cp0/tsc/biome/tests green. |
 | 8e-1 | PII scrub lib | `done` | `cp3` | — | CRITIC-PASSED. Commit 2ea5db2. 15/15 pii tests pass. cp0-cp1-cp2 green. |
 | 8e-2 | PII ingest hook | `done` | `cp3` | — | CRITIC-PASSED. Commit 371b5af. 6/6 tests pass. cp0/tsc green. |
 | 8e-3 | PII tg_chats schema (mig 22) | `done` | `cp3` | — | CRITIC-PASSED. Commit d289380. 7/7 tests pass. Migration 22: tg_chat_policies table + TgChatPolicyRepository. cp0-cp1-cp2 green. |
@@ -132,7 +132,7 @@
 | 8e-6 | PII search guard | `done` | `cp3` | — | CRITIC-PASSED. Commit c1bef52. 4/4 tests pass. cp0/tsc green. |
 | 8e-7 | PII e2e test fix | `done` | `cp3` | — | 8/8 tests pass. Commit b7e1a30. Test-only: fixtures + policy expectations aligned with actual insertTgMessage behavior. |
 
-**Wave 3 merge gate:** ✅ Wave 3 complete. 8a-7 reactivated (user cleared dispatch 2026-05-06). 8c-* reactivated as STRONG-MODEL packets.
+**Wave 3 merge gate:** ✅ Wave 3 complete. ALL 8a-1..8a-7 done. ALL 8c-1..8c-6 done. ALL 8e-1..8e-7 done.
 
 ---
 
@@ -270,3 +270,7 @@ All 4 done + committed. cp0/tsc/biome green. Test baseline: 1259 pass / 2 fail /
 - `tests/arbitration.test.ts` — "Expected 3 agents, got 4" (classify.ts returns 4, test expects 3)
 - `tests/minimax-adapter.test.ts:98` — "Invalid assignment target"
 None are 8c regressions.
+
+2026-05-07 ~03:00 UTC — 8c-6 DONE (commit 834203d + e262201 biome fix). 6/6 integration tests pass. cp0/tsc/biome green.
+
+2026-05-07 ~03:00 UTC — **WAVE 3 FULLY COMPLETE.** All 8a-1..8a-7 done. All 8c-1..8c-6 done. All 8e-1..8e-7 done. Cap 0/4. Entering WATCHDOG MODE.
