@@ -19,6 +19,16 @@ COPY public/ public/
 COPY scripts/ scripts/
 COPY tsconfig.json ./
 
+# Bun 1.3 doesn't create node_modules/@subbrain/* workspace symlinks
+# during `bun install --frozen-lockfile`. Create manually so workspace
+# imports (e.g. `@subbrain/agent/plugins-internal`) resolve at runtime.
+RUN mkdir -p node_modules/@subbrain && \
+    ln -sfn /app/packages/agent     node_modules/@subbrain/agent && \
+    ln -sfn /app/packages/core      node_modules/@subbrain/core && \
+    ln -sfn /app/packages/providers node_modules/@subbrain/providers && \
+    ln -sfn /app/packages/plugin    node_modules/@subbrain/plugin && \
+    ln -sfn /app/packages/server    node_modules/@subbrain/server
+
 # ─── Runtime stage ────────────────────────────────────────
 FROM oven/bun:1.3-slim
 
