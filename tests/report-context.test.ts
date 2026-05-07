@@ -137,7 +137,7 @@ describe("sendReport kill-switch", () => {
       executor: {
         tgSendMessage: async (text: string): Promise<ToolResult> => {
           sent.push(text);
-          return { success: true };
+          return { kind: "success", data: undefined } as unknown as ToolResult;
         },
       },
     } as unknown as ToolContext;
@@ -160,7 +160,7 @@ describe("sendReport kill-switch", () => {
       executor: {
         tgSendMessage: async (text: string): Promise<ToolResult> => {
           sent.push(text);
-          return { success: true };
+          return { kind: "success", data: undefined } as unknown as ToolResult;
         },
       },
     } as unknown as ToolContext;

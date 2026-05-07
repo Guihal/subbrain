@@ -1,13 +1,13 @@
 import { staticPlugin } from "@elysiajs/static";
 import { authMiddleware } from "@subbrain/core/lib/auth";
-import { AppError } from "@subbrain/core/lib/errors";
-import { logger } from "@subbrain/core/lib/logger";
 import { MetricsRepository } from "@subbrain/core/repositories/metrics.repo";
 import { TaskRepository } from "@subbrain/core/repositories/task.repo";
 import { Elysia } from "elysia";
 import { mcpProtocolRoute } from "../mcp-transport/mcp-protocol";
 import { mcpRoute } from "../mcp-transport/transport";
+import { agentTasksRoute } from "../routes/agent-tasks";
 import { autonomousRoute } from "../routes/autonomous";
+import { backupRoute } from "../routes/backup";
 import { chatRoute } from "../routes/chat";
 import { chatsRoute } from "../routes/chats";
 import { embeddingsRoute } from "../routes/embeddings";
@@ -19,25 +19,9 @@ import { modelsRoute } from "../routes/models";
 import { tasksRoute } from "../routes/tasks";
 import { telegramAdminRoute, telegramPublicRoute } from "../routes/telegram";
 import type { AppDeps } from "./deps";
+import { type AppErrorContext, handleAppError } from "./error-handler";
 import { NightCycleController } from "./night-cycle-controller";
-
-/** M-1: tolerate Elysia's heterogeneous error shapes at one boundary. */
-interface ErrorLike {
-  message?: string;
-  validator?: unknown;
-  type?: string;
-  stack?: string;
-}
-function toErrorLike(err: unknown): ErrorLike {
-  if (!err || typeof err !== "object") return {};
-  const e = err as Record<string, unknown>;
-  return {
-    message: typeof e.message === "string" ? e.message : undefined,
-    validator: e.validator,
-    type: typeof e.type === "string" ? e.type : undefined,
-    stack: typeof e.stack === "string" ? e.stack : undefined,
-  };
-}
+// setupInternalPlugins: plugins registered in initDeps() via HooksDispatcher
 
 export function createApp(deps: AppDeps) {
   const {
@@ -55,44 +39,10 @@ export function createApp(deps: AppDeps) {
     config,
   } = deps;
 
-  const nightCycleController = new NightCycleController(nightCycle);
+  const nightCycleController = new NightCycleController(nightCycle, config.nightCycle.timeoutMs);
 
   const app = new Elysia()
-    .onError(({ code, error, set, path }) => {
-      if (error instanceof AppError) {
-        set.status = error.status;
-        return {
-          error: {
-            code: error.code,
-            message: error.message,
-            ...(error.details ?? {}),
-          },
-        };
-      }
-      // M-1: single boundary type-guard instead of 7× (error as any). Elysia
-      // throws a few shapes (TypeBox ValueError, native Error, plain {message}).
-      const e = toErrorLike(error);
-      if (code === "VALIDATION") {
-        logger.warn("validation", `422 on ${path}: ${e.message?.slice(0, 500) || String(error)}`, {
-          meta: { validator: e.validator, type: e.type },
-        });
-        set.status = 422;
-        return {
-          error: {
-            message: `Validation error: ${e.message?.slice(0, 300) || "invalid request body"}`,
-            type: "validation_error",
-            code: 422,
-          },
-        };
-      }
-      set.status = 500;
-      logger.error("http", "unhandled", {
-        meta: { path, err: e.message, stack: e.stack },
-      });
-      return {
-        error: { code: "internal_error", message: "internal" },
-      };
-    })
+    .onError((ctx) => handleAppError(ctx as AppErrorContext))
     .use(staticPlugin({ assets: "public", prefix: "/" }))
     .decorate("memory", memory)
     .decorate("router", router)
@@ -112,10 +62,9 @@ export function createApp(deps: AppDeps) {
     .get("/metrics", ({ metrics }) => metrics.snapshot())
     .use(telegramPublicRoute(telegramBot))
     .use(mcpProtocolRoute(registry, tools, config.authToken))
-    // ── Protected surface (AFTER authMiddleware) ──────────────────────────
-    //   Everything below requires Bearer auth. `/api/token`, `/night-cycle`
-    //   and telegramAdminRoute (set/remove webhook) were previously mounted
-    //   before the middleware — AUTH-16. Do not move them back.
+    // ── Protected (AFTER authMiddleware) — AUTH-16. /api/token cold-load:
+    //   Caddy upstream injects Bearer for browsers; localhost callers hold
+    //   PROXY_AUTH_TOKEN; direct browser hits without Caddy → 401.
     .use(authMiddleware(authService))
     .get("/api/token", () => ({ token: authService.getToken() }))
     .post("/night-cycle", ({ set }) => {
@@ -139,7 +88,9 @@ export function createApp(deps: AppDeps) {
     .use(memoryRoute(memoryService, memory))
     .use(freelanceRoute(memory, deps.freelanceScout))
     .use(metricsRunsRoute(new MetricsRepository(memory.db)))
-    .use(tasksRoute(new TaskRepository(memory)));
+    .use(tasksRoute(new TaskRepository(memory)))
+    .use(agentTasksRoute(memory.agentTasksRepo))
+    .use(backupRoute());
 
   return { app, nightCycleController } as const;
 }

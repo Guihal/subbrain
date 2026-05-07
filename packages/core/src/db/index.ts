@@ -1,18 +1,23 @@
 import type { Database } from "bun:sqlite";
+import { AgentTasksRepository } from "../repositories/agent-tasks.repo";
+import { ApprovalRepository } from "../repositories/approval.repo";
 import { ChatRepository } from "../repositories/chat.repo";
 import { EdgeRepository } from "../repositories/edges.repo";
 import { FreelanceRepository } from "../repositories/freelance.repo";
 import { LogRepository } from "../repositories/log.repo";
 import { MemoryRepository } from "../repositories/memory/index";
 import { TelegramRepository } from "../repositories/telegram.repo";
+import { TgChatPolicyRepository } from "../repositories/tg-chat-policy.repo";
 import { migrate, openDatabase } from "./schema";
 import { SchedulerStateTable } from "./tables/scheduler-state";
 import { TasksTable, type UpsertResult } from "./tables/tasks";
 import type { TgMessageInsert, TgSearchOpts } from "./tables/tg-messages";
 import type { FreelanceSource, FreelanceStatus, TaskScope, TaskStatus } from "./types";
 
+export { ApprovalRepository } from "../repositories/approval.repo";
 export { EdgeRepository } from "../repositories/edges.repo";
-
+export type { ApprovalRow, ApprovalStatus } from "./tables/approvals";
+export type { ArbitrationTranscriptRow } from "./tables/arbitration-transcripts";
 export { EdgesTable } from "./tables/edges";
 export { InvalidTransitionError } from "./tables/task-transitions";
 export type { UpsertResult } from "./tables/tasks";
@@ -66,6 +71,9 @@ export class MemoryDB {
   readonly telegramRepo: TelegramRepository;
   readonly freelanceRepo: FreelanceRepository;
   readonly edgesRepo: EdgeRepository;
+  readonly agentTasksRepo: AgentTasksRepository;
+  readonly approvalRepo: ApprovalRepository;
+  readonly tgChatPolicyRepo: TgChatPolicyRepository;
   private _tasks: TasksTable;
   private _scheduler: SchedulerStateTable;
 
@@ -78,6 +86,9 @@ export class MemoryDB {
     this.telegramRepo = new TelegramRepository(this.db);
     this.freelanceRepo = new FreelanceRepository(this.db);
     this.edgesRepo = new EdgeRepository(this.db);
+    this.agentTasksRepo = new AgentTasksRepository(this.db);
+    this.approvalRepo = new ApprovalRepository(this.db);
+    this.tgChatPolicyRepo = new TgChatPolicyRepository(this.db);
     this._tasks = new TasksTable(this.db);
     this._scheduler = new SchedulerStateTable(this.db);
   }
@@ -315,6 +326,12 @@ export class MemoryDB {
   excludeTgChat = (chatId: string, chatTitle: string, reason?: string) =>
     this.chatRepo.excludeTgChat(chatId, chatTitle, reason);
   includeTgChat = (chatId: string) => this.chatRepo.includeTgChat(chatId);
+  setChatPolicy = (
+    chatId: string,
+    policy: import("../repositories/tg-chat-policy.repo").TgChatPolicy,
+    updatedBy?: string,
+  ) => this.chatRepo.setChatPolicy(chatId, policy, updatedBy);
+  listKnownTgChats = () => this.chatRepo.listKnownTgChats();
 
   // ─── Layer 4: Raw Log ─────────────────────────────────────
   appendLog = (
@@ -425,6 +442,19 @@ export class MemoryDB {
     limit: number;
     offset: number;
   }) => this._tasks.listCompletedSince(opts);
+
+  // ─── Memory blocks (P3-5, mig 18) ──────────────────────────
+  insertBlock = (id: string, ownerRole: string, label: string, body: string) =>
+    this.memoryRepo.insertBlock(id, ownerRole, label, body);
+  updateBlock = (id: string, fields: { owner_role?: string; label?: string; body?: string }) =>
+    this.memoryRepo.updateBlock(id, fields);
+  getBlock = (id: string) => this.memoryRepo.getBlock(id);
+  getBlockByLabel = (ownerRole: string, label: string) =>
+    this.memoryRepo.getBlockByLabel(ownerRole, label);
+  listBlocks = (limit?: number, offset?: number) => this.memoryRepo.listBlocks(limit, offset);
+  listBlocksByRole = (ownerRole: string) => this.memoryRepo.listBlocksByRole(ownerRole);
+  countBlocks = () => this.memoryRepo.countBlocks();
+  deleteBlock = (id: string) => this.memoryRepo.deleteBlock(id);
 
   // ─── Memory edges (M-05, mig 14) ───────────────────────────
   // Thin facade over EdgeRepository — kept for parity with the other

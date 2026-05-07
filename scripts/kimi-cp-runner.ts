@@ -7,7 +7,7 @@
 const NAV = "docs/tasks/kimi-nav.md";
 const CP_MAP: Record<string, string> = { cp0: "cp0", cp1: "cp1", cp2: "cp2", cp3: "cp3" };
 
-async function readNav(): Promise<string> {
+function readNav(): Promise<string> {
   return Bun.file(NAV).text();
 }
 async function writeNav(t: string) {

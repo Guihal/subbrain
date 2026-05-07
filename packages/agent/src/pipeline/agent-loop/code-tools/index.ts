@@ -110,5 +110,6 @@ export class CodeToolRegistry {
   }
 }
 
-export { applyCodeToolGuards } from "./code-tool-validators";
+/** @deprecated Re-exported from plugin; will be removed after A2-9. */
+export { applyCodeToolGuards } from "../../../../plugins-internal/code-tool-guards/patterns";
 export { executeSandboxed } from "./sandbox";

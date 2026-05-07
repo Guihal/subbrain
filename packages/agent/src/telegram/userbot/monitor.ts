@@ -4,6 +4,19 @@ import type { TelegramClient } from "telegram";
 
 const log = logger.child("userbot");
 
+/**
+ * Disjoint-by-design contract with `TelegramPoller` (bug-5):
+ * - This monitor writes Layer-4 rows with role="channel_message" for realtime
+ *   events on `monitoredChannels`. Each row is keyed by a unique
+ *   `tg-monitor-${Date.now()}` request_id (no external_message_id stored).
+ * - `TelegramPoller.runPoll` reads inbox via injected `readInbox` and writes
+ *   ONLY Layer-1 focus KV (`tasks.state`, `tg.poller.last_id`). It never
+ *   calls `appendLog` and never emits role="channel_message" rows.
+ *
+ * Therefore even if both subsystems target the same chat_id, their write
+ * surfaces are orthogonal — no duplicate raw_log rows are produced. See
+ * `tests/tg-poller-userbot-disjoint.test.ts`.
+ */
 export function attachMonitor(
   client: TelegramClient,
   memory: MemoryDB,

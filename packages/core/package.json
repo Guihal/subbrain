@@ -10,6 +10,7 @@
     "./services/auth": "./src/services/auth.service.ts",
     "./lib/auth": "./src/lib/auth.ts",
     "./db": "./src/db/index.ts",
+    "./db/backup": "./src/db/backup/index.ts",
     "./db/schema": "./src/db/schema.ts",
     "./db/types": "./src/db/types.ts",
     "./db/tables/edges": "./src/db/tables/edges.ts",

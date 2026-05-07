@@ -1,10 +1,12 @@
 <script setup lang="ts">
 const emit = defineEmits<{
   send: [text: string];
+  cancel: [];
 }>();
 
 const props = defineProps<{
   disabled?: boolean;
+  streaming?: boolean;
 }>();
 
 const text = ref("");
@@ -18,10 +20,19 @@ function handleSend() {
   nextTick(() => resize());
 }
 
+function handleClick() {
+  if (props.streaming) {
+    emit("cancel");
+    return;
+  }
+  handleSend();
+}
+
 function onKeydown(e: KeyboardEvent) {
   if (e.key === "Enter" && !e.shiftKey) {
     e.preventDefault();
-    handleSend();
+    if (props.streaming) emit("cancel");
+    else handleSend();
   }
 }
 
@@ -47,15 +58,17 @@ onMounted(() => textareaRef.value?.focus());
       class="flex-1 bg-(--ui-bg) text-(--ui-text) border border-(--ui-border) rounded-lg px-3.5 py-2.5 text-sm resize-none outline-none focus:border-(--ui-border-active) transition-colors placeholder:text-(--ui-text-dimmed)"
       style="min-height: 44px; max-height: 200px; line-height: 1.4"
       placeholder="Напиши сообщение…"
-      :disabled="disabled"
+      :disabled="disabled && !streaming"
       @input="resize"
       @keydown="onKeydown"
     />
     <UButton
-      icon="i-lucide-send"
-      :disabled="disabled || !text.trim()"
+      :icon="streaming ? 'i-lucide-square' : 'i-lucide-send'"
+      :color="streaming ? 'error' : 'primary'"
+      :disabled="streaming ? false : (disabled || !text.trim())"
+      :aria-label="streaming ? 'Остановить' : 'Отправить'"
       size="lg"
-      @click="handleSend"
+      @click="handleClick"
     />
   </div>
 </template>

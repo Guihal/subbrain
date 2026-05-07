@@ -1,5 +1,6 @@
 import type { Database } from "bun:sqlite";
 import { sanitizeFtsQuery } from "../../lib/fts-utils";
+import { scrubPII } from "../../lib/pii-scrub";
 import type { TgMessageRow, TgSearchHit } from "../types";
 
 export interface TgMessageInsert {
@@ -23,11 +24,12 @@ export class TgMessagesTable {
   constructor(public readonly db: Database) {}
 
   insert(msg: TgMessageInsert): void {
+    const scrubbed = scrubPII(msg.text ?? "").scrubbed;
     this.db
       .query(
         "INSERT OR IGNORE INTO tg_messages (message_id, chat_id, chat_name, from_name, ts, text) VALUES (?, ?, ?, ?, ?, ?)",
       )
-      .run(msg.message_id, msg.chat_id, msg.chat_name ?? "", msg.from_name ?? "", msg.ts, msg.text);
+      .run(msg.message_id, msg.chat_id, msg.chat_name ?? "", msg.from_name ?? "", msg.ts, scrubbed);
   }
 
   insertMany(rows: TgMessageInsert[]): number {
@@ -46,8 +48,22 @@ export class TgMessagesTable {
     return row.c;
   }
 
+  /**
+   * FTS5 search over tg_messages.
+   *
+   * The FTS index is built over scrubbed text: PII tokens are replaced with
+   * `[REDACTED:<type>]` markers at ingest time. Searching for literal PII
+   * (e.g. an email address) will therefore return no hits — this is intentional.
+   * Recall on PII queries is lower by design; the night-cycle scrub step provides
+   * defense-in-depth for legacy rows.
+   *
+   * @throws {Error} "pii_query_blocked" if the raw query contains "REDACTED:"
+   */
   search(opts: TgSearchOpts): { items: TgSearchHit[]; total: number } {
     const limit = Math.max(1, Math.min(200, opts.limit ?? 20));
+    if (/redacted:/i.test(opts.query)) {
+      throw new Error("pii_query_blocked");
+    }
     const sanitized = sanitizeFtsQuery(opts.query);
     if (!sanitized) return { items: [], total: 0 };
 

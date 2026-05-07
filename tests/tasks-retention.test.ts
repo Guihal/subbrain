@@ -137,7 +137,7 @@ describe("pruneCompletedTasks", () => {
     await pruneCompletedTasks(memory, emb);
     expect(countArchive(memory, "tasks,digest,%")).toBe(1);
 
-    seedDoneTask(memory, tenDaysAgo + 3600, { title: "second-batch-task" });
+    seedDoneTask(memory, tenDaysAgo + 60, { title: "second-batch-task" });
     await pruneCompletedTasks(memory, emb);
     expect(countArchive(memory, "tasks,digest,%")).toBe(1);
     const row = memory.db

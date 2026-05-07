@@ -1,4 +1,4 @@
-import type { MemoryDB } from "@subbrain/core/db";
+import type { ApprovalRow, MemoryDB } from "@subbrain/core/db";
 import type { ModelRouter } from "@subbrain/core/lib/model-router";
 import type { CodeToolRegistry } from "../../pipeline/agent-loop/code-tools";
 import type { ArbitrationRoom } from "../../pipeline/arbitration";
@@ -14,6 +14,7 @@ export type ExecutorState = {
   rag: RAGPipeline | null;
   userbot: Userbot | null;
   botNotify: ((text: string) => Promise<void>) | null;
+  approvalNotifier: ((row: ApprovalRow) => void) | null;
   codeTools: CodeToolRegistry | null;
   room: ArbitrationRoom | null;
   memoryService: MemoryService | null;

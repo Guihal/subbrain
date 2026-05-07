@@ -7,7 +7,6 @@
  *  2. Иначе fallback: dynamic-тулы (созданные через create_tool)
  *  3. Иначе fallback: code-тулы (исполняемые в sandbox через `code_*`-префикс)
  */
-
 import type { logger } from "@subbrain/core/lib/logger";
 import type { ModelRouter } from "@subbrain/core/lib/model-router";
 import { getTracer } from "@subbrain/core/lib/telemetry";
@@ -212,8 +211,9 @@ export async function executeAgentTool(
           },
           signal,
         );
-        if (name === "done" && r.success && typeof r.data === "string")
-          return await runAfter(r.data);
+        if ((name === "done" || name === "done_with_artifact") && r.success) {
+          return await runAfter(typeof r.data === "string" ? r.data : JSON.stringify(r.data));
+        }
         return await runAfter(JSON.stringify(r));
       }
       const dynTool = deps.dynamicTools.get(name);
@@ -224,15 +224,14 @@ export async function executeAgentTool(
         const codeTool = deps.codeTools.getByName(toolName);
         if (codeTool) {
           if (!codeTool.enabled)
-            return await runAfter(
-              JSON.stringify({ error: `Code tool "${toolName}" is disabled (too many errors)` }),
-            );
-          const input = (args.input as string) || "";
-          log.info("agent-loop", `Executing code tool: ${toolName}`);
-          const res = await executeSandboxed(codeTool.code, input);
+            return await runAfter(JSON.stringify({ error: `Code tool "${toolName}" disabled` }));
+          const res = await executeSandboxed(codeTool.code, (args.input as string) || "");
           deps.codeTools.recordRun(toolName, res.success, res.error);
-          if (res.success) return await runAfter(res.output || "");
-          return await runAfter(JSON.stringify({ error: res.error, durationMs: res.durationMs }));
+          return await runAfter(
+            res.success
+              ? res.output || ""
+              : JSON.stringify({ error: res.error, durationMs: res.durationMs }),
+          );
         }
       }
       return await runAfter(JSON.stringify({ error: `Unknown tool: ${name}` }));

@@ -9,8 +9,10 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, unlinkSync } from "node:fs";
 import { ToolExecutor } from "@subbrain/agent/mcp/executor";
 import { buildRegistry } from "@subbrain/agent/mcp/registry";
+import { tgGatesPlugin } from "@subbrain/agent/plugins-internal/tg-gates";
 import { MemoryDB } from "@subbrain/core/db";
 import type { ModelRouter } from "@subbrain/core/lib/model-router";
+import { toLegacy } from "@subbrain/plugin";
 
 const TEST_DB = "data/test-tg-spam-block.db";
 
@@ -21,6 +23,28 @@ function fresh(): { memory: MemoryDB; executor: ToolExecutor } {
   // Default to "delivery success" so absence of block path = success.
   executor.setBotNotify(async () => {});
   return { memory, executor };
+}
+
+/** Run the tg-gates plugin hook directly (unit-style). */
+async function runGate(ctx: {
+  executor: ToolExecutor;
+  agentMode?: "scheduled" | "interactive";
+}): Promise<ReturnType<typeof toLegacy> | undefined> {
+  const hooks = { onToolBefore: [] as any[] };
+  tgGatesPlugin.setup({
+    hooks: {
+      onToolBefore(h) {
+        hooks.onToolBefore.push(h);
+      },
+      onToolAfter() {},
+      onChatParams() {},
+      onChatSystemTransform() {},
+      onPermissionAsk() {},
+    },
+  });
+  const handler = hooks.onToolBefore[0];
+  const result = await handler({ toolName: "tg_send_message", args: {}, ctx });
+  return result ? toLegacy(result) : undefined;
 }
 
 describe("tg_send_message focus-block (F-4)", () => {
@@ -37,26 +61,17 @@ describe("tg_send_message focus-block (F-4)", () => {
   });
 
   test("scheduled + no directive → success", async () => {
-    const registry = buildRegistry();
-    const r = await registry.callAsPublic(
-      "tg_send_message",
-      { text: "ok" },
-      { executor, agentId: "free-agent", agentMode: "scheduled" },
-    );
-    expect(r.success).toBe(true);
+    const r = await runGate({ executor, agentMode: "scheduled" });
+    expect(r).toBeUndefined();
   });
 
   test("scheduled + fresh directive → focus_blocked", async () => {
     memory.setFocus("no_repetitive_tg_spam", "user said stop");
-    const registry = buildRegistry();
-    const r = await registry.callAsPublic(
-      "tg_send_message",
-      { text: "spam" },
-      { executor, agentId: "free-agent", agentMode: "scheduled" },
-    );
-    expect(r.success).toBe(false);
-    expect(r.error).toContain("focus_blocked");
-    expect(r.error).toContain("no_repetitive_tg_spam");
+    const r = await runGate({ executor, agentMode: "scheduled" });
+    expect(r).toBeDefined();
+    expect(r?.success).toBe(false);
+    expect(r?.error.code).toBe("focus_blocked");
+    expect(r?.error.message).toContain("no_repetitive_tg_spam");
   });
 
   test("scheduled + expired (>7d) directive → success (TTL elapsed)", async () => {
@@ -66,35 +81,20 @@ describe("tg_send_message focus-block (F-4)", () => {
     memory.db
       .query("UPDATE layer1_focus SET updated_at = ? WHERE key = ?")
       .run(eightDaysAgo, "no_repetitive_tg_spam");
-    const registry = buildRegistry();
-    const r = await registry.callAsPublic(
-      "tg_send_message",
-      { text: "ok" },
-      { executor, agentId: "free-agent", agentMode: "scheduled" },
-    );
-    expect(r.success).toBe(true);
+    const r = await runGate({ executor, agentMode: "scheduled" });
+    expect(r).toBeUndefined();
   });
 
   test("interactive + fresh directive → success (gate skipped)", async () => {
     memory.setFocus("no_repetitive_tg_spam", "user said stop");
-    const registry = buildRegistry();
-    const r = await registry.callAsPublic(
-      "tg_send_message",
-      { text: "user-asked" },
-      { executor, agentId: null, agentMode: "interactive" },
-    );
-    expect(r.success).toBe(true);
+    const r = await runGate({ executor, agentMode: "interactive" });
+    expect(r).toBeUndefined();
   });
 
   test("scheduled + whitespace-only value → success (cleared)", async () => {
     memory.setFocus("no_repetitive_tg_spam", "   ");
-    const registry = buildRegistry();
-    const r = await registry.callAsPublic(
-      "tg_send_message",
-      { text: "ok" },
-      { executor, agentId: "free-agent", agentMode: "scheduled" },
-    );
-    expect(r.success).toBe(true);
+    const r = await runGate({ executor, agentMode: "scheduled" });
+    expect(r).toBeUndefined();
   });
 
   test("scheduled + clock-skew (updated_at in future) → still blocked", async () => {
@@ -104,14 +104,20 @@ describe("tg_send_message focus-block (F-4)", () => {
     memory.db
       .query("UPDATE layer1_focus SET updated_at = ? WHERE key = ?")
       .run(future, "no_repetitive_tg_spam");
+    const r = await runGate({ executor, agentMode: "scheduled" });
+    // Math.max(0, ...) keeps the diff at 0 — block remains active.
+    expect(r).toBeDefined();
+    expect(r?.success).toBe(false);
+    expect(r?.error.code).toBe("focus_blocked");
+  });
+
+  test("tg_send_message handler still works end-to-end", async () => {
     const registry = buildRegistry();
     const r = await registry.callAsPublic(
       "tg_send_message",
-      { text: "spam" },
-      { executor, agentId: "free-agent", agentMode: "scheduled" },
+      { text: "ok" },
+      { executor, agentId: null, agentMode: "interactive" },
     );
-    // Math.max(0, ...) keeps the diff at 0 — block remains active.
-    expect(r.success).toBe(false);
-    expect(r.error).toContain("focus_blocked");
+    expect(r.success).toBe(true);
   });
 });

@@ -2,7 +2,7 @@
  * Telegram-тулы. MTProto-userbot для чтения, grammy-бот для отправки.
  */
 
-import { checkSpamGate } from "./telegram-spam-gate";
+import { toLegacy } from "../types";
 import { type ToolRegistry, t } from "./tool-registry";
 
 export function registerTelegramTools(registry: ToolRegistry): void {
@@ -13,7 +13,7 @@ export function registerTelegramTools(registry: ToolRegistry): void {
     input: t.Object({
       limit: t.Optional(t.Number({ description: "Max number of chats (default: 100)" })),
     }),
-    handler: (args, ctx) => ctx.executor.tgListChats(args.limit),
+    handler: async (args, ctx) => toLegacy(await ctx.executor.tgListChats(args.limit)),
   });
 
   registry.register({
@@ -26,19 +26,22 @@ export function registerTelegramTools(registry: ToolRegistry): void {
       limit: t.Optional(t.Number({ description: "Max messages (default: 50)" })),
       offset_id: t.Optional(t.Number({ description: "Message ID to paginate from" })),
     }),
-    handler: (args, ctx) => ctx.executor.tgReadChat(args.chat_id, args.limit, args.offset_id),
+    handler: async (args, ctx) =>
+      toLegacy(await ctx.executor.tgReadChat(args.chat_id, args.limit, args.offset_id)),
   });
 
   registry.register({
     name: "tg_search_messages",
-    description: "Search messages across all chats or within a specific chat. FTS by text content.",
+    description:
+      "Search messages across all chats or within a specific chat. FTS by text content. The local message index stores scrubbed text only; PII appears as [REDACTED:<type>].",
     scope: "public",
     input: t.Object({
       query: t.String(),
       limit: t.Optional(t.Number({ description: "Max results (default: 30)" })),
       chat_id: t.Optional(t.String({ description: "Optional chat ID to search within" })),
     }),
-    handler: (args, ctx) => ctx.executor.tgSearchMessages(args.query, args.limit, args.chat_id),
+    handler: async (args, ctx) =>
+      toLegacy(await ctx.executor.tgSearchMessages(args.query, args.limit, args.chat_id)),
   });
 
   registry.register({
@@ -51,7 +54,8 @@ export function registerTelegramTools(registry: ToolRegistry): void {
       chat_title: t.String(),
       reason: t.Optional(t.String({ description: "Reason (default: private)" })),
     }),
-    handler: (args, ctx) => ctx.executor.tgExcludeChat(args.chat_id, args.chat_title, args.reason),
+    handler: (args, ctx) =>
+      toLegacy(ctx.executor.tgExcludeChat(args.chat_id, args.chat_title, args.reason)),
   });
 
   registry.register({
@@ -61,7 +65,7 @@ export function registerTelegramTools(registry: ToolRegistry): void {
     input: t.Object({
       chat_id: t.String(),
     }),
-    handler: (args, ctx) => ctx.executor.tgIncludeChat(args.chat_id),
+    handler: (args, ctx) => toLegacy(ctx.executor.tgIncludeChat(args.chat_id)),
   });
 
   registry.register({
@@ -69,13 +73,13 @@ export function registerTelegramTools(registry: ToolRegistry): void {
     description: "List all excluded Telegram chats.",
     scope: "public",
     input: t.Object({}),
-    handler: (_args, ctx) => ctx.executor.tgListExcluded(),
+    handler: (_args, ctx) => toLegacy(ctx.executor.tgListExcluded()),
   });
 
   registry.register({
     name: "telegram_search",
     description:
-      "Full-text search of indexed Telegram messages (FTS5). Filter by chat_id and time range.",
+      "Full-text search of indexed Telegram messages (FTS5). Filter by chat_id and time range. The FTS index is built over scrubbed text; PII tokens appear as [REDACTED:<type>] markers.",
     scope: "public",
     input: t.Object({
       query: t.String(),
@@ -87,7 +91,21 @@ export function registerTelegramTools(registry: ToolRegistry): void {
       limit: t.Optional(t.Number({ description: "Max results (default 20, max 200)" })),
     }),
     handler: (args, ctx) =>
-      ctx.executor.tgFtsSearch(args.query, args.chat_id, args.from, args.to, args.limit),
+      toLegacy(ctx.executor.tgFtsSearch(args.query, args.chat_id, args.from, args.to, args.limit)),
+  });
+
+  registry.register({
+    name: "tg_set_chat_policy",
+    description:
+      "Set per-chat ingest policy. full=store raw text, scrubbed=store scrubbed text, metadata_only=store empty text.",
+    scope: "agent-only",
+    input: t.Object({
+      chat_id: t.String({ description: "Chat ID (from tg_list_chats)" }),
+      policy: t.Union([t.Literal("full"), t.Literal("scrubbed"), t.Literal("metadata_only")]),
+      reason: t.Optional(t.String()),
+    }),
+    handler: (args, ctx) =>
+      toLegacy(ctx.executor.tgSetChatPolicy(args.chat_id, args.policy, args.reason)),
   });
 
   registry.register({
@@ -105,14 +123,11 @@ export function registerTelegramTools(registry: ToolRegistry): void {
     // plain string today; a future migration to `{code, message}` can swap
     // this format without touching callers.
     handler: async (args, ctx) => {
-      // F-4: scheduled-only hard-gate on layer1_focus.no_repetitive_tg_spam.
-      const block = checkSpamGate(ctx.executor, ctx.agentMode);
-      if (block) return block;
       const r = await ctx.executor.tgSendMessage(args.text);
-      if (r.success) return r;
+      if (r.kind === "success") return toLegacy(r);
       return {
         success: false,
-        error: `tg_delivery_failed: ${r.error ?? "unknown error"}`,
+        error: `tg_delivery_failed: ${r.error?.message ?? "unknown error"}`,
       };
     },
   });

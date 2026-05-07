@@ -11,7 +11,7 @@ export function useChatStream() {
   const deps: ChatStreamDeps = { updateLastAssistant, flushStreamingPaint };
 
   return {
-    readSSEStream: (res: Response) => readSSEStream(res, deps),
-    readAgentSSE: (res: Response) => readAgentSSE(res, deps),
+    readSSEStream: (res: Response, signal?: AbortSignal) => readSSEStream(res, deps, signal),
+    readAgentSSE: (res: Response, signal?: AbortSignal) => readAgentSSE(res, deps, signal),
   };
 }

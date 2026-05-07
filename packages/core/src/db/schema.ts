@@ -908,6 +908,136 @@ export function migrate(db: Database): void {
       }
     })();
   }
+
+  // Migration 18 (P3-5): memory_blocks table.
+  // Editable named text fragments scoped per role. UNIQUE(owner_role, label)
+  // enforces one block per role+label pair. version starts at 1 and bumps
+  // on every update. Additive table — no backfill, no data loss elsewhere.
+  if (version < 18) {
+    const mig18Stmts = [
+      `CREATE TABLE IF NOT EXISTS memory_blocks (
+        id         TEXT PRIMARY KEY,
+        owner_role TEXT NOT NULL,
+        label      TEXT NOT NULL,
+        body       TEXT NOT NULL,
+        created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+        updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
+        version    INTEGER NOT NULL DEFAULT 1,
+        UNIQUE(owner_role, label)
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_blocks_role ON memory_blocks(owner_role)`,
+      `CREATE INDEX IF NOT EXISTS idx_blocks_label ON memory_blocks(label)`,
+      `PRAGMA user_version = 18`,
+    ];
+    db.transaction(() => {
+      for (const sql of mig18Stmts) db.query(sql).run();
+    })();
+  }
+
+  // Migration 19 (P2-1): agent_tasks table.
+  // Typed background tasks for the pool engine. CHECK constraints on type/status.
+  // Partial indexes for pending claim, zombie scan, and distribution rollup.
+  if (version < 19) {
+    const mig19Stmts = [
+      `CREATE TABLE IF NOT EXISTS agent_tasks (
+        id           INTEGER PRIMARY KEY AUTOINCREMENT,
+        type         TEXT NOT NULL CHECK(type IN ('free','clear','check-tg','research','find-new-task')),
+        prompt       TEXT NOT NULL,
+        status       TEXT NOT NULL CHECK(status IN ('pending','running','done','noop','failed')) DEFAULT 'pending',
+        priority     INTEGER NOT NULL DEFAULT 0,
+        scheduled_at INTEGER,
+        started_at   INTEGER,
+        finished_at  INTEGER,
+        artifact     TEXT,
+        reason       TEXT,
+        created_by   TEXT NOT NULL,
+        created_at   INTEGER NOT NULL DEFAULT (unixepoch())
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_agent_tasks_pending
+         ON agent_tasks(priority DESC, scheduled_at, id)
+         WHERE status = 'pending'`,
+      `CREATE INDEX IF NOT EXISTS idx_agent_tasks_running
+         ON agent_tasks(status, started_at)
+         WHERE status = 'running'`,
+      `CREATE INDEX IF NOT EXISTS idx_agent_tasks_distribution
+         ON agent_tasks(type, status, finished_at)
+         WHERE status IN ('done','noop','failed')`,
+      `PRAGMA user_version = 19`,
+    ];
+    db.transaction(() => {
+      for (const sql of mig19Stmts) db.query(sql).run();
+    })();
+  }
+  // Migration 20 (P6-3): arbitration_transcripts table.
+  // Stores per-turn A2A conversation transcripts for audit / replay.
+  if (version < 20) {
+    const mig20Stmts = [
+      `CREATE TABLE IF NOT EXISTS arbitration_transcripts (
+        id            TEXT PRIMARY KEY,
+        room_id       TEXT NOT NULL,
+        participant_id TEXT NOT NULL,
+        role          TEXT NOT NULL,
+        turn_index    INTEGER NOT NULL,
+        content       TEXT NOT NULL,
+        tool_calls    TEXT,
+        created_at    INTEGER NOT NULL
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_arbtrans_room  ON arbitration_transcripts(room_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_arbtrans_part  ON arbitration_transcripts(participant_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_arbtrans_turn  ON arbitration_transcripts(turn_index)`,
+      `CREATE INDEX IF NOT EXISTS idx_arbtrans_created ON arbitration_transcripts(created_at)`,
+      `PRAGMA user_version = 20`,
+    ];
+    db.transaction(() => {
+      for (const sql of mig20Stmts) db.query(sql).run();
+    })();
+  }
+
+  // Migration 21 (8a-1): approvals table.
+  // Synchronous gate for destructive ops — Telegram inline-button prompt to operator.
+  if (version < 21) {
+    const mig21Stmts = [
+      `CREATE TABLE IF NOT EXISTS approvals (
+        id               TEXT PRIMARY KEY,
+        tool_name        TEXT NOT NULL,
+        args_hash        TEXT NOT NULL,
+        status           TEXT NOT NULL DEFAULT 'pending'
+                         CHECK(status IN ('pending', 'approved', 'denied', 'expired')),
+        requested_at     INTEGER NOT NULL,
+        resolved_at      INTEGER,
+        operator_chat_id INTEGER,
+        request_message  TEXT NOT NULL
+      )`,
+      `CREATE UNIQUE INDEX IF NOT EXISTS idx_approvals_unique_pending
+         ON approvals(tool_name, args_hash)
+         WHERE status = 'pending'`,
+      `CREATE INDEX IF NOT EXISTS idx_approvals_status ON approvals(status)`,
+      `CREATE INDEX IF NOT EXISTS idx_approvals_requested_at ON approvals(requested_at DESC)`,
+      `PRAGMA user_version = 21`,
+    ];
+    db.transaction(() => {
+      for (const sql of mig21Stmts) db.query(sql).run();
+    })();
+  }
+
+  // Migration 22 (8e-3): per-chat PII policy table.
+  // Separate from tg_excluded_chats — simple lookup, no view/back-compat needed.
+  if (version < 22) {
+    const mig22Stmts = [
+      `CREATE TABLE IF NOT EXISTS tg_chat_policies (
+        chat_id    INTEGER PRIMARY KEY,
+        policy     TEXT NOT NULL DEFAULT 'metadata_only'
+                     CHECK(policy IN ('metadata_only', 'scrubbed', 'full')),
+        updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
+        updated_by TEXT
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_tg_chat_policies_policy ON tg_chat_policies(policy)`,
+      `PRAGMA user_version = 22`,
+    ];
+    db.transaction(() => {
+      for (const sql of mig22Stmts) db.query(sql).run();
+    })();
+  }
 }
 
 export { EMBEDDING_DIM };

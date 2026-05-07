@@ -8,6 +8,7 @@ import { registerCodeMgmtTools } from "./code-mgmt.tools";
 import { registerEmbedTools } from "./embed.tools";
 import { registerLogTools } from "./log.tools";
 import { registerMemoryTools } from "./memory.tools";
+import { registerPoolTools } from "./pool.tools";
 import { registerRagTools } from "./rag.tools";
 import { registerReportTools } from "./report.tools";
 import { registerTasksTools } from "./tasks.tools";
@@ -48,6 +49,7 @@ export function buildRegistry(): ToolRegistry {
   registerAgentMetaTools(registry);
   registerCodeMgmtTools(registry);
   registerTasksTools(registry);
+  registerPoolTools(registry);
 
   return registry;
 }

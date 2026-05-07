@@ -85,5 +85,3 @@ describe("createProxyStream", () => {
     expect(text).toContain("[DONE]");
   });
 });
-
-console.log("🎉 Stream utils tests passed!");

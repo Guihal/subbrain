@@ -5,20 +5,23 @@
  */
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { existsSync, unlinkSync } from "node:fs";
+import type { TSchema } from "@sinclair/typebox";
 import { Value } from "@sinclair/typebox/value";
 import { buildRegistry } from "@subbrain/agent/mcp/registry";
 import { writeContext, writeShared } from "@subbrain/agent/pipeline/agent-pipeline/post/extractors";
 import { RAGPipeline } from "@subbrain/agent/rag";
 import { MemoryDB } from "@subbrain/core/db";
+import { noopLog } from "./lib/test-doubles";
 
 const TEST_DB = "data/test-memory-confidence.db";
 
-const log = {
-  info: () => {},
-  warn: () => {},
-  error: () => {},
-  debug: () => {},
-} as any;
+const log = noopLog();
+
+// TypeBox object schema shape used by registry-tool input introspection.
+interface ToolInputSchema extends TSchema {
+  properties: Record<string, { type: string; minimum?: number; maximum?: number }>;
+  required: string[];
+}
 
 function fakeEmbed(text: string): Float32Array {
   const vec = new Float32Array(2048);
@@ -143,20 +146,22 @@ describe("memory_write registry — confidence is required", () => {
   const registry = buildRegistry();
   const tool = registry.get("memory_write");
 
+  const schema = tool?.input as ToolInputSchema | undefined;
+
   test("registry exposes memory_write with confidence schema", () => {
     expect(tool).toBeDefined();
+    expect(schema).toBeDefined();
     // TypeBox schema surface — confidence is a numeric property.
-    const props = (tool?.input as any).properties;
+    const props = schema?.properties;
     expect(props).toHaveProperty("confidence");
     expect(props.confidence.type).toBe("number");
     expect(props.confidence.minimum).toBe(0);
     expect(props.confidence.maximum).toBe(1);
-    const required = (tool?.input as any).required as string[];
-    expect(required).toContain("confidence");
+    expect(schema?.required).toContain("confidence");
   });
 
   test("missing confidence → TypeBox Value.Check fails", () => {
-    const ok = Value.Check(tool?.input as any, {
+    const ok = Value.Check(schema!, {
       layer: "shared",
       content: "no confidence here",
       category: "user",
@@ -165,7 +170,7 @@ describe("memory_write registry — confidence is required", () => {
   });
 
   test("valid confidence 0..1 → TypeBox accepts", () => {
-    const ok = Value.Check(tool?.input as any, {
+    const ok = Value.Check(schema!, {
       layer: "shared",
       content: "fact",
       category: "user",
@@ -175,7 +180,7 @@ describe("memory_write registry — confidence is required", () => {
   });
 
   test("confidence out of range (>1) → TypeBox rejects", () => {
-    const ok = Value.Check(tool?.input as any, {
+    const ok = Value.Check(schema!, {
       layer: "shared",
       content: "fact",
       category: "user",
@@ -185,7 +190,7 @@ describe("memory_write registry — confidence is required", () => {
   });
 
   test("confidence as string → TypeBox rejects (legacy HIGH/LOW no longer accepted on registry)", () => {
-    const ok = Value.Check(tool?.input as any, {
+    const ok = Value.Check(schema!, {
       layer: "archive",
       content: "fact",
       category: "user",

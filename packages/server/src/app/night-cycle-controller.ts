@@ -1,7 +1,9 @@
-import type { NightCycle } from "@subbrain/agent/pipeline";
+import type { NightCycle, NightCycleResult } from "@subbrain/agent/pipeline";
 import { logger } from "@subbrain/core/lib/logger";
 
 const log = logger.child("night");
+
+const DEFAULT_TIMEOUT_MS = 30 * 60 * 1000; // 30 min
 
 export type TriggerReason = "http" | "scheduled" | "startup-backlog";
 
@@ -12,12 +14,20 @@ export interface TriggerResult {
   startedAt?: number;
 }
 
+export interface WatchdogResult {
+  abortedReason: "watchdog";
+  timeoutMs: number;
+}
+
 export class NightCycleController {
   running = false;
   startedAt: number | null = null;
-  lastResult: unknown = null;
+  lastResult: NightCycleResult | WatchdogResult | { error: string } | null = null;
 
-  constructor(private cycle: NightCycle) {}
+  constructor(
+    private cycle: NightCycle,
+    private timeoutMs: number = DEFAULT_TIMEOUT_MS,
+  ) {}
 
   trigger(reason: TriggerReason): TriggerResult {
     if (this.running) {
@@ -32,9 +42,26 @@ export class NightCycleController {
     if (reason !== "http") {
       log.info(`Run starting (${reason})`);
     }
-    this.cycle
-      .run()
-      .then((res) => {
+    void this.runWithWatchdog(reason);
+    return { started: true, startedAt: this.startedAt };
+  }
+
+  private async runWithWatchdog(reason: TriggerReason): Promise<void> {
+    let watchdogTimer: ReturnType<typeof setTimeout> | null = null;
+    const watchdog = new Promise<WatchdogResult>((resolve) => {
+      watchdogTimer = setTimeout(() => {
+        resolve({ abortedReason: "watchdog", timeoutMs: this.timeoutMs });
+      }, this.timeoutMs);
+      watchdogTimer.unref?.();
+    });
+    try {
+      const res = await Promise.race([this.cycle.run(), watchdog]);
+      if ("abortedReason" in res) {
+        log.error(
+          `Watchdog fired: cycle exceeded ${this.timeoutMs}ms (${reason}); resetting running flag`,
+        );
+        this.lastResult = res;
+      } else {
         this.lastResult = res;
         if (reason === "http") {
           log.info("Run complete (HTTP-triggered)", { meta: { ...res } });
@@ -44,15 +71,14 @@ export class NightCycleController {
             { meta: { ...res, reason } },
           );
         }
-      })
-      .catch((err) => {
-        const msg = err instanceof Error ? err.message : String(err);
-        log.error(`Run failed${reason === "http" ? "" : ` (${reason})`}: ${msg}`);
-        this.lastResult = reason === "http" ? { error: msg } : { error: msg, reason };
-      })
-      .finally(() => {
-        this.running = false;
-      });
-    return { started: true, startedAt: this.startedAt };
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      log.error(`Run failed${reason === "http" ? "" : ` (${reason})`}: ${msg}`);
+      this.lastResult = reason === "http" ? { error: msg } : { error: msg };
+    } finally {
+      if (watchdogTimer) clearTimeout(watchdogTimer);
+      this.running = false;
+    }
   }
 }

@@ -1,3 +1,4 @@
+import { ApprovalSweeper } from "@subbrain/agent/scheduler/approval-sweeper";
 import { logger } from "@subbrain/core/lib/logger";
 import type { AppDeps } from "./deps";
 import type { NightCycleController } from "./night-cycle-controller";
@@ -160,6 +161,16 @@ export function installFreelanceScoutScheduler(deps: AppDeps): void {
   }
   freelanceScout.start();
 }
+
+export function installApprovalSweeper(deps: AppDeps): ApprovalSweeper | undefined {
+  const { memory } = deps;
+  const sweeper = new ApprovalSweeper({ db: memory.db });
+  sweeper.start();
+  logger.info("approval-sweeper", "Scheduler installed");
+  return sweeper;
+}
+
+export { installBackupScheduler } from "./backup-scheduler";
 
 export function installTelegramWebhook(deps: AppDeps): void {
   const { telegramBot, config } = deps;

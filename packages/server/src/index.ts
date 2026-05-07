@@ -4,6 +4,7 @@ import { createApp } from "./app/bootstrap";
 import { initDeps } from "./app/deps";
 import {
   installAutonomousScheduler,
+  installBackupScheduler,
   installFreelanceScoutScheduler,
   installNightCycleScheduler,
   installTelegramPoller,
@@ -26,7 +27,8 @@ installTelegramWebhook(deps);
 installTelegramPoller(deps);
 installFreelanceScoutScheduler(deps);
 const freeAgent = installFreeAgentScheduler(deps);
-registerShutdown(deps, [autonomous, freeAgent]);
+const backup = installBackupScheduler(deps);
+registerShutdown(deps, [autonomous, freeAgent, backup]);
 
 // Re-exported so other modules (tests, tooling) can reach the configured bot.
 export const telegramBot = deps.telegramBot;

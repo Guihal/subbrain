@@ -10,7 +10,7 @@ import type { MemoryService } from "../../../services/memory";
 import type { ToolResult } from "../../types";
 import { writeArchiveCase } from "./write-archive";
 import { writeContextCase } from "./write-context";
-import { writeShared } from "./write-shared";
+import { writeShared } from "./write-shared/index";
 
 export interface WriteDeps {
   memory: MemoryDB;

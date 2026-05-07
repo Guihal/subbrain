@@ -14,6 +14,7 @@
 import type { TaskScope } from "@subbrain/core/db";
 import type { Priority } from "@subbrain/core/lib/model-map";
 import type { ChatParams, ChatResponse } from "@subbrain/providers/types";
+import { resolveNightModel } from "../model";
 import { parseJson } from "../types";
 
 export const TASK_TAG_KEYWORDS = [
@@ -99,7 +100,7 @@ export function hasCompletedStatusTag(tags: string): boolean {
 export async function classifyCandidate(
   classifier: Classifier,
   row: CandidateRow,
-  model: string = process.env.NIGHT_CYCLE_MODEL || "memory",
+  model: string = resolveNightModel(),
 ): Promise<ClassifyResult | null> {
   const userBody =
     `table=${row.source_table}\n` +

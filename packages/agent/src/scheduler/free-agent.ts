@@ -1,19 +1,3 @@
-/**
- * Free agent scheduler — a curious, self-directed autonomous loop that runs
- * in parallel with the task-oriented AUTONOMOUS scheduler.
- *
- * Different from AUTONOMOUS: no prescribed task list. The agent is pointed at
- * an open-ended prompt (explore, experiment, write new code_tools, save
- * findings, send short TG digest at the end). Uses the same AgentLoop +
- * shared Playwright context (no isolation requested).
- *
- * Lifecycle: returns `{ stop }` so the timers are cleared on SIGTERM.
- * `stop()` is synchronous + idempotent; it flips a `stopped` flag so a timer
- * that fires between clear and return is suppressed. In-flight agentLoop.run
- * is NOT aborted (no cancellation API); the process shutdown terminates it
- * when playwright.close() and memory.close() run.
- */
-
 import { logger } from "@subbrain/core/lib/logger";
 import type { AgentService } from "../services/agent.service";
 import type { TelegramBot } from "../telegram/bot";

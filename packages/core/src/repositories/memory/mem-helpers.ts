@@ -106,6 +106,18 @@ export function makeMemHelpers(mem: MemoryTable) {
     recentArchiveForCrossLayer: (limit: number) => mem.recentArchiveForCrossLayer(limit),
     archivePromoteCandidates: (minAccess: number, minConfidence: number, limit: number) =>
       mem.archivePromoteCandidates(minAccess, minConfidence, limit),
+
+    // P3-5 (mig 18): memory blocks
+    insertBlock: (id: string, ownerRole: string, label: string, body: string) =>
+      mem.insertBlock(id, ownerRole, label, body),
+    updateBlock: (id: string, fields: { owner_role?: string; label?: string; body?: string }) =>
+      mem.updateBlock(id, fields),
+    getBlock: (id: string) => mem.getBlock(id),
+    getBlockByLabel: (ownerRole: string, label: string) => mem.getBlockByLabel(ownerRole, label),
+    listBlocks: (limit?: number, offset?: number) => mem.listBlocks(limit, offset),
+    listBlocksByRole: (ownerRole: string) => mem.listBlocksByRole(ownerRole),
+    countBlocks: () => mem.countBlocks(),
+    deleteBlock: (id: string) => mem.deleteBlock(id),
   };
 }
 

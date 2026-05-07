@@ -9,6 +9,7 @@ import { logger } from "@subbrain/core/lib/logger";
 import type { Priority } from "@subbrain/core/lib/model-map";
 import type { ModelRouter } from "@subbrain/core/lib/model-router";
 import type { Message, Tool } from "@subbrain/providers/types";
+import type { HooksDispatcher } from "../../hooks";
 import type { ToolExecutor, ToolRegistry } from "../../mcp";
 import type { RAGPipeline } from "../../rag";
 import { runPost } from "../agent-pipeline/phases/post";
@@ -31,6 +32,7 @@ export interface AgentLoopDeps {
   dynamicTools: DynamicToolRegistry;
   codeTools: CodeToolRegistry;
   room: ArbitrationRoom | null;
+  hooks?: HooksDispatcher;
   persistDynamicTools: () => void;
   /**
    * Mode-aware tool list for the model. SCHED-1: scheduled mode drops
@@ -54,6 +56,7 @@ export function toolRunnerDeps(
     dynamicTools: deps.dynamicTools,
     persistDynamicTools: deps.persistDynamicTools,
     codeTools: deps.codeTools,
+    hooks: deps.hooks,
     session,
     agentId,
     agentMode,

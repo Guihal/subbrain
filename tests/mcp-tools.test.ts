@@ -224,20 +224,20 @@ describe("LogTools", () => {
     logTools.append("req-001", "sess-001", "coder", "assistant", "Hi there!", 10);
 
     const r = logTools.read(undefined, "req-001");
-    expect(r.success).toBe(true);
+    expect(r.kind).toBe("success");
     expect((r.data as unknown[]).length).toBe(2);
   });
 
   test("read by session", () => {
     const r = logTools.read("sess-001");
-    expect(r.success).toBe(true);
+    expect(r.kind).toBe("success");
     expect((r.data as unknown[]).length).toBeGreaterThan(0);
   });
 
   test("read without session or request returns error", () => {
     const r = logTools.read();
-    expect(r.success).toBe(false);
-    expect(r.error).toContain("required");
+    expect(r.kind).toBe("error");
+    expect(r.error.message).toContain("required");
   });
 
   test("compressHistory calls flash model", async () => {
@@ -245,7 +245,7 @@ describe("LogTools", () => {
       { role: "user", content: "What runtime to use?" },
       { role: "assistant", content: "Use Bun for speed." },
     ]);
-    expect(r.success).toBe(true);
+    expect(r.kind).toBe("success");
     expect((r.data as { summary: string }).summary).toContain("Bun");
   });
 });

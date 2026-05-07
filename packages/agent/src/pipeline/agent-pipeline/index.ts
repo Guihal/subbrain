@@ -67,11 +67,7 @@ export class AgentPipeline {
         userMessage,
         firstMessage: firstMsg,
         deps: {
-          memory: this.memory,
-          router: this.router,
-          rag: this.rag,
-          executor: this.executor,
-          registry: this.registry,
+          ...deps,
           metrics: this.metrics,
         },
         hooks: this.hooks,
@@ -104,7 +100,11 @@ export class AgentPipeline {
     }
     const fire = (assistantMessage: string, model: string, extras: Partial<RunPostArgs> = {}) =>
       runPost({
-        ...deps,
+        memory: this.memory,
+        router: this.router,
+        rag: this.rag,
+        executor: this.executor,
+        registry: this.registry,
         userMessage,
         assistantMessage,
         requestId,

@@ -1,6 +1,7 @@
 import type { TelegramBot } from "@subbrain/agent/telegram";
 import { logger } from "@subbrain/core/lib/logger";
 import { Elysia } from "elysia";
+import type { Update } from "grammy/types";
 
 /**
  * Public Telegram webhook route — mounted BEFORE authMiddleware.
@@ -26,7 +27,7 @@ export function telegramPublicRoute(bot: TelegramBot | null) {
         return new Response("Unauthorized", { status: 401 });
       }
 
-      await bot.bot.handleUpdate(body as any);
+      await bot.bot.handleUpdate(body as Update);
       return new Response("OK", { status: 200 });
     } catch (err) {
       logger.error(

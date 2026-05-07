@@ -38,6 +38,7 @@ export function useChat() {
     deleteChat: persistence.deleteChat,
     renameChat: persistence.renameChat,
     sendMessage,
+    cancelStream: state.cancelStream,
     checkHealth,
   };
 }

@@ -45,6 +45,9 @@
 | `chaos` | `moonshotai/kimi-k2.6` | `nvidia` | `MiniMax-M2.7` | `minimax` |
 | `generalist` | `nvidia/llama-3.3-nemotron-super-49b-v1.5` | `nvidia` | `MiniMax-M2.7` | `minimax` |
 | `memory` | `deepseek-ai/deepseek-v4-flash` | `nvidia` | `MiniMax-M2.7` | `minimax` |
+| `sleep` | `deepseek-ai/deepseek-v4-flash` | `nvidia` | `MiniMax-M2.7` | `minimax` |
+
+> `sleep` — отдельный alias для `NIGHT_CYCLE_MODEL` env, чтобы night cycle можно было точечно переключить на другую модель без изменения `POST_EXTRACTOR_MODEL` (`memory`). По умолчанию идентичен `memory`. Итого **8 виртуальных ролей** (если считать sleep) или **7 уникальных моделей** (если считать только distinct `(provider, model)`).
 
 ### Вспомогательные модели (NVIDIA NIM, не в MODEL_MAP)
 
@@ -126,13 +129,34 @@ keep flag off unless you need it. See `.env.example` and
 ```
 Layer 4 (raw_log, RU Plain Text)
       │
-      ├─ [PII-очистка] nvidia/gliner-pii — удаляет персональные данные
-      ├─ [Перевод RU→EN] nvidia/riva-translate-4b — повышает token density
-      ├─ [Сжатие] step-3.5-flash — дедупликация + структурирование
+      ├─ [Main batch — per-session, packages/agent/src/pipeline/night-cycle/steps/]
+      │     ├─ scrub        PII-очистка (null on fail = не архивировать)
+      │     ├─ translate    RU → EN, pass-through если cyrillic ratio < 0.1
+      │     ├─ compress     дедупликация + структурирование
+      │     ├─ verify       контроль качества
+      │     └─ dedup        per-session
+      │
+      ├─ [Anti-patterns extract] список «На чём застряли сегодня»
+      │
+      ├─ [Post-batch — packages/agent/src/pipeline/night-cycle/post-steps/]
+      │     ├─ contradictions      выявление противоречий между записями
+      │     ├─ prune                shared / context / focus / tasks
+      │     ├─ stray-tasks          сборка осиротевших задач
+      │     ├─ cross-layer-dedup    L2 ↔ L3 cosine similarity
+      │     ├─ embed-log            добавляет embeddings к свежим L4 строкам
+      │     ├─ focus-rewrite        переписывание layer1_focus
+      │     ├─ decay-salience       забывание по кривой
+      │     ├─ reflect              мета-выводы
+      │     └─ memory-dedup         финальная dedup проход
+      │
+      ├─ [Janitor phases]  A (orphan cleanup) / B-embed / B-cosine-dedup / D (archive cosine)
+      │
       └─ [Запись] Layer 3 (archive, EN Markdown)
 ```
 
-Дополнительно: формирование списка анти-паттернов «На чём застряли сегодня».
+Pipeline вырос за пределы первоначальной 5-стадийной схемы. Каждый шаг возвращает counter в `NightCycleResult` (~30 полей).
+Модель: `NIGHT_CYCLE_MODEL` env (default = `sleep` virtual role = `memory` = DeepSeek V4 Flash, 1M ctx).
+Идемпотентность: одновременно работают (a) in-process scheduler, (b) system cron `scripts/install-cron.sh`, (c) HTTP `/night-cycle` trigger — единый `nightCycleController.running` mutex; повторный запуск отдаёт 409.
 
 ---
 

@@ -61,6 +61,7 @@
   },
   "include": [
     "packages/*/src/**/*.ts",
+    "packages/*/plugins-internal/**/*.ts",
     "scripts/**/*.ts",
     "tests/**/*.ts"
   ],

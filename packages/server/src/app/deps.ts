@@ -1,6 +1,8 @@
+import { HooksDispatcher } from "@subbrain/agent/hooks";
 import type { ToolRegistry } from "@subbrain/agent/mcp";
 import { buildRegistry, PlaywrightClient, ToolExecutor } from "@subbrain/agent/mcp";
 import { AgentLoop, AgentPipeline, ArbitrationRoom, NightCycle } from "@subbrain/agent/pipeline";
+import { INTERNAL_PLUGINS } from "@subbrain/agent/plugins-internal";
 import { RAGPipeline } from "@subbrain/agent/rag";
 import { FREE_AGENT_TASK } from "@subbrain/agent/scheduler/free-agent";
 import { FreelanceScout, type FreelanceScoutConfig } from "@subbrain/agent/scheduler/freelance";
@@ -16,7 +18,6 @@ import { applyOpenAICompatOverrides } from "@subbrain/core/lib/model-map";
 import { ModelRouter } from "@subbrain/core/lib/model-router";
 import { AuthService } from "@subbrain/core/services/auth";
 import { createBifrostProvider, createProviders } from "@subbrain/providers";
-
 export interface AppConfig {
   port: number;
   authToken: string;
@@ -32,6 +33,7 @@ export interface AppConfig {
     schedulerEnabled: boolean;
     hourUtc: number;
     backlogTrigger: number;
+    timeoutMs: number;
   };
   telegram: {
     webhookUrl?: string;
@@ -53,8 +55,12 @@ export interface AppConfig {
     maxSteps: number;
     task: string;
   };
+  backup: {
+    enabled: boolean;
+    hourUtc: number;
+    dir: string;
+  };
 }
-
 export interface AppDeps {
   config: AppConfig;
   authService: AuthService;
@@ -76,8 +82,8 @@ export interface AppDeps {
   userbot: Userbot | null;
   telegramPoller: TelegramPoller | null;
   freelanceScout: FreelanceScout | null;
+  hooksDispatcher: HooksDispatcher;
 }
-
 export function loadConfig(): AppConfig {
   const authToken = process.env.PROXY_AUTH_TOKEN;
   if (!authToken) {
@@ -119,6 +125,7 @@ export function loadConfig(): AppConfig {
       schedulerEnabled: process.env.NIGHT_CYCLE_SCHEDULER !== "false",
       hourUtc: Number(process.env.NIGHT_CYCLE_HOUR_UTC ?? 3),
       backlogTrigger: Number(process.env.NIGHT_CYCLE_BACKLOG_TRIGGER ?? 10),
+      timeoutMs: Math.max(60_000, Number(process.env.NIGHT_CYCLE_TIMEOUT_MS) || 30 * 60 * 1000),
     },
     telegram: {
       webhookUrl: process.env.TG_WEBHOOK_URL,
@@ -154,9 +161,13 @@ export function loadConfig(): AppConfig {
       maxSteps: Math.min(100, Math.max(1, Number(process.env.FREE_AGENT_MAX_STEPS) || 50)),
       task: process.env.FREE_AGENT_TASK || FREE_AGENT_TASK,
     },
+    backup: {
+      enabled: process.env.BACKUP_ENABLED !== "false",
+      hourUtc: Number(process.env.BACKUP_HOUR_UTC ?? 4),
+      dir: process.env.BACKUP_DIR || "data/backups",
+    },
   };
 }
-
 export async function initDeps(config: AppConfig = loadConfig()): Promise<AppDeps> {
   const authService = new AuthService(config.authToken);
   // Re-point teamlead/coder to gpt-5.4-mini via cliproxy when OPENAI_COMPAT_ENABLED.
@@ -190,7 +201,6 @@ export async function initDeps(config: AppConfig = loadConfig()): Promise<AppDep
   tools.setMemoryService(memoryService);
   const playwright = new PlaywrightClient();
   tools.setPlaywright(playwright);
-
   const metrics = new Metrics({
     get currentLoad() {
       return router.stats.currentLoad;
@@ -221,6 +231,10 @@ export async function initDeps(config: AppConfig = loadConfig()): Promise<AppDep
   const agentLoop = new AgentLoop(memory, router, rag, tools, registry);
   agentLoop.setMetrics(metrics);
   agentLoop.setRoom(room);
+  const hooksDispatcher = new HooksDispatcher();
+  for (const plugin of INTERNAL_PLUGINS) hooksDispatcher.register(plugin);
+  pipeline.setHooks(hooksDispatcher);
+  agentLoop.setHooks(hooksDispatcher);
   const agentService = new AgentService(agentLoop, memory.chatRepo);
 
   const userbot = initUserbot(memory, tools);
@@ -268,9 +282,9 @@ export async function initDeps(config: AppConfig = loadConfig()): Promise<AppDep
     userbot,
     telegramPoller,
     freelanceScout,
+    hooksDispatcher,
   };
 }
-
 function initTelegramPoller(opts: {
   config: AppConfig;
   memory: MemoryDB;
@@ -315,7 +329,6 @@ function initTelegramPoller(opts: {
     },
   });
 }
-
 function initUserbot(memory: MemoryDB, tools: ToolExecutor): Userbot | null {
   const apiId = Number(process.env.TG_API_ID);
   const apiHash = process.env.TG_API_HASH || "";
@@ -334,7 +347,6 @@ function initUserbot(memory: MemoryDB, tools: ToolExecutor): Userbot | null {
     .catch((err) => logger.error("userbot", `Userbot connect failed: ${err.message}`));
   return userbot;
 }
-
 function initTelegramBot(opts: {
   memory: MemoryDB;
   pipeline: AgentPipeline;
@@ -360,6 +372,7 @@ function initTelegramBot(opts: {
   bot.init().catch((err) => logger.error("telegram", `Bot init failed: ${err.message}`));
   // Use notifyOrThrow so tgSendMessage sees real delivery errors (TG-1).
   opts.tools.setBotNotify((text) => bot.notifyOrThrow(text));
+  opts.tools.setApprovalNotifier((row) => bot.sendApprovalPrompt(row));
   bot.setReportSender(async (text) => {
     await opts.tools.sendReportEnriched(text);
   });

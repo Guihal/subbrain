@@ -14,6 +14,7 @@ export interface TgDialog {
   type: "channel" | "group" | "private";
   unreadCount: number;
   excluded: boolean;
+  policy: string;
 }
 
 export interface TgMessage {

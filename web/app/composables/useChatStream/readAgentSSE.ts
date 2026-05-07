@@ -1,6 +1,6 @@
 import type { ChatStreamDeps } from "./index";
 
-export async function readAgentSSE(res: Response, deps: ChatStreamDeps) {
+export async function readAgentSSE(res: Response, deps: ChatStreamDeps, signal?: AbortSignal) {
   const { updateLastAssistant, flushStreamingPaint } = deps;
   if (!res.body) {
     updateLastAssistant({ content: "⚠️ Пустой ответ (no body)" });
@@ -11,6 +11,16 @@ export async function readAgentSSE(res: Response, deps: ChatStreamDeps) {
   let buffer = "";
   let reasoning = "";
   let content = "";
+
+  const onAbort = () => {
+    reader.cancel().catch(() => {
+      // reader already released — ignore
+    });
+  };
+  if (signal) {
+    if (signal.aborted) onAbort();
+    else signal.addEventListener("abort", onAbort, { once: true });
+  }
 
   try {
     while (true) {
@@ -84,6 +94,7 @@ export async function readAgentSSE(res: Response, deps: ChatStreamDeps) {
       }
     }
   } finally {
+    if (signal) signal.removeEventListener("abort", onAbort);
     reader.releaseLock();
   }
 }

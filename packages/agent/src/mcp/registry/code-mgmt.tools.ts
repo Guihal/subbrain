@@ -3,7 +3,7 @@
  * CRUD + test для пользовательских code-тулов, исполняемых в sandbox.
  */
 
-import { applyCodeToolGuards, executeSandboxed } from "../../pipeline/agent-loop/code-tools";
+import { executeSandboxed } from "../../pipeline/agent-loop/code-tools";
 import { type ToolRegistry, t } from "./tool-registry";
 
 export function registerCodeMgmtTools(registry: ToolRegistry): void {
@@ -25,8 +25,6 @@ export function registerCodeMgmtTools(registry: ToolRegistry): void {
       if (!ctx.codeTools) {
         return { success: false, error: "Code tools not available" };
       }
-      const guardErr = applyCodeToolGuards(args.code, args.name, ctx.log);
-      if (guardErr) return guardErr;
       try {
         const tool = ctx.codeTools.create(args.name, args.description, args.code);
         ctx.log.info("agent-loop", `Code tool created: ${tool.name}`);
@@ -50,10 +48,6 @@ export function registerCodeMgmtTools(registry: ToolRegistry): void {
     handler: (args, ctx) => {
       if (!ctx.codeTools) {
         return { success: false, error: "Code tools not available" };
-      }
-      if (typeof args.code === "string") {
-        const guardErr = applyCodeToolGuards(args.code, args.name, ctx.log);
-        if (guardErr) return guardErr;
       }
       try {
         const tool = ctx.codeTools.update(args.name, {

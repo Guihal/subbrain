@@ -1,8 +1,6 @@
 /**
- * Post-processing agentic hippocampus: tool-calling loop for memory persistence.
- * Default model: `coder` (devstral); `flash` lacks reliable tool_calls.
+ * Post-processing hippocampus: tool-calling loop for memory persistence.
  * Tools: memory_search, memory_write, task_add, done.
- * Per-exchange task mutation budget = 3.
  */
 import type { MemoryDB } from "@subbrain/core/db";
 import type { RequestLogger } from "@subbrain/core/lib/logger";
@@ -12,44 +10,16 @@ import type { ToolExecutor } from "../../../mcp";
 import type { TaskMutationBudget, ToolRegistry } from "../../../mcp/registry";
 import type { RAGPipeline } from "../../../rag";
 
-import { type WriteSharedArgs, writeContext, writeShared } from "./extractors";
-import { getExtractorPrompt } from "./prompt";
+import { createWriteGuard, emitHippoTelemetry } from "./cap-guard";
+import { NUDGE_NO_TOOL } from "./parse-write";
+import { processToolCall } from "./process-tool";
+import { CONFIDENCE_RULE, getExtractorPrompt } from "./prompt";
 import { POST_TOOLS } from "./tools";
-
-type ParsedWrite =
-  | { ok: true; layer: "shared" | "context"; args: WriteSharedArgs }
-  | { ok: false; error: string };
-
-function parseMemoryWriteArgs(raw: Record<string, unknown>): ParsedWrite {
-  const layer = String(raw.layer || "context") === "shared" ? "shared" : "context";
-  const category = String(raw.category || "fact").slice(0, 64);
-  const content = String(raw.content || "").trim();
-  const tags = String(raw.tags || "");
-  const rawConf = raw.confidence;
-  if (typeof rawConf !== "number" || !Number.isFinite(rawConf)) {
-    return { ok: false, error: "confidence required (number 0..1)" };
-  }
-  if (!content) return { ok: false, error: "empty content" };
-  const confidence = Math.min(1, Math.max(0, rawConf));
-  const rawExp = raw.expires_at;
-  const expires_at: number | null | undefined =
-    rawExp === null ? null : typeof rawExp === "number" ? rawExp : undefined;
-  const supersedes = Array.isArray(raw.supersedes)
-    ? (raw.supersedes as unknown[]).filter((s): s is string => typeof s === "string")
-    : undefined;
-  return {
-    ok: true,
-    layer,
-    args: { category, content, tags, confidence, expires_at, supersedes },
-  };
-}
 
 const MAX_HIPPO_STEPS = 5;
 const MAX_SNIPPET_CHARS = 12_000;
 const TASK_BUDGET_PER_EXCHANGE = 3;
 const MAX_NUDGES = 1;
-const NUDGE_NO_TOOL =
-  "[Системная метка] Ответ текстом не сохранится в память. Используй memory_write/task_add для записи или done для завершения.";
 
 const EXTRACTOR_MODEL = process.env.POST_EXTRACTOR_MODEL || "memory";
 
@@ -99,19 +69,8 @@ export async function runHippocampus(args: {
     .filter(Boolean)
     .join("\n\n");
 
-  const confidenceRule = [
-    "",
-    "## Confidence (обязательно для memory_write)",
-    "При каждом `memory_write` указывай `confidence` (число 0..1):",
-    "- 0.9+ = пользователь явно подтвердил факт.",
-    "- 0.7–0.9 = сильное следствие из exchange.",
-    "- <0.7 = догадка / слабая эвристика.",
-    "Факты с confidence < 0.8 автоматически попадают в pending-очередь и не",
-    "используются RAG до approval'а (default threshold: MEMORY_AUTOACCEPT_CONFIDENCE=0.8).",
-  ].join("\n");
-
   const messages: Message[] = [
-    { role: "system", content: getExtractorPrompt(MAX_HIPPO_STEPS) + confidenceRule },
+    { role: "system", content: getExtractorPrompt(MAX_HIPPO_STEPS) + CONFIDENCE_RULE },
     { role: "user", content: exchangeBlock },
   ];
 
@@ -122,17 +81,12 @@ export async function runHippocampus(args: {
   let searchCalls = 0;
   let steps = 0;
   let nudgesUsed = 0;
+  const guard = createWriteGuard(); // MAX_WRITES_PER_EXCHANGE = 3 enforced in cap-guard.ts; limit_exceeded returned after cap.
 
   while (steps < MAX_HIPPO_STEPS) {
     const response = await router.chat(
       EXTRACTOR_MODEL,
-      {
-        messages,
-        tools: POST_TOOLS,
-        tool_choice: "auto",
-        max_tokens: 1024,
-        temperature: 0.2,
-      },
+      { messages, tools: POST_TOOLS, tool_choice: "auto", max_tokens: 1024, temperature: 0.2 },
       "low",
     );
 
@@ -148,9 +102,7 @@ export async function runHippocampus(args: {
           "post",
           `${EXTRACTOR_MODEL} text-only response at step ${steps}, nudging (${nudgesUsed}/${MAX_NUDGES}). Content: ${content.slice(0, 200)}`,
         );
-        if (content) {
-          messages.push({ role: "assistant", content });
-        }
+        if (content) messages.push({ role: "assistant", content });
         messages.push({ role: "user", content: NUDGE_NO_TOOL });
         continue;
       }
@@ -161,11 +113,7 @@ export async function runHippocampus(args: {
       break;
     }
 
-    messages.push({
-      role: "assistant",
-      content: msg.content ?? null,
-      tool_calls: msg.tool_calls,
-    });
+    messages.push({ role: "assistant", content: msg.content ?? null, tool_calls: msg.tool_calls });
 
     let finished = false;
     for (const tc of msg.tool_calls) {
@@ -177,87 +125,32 @@ export async function runHippocampus(args: {
         toolArgs = {};
       }
 
-      let result = "";
-      switch (tc.function.name) {
-        case "memory_search": {
-          searchCalls++;
-          const q = String(toolArgs.query || "");
-          const layer = String(toolArgs.layer || "all");
-          const limit = Number(toolArgs.limit) || 5;
-          const hits: Record<string, unknown[]> = {};
-          if (layer === "all" || layer === "context") {
-            // B-1: scope context lookup to current agent (NULL rows visible).
-            hits.context = memory.searchContext(q, limit, agentId ? { agentId } : undefined);
-          }
-          if (layer === "all" || layer === "shared") {
-            hits.shared = memory.searchShared(q, limit);
-          }
-          result = JSON.stringify(hits);
-          break;
-        }
-        case "memory_write": {
-          const parsed = parseMemoryWriteArgs(toolArgs);
-          if (!parsed.ok) {
-            result = JSON.stringify({ ok: false, error: parsed.error });
-            break;
-          }
-          const wr =
-            parsed.layer === "shared"
-              ? await writeShared(memory, rag, router, parsed.args, log)
-              : await writeContext(memory, rag, router, parsed.args, requestId, log, agentId);
-          if (wr.ok) factsWritten++;
-          result = JSON.stringify(wr);
-          break;
-        }
-        case "task_add": {
-          // H-4: full AgentToolContext with nullable capability fields. No
-          // more `as unknown as` cast — task_add only reads executor +
-          // taskBudget; the rest stay null and any handler that tries to
-          // reach for router/room/etc. fails predictably with a null deref
-          // (the agent-only handlers that need them already null-check).
-          const out = await registry.callAsAgent("task_add", toolArgs, {
-            executor,
-            agentId,
-            log,
-            registry,
-            router: null,
-            room: null,
-            dynamicTools: null,
-            codeTools: null,
-            taskBudget,
-          });
-          if (out.success) {
-            tasksAdded++;
-            const title = String(toolArgs.title || "").slice(0, 100);
-            log.info("post", `→ task_add: ${title}`, {
-              meta: { layer: "tasks", remaining: taskBudget.remaining },
-            });
-          } else {
-            log.warn("post", `task_add rejected: ${out.error}`);
-          }
-          result = JSON.stringify(out);
-          break;
-        }
-        case "done": {
-          finished = true;
-          result = JSON.stringify({ ok: true });
-          break;
-        }
-        default:
-          result = JSON.stringify({ error: `Unknown tool: ${tc.function.name}` });
-      }
-
-      messages.push({
-        role: "tool",
-        content: result,
-        tool_call_id: tc.id,
+      const tr = await processToolCall({
+        name: tc.function.name,
+        toolArgs,
+        guard,
+        requestId,
+        agentId,
+        log,
+        memory,
+        rag,
+        router,
+        executor,
+        registry,
+        taskBudget,
       });
 
+      factsWritten += tr.factsWritten;
+      tasksAdded += tr.tasksAdded;
+      searchCalls += tr.searchCalls;
+      finished = tr.finished;
+
+      messages.push({ role: "tool", content: tr.result, tool_call_id: tc.id });
       if (finished) break;
     }
-
     if (finished) break;
   }
 
+  emitHippoTelemetry(guard, requestId, steps, log);
   return { factsWritten, tasksAdded, searchCalls, steps };
 }

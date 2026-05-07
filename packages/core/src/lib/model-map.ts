@@ -89,6 +89,14 @@ export const MODEL_MAP: Record<string, ModelRoute> = {
     fallback: "MiniMax-M2.7",
     fallbackProvider: "minimax",
   },
+  // Sleep = dedicated night-cycle role. Same fast model as memory, but
+  // distinct virtual name so NIGHT_CYCLE_MODEL can target it independently.
+  sleep: {
+    primary: "deepseek-ai/deepseek-v4-flash",
+    primaryProvider: "nvidia",
+    fallback: "MiniMax-M2.7",
+    fallbackProvider: "minimax",
+  },
 };
 
 /**

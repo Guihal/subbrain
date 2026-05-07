@@ -246,5 +246,3 @@ describe("tool-runner per-scope timeouts", () => {
     expect(parsed.error?.name).toBe("memory_hang");
   });
 });
-
-console.log("🎉 Tool runner tests passed!");

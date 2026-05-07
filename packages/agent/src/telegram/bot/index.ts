@@ -3,6 +3,7 @@ import { logger } from "@subbrain/core/lib/logger";
 import type { ModelRouter } from "@subbrain/core/lib/model-router";
 import { Bot, webhookCallback } from "grammy";
 import type { AgentPipeline } from "../../pipeline";
+import { registerApprovalCallbacks, sendApprovalPrompt } from "./approvals";
 import { registerCommands } from "./commands";
 import { registerMessageHandler } from "./message";
 import { createNotifier, type Notifier } from "./notify";
@@ -52,6 +53,14 @@ export class TelegramBot {
 
     registerCommands(this.bot, this.state);
     registerMessageHandler(this.bot, this.state);
+    registerApprovalCallbacks(this.bot, {
+      approvalRepo: config.memory.approvalRepo,
+      db: config.memory.db,
+    });
+  }
+
+  sendApprovalPrompt(row: import("@subbrain/core/db").ApprovalRow): void {
+    sendApprovalPrompt(this.bot, this.state.ownerChatId, row);
   }
 
   setReportSender(fn: (text: string) => Promise<void>): void {

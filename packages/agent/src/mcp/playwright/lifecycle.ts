@@ -33,7 +33,10 @@ export function trackClient(c: ClientHandle): void {
   if (beforeExitRegistered) return;
   beforeExitRegistered = true;
   process.on("beforeExit", () => {
-    for (const cl of liveClients) void cl.close().catch(() => {});
+    for (const cl of liveClients)
+      void cl.close().catch(() => {
+        /* swallow shutdown errors */
+      });
   });
 }
 

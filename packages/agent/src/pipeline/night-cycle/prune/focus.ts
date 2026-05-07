@@ -1,10 +1,11 @@
 import type { MemoryDB } from "@subbrain/core/db";
 import { logger } from "@subbrain/core/lib/logger";
 import type { ModelRouter } from "@subbrain/core/lib/model-router";
+import { resolveNightModel } from "../model";
 import { parseJson } from "../types";
 
 const log = logger.child("night");
-const NIGHT_MODEL = process.env.NIGHT_CYCLE_MODEL || "memory";
+const NIGHT_MODEL = resolveNightModel();
 
 /**
  * Focus keys owned by system subsystems — never pruned. User/agent keys

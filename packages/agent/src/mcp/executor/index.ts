@@ -26,6 +26,7 @@ export class ToolExecutor {
   private _codeTools: CodeToolRegistry | null = null;
   private _room: ArbitrationRoom | null = null;
   private _memoryService: MemoryService | null = null;
+  private _approvalNotifier: ((row: import("@subbrain/core/db").ApprovalRow) => void) | null = null;
 
   readonly memoryTools: MemoryTools;
   readonly memoryCurationTools: MemoryCurationTools;
@@ -58,6 +59,7 @@ export class ToolExecutor {
       rag: this.rag,
       userbot: this.userbot,
       botNotify: this.botNotify,
+      approvalNotifier: this._approvalNotifier,
       codeTools: this._codeTools,
       room: this._room,
       memoryService: this._memoryService,
@@ -79,6 +81,9 @@ export class ToolExecutor {
   }
   setBotNotify(fn: (text: string) => Promise<void>) {
     this.botNotify = fn;
+  }
+  setApprovalNotifier(fn: (row: import("@subbrain/core/db").ApprovalRow) => void) {
+    this._approvalNotifier = fn;
   }
   setUserbot(userbot: Userbot) {
     this.userbot = userbot;
@@ -106,6 +111,9 @@ export class ToolExecutor {
   }
   get modelRouter(): ModelRouter {
     return this.router;
+  }
+  get approvalNotifier(): ((row: import("@subbrain/core/db").ApprovalRow) => void) | null {
+    return this._approvalNotifier;
   }
 
   webCallTool = (name: string, args: Record<string, unknown>) => this.webTools.callTool(name, args);
@@ -153,6 +161,11 @@ export class ToolExecutor {
     tg.tgExcludeChat(this.state(), chatId, chatTitle, reason);
   tgIncludeChat = (chatId: string) => tg.tgIncludeChat(this.state(), chatId);
   tgListExcluded = () => tg.tgListExcluded(this.state());
+  tgSetChatPolicy = (
+    chatId: string,
+    policy: "full" | "scrubbed" | "metadata_only",
+    updatedBy?: string,
+  ) => tg.tgSetChatPolicy(this.state(), chatId, policy, updatedBy);
   tgFtsSearch = (query: string, chatId?: string, from?: string, to?: string, limit?: number) =>
     tg.tgFtsSearch(this.state(), query, chatId, from, to, limit);
 
