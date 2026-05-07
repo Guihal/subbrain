@@ -28,7 +28,7 @@ export const MODEL_MAP: Record<string, ModelRoute> = {
   // BrowseComp 79.3). ⚠️ TTFT 20-30s cold (vLLM warmup на GB200). MiniMax
   // fallback на случай NIM 5xx / quota burst.
   teamlead: {
-    primary: "z-ai/glm-5.1",
+    primary: "deepseek-ai/deepseek-v4-pro",
     primaryProvider: "nvidia",
     fallback: "MiniMax-M2.7",
     fallbackProvider: "minimax",
@@ -46,7 +46,7 @@ export const MODEL_MAP: Record<string, ModelRoute> = {
   // coding бенчах (тот же endpoint, drop-in upgrade). MiniMax fallback на
   // случай NIM перегрузки.
   critic: {
-    primary: "z-ai/glm-5.1",
+    primary: "deepseek-ai/deepseek-v4-pro",
     primaryProvider: "nvidia",
     fallback: "MiniMax-M2.7",
     fallbackProvider: "minimax",
