@@ -9,15 +9,25 @@ import type { RAGPipeline } from "../../../rag";
 
 export const EMBED_TIMEOUT_MS = 5000;
 
-export async function embedWithTimeout(rag: RAGPipeline, content: string): Promise<Float32Array> {
+export async function embedWithTimeout(
+  rag: RAGPipeline,
+  content: string,
+  signal?: AbortSignal,
+): Promise<Float32Array> {
   let timer: ReturnType<typeof setTimeout> | null = null;
   try {
-    return await Promise.race([
-      rag.embedContent(content),
-      new Promise<never>((_, rej) => {
-        timer = setTimeout(() => rej(new Error("embed_timeout")), EMBED_TIMEOUT_MS);
-      }),
-    ]);
+    const embedPromise = rag.embedContent(content);
+    const timeoutPromise = new Promise<never>((_, rej) => {
+      timer = setTimeout(() => rej(new Error("embed_timeout")), EMBED_TIMEOUT_MS);
+    });
+    if (signal?.aborted) throw new Error("embed_aborted");
+    const race = Promise.race([embedPromise, timeoutPromise]);
+    if (signal) {
+      signal.addEventListener("abort", () => {
+        if (timer) clearTimeout(timer);
+      }, { once: true });
+    }
+    return await race;
   } finally {
     if (timer) clearTimeout(timer);
   }

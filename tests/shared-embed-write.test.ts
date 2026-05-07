@@ -290,7 +290,10 @@ describe("M-01 / MEM-2 — shared_memory writers all embed atomically", () => {
       confidence: 0.9,
     });
     expect(result.success).toBe(false);
-    expect(String(result.error)).toMatch(/embed_fail|simulated_embed_fail/i);
+    const err = typeof result.error === "object" && result.error !== null
+      ? (result.error as { code?: string; message?: string }).code || String(result.error)
+      : String(result.error);
+    expect(err).toMatch(/embed_fail|simulated_embed_fail/i);
     expect(memory.countShared()).toBe(before);
   });
 
