@@ -263,7 +263,7 @@ All 4 packets complete. Cap 0/3. 8c-2..8c-5 now unblocked (dependency on 8c-1 cl
 - 8c-3 (retention pruner): agent ab985579f — DONE (code verified, not committed)
 - 8c-4 (restore CLI): agent a56279b9d — DONE (code verified, not committed)
 - 8c-5 (status route): agent a3917c9aa — DONE (code verified, not committed)
-All 4 agents completed with cp0-cp3 green but FAILED to commit. Commit agent a4f0543c dispatched. 8c-6 remains blocked until commits land.
+All 4 agents completed with cp0-cp3 green but FAILED to commit. Commit agent a4f0543c dispatched → process died without commits. Retry commit agent a371425d dispatched. 8c-6 remains blocked until commits land.
 
 **Note:** Test baseline now 1258 pass / 3 fail / 1 error. New failures are all PRE-EXISTING:
 - `agent-pool-runner-free.test.ts:102` — "noop" vs "complete" (pre-existing dispatcher isolation)
