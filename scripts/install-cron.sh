@@ -5,17 +5,19 @@
 # Run this ONCE on the VPS as root:
 #   bash scripts/install-cron.sh
 #
-# It appends a daily 00:00 UTC (= 03:00 MSK) entry to root's crontab that
+# It appends a daily 03:00 UTC entry to root's crontab that
 # triggers the night cycle via the Bun container's published port.
-# Keep the hour in sync with NIGHT_CYCLE_HOUR_UTC in .env.
+# Keep the hour in sync with NIGHT_CYCLE_HOUR_UTC in .env (default 3 = 03:00 UTC).
 #
-# /night-cycle is registered before authMiddleware in src/index.ts, so it does
-# not require a Bearer token. The container only publishes :4000 on
-# 127.0.0.1, so this is reachable from the host but not from the public net.
+# /night-cycle requires Bearer auth (mounted after authMiddleware since AUTH-16).
+# The container only publishes :4000 on 127.0.0.1, so this is reachable from
+# the host but not the public net. Caddy upstream injects the Bearer header for
+# external requests; cron uses PROXY_AUTH_TOKEN from /opt/subbrain/.env directly.
 
 set -euo pipefail
 
-CRON_LINE='0 0 * * * curl -fsS -X POST http://127.0.0.1:4000/night-cycle -m 600 >> /var/log/subbrain-night-cycle.log 2>&1'
+# shellcheck disable=SC2016
+CRON_LINE='0 3 * * * set -a; . /opt/subbrain/.env; set +a; curl -fsS -X POST -H "Authorization: Bearer $PROXY_AUTH_TOKEN" http://127.0.0.1:4000/night-cycle -m 600 >> /var/log/subbrain-night-cycle.log 2>&1'
 MARKER='# subbrain night-cycle'
 
 current="$(crontab -l 2>/dev/null || true)"

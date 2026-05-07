@@ -33,6 +33,7 @@ export interface AppConfig {
     schedulerEnabled: boolean;
     hourUtc: number;
     backlogTrigger: number;
+    timeoutMs: number;
   };
   telegram: {
     webhookUrl?: string;
@@ -124,6 +125,10 @@ export function loadConfig(): AppConfig {
       schedulerEnabled: process.env.NIGHT_CYCLE_SCHEDULER !== "false",
       hourUtc: Number(process.env.NIGHT_CYCLE_HOUR_UTC ?? 3),
       backlogTrigger: Number(process.env.NIGHT_CYCLE_BACKLOG_TRIGGER ?? 10),
+      timeoutMs: Math.max(
+        60_000,
+        Number(process.env.NIGHT_CYCLE_TIMEOUT_MS) || 30 * 60 * 1000,
+      ),
     },
     telegram: {
       webhookUrl: process.env.TG_WEBHOOK_URL,

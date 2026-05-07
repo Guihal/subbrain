@@ -5,6 +5,14 @@
  *
  * Poller never calls pipeline models directly except for the small `flash`
  * summary in remind().
+ *
+ * Disjoint-by-design contract with `userbot/monitor.attachMonitor` (bug-5):
+ * `runPoll` writes ONLY Layer-1 focus KV (`tasks.state`, `tg.poller.last_id`)
+ * via `memory.setFocus`. It does NOT call `memory.appendLog` and emits no
+ * role="channel_message" rows. Realtime monitor owns that surface. Even when
+ * both subsystems target the same chat_id, their write surfaces are
+ * orthogonal — no duplicate raw_log rows possible. See
+ * `tests/tg-poller-userbot-disjoint.test.ts`.
  */
 import type { MemoryDB } from "@subbrain/core/db";
 import { logger } from "@subbrain/core/lib/logger";
