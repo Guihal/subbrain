@@ -52,8 +52,13 @@ export function useChatState() {
   async function flushStreamingPaint() {
     await nextTick();
     if (!import.meta.client) return;
+    // Double-rAF: first rAF callback runs BEFORE paint; we need to yield
+    // until AFTER paint so the next stream chunk doesn't pre-empt rendering.
+    // Without this, Chrome desktop coalesces all chunk-driven re-renders
+    // into a single paint at stream end (mobile Chrome paints sooner due
+    // to slower network gaps between chunks).
     await new Promise<void>((resolve) => {
-      requestAnimationFrame(() => resolve());
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
     });
   }
 
