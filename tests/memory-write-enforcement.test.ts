@@ -14,6 +14,7 @@ import { type SharedWriteDeps, writeShared } from "@subbrain/agent/mcp/tools/mem
 import { defaultExpiresAt } from "@subbrain/agent/pipeline/agent-pipeline/post/validators";
 import { RAGPipeline } from "@subbrain/agent/rag";
 import { MemoryDB } from "@subbrain/core/db";
+import { asData, asErr } from "./lib/test-doubles";
 
 const TEST_DB = "data/test-write-enforcement.db";
 const NOW_SEC = () => Math.floor(Date.now() / 1000);
@@ -97,7 +98,7 @@ describe("whitelist — reject mode", () => {
       status: "active",
     });
     expect(r.success).toBe(false);
-    expect((r as any).error?.code).toBe("validation_failed");
+    expect(asErr(r)?.code).toBe("validation_failed");
   });
 
   test("whitelist category passes", async () => {
@@ -156,7 +157,7 @@ describe("TIME_BOUND categories — reject mode", () => {
     });
     // "plan" isn't in shared whitelist → fails whitelist first
     expect(r.success).toBe(false);
-    expect((r as any).error?.code).toBe("validation_failed");
+    expect(asErr(r)?.code).toBe("validation_failed");
   });
 
   test("context decision without expires_at gets default TTL (+90d)", async () => {
@@ -256,8 +257,8 @@ describe("dedup strict mode (profile category)", () => {
       status: "active",
     });
     expect(r2.success).toBe(false);
-    expect((r2 as any).error?.code).toBe("validation_failed");
-    expect((r2 as any).error?.message).toContain("duplicate");
+    expect(asErr(r2)?.code).toBe("validation_failed");
+    expect(asErr(r2)?.message).toContain("duplicate");
   });
 
   test("orthogonal vectors (cosine ≈ 0) → fresh insert", async () => {
@@ -286,7 +287,7 @@ describe("dedup strict mode (profile category)", () => {
       status: "active",
     });
     expect(r2.success).toBe(true);
-    expect((r2 as any).data?.id).toBe("fresh2");
+    expect(asData<{ id: string }>(r2)?.id).toBe("fresh2");
   });
 });
 
@@ -338,7 +339,7 @@ describe("dedup supersede mode (preference category)", () => {
       status: "active",
     });
     expect(r2.success).toBe(true);
-    expect((r2 as any).data?.superseded).toBe("sup1");
+    expect(asData<{ superseded: string }>(r2)?.superseded).toBe("sup1");
 
     // Critical: old row must have superseded_by = sup2.
     const oldRow = memory.getShared("sup1");
@@ -370,7 +371,7 @@ describe("writeContextCase enforcement", () => {
     );
     expect(r).not.toBeNull();
     expect(r?.success).toBe(false);
-    expect((r as any).error?.code).toBe("validation_failed");
+    expect(asErr(r)?.code).toBe("validation_failed");
   });
 
   test("valid context category inserts and returns null (no error)", async () => {
