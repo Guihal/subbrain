@@ -298,3 +298,5 @@ None are 8c regressions.
 Combined verification: tsc clean, all new files ≤150 lines. Tests 1264 pass / 3 fail / 1 error (+1 flaky timeout in tg-pii-backfill, unrelated to Wave 5). **ALL_WAVES_DONE** @ 2026-05-07 ~04:55 UTC. Entering WATCHDOG MODE.
 
 2026-05-07 ~05:10 UTC — WATCHDOG tick. cp0 green, tsc clean, tests 1265 pass / 2 fail / 1 error (baseline restored — flaky tg-pii-backfill now passes). Git clean (only CLAUDE.md.original.md untracked). TaskList empty. 1 docs commit (e738c54) since last tick. No external commits. No regressions. Idle — next tick in 10m.
+
+2026-05-07 ~05:25 UTC — WATCHDOG tick. cp0 green, tsc clean, tests 1264 pass / 3 fail / 1 error (tg-pii-backfill flaky timeout again — 5000ms, pre-existing). Git clean. TaskList empty. 1 docs commit (6424d37) since last tick. No external commits. No regressions. Noted: tg-pii-backfill flakiness pattern confirmed (pass/fail alternates between runs). Idle — next tick in 10m.
