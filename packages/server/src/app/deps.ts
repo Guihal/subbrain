@@ -54,6 +54,11 @@ export interface AppConfig {
     maxSteps: number;
     task: string;
   };
+  backup: {
+    enabled: boolean;
+    hourUtc: number;
+    dir: string;
+  };
 }
 export interface AppDeps {
   config: AppConfig;
@@ -153,6 +158,11 @@ export function loadConfig(): AppConfig {
       startupDelayMs: Math.max(0, Number(process.env.FREE_AGENT_STARTUP_DELAY_MS) || 60_000),
       maxSteps: Math.min(100, Math.max(1, Number(process.env.FREE_AGENT_MAX_STEPS) || 50)),
       task: process.env.FREE_AGENT_TASK || FREE_AGENT_TASK,
+    },
+    backup: {
+      enabled: process.env.BACKUP_ENABLED !== "false",
+      hourUtc: Number(process.env.BACKUP_HOUR_UTC ?? 4),
+      dir: process.env.BACKUP_DIR || "data/backups",
     },
   };
 }

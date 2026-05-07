@@ -170,6 +170,8 @@ export function installApprovalSweeper(deps: AppDeps): ApprovalSweeper | undefin
   return sweeper;
 }
 
+export { installBackupScheduler } from "./backup-scheduler";
+
 export function installTelegramWebhook(deps: AppDeps): void {
   const { telegramBot, config } = deps;
   if (!telegramBot) return;
