@@ -144,14 +144,14 @@
 
 ---
 
-## Wave 5 — Entropy refactor
+## Wave 5 — Entropy refactor (COMPLETE)
 
 | Phase | Packet | Status | Last CP | Blocker | Notes |
 |---|---|---|---|---|---|
-| 5-1 | entropy-post-steps | `not_started` | — | — | Risk=medium, cyc=32, MI=55.9. spec_path: docs/audit/2026-05-07-packages-agent-src-pipeline-night-cycle-post-steps.md. file_cap_hard: {"packages/agent/src/pipeline/night-cycle/post-steps.ts": 262}. expected_scope: impl. |
-| 5-2 | entropy-link-related | `not_started` | — | — | Risk=medium, cyc=44, MI=34.4. spec_path: docs/audit/2026-05-07-packages-agent-src-pipeline-agent-pipeline-post-link-related.md. file_cap_hard: {"packages/agent/src/pipeline/agent-pipeline/post/link-related.ts": 246}. expected_scope: impl. |
-| 5-3 | entropy-cross-layer-dedup | `not_started` | — | — | Risk=medium, cyc=38, MI=47.4. spec_path: docs/audit/2026-05-07-packages-agent-src-pipeline-night-cycle-steps-cross-layer-dedup.md. file_cap_hard: {"packages/agent/src/pipeline/night-cycle/steps/cross-layer-dedup.ts": 245}. expected_scope: impl. |
-| 5-4 | entropy-write-shared | `not_started` | — | — | Risk=medium, cyc=31, MI=35.1. spec_path: docs/audit/2026-05-07-packages-agent-src-mcp-tools-memory-write-shared.md. file_cap_hard: {"packages/agent/src/mcp/tools/memory/write-shared.ts": 253}. expected_scope: impl. |
+| 5-1 | entropy-post-steps | `done` | `cp3` | — | Commit 9c64091. Split 262→6 files (prune/dedup/reflect/janitor/run-step/index). Promise.allSettled for prune phase. AbortSignal threaded. Logger single-arg fixed via child(). cp0/tsc green. |
+| 5-2 | entropy-link-related | `done` | `cp3` | — | Commit 34f6953. Split 246→3 files (evolve/contradict/index). `isContradictionArray` runtime guard replaces 3 any casts. AbortSignal threaded to router.chat(). EdgeKind enum. cp0/tsc green. 21/21 link-related tests pass. |
+| 5-3 | entropy-cross-layer-dedup | `done` | `cp3` | — | Commit ced99ad. Split 245→5 files (cosine/config/dedup-pair/promote/index). `safeMessage()` helper, `parseEnvInt`/`parseEnvFloat` extracted. Transaction wrapper on promote. N+1→batched getSharedMany. cp0/tsc green. |
+| 5-4 | entropy-write-shared | `done` | `cp3` | — | Commit dfc4b6f. Split 253→4 files (insert/supersede/validators/index). `embedThenInsertTxn` deduplicates embed+txn. `SharedWriteErr` enum replaces 8 string literals. `buildError` uniform shape. AbortSignal in embedWithTimeout. cp0/tsc green. |
 
 ---
 
@@ -289,3 +289,10 @@ None are 8c regressions.
 2026-05-07 ~03:55 UTC — WATCHDOG tick. cp0 green, tsc clean, biome 0 errors (warn-level only), tests 1265 pass / 2 fail / 1 error (pre-existing baseline). Git clean (3 stashes pre-existing, no code files). TaskList empty. No external commits. No regressions. Idle — next tick in 10m.
 
 2026-05-07 ~04:10 UTC — WATCHDOG tick. cp0 green, tsc clean, biome 0 errors, tests 1265 pass / 2 fail / 1 error (same baseline). Git clean. TaskList empty. No external commits. No regressions. Idle — next tick in 10m.
+
+2026-05-07 ~04:55 UTC — **WAVE 5 COMPLETE.** All 4 entropy refactor packets dispatched in parallel (cap 4/4):
+- 5-1 DONE (commit 9c64091) — post-steps split 262→6 files
+- 5-2 DONE (commit 34f6953) — link-related split 246→3 files
+- 5-3 DONE (commit ced99ad) — cross-layer-dedup split 245→5 files
+- 5-4 DONE (commit dfc4b6f) — write-shared split 253→4 files
+Combined verification: tsc clean, all new files ≤150 lines. Tests 1264 pass / 3 fail / 1 error (+1 flaky timeout in tg-pii-backfill, unrelated to Wave 5). **ALL_WAVES_DONE** @ 2026-05-07 ~04:55 UTC. Entering WATCHDOG MODE.
