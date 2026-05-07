@@ -2,12 +2,11 @@
  * 8c-6 — Backup retention + restore CLI integration tests.
  */
 
+import { Database } from "bun:sqlite";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, unlinkSync, writeFileSync } from "node:fs";
-import { mkdtempSync, rmdirSync } from "node:fs";
+import { existsSync, mkdtempSync, rmdirSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { Database } from "bun:sqlite";
 import { pruneBackups } from "@subbrain/core/db/backup";
 
 const SCRIPT = "scripts/restore-backup.ts";
